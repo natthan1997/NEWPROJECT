@@ -998,13 +998,65 @@ export default function LiffMenuPage() {
 
   const filteredItems = items.filter(item => {
     const matchesSearch = getMenuSearchText(item).includes(searchTerm.toLowerCase());
-    const matchesCategory = activeCategoryId === 'all' || item.category_id === activeCategoryId;
-    return matchesSearch && matchesCategory;
+    return matchesSearch;
   });
   const menuSections = [
     ...categories,
     { id: 'uncategorized', name: 'อื่นๆ' }
   ];
+
+  // IntersectionObserver for scroll spy
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const observer = new IntersectionObserver((entries) => {
+      const intersecting = entries.filter(entry => entry.isIntersecting);
+      
+      if (intersecting.length > 0) {
+        intersecting.sort((a, b) => Math.abs(a.boundingClientRect.top) - Math.abs(b.boundingClientRect.top));
+        
+        const visibleId = intersecting[0].target.id.replace('category-', '');
+        
+        if (window.scrollY < 200) {
+          setActiveCategoryId('all');
+        } else {
+          setActiveCategoryId(visibleId);
+          const tab = document.getElementById(`tab-${visibleId}`);
+          const container = document.getElementById('category-tabs-container');
+          if (tab && container) {
+            container.scrollTo({
+              left: tab.offsetLeft - container.offsetWidth / 2 + tab.offsetWidth / 2,
+              behavior: 'smooth'
+            });
+          }
+        }
+      } else if (window.scrollY < 200) {
+        setActiveCategoryId('all');
+        const tab = document.getElementById(`tab-all`);
+        const container = document.getElementById('category-tabs-container');
+        if (tab && container) {
+          container.scrollTo({
+            left: tab.offsetLeft - container.offsetWidth / 2 + tab.offsetWidth / 2,
+            behavior: 'smooth'
+          });
+        }
+      }
+    }, {
+      rootMargin: '-120px 0px -60% 0px',
+      threshold: 0
+    });
+
+    const timeout = setTimeout(() => {
+      document.querySelectorAll('.scroll-spy-section').forEach(section => {
+        observer.observe(section);
+      });
+    }, 1000);
+
+    return () => {
+      clearTimeout(timeout);
+      observer.disconnect();
+    };
+  }, [categories, items]);
 
   const cartTotal = useMemo(() => cart.reduce((acc, item) => {
     const modsPrice = item.selected_modifiers?.reduce((macc: number, m: any) => macc + (m.price_adjustment || m.price || 0), 0) || 0;
@@ -1751,8 +1803,8 @@ export default function LiffMenuPage() {
           ) : null}
         </AnimatePresence>
 
-        {/* Search & Categories */}
-        <div className="p-4 space-y-3">
+        {/* Search */}
+        <div className="px-4 space-y-3">
           <div className="relative group">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={14} />
             <input
@@ -1760,24 +1812,34 @@ export default function LiffMenuPage() {
               className="w-full bg-gray-50 border border-gray-100 pl-10 pr-4 py-2.5 text-xs text-black font-medium"
             />
           </div>
-          <div className="flex gap-2 overflow-x-auto no-scrollbar">
-            {[{ id: 'all', name: t.all }, ...categories.map(c => ({ id: c.id, name: c.name }))].map(category => {
-              return (
-                <button
-                  key={category.id}
-                  onClick={() => setActiveCategoryId(category.id)}
-                  className={`px-3 py-1.5 text-[8px] font-black uppercase border transition-all ${activeCategoryId === category.id ? 'bg-black text-white' : 'bg-white text-gray-400 border-gray-100'}`}
-                >
-                  {category.name}
-                </button>
-              );
-            })}
-          </div>
+        </div>
+        
+        {/* Categories (Sticky) */}
+        <div className="sticky top-[58px] z-[90] bg-[#fcfcf9] px-4 py-3 border-b border-gray-100 flex gap-2 overflow-x-auto no-scrollbar shadow-sm" id="category-tabs-container">
+          {[{ id: 'all', name: t.all }, ...categories.map(c => ({ id: c.id, name: c.name }))].map(category => {
+            return (
+              <button
+                key={category.id}
+                id={`tab-${category.id}`}
+                onClick={() => {
+                  setActiveCategoryId(category.id);
+                  const el = document.getElementById(category.id === 'all' ? 'category-all' : `category-${category.id}`);
+                  if (el) {
+                    const y = el.getBoundingClientRect().top + window.scrollY - 110;
+                    window.scrollTo({ top: y, behavior: 'smooth' });
+                  }
+                }}
+                className={`px-4 py-2 text-[10px] font-black uppercase transition-all whitespace-nowrap shrink-0 rounded-full border ${activeCategoryId === category.id ? 'bg-black text-white border-black' : 'bg-white text-gray-500 border-gray-200'}`}
+              >
+                {category.name}
+              </button>
+            );
+          })}
         </div>
 
         {/* 🏆 Tier 1: Signature Series (Recommended) */}
-        {activeCategoryId === 'all' && !searchTerm && (
-          <section className="px-4 mb-10">
+        {!searchTerm && (
+          <section className="px-4 mb-10 pt-4 scroll-spy-section" id="category-all">
             <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-600 mb-6 flex items-center gap-3">
               <Star size={12} fill="currentColor" /> {locale === 'en' ? 'Signature Series • Recommended menu' : locale === 'zh' ? '招牌系列 • 推荐菜单' : 'Signature Series • เมนูแนะนำ'}</h2>
             <div className="grid grid-cols-2 gap-4">
@@ -1816,7 +1878,7 @@ export default function LiffMenuPage() {
         )}
 
         {/* ❤️ Tier 2: Most Loved (Best Sellers) */}
-        {activeCategoryId === 'all' && !searchTerm && (
+        {!searchTerm && (
           <section className="px-4 mb-10">
             <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-400 mb-6 px-1">{locale === 'en' ? 'Most Loved • เมนูยอดนิยม' : locale === 'zh' ? 'Most Loved • เมนูยอดนิยม' : 'Most Loved • เมนูยอดนิยม'}</h2>
             <div className="grid grid-cols-2 gap-4">
@@ -1855,7 +1917,7 @@ export default function LiffMenuPage() {
         )}
 
         {/* 🌟 Social Proof Divider */}
-        {recentReviews.length > 0 && activeCategoryId === 'all' && !searchTerm && (
+        {recentReviews.length > 0 && !searchTerm && (
           <div className="my-12 px-4 py-10 bg-[#f9f9f5] border-y border-gray-50 relative overflow-hidden">
             <div className="absolute top-0 right-0 p-10 opacity-5 -rotate-12 translate-x-1/2 -translate-y-1/2">
                 <Star size={120} fill="currentColor" className="text-amber-500" />
@@ -1886,7 +1948,7 @@ export default function LiffMenuPage() {
 
         {/* 📦 Full Collections: Categorized Browsing (Full-width Rows) */}
         <div className="px-4 space-y-12">
-          {menuSections.filter(c => activeCategoryId === 'all' || c.id === activeCategoryId).map(cat => {
+          {menuSections.map(cat => {
             const catItems = filteredItems.filter(i =>
               cat.id === 'uncategorized'
                 ? !i.category_id || !categories.find(category => category.id === i.category_id)
@@ -1894,7 +1956,7 @@ export default function LiffMenuPage() {
             );
             if (catItems.length === 0) return null;
             return (
-              <div key={cat.id} className="space-y-6">
+              <div key={cat.id} id={`category-${cat.id}`} className="space-y-6 scroll-spy-section pt-4">
                 <div className="flex items-center gap-4">
                     <h2 className="text-[11px] font-black uppercase tracking-[0.3em] text-black whitespace-nowrap">{cat.name}</h2>
                     <div className="h-px bg-gray-100 w-full" />

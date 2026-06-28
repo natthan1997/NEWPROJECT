@@ -43,10 +43,6 @@ export function PromoBannerSlider() {
       {banners.map((b: any) => (
         <div key={b.id} className="w-full h-full flex-shrink-0 relative">
           <img src={b.image_url || b.image} alt={b.title} className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent flex flex-col justify-end p-4">
-            <h2 className="text-white text-xs font-black uppercase">{b.title}</h2>
-            <p className="text-white/80 text-[9px] mt-1 font-bold">{b.subtitle}</p>
-          </div>
         </div>
       ))}
     </div>
