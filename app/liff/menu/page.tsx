@@ -1113,8 +1113,8 @@ export default function LiffMenuPage() {
         let itemQuery = supabase.from('pos_menu_items').select('*, modifiers:pos_item_modifier_links(group_id)').eq('is_active', true).order('name', { ascending: true }).or(`branch_id.eq.${activeBranch.branch_id},branch_id.is.null`);
         
         const [{ data: cData }, { data: iData }] = await Promise.all([catQuery, itemQuery]);
-        if (cData) setCategories(cData);
-        if (iData) setItems(sortMenuItemsByOrder(iData));
+        if (cData && cData.length > 0) setCategories(cData);
+        if (iData && iData.length > 0) setItems(sortMenuItemsByOrder(iData));
       };
       fetchBranchMenus();
     }
