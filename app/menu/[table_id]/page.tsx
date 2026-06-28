@@ -236,6 +236,7 @@ export default function CustomerMenuPage() {
   const [showTableBill, setShowTableBill] = useState(false)
   const [orderedItemCount, setOrderedItemCount] = useState(0)
   const showTableBillRef = useRef(showTableBill)
+  const [bestSellingIds, setBestSellingIds] = useState<string[]>([])
   useEffect(() => {
       showTableBillRef.current = showTableBill
   }, [showTableBill])
@@ -438,12 +439,24 @@ export default function CustomerMenuPage() {
 
   const fetchData = async () => {
     setLoading(true)
-    const [itemRes, catRes, tableRes, bannerRes] = await Promise.all([
+    const [itemRes, catRes, tableRes, bannerRes, salesRes] = await Promise.all([
         supabase.from('pos_menu_items').select('*, category:pos_menu_categories(name)').eq('is_active', true).order('name', { ascending: true }),
         supabase.from('pos_menu_categories').select('*').order('order_index'),
         supabase.from('pos_tables').select('*').eq('table_number', table_id).single(),
-        supabase.from('pos_banners').select('*').eq('is_active', true).order('order_index')
+        supabase.from('pos_banners').select('*').eq('is_active', true).order('order_index'),
+        supabase.from('pos_order_items').select('item_id, quantity')
     ])
+
+    if (salesRes.data) {
+        const counts: Record<string, number> = {};
+        salesRes.data.forEach(s => {
+          counts[s.item_id] = (counts[s.item_id] || 0) + (s.quantity || 1);
+        });
+        const sortedIds = Object.keys(counts)
+          .sort((a, b) => counts[b] - counts[a])
+          .slice(0, 4);
+        setBestSellingIds(sortedIds);
+    }
 
     if (itemRes.data) setItems(sortMenuItemsByOrder(itemRes.data))
     if (catRes.data) setCategories(catRes.data)
@@ -1161,7 +1174,7 @@ export default function CustomerMenuPage() {
   const activeItems = items.filter(i => i.is_active !== false)
   const onlineItems = activeItems.filter(i => i.is_online_available !== false)
   const displayItems = onlineItems.length > 0 ? onlineItems : activeItems
-  const popularItems = displayItems.filter(i => i.is_popular || i.is_recommended)
+  const popularItems = displayItems.filter(i => bestSellingIds.includes(i.id))
   const menuSections = [
     ...categories,
     { id: 'uncategorized', name: 'อื่นๆ' }
@@ -1258,8 +1271,7 @@ export default function CustomerMenuPage() {
         </div>
 
         {/* 🏆 Tier 1: Signature Series (Recommended) */}
-        {activeCategoryId === 'all' && (
-          <section id="category-all" className="px-4 sm:px-6 mt-6 max-w-7xl mx-auto scroll-spy-section">
+        <section id="category-all" className="px-4 sm:px-6 mt-6 max-w-7xl mx-auto scroll-spy-section">
             <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-600 mb-6 flex items-center gap-3">
               <Star size={12} fill="currentColor" /> {locale === 'en' ? 'Signature Series • Recommended menu' : locale === 'zh' ? '招牌系列 • 推荐菜单' : 'Signature Series • เมนูแนะนำ'}</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -1295,14 +1307,12 @@ export default function CustomerMenuPage() {
               ))}
             </div>
           </section>
-        )}
 
         {/* ❤️ Tier 2: Most Loved (Best Sellers) */}
-        {activeCategoryId === 'all' && (
-          <section id="category-popular" className="px-4 sm:px-6 mt-10 mb-6 max-w-7xl mx-auto scroll-spy-section">
+        <section id="category-popular" className="px-4 sm:px-6 mt-10 mb-6 max-w-7xl mx-auto scroll-spy-section">
             <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-400 mb-6 px-1">{locale === 'en' ? 'Most Loved • เมนูยอดนิยม' : locale === 'zh' ? 'Most Loved • เมนูยอดนิยม' : 'Most Loved • เมนูยอดนิยม'}</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {displayItems.filter(i => i.is_popular).slice(0, 4).map(item => (
+              {displayItems.filter(i => bestSellingIds.includes(i.id)).slice(0, 4).map(item => (
                 <div key={item.id} className={`bg-white border border-gray-100 flex flex-col group overflow-hidden relative ${item.in_stock === false ? 'opacity-60 grayscale' : ''}`}>
                    <div className={`relative aspect-[4/3] bg-gray-50 overflow-hidden ${item.in_stock !== false ? 'cursor-pointer' : 'cursor-not-allowed'}`} onClick={() => item.in_stock !== false && handleItemClick(item)}>
                      {item.image_url ? <img src={item.image_url} alt={getPrimaryMenuName(item)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" /> : <div className="absolute inset-0 flex items-center justify-center text-gray-300"><Utensils size={24} strokeWidth={1} /></div>}
@@ -1334,11 +1344,10 @@ export default function CustomerMenuPage() {
               ))}
             </div>
           </section>
-        )}
 
         {/* 📦 Full Collections: Categorized Browsing (Full-width Rows) - Matching LIFF Style */}
         <div className="p-4 sm:p-6 pb-40 space-y-12 max-w-7xl mx-auto bg-white">
-          {menuSections.filter(c => activeCategoryId === 'all' || c.id === activeCategoryId).map(cat => {
+          {menuSections.map(cat => {
             const catItems = displayItems.filter(i =>
               cat.id === 'uncategorized'
                 ? !i.category_id || !categories.find(category => category.id === i.category_id)

@@ -1878,7 +1878,7 @@ export default function LiffMenuPage() {
 
         {/* ❤️ Tier 2: Most Loved (Best Sellers) */}
         {!searchTerm && (
-          <section className="px-4 mb-10">
+          <section id="category-popular" className="px-4 mb-10 scroll-spy-section">
             <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-400 mb-6 px-1">{locale === 'en' ? 'Most Loved • เมนูยอดนิยม' : locale === 'zh' ? 'Most Loved • เมนูยอดนิยม' : 'Most Loved • เมนูยอดนิยม'}</h2>
             <div className="grid grid-cols-2 gap-4">
               {items.filter(i => bestSellingIds.includes(i.id)).slice(0, 4).map(item => (
