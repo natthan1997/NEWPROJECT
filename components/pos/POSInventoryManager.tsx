@@ -608,6 +608,619 @@ export default function POSInventoryManager({
     },
   ] as const
 
+  
+  if (isEditorOpen) {
+    return (
+      <div className="flex flex-col min-h-screen bg-gray-50 pb-[env(safe-area-inset-bottom)] z-50 fixed inset-0">
+        <header className="sticky top-0 z-10 flex items-center justify-between bg-white px-4 md:px-8 py-4 border-b border-gray-100 shadow-sm">
+          <div className="flex items-center gap-4">
+            <button onClick={() => setIsEditorOpen(false)} className="flex items-center justify-center w-10 h-10 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded-full text-gray-600 transition-colors">
+              <ChevronLeft size={24} />
+            </button>
+            <div>
+                <h1 className="text-xl md:text-2xl font-black uppercase tracking-tighter text-[#1A1A18] leading-none">{editingItem.id ? 'Edit Material' : 'New Material'}</h1>
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#8C8A81] leading-none mt-2">Inventory Management Portal</p>
+            </div>
+          </div>
+        </header>
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 max-w-5xl mx-auto w-full space-y-8 font-bold">
+<div className="grid grid-cols-2 gap-8 font-bold">
+                  <div className="space-y-2 font-bold">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">{locale === 'en' ? 'ชื่อวัตถุดิบ' : locale === 'zh' ? 'ชื่อวัตถุดิบ' : 'ชื่อวัตถุดิบ'}</label>
+                    <input 
+                      type="text" 
+                      className="w-full bg-gray-50 border-none py-4 px-6 text-[14px] font-bold outline-none focus:ring-1 focus:ring-black"
+                      value={editingItem.name}
+                      onChange={(e) => setEditingItem({...editingItem, name: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2 font-bold">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">{locale === 'en' ? 'หมวดหมู่สินค้า' : locale === 'zh' ? 'หมวดหมู่สินค้า' : 'หมวดหมู่สินค้า'}</label>
+                    <select 
+                      className="w-full bg-gray-50 border-none py-4 px-6 text-[14px] font-bold outline-none focus:ring-1 focus:ring-black h-[58px]"
+                      value={editingItem.category_id || ''}
+                      onChange={(e) => setEditingItem({...editingItem, category_id: e.target.value})}
+                    >
+                      <option value="">{locale === 'en' ? 'เลือกหมวดหมู่...' : locale === 'zh' ? 'เลือกหมวดหมู่...' : 'เลือกหมวดหมู่...'}</option>
+                      {categories.map(cat => (
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-8 font-bold">
+                  <div className="space-y-2 font-bold">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">{locale === 'en' ? 'SKU / รหัส' : locale === 'zh' ? 'SKU / รหัส' : 'SKU / รหัส'}</label>
+                    <input 
+                      type="text" 
+                      className="w-full bg-gray-50 border-none py-4 px-6 text-[14px] font-bold outline-none focus:ring-1 focus:ring-black"
+                      value={editingItem.sku || ''}
+                      onChange={(e) => setEditingItem({...editingItem, sku: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-8 font-bold">
+                  <div className="space-y-2 font-bold">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">{locale === 'en' ? 'หน่วยฐาน (เช่น ชิ้น, g)' : locale === 'zh' ? 'หน่วยฐาน (เช่น ชิ้น, g)' : 'หน่วยฐาน (เช่น ชิ้น, g)'}</label>
+                    <input 
+                      type="text" 
+                      className="w-full bg-gray-50 border-none py-4 px-6 text-[14px] font-bold outline-none focus:ring-1 focus:ring-black text-center"
+                      value={editingItem.unit}
+                      onChange={(e) => setEditingItem({...editingItem, unit: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2 font-bold">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">{locale === 'en' ? 'หน่วยซื้อ (เช่น แพ็ค, ลัง)' : locale === 'zh' ? 'หน่วยซื้อ (เช่น แพ็ค, ลัง)' : 'หน่วยซื้อ (เช่น แพ็ค, ลัง)'}</label>
+                    <input 
+                      type="text" 
+                      className="w-full bg-gray-50 border-none py-4 px-6 text-[14px] font-bold outline-none focus:ring-1 focus:ring-black text-center"
+                      value={editingItem.purchase_unit || ''}
+                      onChange={(e) => setEditingItem({...editingItem, purchase_unit: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2 font-bold">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-blue-500">{locale === 'en' ? 'จำนวนย่อยต่อ 1 ' : locale === 'zh' ? 'จำนวนย่อยต่อ 1 ' : 'จำนวนย่อยต่อ 1 '}{editingItem.purchase_unit || 'หน่วยซื้อ'}</label>
+                    <input 
+                      type="number" 
+                      className="w-full bg-blue-50 border border-blue-100 py-4 px-6 text-[14px] font-bold outline-none focus:ring-1 focus:ring-blue-500 text-center text-blue-600"
+                      value={editingItem.conversion_factor || 1}
+                      onChange={(e) => {
+                          const newFactor = Number(e.target.value) || 1;
+                          // Keep the Bulk Price (Total Paid) constant, update unit cost
+                          const currentBulkPrice = editingItem.cost_price * (editingItem.conversion_factor || 1);
+                          setEditingItem({
+                            ...editingItem, 
+                            conversion_factor: newFactor,
+                            cost_price: currentBulkPrice / newFactor
+                          });
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-8 font-bold">
+                  <div className="space-y-2 font-bold">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-emerald-600">{locale === 'en' ? 'ราคาทุนที่ซื้อมาต่อ ' : locale === 'zh' ? 'ราคาทุนที่ซื้อมาต่อ ' : 'ราคาทุนที่ซื้อมาต่อ '}{editingItem.purchase_unit || 'หน่วยซื้อ'}</label>
+                    <input 
+                      type="number" 
+                      className="w-full bg-emerald-50 border border-emerald-100 py-4 px-6 text-xl font-black outline-none focus:ring-1 focus:ring-emerald-600 text-emerald-600"
+                      value={(editingItem.cost_price * (editingItem.conversion_factor || 1)).toFixed(2)}
+                      onChange={(e) => {
+                          const bulk = Number(e.target.value);
+                          const f = editingItem.conversion_factor || 1;
+                          setEditingItem({...editingItem, cost_price: bulk / f});
+                      }}
+                    />
+                    <div className="mt-2 p-3 bg-emerald-50/50 border border-emerald-100/50 flex items-center justify-between">
+                       <span className="text-[9px] font-black text-emerald-600/60 uppercase tracking-widest">{locale === 'en' ? 'ต้นทุนเฉลี่ยต่อ ' : locale === 'zh' ? 'ต้นทุนเฉลี่ยต่อ ' : 'ต้นทุนเฉลี่ยต่อ '}{editingItem.unit}:</span>
+                       <span className="text-[12px] font-black text-emerald-700">{locale === 'en' ? '฿' : locale === 'zh' ? '฿' : '฿'}{Number(editingItem.cost_price).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 4})}</span>
+                    </div>
+                  </div>
+                  <div className="space-y-2 font-bold">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-red-400">{locale === 'en' ? 'จุดแจ้งเตือนสต็อกต่ำ (ในหน่วย ' : locale === 'zh' ? 'จุดแจ้งเตือนสต็อกต่ำ (ในหน่วย ' : 'จุดแจ้งเตือนสต็อกต่ำ (ในหน่วย '}{editingItem.unit})</label>
+                    <input 
+                      type="number" 
+                      className="w-full bg-red-50 border border-red-100 py-4 px-6 text-xl font-black outline-none focus:ring-1 focus:ring-red-400 text-red-500"
+                      value={editingItem.min_stock_level}
+                      onChange={(e) => setEditingItem({...editingItem, min_stock_level: Number(e.target.value)})}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2 font-bold mt-4">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-amber-600">{locale === 'en' ? 'แหล่งจัดซื้อ / ร้านค้าประจำ' : locale === 'zh' ? 'แหล่งจัดซื้อ / ร้านค้าประจำ' : 'แหล่งจัดซื้อ / ร้านค้าประจำ'}</label>
+                  <select 
+                    className="w-full bg-amber-50 border border-amber-100 py-4 px-6 text-[14px] font-bold outline-none focus:ring-1 focus:ring-amber-500 text-amber-800"
+                    value={editingItem.supplier_id || ''}
+                    onChange={(e) => setEditingItem({...editingItem, supplier_id: e.target.value || null})}
+                  >
+                    <option value="">{locale === 'en' ? 'Uncategorized' : locale === 'zh' ? 'Uncategorized' : 'ไม่ระบุแหล่งซื้อ (Uncategorized)'}</option>
+                    {suppliers.map(s => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+<footer className="p-6 md:p-8 border-t border-gray-100 bg-white font-bold flex gap-4 sticky bottom-0 mt-auto">
+                <button 
+                  onClick={handleSaveItem}
+                  disabled={isSaving}
+                  className="flex-1 bg-black text-white py-5 flex items-center justify-center gap-3 hover:bg-gray-800 transition-all disabled:opacity-50 font-bold"
+                >
+                  {isSaving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
+                  <span className="text-[12px] font-black uppercase tracking-widest">Save Material</span>
+                </button>
+              </footer>
+        </div>
+      </div>
+    );
+  }
+
+  if (isSupplierManagerOpen) {
+    return (
+      <div className="flex flex-col min-h-screen bg-gray-50 pb-[env(safe-area-inset-bottom)] z-50 fixed inset-0">
+        <header className="sticky top-0 z-10 flex items-center justify-between bg-white px-4 md:px-8 py-4 border-b border-gray-100 shadow-sm">
+          <div className="flex items-center gap-4">
+            <button onClick={() => setIsSupplierManagerOpen(false)} className="flex items-center justify-center w-10 h-10 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded-full text-gray-600 transition-colors">
+              <ChevronLeft size={24} />
+            </button>
+            <div>
+              <h1 className="text-xl md:text-2xl font-black uppercase tracking-tighter text-[#1A1A18] leading-none flex items-center gap-2">
+                <Settings size={24} className="text-black" />
+                {locale === 'en' ? 'Manage Suppliers' : locale === 'zh' ? 'Manage Suppliers' : 'จัดการแหล่งจัดซื้อ'}
+              </h1>
+            </div>
+          </div>
+        </header>
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 max-w-5xl mx-auto w-full space-y-6">
+{/* Create New Supplier */}
+                  <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col sm:flex-row gap-4 items-end">
+                      <div className="flex-1 w-full space-y-2">
+                          <label className="text-[10px] font-black uppercase tracking-widest text-indigo-600">เพิ่มสถานที่ใหม่</label>
+                          <input 
+                              type="text"
+                              placeholder="เช่น แม็คโคร แจ้งวัฒนะ, ตลาดไท"
+                              className="w-full bg-indigo-50/50 border border-indigo-100 py-3 px-4 text-[14px] font-bold outline-none focus:ring-1 focus:ring-indigo-500 text-indigo-900"
+                              value={editingSupplier?.name || ''}
+                              onChange={e => setEditingSupplier({name: e.target.value})}
+                          />
+                      </div>
+                      <button 
+                          onClick={async () => {
+                              if (!editingSupplier?.name?.trim()) return;
+                              const { data, error } = await supabase.from('pos_suppliers').insert({
+                                  name: editingSupplier.name,
+                                  branch_id: shopSettings?.branch_id || null
+                              }).select().single();
+                              if (error) {
+                                  alert(`ไม่สามารถสร้างสถานที่ได้: ${error.message}`);
+                                  console.error(error);
+                              }
+                              if (data) {
+                                  setSuppliers(prev => [...prev, data].sort((a,b) => a.name.localeCompare(b.name)));
+                                  setEditingSupplier(null);
+                              }
+                          }}
+                          disabled={!editingSupplier?.name?.trim()}
+                          className="h-[50px] px-8 bg-[#1A1A18] text-white flex items-center justify-center gap-2 hover:bg-black transition-all disabled:opacity-50 w-full sm:w-auto"
+                      >
+                          <Plus size={18} /> สร้าง
+                      </button>
+                  </div>
+
+                  {/* Supplier List */}
+                  <div className="space-y-4">
+                      {suppliers.map(sup => {
+                          const itemsInSup = inventory.filter(i => i.supplier_id === sup.id);
+                          return (
+                              <div key={sup.id} className="bg-white border border-gray-200 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                  <div className="flex items-center gap-4">
+                                      <div className="w-12 h-12 bg-indigo-50 text-indigo-500 rounded-xl flex items-center justify-center shrink-0">
+                                          <Landmark size={24} />
+                                      </div>
+                                      <div>
+                                          <h3 className="text-[16px] font-black uppercase tracking-widest text-[#1A1A18]">{sup.name}</h3>
+                                          <div className="text-[11px] font-black text-gray-400 mt-1">
+                                              {itemsInSup.length} วัตถุดิบในร้านนี้
+                                          </div>
+                                      </div>
+                                  </div>
+                                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                                      <button 
+                                          onClick={() => {
+                                              setSelectedSupplierForAssign(sup);
+                                              setSelectedItemIdsForAssign(itemsInSup.map(i => i.id));
+                                              setIsAssignItemsOpen(true);
+                                          }}
+                                          className="flex-1 sm:flex-none px-6 py-3 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors text-[12px] font-black uppercase tracking-widest flex items-center justify-center gap-2"
+                                      >
+                                          <ListChecks size={16} /> เลือกวัตถุดิบเข้าประจำร้าน
+                                      </button>
+                                      <button 
+                                          onClick={async () => {
+                                              if (confirm('ยืนยันการลบสถานที่นี้? (วัตถุดิบในร้านนี้จะไม่ถูกลบ แต่จะกลายเป็น "ไม่ระบุแหล่งซื้อ")')) {
+                                                  await supabase.from('pos_suppliers').delete().eq('id', sup.id);
+                                                  setSuppliers(prev => prev.filter(s => s.id !== sup.id));
+                                                  fetchInventory();
+                                              }
+                                          }}
+                                          className="w-12 h-12 flex items-center justify-center text-red-400 bg-red-50 hover:bg-red-100 transition-colors shrink-0"
+                                      >
+                                          <Trash2 size={18} />
+                                      </button>
+                                  </div>
+                              </div>
+                          );
+                      })}
+                      {suppliers.length === 0 && (
+                          <div className="text-center py-10 text-gray-400 font-bold uppercase tracking-widest text-[12px]">
+                              ยังไม่มีสถานที่ซื้อ
+                          </div>
+                      )}
+                  </div>
+               </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* ASSIGN ITEMS MODAL */}
+        {isAssignItemsOpen && selectedSupplierForAssign && (
+          <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center sm:p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[#1A1A18]/80 backdrop-blur-md" onClick={() => setIsAssignItemsOpen(false)} />
+            
+            <motion.div 
+              initial={{ y: "100%" }} 
+              animate={{ y: 0 }} 
+              exit={{ y: "100%" }} 
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="relative w-full h-[95vh] sm:h-auto sm:max-h-[90vh] sm:max-w-2xl bg-white sm:rounded-3xl shadow-2xl flex flex-col font-bold overflow-hidden rounded-t-[2rem]"
+            >
+               <header className="px-6 py-5 bg-indigo-50 border-b border-indigo-100 flex items-center justify-between sticky top-0 z-10">
+                  <div className="flex flex-col">
+                      <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tighter text-indigo-900 leading-none">
+                        {selectedSupplierForAssign.name}
+                      </h2>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-indigo-500 mt-1 leading-none">เลือกวัตถุดิบที่จะซื้อประจำที่ร้านนี้</p>
+                  </div>
+                  <button onClick={() => setIsAssignItemsOpen(false)} className="w-10 h-10 bg-white hover:bg-indigo-100 rounded-full flex items-center justify-center text-indigo-500 transition-colors">
+                      <X size={20} />
+                  </button>
+               </header>
+
+               <div className="flex-1 overflow-y-auto no-scrollbar p-6 pb-32">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {inventory.map(item => {
+                          const isSelected = selectedItemIdsForAssign.includes(item.id);
+                          // It's assigned somewhere else
+                          const otherSupplier = item.supplier_id && item.supplier_id !== selectedSupplierForAssign.id 
+                                ? suppliers.find(s => s.id === item.supplier_id)?.name 
+                                : null;
+
+                          return (
+                              <button 
+                                  key={item.id}
+                                  onClick={() => {
+                                      if (isSelected) {
+                                          setSelectedItemIdsForAssign(prev => prev.filter(id => id !== item.id));
+                                      } else {
+                                          setSelectedItemIdsForAssign(prev => [...prev, item.id]);
+                                      }
+                                  }}
+                                  className={`p-4 border-2 rounded-xl flex items-center gap-4 text-left transition-all ${isSelected ? 'border-indigo-500 bg-indigo-50' : 'border-gray-100 hover:border-gray-200'}`}
+                              >
+                                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 ${isSelected ? 'border-indigo-500 bg-indigo-500 text-white' : 'border-gray-300'}`}>
+                                      {isSelected && <CheckCircle2 size={14} />}
+                                  </div>
+                                  <div>
+                                      <div className={`text-[13px] font-black uppercase leading-tight ${isSelected ? 'text-indigo-900' : 'text-[#1A1A18]'}`}>{item.name}</div>
+                                      {otherSupplier && !isSelected && (
+                                          <div className="text-[9px] font-black text-amber-500 mt-1 uppercase">ตอนนี้อยู่ที่: {otherSupplier}</div>
+                                      )}
+                                  </div>
+                              </button>
+                          );
+                      })}
+                  </div>
+
+        </div>
+      </div>
+    );
+  }
+
+  if (isShoppingListOpen) {
+    return (
+      <div className="flex flex-col min-h-screen bg-gray-50 pb-[env(safe-area-inset-bottom)] z-50 fixed inset-0">
+        <header className="sticky top-0 z-10 flex items-center justify-between bg-white px-4 md:px-8 py-4 border-b border-gray-100 shadow-sm">
+          <div className="flex items-center gap-4">
+            <button onClick={() => setIsShoppingListOpen(false)} className="flex items-center justify-center w-10 h-10 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded-full text-gray-600 transition-colors">
+              <ChevronLeft size={24} />
+            </button>
+            <div>
+              <h1 className="text-xl md:text-2xl font-black uppercase tracking-tighter text-[#1A1A18] leading-none flex items-center gap-2">
+                <ShoppingCart size={24} className="text-amber-500" />
+                {locale === 'en' ? 'Shopping List' : locale === 'zh' ? 'Shopping List' : 'สรุปรายการจัดซื้อ'}
+              </h1>
+            </div>
+          </div>
+        </header>
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 max-w-5xl mx-auto w-full space-y-6">
+{(() => {
+                      // Filter low stock items
+                      const lowStockItems = inventory.filter(item => Number(item.stock_quantity) <= Number(item.min_stock_level));
+                      if (lowStockItems.length === 0) {
+                          return (
+                              <div className="flex flex-col items-center justify-center py-20 opacity-50">
+                                  <CheckCircle2 size={64} className="text-sage-500 mb-4" />
+                                  <div className="text-xl font-black uppercase">สต็อกเต็มทุกรายการ</div>
+                                  <div className="text-[11px] font-black uppercase tracking-widest text-gray-400 mt-2">ไม่จำเป็นต้องสั่งซื้อสินค้าเพิ่มในขณะนี้</div>
+                              </div>
+                          );
+                      }
+
+                      // Group by supplier
+                      const grouped: Record<string, typeof inventory> = {};
+                      lowStockItems.forEach(item => {
+                          const supplierObj = suppliers.find(s => s.id === item.supplier_id);
+                          const supName = supplierObj ? supplierObj.name : 'ไม่ระบุแหล่งซื้อ (Uncategorized)';
+                          if (!grouped[supName]) grouped[supName] = [];
+                          grouped[supName].push(item);
+                      });
+
+                      return Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b)).map(([supplier, items]) => (
+                          <div key={supplier} className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+                              <div className="px-6 py-4 bg-amber-50 border-b border-amber-100 flex items-center gap-3">
+                                  <div className="w-10 h-10 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center">
+                                      <Landmark size={20} />
+                                  </div>
+                                  <div>
+                                      <h3 className="text-[14px] font-black uppercase tracking-widest text-amber-900">{supplier}</h3>
+                                      <div className="text-[10px] font-black text-amber-600/70">{items.length} รายการ</div>
+                                  </div>
+                              </div>
+                              <div className="divide-y divide-gray-50">
+                                  {items.map(item => (
+                                      <div key={item.id} className="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-gray-50 transition-colors">
+                                          <div className="flex items-start gap-4">
+                                              <div className="w-12 h-12 bg-red-50 text-red-500 rounded-full flex items-center justify-center shrink-0">
+                                                  <AlertTriangle size={20} />
+                                              </div>
+                                              <div>
+                                                  <div className="text-[14px] font-black uppercase text-[#1A1A18] leading-none mb-1">{item.name}</div>
+                                                  <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">SKU: {item.sku || '-'}</div>
+                                              </div>
+                                          </div>
+                                          <div className="flex items-center gap-4 sm:gap-8 bg-gray-50 sm:bg-transparent p-3 sm:p-0 rounded-xl">
+                                              <div className="text-center">
+                                                  <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">สต็อกที่มี</div>
+                                                  <div className="text-[16px] font-black text-red-500">{item.stock_quantity} <span className="text-[10px]">{item.unit}</span></div>
+                                              </div>
+                                              <div className="w-px h-8 bg-gray-200"></div>
+                                              <div className="text-center">
+                                                  <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">จุดเตือน</div>
+                                                  <div className="text-[16px] font-black text-amber-500">{item.min_stock_level} <span className="text-[10px]">{item.unit}</span></div>
+                                              </div>
+                                              <div className="w-px h-8 bg-gray-200"></div>
+                                              <div className="text-center bg-amber-50 p-2 px-4 rounded-xl border border-amber-100">
+                                                  <div className="text-[10px] font-black uppercase tracking-widest text-amber-700 mb-1">ควรสั่งอย่างน้อย</div>
+                                                  <div className="text-[16px] font-black text-amber-600">
+                                                      {Math.max(0, item.min_stock_level - item.stock_quantity)} <span className="text-[10px]">{item.unit}</span>
+                                                  </div>
+                                              </div>
+                                          </div>
+                                      </div>
+                                  ))}
+                              </div>
+                          </div>
+                      ));
+                  })()}
+        </div>
+      </div>
+    );
+  }
+
+  if (isSummaryOpen) {
+    return (
+      <div className="flex flex-col min-h-screen bg-gray-50 pb-[env(safe-area-inset-bottom)] z-50 fixed inset-0">
+        <header className="sticky top-0 z-10 flex items-center justify-between bg-white px-4 md:px-8 py-4 border-b border-gray-100 shadow-sm">
+          <div className="flex items-center gap-4">
+            <button onClick={() => setIsSummaryOpen(false)} className="flex items-center justify-center w-10 h-10 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded-full text-gray-600 transition-colors">
+              <ChevronLeft size={24} />
+            </button>
+            <div>
+                <h1 className="text-xl md:text-2xl font-black uppercase tracking-tighter text-[#1A1A18] leading-none">Inventory Quick Summary</h1>
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#8C8A81] leading-none mt-2">{locale === 'en' ? 'สรุปจำนวนสินค้าแยกตามหมวดหมู่' : locale === 'zh' ? 'สรุปจำนวนสินค้าแยกตามหมวดหมู่' : 'สรุปจำนวนสินค้าแยกตามหมวดหมู่'}</p>
+            </div>
+          </div>
+        </header>
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 max-w-5xl mx-auto w-full space-y-12">
+{categories.map(category => {
+                const categoryItems = inventory.filter(item => {
+                  const itemCatId = item.category_id;
+                  return itemCatId === category.id;
+                });
+                if (categoryItems.length === 0) return null;
+
+                return (
+                  <section key={category.id} className="space-y-4">
+                    <div className="flex items-center gap-4">
+                      <div className="h-4 w-1" style={{ backgroundColor: category.color || '#000' }}></div>
+                      <h3 className="text-lg font-black uppercase tracking-tight text-black">{category.name}</h3>
+                      <span className="text-[10px] font-black bg-gray-100 px-2 py-0.5 rounded text-gray-400">{categoryItems.length} items</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2 border-t border-gray-50 pt-4">
+                      {categoryItems.map(item => {
+                        const isLow = (item.stock_quantity || 0) <= (item.min_stock_level || 0);
+                        return (
+                          <div key={item.id} className="flex items-center justify-between py-2 border-b border-gray-50 group hover:bg-gray-50 px-2 transition-colors">
+                            <div className="flex flex-col">
+                              <span className="text-[12px] font-bold text-gray-800">{item.name}</span>
+                              <span className="text-[9px] text-gray-400 font-black uppercase">{item.sku || '-'}</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className={`text-[14px] font-black ${isLow ? 'text-red-500' : 'text-[#1A1A18]'}`}>
+                                {item.stock_quantity || 0}
+                              </span>
+                              <span className="text-[9px] font-bold text-gray-300 uppercase w-10">{item.unit}</span>
+                              {isLow && (
+                                <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </section>
+                );
+              })}
+
+              {/* UNASSIGNED ITEMS */}
+              {inventory.filter(item => !item.category_id || item.category_id === '').length > 0 && (
+                <section className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <div className="h-4 w-1 bg-gray-300"></div>
+                    <h3 className="text-lg font-black uppercase tracking-tight text-black">{locale === 'en' ? 'ยังไม่ได้จัดหมวดหมู่ (UNASSIGNED)' : locale === 'zh' ? 'ยังไม่ได้จัดหมวดหมู่ (UNASSIGNED)' : 'ยังไม่ได้จัดหมวดหมู่ (UNASSIGNED)'}</h3>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2 border-t border-gray-50 pt-4">
+                    {inventory.filter(item => !item.category_id || item.category_id === '').map(item => {
+                        const isLow = (item.stock_quantity || 0) <= (item.min_stock_level || 0);
+                        return (
+                          <div key={item.id} className="flex items-center justify-between py-2 border-b border-gray-50 group hover:bg-gray-50 px-2 transition-colors">
+                            <div className="flex flex-col">
+                              <span className="text-[12px] font-bold text-gray-800">{item.name}</span>
+                              <span className="text-[9px] text-gray-400 font-black uppercase">{item.sku || '-'}</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className={`text-[14px] font-black ${isLow ? 'text-red-500' : 'text-[#1A1A18]'}`}>
+                                {item.stock_quantity || 0}
+                              </span>
+                              <span className="text-[9px] font-bold text-gray-300 uppercase w-10">{item.unit}</span>
+                            </div>
+                          </div>
+                        );
+                    })}
+                  </div>
+                </section>
+              )}
+        </div>
+      </div>
+    );
+  }
+
+  if (isAuditTypeModalOpen) {
+    return (
+      <div className="flex flex-col min-h-screen bg-gray-50 pb-[env(safe-area-inset-bottom)] z-50 fixed inset-0">
+        <header className="sticky top-0 z-10 flex items-center justify-between bg-white px-4 md:px-8 py-4 border-b border-gray-100 shadow-sm">
+          <div className="flex items-center gap-4">
+            <button onClick={() => setIsAuditTypeModalOpen(false)} className="flex items-center justify-center w-10 h-10 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded-full text-gray-600 transition-colors">
+              <ChevronLeft size={24} />
+            </button>
+            <h1 className="text-xl md:text-2xl font-black uppercase tracking-tighter text-[#1A1A18]">
+              Stock Audit
+            </h1>
+          </div>
+        </header>
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 max-w-5xl mx-auto w-full flex flex-col relative">
+<div className="mb-8">
+                     <h2 className="text-[28px] font-black tracking-tight text-[#111111]">
+                       {locale === 'en' ? 'Select Category' : locale === 'zh' ? 'Select Category' : 'เลือกหมวดหมู่'}
+                     </h2>
+                     <p className="mt-3 max-w-md text-[16px] font-bold leading-8 text-[#7A7A7A]">
+                       {locale === 'en' ? 'Choose a section to start auditing or perform a full store count.' : locale === 'zh' ? 'Choose a section to start auditing or perform a full store count.' : 'เลือกหมวดหมู่เพื่อเริ่มนับสต็อก หรือเริ่มนับสินค้าทั้งร้าน'}
+                     </p>
+                   </div><div className="sticky bottom-0 mt-auto border-t border-[#F0F1F4] bg-white p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+                   <div className="mb-4 flex items-center justify-between text-[12px] font-black text-[#8E95A2]">
+                     <span>{auditCategory.length} {locale === 'en' ? 'Selected' : locale === 'zh' ? 'Selected' : 'หมวดที่เลือก'}</span>
+                     <button 
+                       onClick={() => {
+                         if (auditCategory.length === categories.length) setAuditCategory([]);
+                         else setAuditCategory(categories.map(c => c.id));
+                       }}
+                       className="text-[#111111]"
+                     >
+                       {auditCategory.length === categories.length ? (locale === 'en' ? 'Deselect All' : locale === 'zh' ? 'Deselect All' : 'ยกเลิกทั้งหมด') : (locale === 'en' ? 'Select All' : locale === 'zh' ? 'Select All' : 'เลือกทั้งหมด')}
+                     </button>
+                   </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isMobileInventorySheetOpen) {
+    return (
+      <div className="flex flex-col min-h-screen bg-gray-50 pb-[env(safe-area-inset-bottom)] z-50 fixed inset-0 sm:hidden">
+        <header className="sticky top-0 z-10 flex items-center justify-between bg-white px-4 py-4 border-b border-gray-100 shadow-sm">
+          <div className="flex items-center gap-4">
+            <button onClick={() => setIsMobileInventorySheetOpen(false)} className="flex items-center justify-center w-10 h-10 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded-full text-gray-600 transition-colors">
+              <ChevronLeft size={24} />
+            </button>
+            <h1 className="text-xl font-black uppercase tracking-tighter text-[#1A1A18]">
+              {locale === 'en' ? 'Menu' : locale === 'zh' ? 'Menu' : 'เมนูตัวเลือก'}
+            </h1>
+          </div>
+        </header>
+        <div className="flex-1 overflow-y-auto p-4 w-full">
+<div className="space-y-0 border-y border-gray-100">
+                {[
+                  { key: 'grid', label: 'มุมมอง Grid', icon: LayoutGrid, active: viewMode === 'grid', onClick: () => { setViewMode('grid'); setIsMobileInventorySheetOpen(false); } },
+                  { key: 'list', label: 'มุมมอง List', icon: List, active: viewMode === 'list', onClick: () => { setViewMode('list'); setIsMobileInventorySheetOpen(false); } },
+                  { key: 'table', label: 'มุมมองตาราง (Table)', icon: Database, active: viewMode === 'table', onClick: () => { setViewMode('table'); setIsMobileInventorySheetOpen(false); } },
+                ].map((option) => {
+                  const Icon = option.icon
+                  return (
+                    <button
+                      key={option.key}
+                      onClick={option.onClick}
+                      className={`flex w-full items-center justify-between border-b border-gray-100 last:border-none px-6 py-5 text-left transition-all ${option.active ? 'bg-black text-white' : 'bg-white hover:bg-gray-50'}`}
+                    >
+                      <div className="flex items-center gap-4">
+                        <Icon size={20} className={option.active ? 'text-white' : 'text-black'} />
+                        <span className={`text-[12px] font-black uppercase tracking-widest ${option.active ? 'text-white' : 'text-black'}`}>{option.label}</span>
+                      </div>
+                      <span className={`h-2 w-2 ${option.active ? 'bg-white' : 'bg-transparent border border-gray-300'}`} />
+                    </button>
+                  )
+                })}
+              </div>
+
+              <div className="space-y-0 mt-4 border-y border-gray-100">
+                <button
+                  onClick={() => { setShowHistory(true); setIsMobileInventorySheetOpen(false); }}
+                  className="flex w-full items-center gap-4 border-b border-gray-100 px-6 py-5 text-left bg-white hover:bg-gray-50"
+                >
+                  <History size={20} className="text-black" />
+                  <span className="text-[12px] font-black uppercase tracking-widest text-black">ประวัติการเคลื่อนไหว</span>
+                </button>
+                <button
+                  onClick={() => { setIsAuditTypeModalOpen(true); setIsMobileInventorySheetOpen(false); }}
+                  className="flex w-full items-center gap-4 border-b border-gray-100 px-6 py-5 text-left bg-white hover:bg-gray-50"
+                >
+                  <ClipboardCheck size={20} className="text-black" />
+                  <span className="text-[12px] font-black uppercase tracking-widest text-black">นับสต็อกสินค้า</span>
+                </button>
+                {isAdmin && (
+                  <button
+                    onClick={() => {
+                      setEditingItem({ name: '', min_stock_level: 5, stock_quantity: 0, unit: 'pcs', cost_price: 0 })
+                      setIsEditorOpen(true)
+                      setIsMobileInventorySheetOpen(false)
+                    }}
+                    className="flex w-full items-center gap-4 border-b border-gray-100 px-6 py-5 text-left bg-white hover:bg-gray-50"
+                  >
+                    <Plus size={20} className="text-black" />
+                    <span className="text-[12px] font-black uppercase tracking-widest text-black">เพิ่มวัตถุดิบ</span>
+                  </button>
+                )}
+              </div>
+
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="p-3 sm:p-8 font-bold overflow-y-auto no-scrollbar overflow-x-hidden w-full max-w-[100vw]">
@@ -1623,725 +2236,6 @@ export default function POSInventoryManager({
           </div>
       )}
 
-      {/* EDIT MODAL */}
-      <AnimatePresence>
-        {isEditorOpen && (
-          <div className="fixed inset-0 z-[1200] flex justify-end font-bold">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsEditorOpen(false)} />
-            <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', damping: 25, stiffness: 250 }} className="relative w-full md:max-w-xl h-[100dvh] bg-white shadow-2xl flex flex-col font-bold overflow-hidden">
-              <header className="p-6 md:p-8 border-b border-gray-100 flex justify-between items-center bg-white font-bold sticky top-0 z-10">
-                <div className="font-bold">
-                  <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-[#1A1A18] leading-none">{editingItem.id ? 'Edit Material' : 'New Material'}</h2>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-[#8C8A81] mt-2">Inventory Management Portal</p>
-                </div>
-                <button onClick={() => setIsEditorOpen(false)} className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-white border border-gray-200 hover:border-black transition-all text-gray-400 hover:text-black">
-                   <X size={20} />
-                </button>
-              </header>
-
-              <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-8 font-bold bg-gray-50/30">
-                <div className="grid grid-cols-2 gap-8 font-bold">
-                  <div className="space-y-2 font-bold">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">{locale === 'en' ? 'ชื่อวัตถุดิบ' : locale === 'zh' ? 'ชื่อวัตถุดิบ' : 'ชื่อวัตถุดิบ'}</label>
-                    <input 
-                      type="text" 
-                      className="w-full bg-gray-50 border-none py-4 px-6 text-[14px] font-bold outline-none focus:ring-1 focus:ring-black"
-                      value={editingItem.name}
-                      onChange={(e) => setEditingItem({...editingItem, name: e.target.value})}
-                    />
-                  </div>
-                  <div className="space-y-2 font-bold">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">{locale === 'en' ? 'หมวดหมู่สินค้า' : locale === 'zh' ? 'หมวดหมู่สินค้า' : 'หมวดหมู่สินค้า'}</label>
-                    <select 
-                      className="w-full bg-gray-50 border-none py-4 px-6 text-[14px] font-bold outline-none focus:ring-1 focus:ring-black h-[58px]"
-                      value={editingItem.category_id || ''}
-                      onChange={(e) => setEditingItem({...editingItem, category_id: e.target.value})}
-                    >
-                      <option value="">{locale === 'en' ? 'เลือกหมวดหมู่...' : locale === 'zh' ? 'เลือกหมวดหมู่...' : 'เลือกหมวดหมู่...'}</option>
-                      {categories.map(cat => (
-                        <option key={cat.id} value={cat.id}>{cat.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-8 font-bold">
-                  <div className="space-y-2 font-bold">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">{locale === 'en' ? 'SKU / รหัส' : locale === 'zh' ? 'SKU / รหัส' : 'SKU / รหัส'}</label>
-                    <input 
-                      type="text" 
-                      className="w-full bg-gray-50 border-none py-4 px-6 text-[14px] font-bold outline-none focus:ring-1 focus:ring-black"
-                      value={editingItem.sku || ''}
-                      onChange={(e) => setEditingItem({...editingItem, sku: e.target.value})}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-8 font-bold">
-                  <div className="space-y-2 font-bold">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">{locale === 'en' ? 'หน่วยฐาน (เช่น ชิ้น, g)' : locale === 'zh' ? 'หน่วยฐาน (เช่น ชิ้น, g)' : 'หน่วยฐาน (เช่น ชิ้น, g)'}</label>
-                    <input 
-                      type="text" 
-                      className="w-full bg-gray-50 border-none py-4 px-6 text-[14px] font-bold outline-none focus:ring-1 focus:ring-black text-center"
-                      value={editingItem.unit}
-                      onChange={(e) => setEditingItem({...editingItem, unit: e.target.value})}
-                    />
-                  </div>
-                  <div className="space-y-2 font-bold">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">{locale === 'en' ? 'หน่วยซื้อ (เช่น แพ็ค, ลัง)' : locale === 'zh' ? 'หน่วยซื้อ (เช่น แพ็ค, ลัง)' : 'หน่วยซื้อ (เช่น แพ็ค, ลัง)'}</label>
-                    <input 
-                      type="text" 
-                      className="w-full bg-gray-50 border-none py-4 px-6 text-[14px] font-bold outline-none focus:ring-1 focus:ring-black text-center"
-                      value={editingItem.purchase_unit || ''}
-                      onChange={(e) => setEditingItem({...editingItem, purchase_unit: e.target.value})}
-                    />
-                  </div>
-                  <div className="space-y-2 font-bold">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-blue-500">{locale === 'en' ? 'จำนวนย่อยต่อ 1 ' : locale === 'zh' ? 'จำนวนย่อยต่อ 1 ' : 'จำนวนย่อยต่อ 1 '}{editingItem.purchase_unit || 'หน่วยซื้อ'}</label>
-                    <input 
-                      type="number" 
-                      className="w-full bg-blue-50 border border-blue-100 py-4 px-6 text-[14px] font-bold outline-none focus:ring-1 focus:ring-blue-500 text-center text-blue-600"
-                      value={editingItem.conversion_factor || 1}
-                      onChange={(e) => {
-                          const newFactor = Number(e.target.value) || 1;
-                          // Keep the Bulk Price (Total Paid) constant, update unit cost
-                          const currentBulkPrice = editingItem.cost_price * (editingItem.conversion_factor || 1);
-                          setEditingItem({
-                            ...editingItem, 
-                            conversion_factor: newFactor,
-                            cost_price: currentBulkPrice / newFactor
-                          });
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-8 font-bold">
-                  <div className="space-y-2 font-bold">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-emerald-600">{locale === 'en' ? 'ราคาทุนที่ซื้อมาต่อ ' : locale === 'zh' ? 'ราคาทุนที่ซื้อมาต่อ ' : 'ราคาทุนที่ซื้อมาต่อ '}{editingItem.purchase_unit || 'หน่วยซื้อ'}</label>
-                    <input 
-                      type="number" 
-                      className="w-full bg-emerald-50 border border-emerald-100 py-4 px-6 text-xl font-black outline-none focus:ring-1 focus:ring-emerald-600 text-emerald-600"
-                      value={(editingItem.cost_price * (editingItem.conversion_factor || 1)).toFixed(2)}
-                      onChange={(e) => {
-                          const bulk = Number(e.target.value);
-                          const f = editingItem.conversion_factor || 1;
-                          setEditingItem({...editingItem, cost_price: bulk / f});
-                      }}
-                    />
-                    <div className="mt-2 p-3 bg-emerald-50/50 border border-emerald-100/50 flex items-center justify-between">
-                       <span className="text-[9px] font-black text-emerald-600/60 uppercase tracking-widest">{locale === 'en' ? 'ต้นทุนเฉลี่ยต่อ ' : locale === 'zh' ? 'ต้นทุนเฉลี่ยต่อ ' : 'ต้นทุนเฉลี่ยต่อ '}{editingItem.unit}:</span>
-                       <span className="text-[12px] font-black text-emerald-700">{locale === 'en' ? '฿' : locale === 'zh' ? '฿' : '฿'}{Number(editingItem.cost_price).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 4})}</span>
-                    </div>
-                  </div>
-                  <div className="space-y-2 font-bold">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-red-400">{locale === 'en' ? 'จุดแจ้งเตือนสต็อกต่ำ (ในหน่วย ' : locale === 'zh' ? 'จุดแจ้งเตือนสต็อกต่ำ (ในหน่วย ' : 'จุดแจ้งเตือนสต็อกต่ำ (ในหน่วย '}{editingItem.unit})</label>
-                    <input 
-                      type="number" 
-                      className="w-full bg-red-50 border border-red-100 py-4 px-6 text-xl font-black outline-none focus:ring-1 focus:ring-red-400 text-red-500"
-                      value={editingItem.min_stock_level}
-                      onChange={(e) => setEditingItem({...editingItem, min_stock_level: Number(e.target.value)})}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2 font-bold mt-4">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-amber-600">{locale === 'en' ? 'แหล่งจัดซื้อ / ร้านค้าประจำ' : locale === 'zh' ? 'แหล่งจัดซื้อ / ร้านค้าประจำ' : 'แหล่งจัดซื้อ / ร้านค้าประจำ'}</label>
-                  <select 
-                    className="w-full bg-amber-50 border border-amber-100 py-4 px-6 text-[14px] font-bold outline-none focus:ring-1 focus:ring-amber-500 text-amber-800"
-                    value={editingItem.supplier_id || ''}
-                    onChange={(e) => setEditingItem({...editingItem, supplier_id: e.target.value || null})}
-                  >
-                    <option value="">{locale === 'en' ? 'Uncategorized' : locale === 'zh' ? 'Uncategorized' : 'ไม่ระบุแหล่งซื้อ (Uncategorized)'}</option>
-                    {suppliers.map(s => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <footer className="p-6 md:p-8 border-t border-gray-100 bg-white font-bold flex gap-4 sticky bottom-0 mt-auto">
-                <button 
-                  onClick={handleSaveItem}
-                  disabled={isSaving}
-                  className="flex-1 bg-black text-white py-5 flex items-center justify-center gap-3 hover:bg-gray-800 transition-all disabled:opacity-50 font-bold"
-                >
-                  {isSaving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
-                  <span className="text-[12px] font-black uppercase tracking-widest">Save Material</span>
-                </button>
-              </footer>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* QUICK SUMMARY MODAL */}
-      {isSummaryOpen && (
-        <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
-            <header className="p-8 border-b border-[#F0F0E8] flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-black uppercase tracking-tighter text-black">Inventory Quick Summary</h2>
-                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mt-1">{locale === 'en' ? 'สรุปจำนวนสินค้าแยกตามหมวดหมู่' : locale === 'zh' ? 'สรุปจำนวนสินค้าแยกตามหมวดหมู่' : 'สรุปจำนวนสินค้าแยกตามหมวดหมู่'}</p>
-              </div>
-              <button onClick={() => setIsSummaryOpen(false)} className="w-12 h-12 flex items-center justify-center bg-white border border-[#F0F0E8] hover:border-black transition-all">
-                <X size={20} className="text-black" />
-              </button>
-            </header>
-
-            <div className="flex-1 overflow-y-auto p-8 space-y-12">
-              {categories.map(category => {
-                const categoryItems = inventory.filter(item => {
-                  const itemCatId = item.category_id;
-                  return itemCatId === category.id;
-                });
-                if (categoryItems.length === 0) return null;
-
-                return (
-                  <section key={category.id} className="space-y-4">
-                    <div className="flex items-center gap-4">
-                      <div className="h-4 w-1" style={{ backgroundColor: category.color || '#000' }}></div>
-                      <h3 className="text-lg font-black uppercase tracking-tight text-black">{category.name}</h3>
-                      <span className="text-[10px] font-black bg-gray-100 px-2 py-0.5 rounded text-gray-400">{categoryItems.length} items</span>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2 border-t border-gray-50 pt-4">
-                      {categoryItems.map(item => {
-                        const isLow = (item.stock_quantity || 0) <= (item.min_stock_level || 0);
-                        return (
-                          <div key={item.id} className="flex items-center justify-between py-2 border-b border-gray-50 group hover:bg-gray-50 px-2 transition-colors">
-                            <div className="flex flex-col">
-                              <span className="text-[12px] font-bold text-gray-800">{item.name}</span>
-                              <span className="text-[9px] text-gray-400 font-black uppercase">{item.sku || '-'}</span>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <span className={`text-[14px] font-black ${isLow ? 'text-red-500' : 'text-[#1A1A18]'}`}>
-                                {item.stock_quantity || 0}
-                              </span>
-                              <span className="text-[9px] font-bold text-gray-300 uppercase w-10">{item.unit}</span>
-                              {isLow && (
-                                <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </section>
-                );
-              })}
-
-              {/* UNASSIGNED ITEMS */}
-              {inventory.filter(item => !item.category_id || item.category_id === '').length > 0 && (
-                <section className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    <div className="h-4 w-1 bg-gray-300"></div>
-                    <h3 className="text-lg font-black uppercase tracking-tight text-black">{locale === 'en' ? 'ยังไม่ได้จัดหมวดหมู่ (UNASSIGNED)' : locale === 'zh' ? 'ยังไม่ได้จัดหมวดหมู่ (UNASSIGNED)' : 'ยังไม่ได้จัดหมวดหมู่ (UNASSIGNED)'}</h3>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2 border-t border-gray-50 pt-4">
-                    {inventory.filter(item => !item.category_id || item.category_id === '').map(item => {
-                        const isLow = (item.stock_quantity || 0) <= (item.min_stock_level || 0);
-                        return (
-                          <div key={item.id} className="flex items-center justify-between py-2 border-b border-gray-50 group hover:bg-gray-50 px-2 transition-colors">
-                            <div className="flex flex-col">
-                              <span className="text-[12px] font-bold text-gray-800">{item.name}</span>
-                              <span className="text-[9px] text-gray-400 font-black uppercase">{item.sku || '-'}</span>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <span className={`text-[14px] font-black ${isLow ? 'text-red-500' : 'text-[#1A1A18]'}`}>
-                                {item.stock_quantity || 0}
-                              </span>
-                              <span className="text-[9px] font-bold text-gray-300 uppercase w-10">{item.unit}</span>
-                            </div>
-                          </div>
-                        );
-                    })}
-                  </div>
-                </section>
-              )}
-            </div>
-
-            <footer className="p-8 bg-gray-50 border-t border-[#F0F0E8] flex justify-end">
-              <button 
-                onClick={() => setIsSummaryOpen(false)}
-                className="px-10 py-4 bg-black text-white text-[12px] font-black uppercase tracking-widest hover:bg-sage-900 transition-all shadow-xl"
-              >
-                Close Summary
-              </button>
-            </footer>
-          </div>
-        </div>
-      )}
-      <AnimatePresence>
-        {isMobileInventorySheetOpen && (
-          <div className="fixed inset-0 z-[1250] flex items-end justify-center sm:hidden">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsMobileInventorySheetOpen(false)} />
-            <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 250 }}
-              className="relative z-10 w-full bg-white px-0 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2 shadow-2xl"
-            >
-              <div className="mx-auto mb-6 h-1 w-12 bg-gray-200" />
-              <div className="space-y-0 border-y border-gray-100">
-                {[
-                  { key: 'grid', label: 'มุมมอง Grid', icon: LayoutGrid, active: viewMode === 'grid', onClick: () => { setViewMode('grid'); setIsMobileInventorySheetOpen(false); } },
-                  { key: 'list', label: 'มุมมอง List', icon: List, active: viewMode === 'list', onClick: () => { setViewMode('list'); setIsMobileInventorySheetOpen(false); } },
-                  { key: 'table', label: 'มุมมองตาราง (Table)', icon: Database, active: viewMode === 'table', onClick: () => { setViewMode('table'); setIsMobileInventorySheetOpen(false); } },
-                ].map((option) => {
-                  const Icon = option.icon
-                  return (
-                    <button
-                      key={option.key}
-                      onClick={option.onClick}
-                      className={`flex w-full items-center justify-between border-b border-gray-100 last:border-none px-6 py-5 text-left transition-all ${option.active ? 'bg-black text-white' : 'bg-white hover:bg-gray-50'}`}
-                    >
-                      <div className="flex items-center gap-4">
-                        <Icon size={20} className={option.active ? 'text-white' : 'text-black'} />
-                        <span className={`text-[12px] font-black uppercase tracking-widest ${option.active ? 'text-white' : 'text-black'}`}>{option.label}</span>
-                      </div>
-                      <span className={`h-2 w-2 ${option.active ? 'bg-white' : 'bg-transparent border border-gray-300'}`} />
-                    </button>
-                  )
-                })}
-              </div>
-
-              <div className="space-y-0 mt-4 border-y border-gray-100">
-                <button
-                  onClick={() => { setShowHistory(true); setIsMobileInventorySheetOpen(false); }}
-                  className="flex w-full items-center gap-4 border-b border-gray-100 px-6 py-5 text-left bg-white hover:bg-gray-50"
-                >
-                  <History size={20} className="text-black" />
-                  <span className="text-[12px] font-black uppercase tracking-widest text-black">ประวัติการเคลื่อนไหว</span>
-                </button>
-                <button
-                  onClick={() => { setIsAuditTypeModalOpen(true); setIsMobileInventorySheetOpen(false); }}
-                  className="flex w-full items-center gap-4 border-b border-gray-100 px-6 py-5 text-left bg-white hover:bg-gray-50"
-                >
-                  <ClipboardCheck size={20} className="text-black" />
-                  <span className="text-[12px] font-black uppercase tracking-widest text-black">นับสต็อกสินค้า</span>
-                </button>
-                {isAdmin && (
-                  <button
-                    onClick={() => {
-                      setEditingItem({ name: '', min_stock_level: 5, stock_quantity: 0, unit: 'pcs', cost_price: 0 })
-                      setIsEditorOpen(true)
-                      setIsMobileInventorySheetOpen(false)
-                    }}
-                    className="flex w-full items-center gap-4 border-b border-gray-100 px-6 py-5 text-left bg-white hover:bg-gray-50"
-                  >
-                    <Plus size={20} className="text-black" />
-                    <span className="text-[12px] font-black uppercase tracking-widest text-black">เพิ่มวัตถุดิบ</span>
-                  </button>
-                )}
-              </div>
-              <div className="px-6 mt-6">
-                <button
-                  onClick={() => setIsMobileInventorySheetOpen(false)}
-                  className="flex w-full items-center justify-center border border-black bg-white px-4 py-4 text-[12px] font-black uppercase tracking-widest text-black hover:bg-black hover:text-white transition-all"
-                >
-                  ยกเลิก
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* AUDIT TYPE SELECTION MODAL (FULLSCREEN) */}
-      <AnimatePresence>
-        {isAuditTypeModalOpen && (
-          <div className="fixed inset-0 z-[1300] flex flex-col font-bold bg-white">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-white" />
-            
-            <motion.div 
-              initial={{ y: "4%" }} 
-              animate={{ y: 0 }} 
-              exit={{ y: "4%" }} 
-              transition={{ duration: 0.2 }}
-              className="relative flex h-full w-full flex-col overflow-hidden bg-white"
-            >
-               <header className="sticky top-0 z-10 flex items-center justify-between border-b border-[#F0F1F4] bg-white px-6 py-5">
-                  <div>
-                    <div className="text-[15px] font-black tracking-tight text-[#1A1A18]">Stock Audit</div>
-                  </div>
-                  <button onClick={() => setIsAuditTypeModalOpen(false)} className="flex h-10 w-10 items-center justify-center rounded-full border border-[#ECEEF2] text-[#1A1A18]">
-                    <X size={18} />
-                  </button>
-               </header>
-
-               <div className="flex-1 overflow-y-auto no-scrollbar px-6 pb-36 pt-8">
-                   <div className="mb-8">
-                     <h2 className="text-[28px] font-black tracking-tight text-[#111111]">
-                       {locale === 'en' ? 'Select Category' : locale === 'zh' ? 'Select Category' : 'เลือกหมวดหมู่'}
-                     </h2>
-                     <p className="mt-3 max-w-md text-[16px] font-bold leading-8 text-[#7A7A7A]">
-                       {locale === 'en' ? 'Choose a section to start auditing or perform a full store count.' : locale === 'zh' ? 'Choose a section to start auditing or perform a full store count.' : 'เลือกหมวดหมู่เพื่อเริ่มนับสต็อก หรือเริ่มนับสินค้าทั้งร้าน'}
-                     </p>
-                   </div>
-
-                   <div className="grid grid-cols-2 gap-4 font-bold">
-                        {categories.map(cat => {
-                          const isSelected = auditCategory.includes(cat.id);
-                          return (
-                            <button 
-                              key={cat.id}
-                              onClick={() => {
-                                if (isSelected) setAuditCategory(prev => prev.filter(id => id !== cat.id));
-                                else setAuditCategory(prev => [...prev, cat.id]);
-                              }}
-                              className={`relative aspect-square rounded-none border bg-white p-5 text-center transition-all active:scale-95 ${isSelected ? 'border-black bg-gray-50' : 'border-gray-200 hover:border-black'}`}
-                            >
-                              <div className={`mx-auto flex h-16 w-16 items-center justify-center rounded-none transition-all ${isSelected ? 'bg-black text-white' : 'bg-gray-100 text-black border border-transparent group-hover:border-black'}`}>
-                                 {isSelected ? <CheckCircle2 size={28} /> : <Boxes size={28} />}
-                              </div>
-                              <div className="mt-5 w-full">
-                                <div className={`line-clamp-2 text-[17px] font-black leading-tight ${isSelected ? 'text-[#111111]' : 'text-[#111111]'}`}>{cat.name}</div>
-                              </div>
-                              {isSelected && <div className="absolute right-5 top-5 h-3 w-3 rounded-full bg-[#111111]" />}
-                            </button>
-                          );
-                        })}
-                   </div>
-               </div>
-
-               <div className="absolute bottom-0 left-0 right-0 border-t border-[#F0F1F4] bg-white p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
-                   <div className="mb-4 flex items-center justify-between text-[12px] font-black text-[#8E95A2]">
-                     <span>{auditCategory.length} {locale === 'en' ? 'Selected' : locale === 'zh' ? 'Selected' : 'หมวดที่เลือก'}</span>
-                     <button 
-                       onClick={() => {
-                         if (auditCategory.length === categories.length) setAuditCategory([]);
-                         else setAuditCategory(categories.map(c => c.id));
-                       }}
-                       className="text-[#111111]"
-                     >
-                       {auditCategory.length === categories.length ? (locale === 'en' ? 'Deselect All' : locale === 'zh' ? 'Deselect All' : 'ยกเลิกทั้งหมด') : (locale === 'en' ? 'Select All' : locale === 'zh' ? 'Select All' : 'เลือกทั้งหมด')}
-                     </button>
-                   </div>
-                   <button 
-                        disabled={auditCategory.length === 0}
-                        onClick={() => { setIsAuditMode(true); setIsAuditTypeModalOpen(false); setViewMode('grid'); }}
-                        className={`flex h-16 w-full items-center justify-center gap-3 rounded-none text-[14px] font-black uppercase transition-all ${auditCategory.length > 0 ? 'bg-black text-white hover:bg-gray-800' : 'cursor-not-allowed bg-gray-200 text-gray-400'}`}
-                      >
-                        <ClipboardCheck size={20} />
-                        <span>{auditCategory.length === categories.length ? (locale === 'en' ? 'Start Full Audit' : locale === 'zh' ? 'Start Full Audit' : 'เริ่มนับสต็อกทั้งหมด') : (locale === 'en' ? `Start Counting (${auditCategory.length})` : locale === 'zh' ? `Start Counting (${auditCategory.length})` : `เริ่มนับสต็อก (${auditCategory.length} หมวด)`)}</span>
-                   </button>
-               </div>
-            </motion.div>
-          </div>
-        )}
-
-        {/* SUPPLIER MANAGER MODAL */}
-        {isSupplierManagerOpen && (
-          <div className="fixed inset-0 z-[1200] flex justify-end font-bold">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsSupplierManagerOpen(false)} />
-            
-            <motion.div 
-              initial={{ x: "100%" }} 
-              animate={{ x: 0 }} 
-              exit={{ x: "100%" }} 
-              transition={{ type: "spring", damping: 25, stiffness: 250 }}
-              className="relative w-full md:max-w-xl h-[100dvh] bg-gray-50 flex flex-col font-bold overflow-hidden shadow-2xl rounded-none"
-            >
-               <header className="px-6 md:px-8 py-6 bg-white border-b border-gray-100 flex items-center justify-between sticky top-0 z-10">
-                  <div className="flex flex-col">
-                      <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-[#1A1A18] leading-none flex items-center gap-2">
-                        <Settings size={28} className="text-black" /> 
-                        {locale === 'en' ? 'Manage Suppliers' : locale === 'zh' ? 'Manage Suppliers' : 'จัดการแหล่งจัดซื้อ'}
-                      </h2>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mt-2 leading-none">{locale === 'en' ? 'Add locations and assign items' : locale === 'zh' ? 'Add locations and assign items' : 'เพิ่มรายชื่อสถานที่และเลือกวัตถุดิบเข้าประจำร้าน'}</p>
-                  </div>
-                  <button onClick={() => setIsSupplierManagerOpen(false)} className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-white border border-gray-200 hover:border-black transition-all text-gray-400 hover:text-black">
-                      <X size={20} />
-                  </button>
-               </header>
-
-               <div className="flex-1 overflow-y-auto no-scrollbar p-6 bg-gray-50 pb-32 space-y-6">
-                  {/* Create New Supplier */}
-                  <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col sm:flex-row gap-4 items-end">
-                      <div className="flex-1 w-full space-y-2">
-                          <label className="text-[10px] font-black uppercase tracking-widest text-indigo-600">เพิ่มสถานที่ใหม่</label>
-                          <input 
-                              type="text"
-                              placeholder="เช่น แม็คโคร แจ้งวัฒนะ, ตลาดไท"
-                              className="w-full bg-indigo-50/50 border border-indigo-100 py-3 px-4 text-[14px] font-bold outline-none focus:ring-1 focus:ring-indigo-500 text-indigo-900"
-                              value={editingSupplier?.name || ''}
-                              onChange={e => setEditingSupplier({name: e.target.value})}
-                          />
-                      </div>
-                      <button 
-                          onClick={async () => {
-                              if (!editingSupplier?.name?.trim()) return;
-                              const { data, error } = await supabase.from('pos_suppliers').insert({
-                                  name: editingSupplier.name,
-                                  branch_id: shopSettings?.branch_id || null
-                              }).select().single();
-                              if (error) {
-                                  alert(`ไม่สามารถสร้างสถานที่ได้: ${error.message}`);
-                                  console.error(error);
-                              }
-                              if (data) {
-                                  setSuppliers(prev => [...prev, data].sort((a,b) => a.name.localeCompare(b.name)));
-                                  setEditingSupplier(null);
-                              }
-                          }}
-                          disabled={!editingSupplier?.name?.trim()}
-                          className="h-[50px] px-8 bg-[#1A1A18] text-white flex items-center justify-center gap-2 hover:bg-black transition-all disabled:opacity-50 w-full sm:w-auto"
-                      >
-                          <Plus size={18} /> สร้าง
-                      </button>
-                  </div>
-
-                  {/* Supplier List */}
-                  <div className="space-y-4">
-                      {suppliers.map(sup => {
-                          const itemsInSup = inventory.filter(i => i.supplier_id === sup.id);
-                          return (
-                              <div key={sup.id} className="bg-white border border-gray-200 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                                  <div className="flex items-center gap-4">
-                                      <div className="w-12 h-12 bg-indigo-50 text-indigo-500 rounded-xl flex items-center justify-center shrink-0">
-                                          <Landmark size={24} />
-                                      </div>
-                                      <div>
-                                          <h3 className="text-[16px] font-black uppercase tracking-widest text-[#1A1A18]">{sup.name}</h3>
-                                          <div className="text-[11px] font-black text-gray-400 mt-1">
-                                              {itemsInSup.length} วัตถุดิบในร้านนี้
-                                          </div>
-                                      </div>
-                                  </div>
-                                  <div className="flex items-center gap-2 w-full sm:w-auto">
-                                      <button 
-                                          onClick={() => {
-                                              setSelectedSupplierForAssign(sup);
-                                              setSelectedItemIdsForAssign(itemsInSup.map(i => i.id));
-                                              setIsAssignItemsOpen(true);
-                                          }}
-                                          className="flex-1 sm:flex-none px-6 py-3 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors text-[12px] font-black uppercase tracking-widest flex items-center justify-center gap-2"
-                                      >
-                                          <ListChecks size={16} /> เลือกวัตถุดิบเข้าประจำร้าน
-                                      </button>
-                                      <button 
-                                          onClick={async () => {
-                                              if (confirm('ยืนยันการลบสถานที่นี้? (วัตถุดิบในร้านนี้จะไม่ถูกลบ แต่จะกลายเป็น "ไม่ระบุแหล่งซื้อ")')) {
-                                                  await supabase.from('pos_suppliers').delete().eq('id', sup.id);
-                                                  setSuppliers(prev => prev.filter(s => s.id !== sup.id));
-                                                  fetchInventory();
-                                              }
-                                          }}
-                                          className="w-12 h-12 flex items-center justify-center text-red-400 bg-red-50 hover:bg-red-100 transition-colors shrink-0"
-                                      >
-                                          <Trash2 size={18} />
-                                      </button>
-                                  </div>
-                              </div>
-                          );
-                      })}
-                      {suppliers.length === 0 && (
-                          <div className="text-center py-10 text-gray-400 font-bold uppercase tracking-widest text-[12px]">
-                              ยังไม่มีสถานที่ซื้อ
-                          </div>
-                      )}
-                  </div>
-               </div>
-            </motion.div>
-          </div>
-        )}
-
-        {/* ASSIGN ITEMS MODAL */}
-        {isAssignItemsOpen && selectedSupplierForAssign && (
-          <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center sm:p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[#1A1A18]/80 backdrop-blur-md" onClick={() => setIsAssignItemsOpen(false)} />
-            
-            <motion.div 
-              initial={{ y: "100%" }} 
-              animate={{ y: 0 }} 
-              exit={{ y: "100%" }} 
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="relative w-full h-[95vh] sm:h-auto sm:max-h-[90vh] sm:max-w-2xl bg-white sm:rounded-3xl shadow-2xl flex flex-col font-bold overflow-hidden rounded-t-[2rem]"
-            >
-               <header className="px-6 py-5 bg-indigo-50 border-b border-indigo-100 flex items-center justify-between sticky top-0 z-10">
-                  <div className="flex flex-col">
-                      <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tighter text-indigo-900 leading-none">
-                        {selectedSupplierForAssign.name}
-                      </h2>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-indigo-500 mt-1 leading-none">เลือกวัตถุดิบที่จะซื้อประจำที่ร้านนี้</p>
-                  </div>
-                  <button onClick={() => setIsAssignItemsOpen(false)} className="w-10 h-10 bg-white hover:bg-indigo-100 rounded-full flex items-center justify-center text-indigo-500 transition-colors">
-                      <X size={20} />
-                  </button>
-               </header>
-
-               <div className="flex-1 overflow-y-auto no-scrollbar p-6 pb-32">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {inventory.map(item => {
-                          const isSelected = selectedItemIdsForAssign.includes(item.id);
-                          // It's assigned somewhere else
-                          const otherSupplier = item.supplier_id && item.supplier_id !== selectedSupplierForAssign.id 
-                                ? suppliers.find(s => s.id === item.supplier_id)?.name 
-                                : null;
-
-                          return (
-                              <button 
-                                  key={item.id}
-                                  onClick={() => {
-                                      if (isSelected) {
-                                          setSelectedItemIdsForAssign(prev => prev.filter(id => id !== item.id));
-                                      } else {
-                                          setSelectedItemIdsForAssign(prev => [...prev, item.id]);
-                                      }
-                                  }}
-                                  className={`p-4 border-2 rounded-xl flex items-center gap-4 text-left transition-all ${isSelected ? 'border-indigo-500 bg-indigo-50' : 'border-gray-100 hover:border-gray-200'}`}
-                              >
-                                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 ${isSelected ? 'border-indigo-500 bg-indigo-500 text-white' : 'border-gray-300'}`}>
-                                      {isSelected && <CheckCircle2 size={14} />}
-                                  </div>
-                                  <div>
-                                      <div className={`text-[13px] font-black uppercase leading-tight ${isSelected ? 'text-indigo-900' : 'text-[#1A1A18]'}`}>{item.name}</div>
-                                      {otherSupplier && !isSelected && (
-                                          <div className="text-[9px] font-black text-amber-500 mt-1 uppercase">ตอนนี้อยู่ที่: {otherSupplier}</div>
-                                      )}
-                                  </div>
-                              </button>
-                          );
-                      })}
-                  </div>
-               </div>
-
-               <footer className="p-6 border-t border-gray-100 bg-white">
-                  <button 
-                      onClick={async () => {
-                          setIsSaving(true);
-                          // Find items that need updating
-                          // 1. Added items: in selectedItemIdsForAssign but currently supplier_id != this supplier
-                          // 2. Removed items: not in selectedItemIdsForAssign but currently supplier_id == this supplier
-                          const addedIds = selectedItemIdsForAssign.filter(id => {
-                              const item = inventory.find(i => i.id === id);
-                              return item && item.supplier_id !== selectedSupplierForAssign.id;
-                          });
-                          const removedIds = inventory.filter(i => i.supplier_id === selectedSupplierForAssign.id && !selectedItemIdsForAssign.includes(i.id)).map(i => i.id);
-
-                          if (addedIds.length > 0) {
-                              await supabase.from('inventory_items').update({ supplier_id: selectedSupplierForAssign.id }).in('id', addedIds);
-                          }
-                          if (removedIds.length > 0) {
-                              await supabase.from('inventory_items').update({ supplier_id: null }).in('id', removedIds);
-                          }
-                          
-                          await fetchInventory();
-                          setIsSaving(false);
-                          setIsAssignItemsOpen(false);
-                      }}
-                      disabled={isSaving}
-                      className="w-full h-14 bg-indigo-600 text-white flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all font-black uppercase tracking-widest disabled:opacity-50"
-                  >
-                      {isSaving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />} บันทึกการเลือกวัตถุดิบ
-                  </button>
-               </footer>
-            </motion.div>
-          </div>
-        )}
-
-        {/* SHOPPING LIST MODAL */}
-        {isShoppingListOpen && (
-          <div className="fixed inset-0 z-[1200] flex justify-end font-bold">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsShoppingListOpen(false)} />
-            
-            <motion.div 
-              initial={{ x: "100%" }} 
-              animate={{ x: 0 }} 
-              exit={{ x: "100%" }} 
-              transition={{ type: "spring", damping: 25, stiffness: 250 }}
-              className="relative w-full md:max-w-2xl h-[100dvh] bg-gray-50 flex flex-col font-bold overflow-hidden shadow-2xl rounded-none"
-            >
-               <header className="px-6 md:px-8 py-6 bg-white border-b border-gray-100 flex items-center justify-between sticky top-0 z-10">
-                  <div className="flex flex-col">
-                      <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-[#1A1A18] leading-none flex items-center gap-2">
-                        <ShoppingCart size={28} className="text-black" /> 
-                        {locale === 'en' ? 'Shopping List' : locale === 'zh' ? 'Shopping List' : 'สรุปรายการจัดซื้อ'}
-                      </h2>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mt-2 leading-none">{locale === 'en' ? 'Items grouped by supplier' : locale === 'zh' ? 'Items grouped by supplier' : 'รายการวัตถุดิบที่ต้องสั่งซื้อ แยกตามร้านค้า'}</p>
-                  </div>
-                  <button onClick={() => setIsShoppingListOpen(false)} className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-white border border-gray-200 hover:border-black transition-all text-gray-400 hover:text-black">
-                      <X size={20} />
-                  </button>
-               </header>
-
-               <div className="flex-1 overflow-y-auto no-scrollbar p-6 bg-gray-50 pb-32 space-y-8">
-                  {(() => {
-                      // Filter low stock items
-                      const lowStockItems = inventory.filter(item => Number(item.stock_quantity) <= Number(item.min_stock_level));
-                      if (lowStockItems.length === 0) {
-                          return (
-                              <div className="flex flex-col items-center justify-center py-20 opacity-50">
-                                  <CheckCircle2 size={64} className="text-sage-500 mb-4" />
-                                  <div className="text-xl font-black uppercase">สต็อกเต็มทุกรายการ</div>
-                                  <div className="text-[11px] font-black uppercase tracking-widest text-gray-400 mt-2">ไม่จำเป็นต้องสั่งซื้อสินค้าเพิ่มในขณะนี้</div>
-                              </div>
-                          );
-                      }
-
-                      // Group by supplier
-                      const grouped: Record<string, typeof inventory> = {};
-                      lowStockItems.forEach(item => {
-                          const supplierObj = suppliers.find(s => s.id === item.supplier_id);
-                          const supName = supplierObj ? supplierObj.name : 'ไม่ระบุแหล่งซื้อ (Uncategorized)';
-                          if (!grouped[supName]) grouped[supName] = [];
-                          grouped[supName].push(item);
-                      });
-
-                      return Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b)).map(([supplier, items]) => (
-                          <div key={supplier} className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
-                              <div className="px-6 py-4 bg-amber-50 border-b border-amber-100 flex items-center gap-3">
-                                  <div className="w-10 h-10 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center">
-                                      <Landmark size={20} />
-                                  </div>
-                                  <div>
-                                      <h3 className="text-[14px] font-black uppercase tracking-widest text-amber-900">{supplier}</h3>
-                                      <div className="text-[10px] font-black text-amber-600/70">{items.length} รายการ</div>
-                                  </div>
-                              </div>
-                              <div className="divide-y divide-gray-50">
-                                  {items.map(item => (
-                                      <div key={item.id} className="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-gray-50 transition-colors">
-                                          <div className="flex items-start gap-4">
-                                              <div className="w-12 h-12 bg-red-50 text-red-500 rounded-full flex items-center justify-center shrink-0">
-                                                  <AlertTriangle size={20} />
-                                              </div>
-                                              <div>
-                                                  <div className="text-[14px] font-black uppercase text-[#1A1A18] leading-none mb-1">{item.name}</div>
-                                                  <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">SKU: {item.sku || '-'}</div>
-                                              </div>
-                                          </div>
-                                          <div className="flex items-center gap-4 sm:gap-8 bg-gray-50 sm:bg-transparent p-3 sm:p-0 rounded-xl">
-                                              <div className="text-center">
-                                                  <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">สต็อกที่มี</div>
-                                                  <div className="text-[16px] font-black text-red-500">{item.stock_quantity} <span className="text-[10px]">{item.unit}</span></div>
-                                              </div>
-                                              <div className="w-px h-8 bg-gray-200"></div>
-                                              <div className="text-center">
-                                                  <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">จุดเตือน</div>
-                                                  <div className="text-[16px] font-black text-amber-500">{item.min_stock_level} <span className="text-[10px]">{item.unit}</span></div>
-                                              </div>
-                                              <div className="w-px h-8 bg-gray-200"></div>
-                                              <div className="text-center bg-amber-50 p-2 px-4 rounded-xl border border-amber-100">
-                                                  <div className="text-[10px] font-black uppercase tracking-widest text-amber-700 mb-1">ควรสั่งอย่างน้อย</div>
-                                                  <div className="text-[16px] font-black text-amber-600">
-                                                      {Math.max(0, item.min_stock_level - item.stock_quantity)} <span className="text-[10px]">{item.unit}</span>
-                                                  </div>
-                                              </div>
-                                          </div>
-                                      </div>
-                                  ))}
-                              </div>
-                          </div>
-                      ));
-                  })()}
-               </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-    </>
+          </>
   )
 }
