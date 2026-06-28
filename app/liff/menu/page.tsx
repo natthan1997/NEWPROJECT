@@ -1007,23 +1007,33 @@ export default function LiffMenuPage() {
     { id: 'uncategorized', name: 'อื่นๆ' }
   ];
 
-  // IntersectionObserver for scroll spy
+  // Scroll Spy for categories
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
-    const observer = new IntersectionObserver((entries) => {
-      const intersecting = entries.filter(entry => entry.isIntersecting);
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY + 120; // Offset for sticky header
       
-      if (intersecting.length > 0) {
-        intersecting.sort((a, b) => Math.abs(a.boundingClientRect.top) - Math.abs(b.boundingClientRect.top));
+      const sections = document.querySelectorAll('.scroll-spy-section');
+      let currentActiveId = 'all';
+      
+      sections.forEach((section) => {
+        const sectionTop = (section as HTMLElement).offsetTop;
+        const sectionHeight = (section as HTMLElement).offsetHeight;
         
-        const visibleId = intersecting[0].target.id.replace('category-', '');
-        
-        if (window.scrollY < 200) {
-          setActiveCategoryId('all');
-        } else {
-          setActiveCategoryId(visibleId);
-          const tab = document.getElementById(`tab-${visibleId}`);
+        if (scrollPosition >= sectionTop && scrollPosition < sectionTop + sectionHeight) {
+          currentActiveId = section.id.replace('category-', '');
+        }
+      });
+
+      if (window.scrollY < 100) {
+        currentActiveId = 'all';
+      }
+      
+      setActiveCategoryId((prevId) => {
+        if (prevId !== currentActiveId) {
+          // Scroll the tab into view
+          const tab = document.getElementById(`tab-${currentActiveId}`);
           const container = document.getElementById('category-tabs-container');
           if (tab && container) {
             container.scrollTo({
@@ -1031,32 +1041,19 @@ export default function LiffMenuPage() {
               behavior: 'smooth'
             });
           }
+          return currentActiveId;
         }
-      } else if (window.scrollY < 200) {
-        setActiveCategoryId('all');
-        const tab = document.getElementById(`tab-all`);
-        const container = document.getElementById('category-tabs-container');
-        if (tab && container) {
-          container.scrollTo({
-            left: tab.offsetLeft - container.offsetWidth / 2 + tab.offsetWidth / 2,
-            behavior: 'smooth'
-          });
-        }
-      }
-    }, {
-      rootMargin: '-120px 0px -60% 0px',
-      threshold: 0
-    });
-
-    const timeout = setTimeout(() => {
-      document.querySelectorAll('.scroll-spy-section').forEach(section => {
-        observer.observe(section);
+        return prevId;
       });
-    }, 1000);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    const timeout = setTimeout(handleScroll, 100);
 
     return () => {
       clearTimeout(timeout);
-      observer.disconnect();
+      window.removeEventListener('scroll', handleScroll);
     };
   }, [categories, items]);
 
@@ -1817,7 +1814,7 @@ export default function LiffMenuPage() {
         </div>
         
         {/* Categories (Sticky) */}
-        <div className="sticky top-[58px] z-[90] bg-[#fcfcf9] px-4 py-3 border-b border-gray-100 flex gap-2 overflow-x-auto no-scrollbar shadow-sm" id="category-tabs-container">
+        <div className="sticky top-[58px] z-[90] bg-[#fcfcf9] px-2 pt-2 flex gap-4 overflow-x-auto no-scrollbar border-b border-gray-100" id="category-tabs-container">
           {[{ id: 'all', name: t.all }, ...categories.map(c => ({ id: c.id, name: c.name }))].map(category => {
             return (
               <button
@@ -1831,7 +1828,7 @@ export default function LiffMenuPage() {
                     window.scrollTo({ top: y, behavior: 'smooth' });
                   }
                 }}
-                className={`px-4 py-2 text-[10px] font-black uppercase transition-all whitespace-nowrap shrink-0 rounded-full border ${activeCategoryId === category.id ? 'bg-black text-white border-black' : 'bg-white text-gray-500 border-gray-200'}`}
+                className={`px-3 py-3 text-[14px] transition-all whitespace-nowrap shrink-0 ${activeCategoryId === category.id ? 'font-bold text-black border-b-2 border-black' : 'font-medium text-gray-400 border-b-2 border-transparent hover:text-gray-600'}`}
               >
                 {category.name}
               </button>

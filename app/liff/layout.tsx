@@ -16,7 +16,7 @@ export default function LiffLayout({ children }: { children: React.ReactNode }) 
     }>
       <Elements stripe={stripePromise}>
         <LiffProvider>
-          <div className="bg-[#fcfcf9] min-h-screen max-w-md mx-auto w-full shadow-2xl relative text-[#1A1A18] font-sans selection:bg-emerald-100 antialiased overflow-x-hidden">
+          <div className="bg-[#fcfcf9] min-h-screen max-w-md mx-auto w-full shadow-2xl relative text-[#1A1A18] font-sans selection:bg-emerald-100 antialiased overflow-x-clip">
             {children}
           </div>
         </LiffProvider>
