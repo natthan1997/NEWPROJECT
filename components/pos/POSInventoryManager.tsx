@@ -716,9 +716,8 @@ export default function POSInventoryManager({
                       </div>
                     </button>
                   </div>
-
-                  <div className="overflow-hidden rounded-[30px] border border-[#EEF0EC] bg-white p-2 shadow-[0_10px_30px_rgba(21,22,19,0.04)]">
-                    <div className="grid grid-cols-4">
+                  <div className="border-t border-b border-[#F0F0E8] bg-white mt-6 mb-2">
+                    <div className="grid grid-cols-4 divide-x divide-[#F0F0E8]">
                       {mobileQuickActions.map((action) => {
                         const Icon = action.icon
 
@@ -726,12 +725,12 @@ export default function POSInventoryManager({
                           <button
                             key={action.key}
                             onClick={action.onClick}
-                            className="flex min-h-[102px] flex-col items-center justify-center gap-3 rounded-[22px] px-2 py-4 text-center transition-all active:scale-[0.98]"
+                            className="flex min-h-[96px] flex-col items-center justify-center gap-3 px-2 py-4 text-center transition-all hover:bg-gray-50 active:bg-gray-100"
                           >
-                            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#F6F7F3] text-[#5E6470]">
-                              <Icon size={18} strokeWidth={1.9} />
+                            <div className="flex h-12 w-12 items-center justify-center border border-black bg-white text-black">
+                              <Icon size={18} strokeWidth={1.5} />
                             </div>
-                            <div className="text-[10px] font-black leading-tight text-[#69707A]">
+                            <div className="text-[10px] font-black uppercase tracking-widest leading-tight text-black">
                               {action.label}
                             </div>
                           </button>
@@ -795,10 +794,10 @@ export default function POSInventoryManager({
                         <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto no-scrollbar py-1">
                           <button
                               onClick={() => setSelectedCategory('all')}
-                              className={`flex-shrink-0 whitespace-nowrap rounded-full border px-5 py-2.5 text-[13px] font-black transition-all ${
+                              className={`flex-shrink-0 whitespace-nowrap rounded-none border px-5 py-2 text-[11px] uppercase tracking-widest font-black transition-all ${
                                   selectedCategory === 'all' 
-                                  ? 'border-[#121212] bg-[#121212] text-white' 
-                                  : 'border-[#E9EBE6] bg-white text-[#9A9D96] hover:text-black'
+                                  ? 'border-black bg-black text-white' 
+                                  : 'border-[#E5E5E5] bg-white text-gray-500 hover:text-black hover:border-black'
                               }`}
                           >
                               {locale === 'en' ? 'ทั้งหมด' : locale === 'zh' ? 'ทั้งหมด' : 'ทั้งหมด'}
@@ -807,10 +806,10 @@ export default function POSInventoryManager({
                               <button
                                   key={cat.id}
                                   onClick={() => setSelectedCategory(cat.id)}
-                                  className={`flex-shrink-0 whitespace-nowrap rounded-full border px-5 py-2.5 text-[13px] font-black transition-all ${
+                                  className={`flex-shrink-0 whitespace-nowrap rounded-none border px-5 py-2 text-[11px] uppercase tracking-widest font-black transition-all ${
                                       selectedCategory === cat.id 
-                                      ? 'border-[#121212] bg-[#121212] text-white' 
-                                      : 'border-[#E9EBE6] bg-white text-[#9A9D96] hover:text-black'
+                                      ? 'border-black bg-black text-white' 
+                                      : 'border-[#E5E5E5] bg-white text-gray-500 hover:text-black hover:border-black'
                                   }`}
                               >
                                   {cat.name}
@@ -1147,7 +1146,7 @@ export default function POSInventoryManager({
                           <div
                             key={item.id}
                             onClick={() => setExpandedInventoryCardId((current) => current === item.id ? null : item.id)}
-                            className={`group relative overflow-hidden border transition-all cursor-pointer shadow-[0_10px_30px_rgba(21,22,19,0.04)] ${isGridCard ? 'rounded-[26px] p-4' : 'rounded-[30px] p-5'} ${isLowStock ? 'border-[#F3E4E6] bg-white' : 'border-[#ECEEE9] bg-white'} ${isExpandedMobile ? 'border-[#171714] shadow-[0_14px_28px_rgba(18,22,18,0.08)]' : ''} sm:cursor-default sm:rounded-[30px] sm:p-6`}
+                            className={`group relative overflow-hidden border transition-all cursor-pointer bg-white ${isGridCard ? 'p-4' : 'p-5'} ${isLowStock ? 'border-red-500' : 'border-[#E5E5E5] hover:border-black'} ${isExpandedMobile ? 'border-black' : ''} sm:cursor-default sm:p-6 rounded-none`}
                           >
                               {isGridCard ? (
                                 <>
@@ -1627,20 +1626,20 @@ export default function POSInventoryManager({
       {/* EDIT MODAL */}
       <AnimatePresence>
         {isEditorOpen && (
-          <div className="fixed inset-0 z-[1200] flex items-center justify-center p-6 font-bold">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[#1A1A18]/80 backdrop-blur-md" onClick={() => setIsEditorOpen(false)} />
-            <motion.div initial={{ x: 100, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 100, opacity: 0 }} className="relative w-full max-w-2xl bg-white shadow-2xl flex flex-col font-bold">
-              <header className="p-10 border-b border-gray-50 flex justify-between items-center bg-gray-50 font-bold">
+          <div className="fixed inset-0 z-[1200] flex justify-end font-bold">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsEditorOpen(false)} />
+            <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', damping: 25, stiffness: 250 }} className="relative w-full md:max-w-xl h-[100dvh] bg-white shadow-2xl flex flex-col font-bold overflow-hidden">
+              <header className="p-6 md:p-8 border-b border-gray-100 flex justify-between items-center bg-white font-bold sticky top-0 z-10">
                 <div className="font-bold">
-                  <h2 className="text-3xl font-black uppercase tracking-tighter text-[#1A1A18]">{editingItem.id ? 'Edit Material' : 'New Material'}</h2>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-[#8C8A81] mt-1">Inventory Management Portal</p>
+                  <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-[#1A1A18] leading-none">{editingItem.id ? 'Edit Material' : 'New Material'}</h2>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-[#8C8A81] mt-2">Inventory Management Portal</p>
                 </div>
-                <button onClick={() => setIsEditorOpen(false)} className="w-12 h-12 flex items-center justify-center bg-white border border-[#F0F0E8] hover:border-black transition-all text-gray-300 hover:text-black">
+                <button onClick={() => setIsEditorOpen(false)} className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-white border border-gray-200 hover:border-black transition-all text-gray-400 hover:text-black">
                    <X size={20} />
                 </button>
               </header>
 
-              <div className="p-10 space-y-8 font-bold">
+              <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-8 font-bold bg-gray-50/30">
                 <div className="grid grid-cols-2 gap-8 font-bold">
                   <div className="space-y-2 font-bold">
                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">{locale === 'en' ? 'ชื่อวัตถุดิบ' : locale === 'zh' ? 'ชื่อวัตถุดิบ' : 'ชื่อวัตถุดิบ'}</label>
@@ -1761,11 +1760,11 @@ export default function POSInventoryManager({
                 </div>
               </div>
 
-              <footer className="p-10 border-t border-gray-50 bg-gray-50 font-bold flex gap-4">
+              <footer className="p-6 md:p-8 border-t border-gray-100 bg-white font-bold flex gap-4 sticky bottom-0 mt-auto">
                 <button 
                   onClick={handleSaveItem}
                   disabled={isSaving}
-                  className="flex-1 bg-[#1A1A18] text-white py-6 flex items-center justify-center gap-3 shadow-xl hover:bg-black transition-all disabled:opacity-50 font-bold"
+                  className="flex-1 bg-black text-white py-5 flex items-center justify-center gap-3 hover:bg-gray-800 transition-all disabled:opacity-50 font-bold"
                 >
                   {isSaving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
                   <span className="text-[12px] font-black uppercase tracking-widest">Save Material</span>
@@ -1876,16 +1875,16 @@ export default function POSInventoryManager({
       <AnimatePresence>
         {isMobileInventorySheetOpen && (
           <div className="fixed inset-0 z-[1250] flex items-end justify-center sm:hidden">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/35 backdrop-blur-[2px]" onClick={() => setIsMobileInventorySheetOpen(false)} />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsMobileInventorySheetOpen(false)} />
             <motion.div
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 24, stiffness: 220 }}
-              className="relative z-10 w-full rounded-t-[32px] bg-white px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4 shadow-[0_-24px_60px_rgba(0,0,0,0.18)]"
+              transition={{ type: 'spring', damping: 25, stiffness: 250 }}
+              className="relative z-10 w-full bg-white px-0 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2 shadow-2xl"
             >
-              <div className="mx-auto mb-5 h-2 w-14 rounded-full bg-[#E8EAF0]" />
-              <div className="space-y-2">
+              <div className="mx-auto mb-6 h-1 w-12 bg-gray-200" />
+              <div className="space-y-0 border-y border-gray-100">
                 {[
                   { key: 'grid', label: 'มุมมอง Grid', icon: LayoutGrid, active: viewMode === 'grid', onClick: () => { setViewMode('grid'); setIsMobileInventorySheetOpen(false); } },
                   { key: 'list', label: 'มุมมอง List', icon: List, active: viewMode === 'list', onClick: () => { setViewMode('list'); setIsMobileInventorySheetOpen(false); } },
@@ -1896,34 +1895,32 @@ export default function POSInventoryManager({
                     <button
                       key={option.key}
                       onClick={option.onClick}
-                      className={`flex w-full items-center justify-between border px-4 py-4 text-left transition-all ${option.active ? 'border-[#1A1A18] bg-[#FAFAF8]' : 'border-[#EEF0F4] bg-white'}`}
+                      className={`flex w-full items-center justify-between border-b border-gray-100 last:border-none px-6 py-5 text-left transition-all ${option.active ? 'bg-black text-white' : 'bg-white hover:bg-gray-50'}`}
                     >
                       <div className="flex items-center gap-4">
-                        <Icon size={24} className="text-[#6B7280]" />
-                        <span className="text-[16px] font-black text-[#1A1A18]">{option.label}</span>
+                        <Icon size={20} className={option.active ? 'text-white' : 'text-black'} />
+                        <span className={`text-[12px] font-black uppercase tracking-widest ${option.active ? 'text-white' : 'text-black'}`}>{option.label}</span>
                       </div>
-                      <span className={`h-3 w-3 rounded-full ${option.active ? 'bg-[#1A1A18]' : 'bg-transparent border border-[#D4D7DE]'}`} />
+                      <span className={`h-2 w-2 ${option.active ? 'bg-white' : 'bg-transparent border border-gray-300'}`} />
                     </button>
                   )
                 })}
               </div>
 
-              <div className="my-6 h-px bg-[#EEF0F4]" />
-
-              <div className="space-y-2">
+              <div className="space-y-0 mt-4 border-y border-gray-100">
                 <button
                   onClick={() => { setShowHistory(true); setIsMobileInventorySheetOpen(false); }}
-                  className="flex w-full items-center gap-4 px-4 py-4 text-left"
+                  className="flex w-full items-center gap-4 border-b border-gray-100 px-6 py-5 text-left bg-white hover:bg-gray-50"
                 >
-                  <History size={24} className="text-[#6B7280]" />
-                  <span className="text-[16px] font-black text-[#4B5563]">ประวัติการเคลื่อนไหว</span>
+                  <History size={20} className="text-black" />
+                  <span className="text-[12px] font-black uppercase tracking-widest text-black">ประวัติการเคลื่อนไหว</span>
                 </button>
                 <button
                   onClick={() => { setIsAuditTypeModalOpen(true); setIsMobileInventorySheetOpen(false); }}
-                  className="flex w-full items-center gap-4 border border-[#EEF0F4] px-4 py-4 text-left"
+                  className="flex w-full items-center gap-4 border-b border-gray-100 px-6 py-5 text-left bg-white hover:bg-gray-50"
                 >
-                  <ClipboardCheck size={24} className="text-[#6B7280]" />
-                  <span className="text-[16px] font-black text-[#4B5563]">นับสต็อกสินค้า</span>
+                  <ClipboardCheck size={20} className="text-black" />
+                  <span className="text-[12px] font-black uppercase tracking-widest text-black">นับสต็อกสินค้า</span>
                 </button>
                 {isAdmin && (
                   <button
@@ -1932,15 +1929,17 @@ export default function POSInventoryManager({
                       setIsEditorOpen(true)
                       setIsMobileInventorySheetOpen(false)
                     }}
-                    className="flex w-full items-center gap-4 border border-[#EEF0F4] px-4 py-4 text-left"
+                    className="flex w-full items-center gap-4 border-b border-gray-100 px-6 py-5 text-left bg-white hover:bg-gray-50"
                   >
-                    <Plus size={24} className="text-[#6B7280]" />
-                    <span className="text-[16px] font-black text-[#4B5563]">เพิ่มวัตถุดิบ</span>
+                    <Plus size={20} className="text-black" />
+                    <span className="text-[12px] font-black uppercase tracking-widest text-black">เพิ่มวัตถุดิบ</span>
                   </button>
                 )}
+              </div>
+              <div className="px-6 mt-6">
                 <button
                   onClick={() => setIsMobileInventorySheetOpen(false)}
-                  className="mt-2 flex w-full items-center justify-center border border-[#D8DEE8] px-4 py-4 text-[16px] font-black text-[#A0A6B2]"
+                  className="flex w-full items-center justify-center border border-black bg-white px-4 py-4 text-[12px] font-black uppercase tracking-widest text-black hover:bg-black hover:text-white transition-all"
                 >
                   ยกเลิก
                 </button>
@@ -1992,9 +1991,9 @@ export default function POSInventoryManager({
                                 if (isSelected) setAuditCategory(prev => prev.filter(id => id !== cat.id));
                                 else setAuditCategory(prev => [...prev, cat.id]);
                               }}
-                              className={`relative aspect-square rounded-[32px] border bg-white p-5 text-center transition-all active:scale-95 ${isSelected ? 'border-[#111111] shadow-[0_10px_24px_rgba(18,22,18,0.08)]' : 'border-[#E7E7E7]'}`}
+                              className={`relative aspect-square rounded-none border bg-white p-5 text-center transition-all active:scale-95 ${isSelected ? 'border-black bg-gray-50' : 'border-gray-200 hover:border-black'}`}
                             >
-                              <div className={`mx-auto flex h-16 w-16 items-center justify-center rounded-full transition-all ${isSelected ? 'bg-[#F5F6F8] text-[#111111]' : 'bg-[#F7F7F7] text-[#111111]'}`}>
+                              <div className={`mx-auto flex h-16 w-16 items-center justify-center rounded-none transition-all ${isSelected ? 'bg-black text-white' : 'bg-gray-100 text-black border border-transparent group-hover:border-black'}`}>
                                  {isSelected ? <CheckCircle2 size={28} /> : <Boxes size={28} />}
                               </div>
                               <div className="mt-5 w-full">
@@ -2023,7 +2022,7 @@ export default function POSInventoryManager({
                    <button 
                         disabled={auditCategory.length === 0}
                         onClick={() => { setIsAuditMode(true); setIsAuditTypeModalOpen(false); setViewMode('grid'); }}
-                        className={`flex h-16 w-full items-center justify-center gap-3 rounded-full text-[14px] font-black uppercase transition-all ${auditCategory.length > 0 ? 'bg-[#111111] text-white active:scale-95' : 'cursor-not-allowed bg-gray-100 text-gray-300'}`}
+                        className={`flex h-16 w-full items-center justify-center gap-3 rounded-none text-[14px] font-black uppercase transition-all ${auditCategory.length > 0 ? 'bg-black text-white hover:bg-gray-800' : 'cursor-not-allowed bg-gray-200 text-gray-400'}`}
                       >
                         <ClipboardCheck size={20} />
                         <span>{auditCategory.length === categories.length ? (locale === 'en' ? 'Start Full Audit' : locale === 'zh' ? 'Start Full Audit' : 'เริ่มนับสต็อกทั้งหมด') : (locale === 'en' ? `Start Counting (${auditCategory.length})` : locale === 'zh' ? `Start Counting (${auditCategory.length})` : `เริ่มนับสต็อก (${auditCategory.length} หมวด)`)}</span>
@@ -2035,25 +2034,25 @@ export default function POSInventoryManager({
 
         {/* SUPPLIER MANAGER MODAL */}
         {isSupplierManagerOpen && (
-          <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[#1A1A18]/80 backdrop-blur-sm" onClick={() => setIsSupplierManagerOpen(false)} />
+          <div className="fixed inset-0 z-[1200] flex justify-end font-bold">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsSupplierManagerOpen(false)} />
             
             <motion.div 
-              initial={{ y: "100%" }} 
-              animate={{ y: 0 }} 
-              exit={{ y: "100%" }} 
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="relative w-full h-[90vh] sm:h-auto sm:max-h-[90vh] sm:max-w-3xl bg-gray-50 sm:rounded-3xl shadow-2xl flex flex-col font-bold overflow-hidden rounded-t-[2rem]"
+              initial={{ x: "100%" }} 
+              animate={{ x: 0 }} 
+              exit={{ x: "100%" }} 
+              transition={{ type: "spring", damping: 25, stiffness: 250 }}
+              className="relative w-full md:max-w-xl h-[100dvh] bg-gray-50 flex flex-col font-bold overflow-hidden shadow-2xl rounded-none"
             >
-               <header className="px-6 py-5 bg-white border-b border-gray-100 flex items-center justify-between sticky top-0 z-10">
+               <header className="px-6 md:px-8 py-6 bg-white border-b border-gray-100 flex items-center justify-between sticky top-0 z-10">
                   <div className="flex flex-col">
-                      <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tighter text-[#1A1A18] leading-none flex items-center gap-2">
-                        <Settings size={24} className="text-indigo-500" /> 
+                      <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-[#1A1A18] leading-none flex items-center gap-2">
+                        <Settings size={28} className="text-black" /> 
                         {locale === 'en' ? 'Manage Suppliers' : locale === 'zh' ? 'Manage Suppliers' : 'จัดการแหล่งจัดซื้อ'}
                       </h2>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mt-1 leading-none">{locale === 'en' ? 'Add locations and assign items' : locale === 'zh' ? 'Add locations and assign items' : 'เพิ่มรายชื่อสถานที่และเลือกวัตถุดิบเข้าประจำร้าน'}</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mt-2 leading-none">{locale === 'en' ? 'Add locations and assign items' : locale === 'zh' ? 'Add locations and assign items' : 'เพิ่มรายชื่อสถานที่และเลือกวัตถุดิบเข้าประจำร้าน'}</p>
                   </div>
-                  <button onClick={() => setIsSupplierManagerOpen(false)} className="w-10 h-10 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded-full flex items-center justify-center text-gray-500 transition-colors">
+                  <button onClick={() => setIsSupplierManagerOpen(false)} className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-white border border-gray-200 hover:border-black transition-all text-gray-400 hover:text-black">
                       <X size={20} />
                   </button>
                </header>
@@ -2245,25 +2244,25 @@ export default function POSInventoryManager({
 
         {/* SHOPPING LIST MODAL */}
         {isShoppingListOpen && (
-          <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[#1A1A18]/80 backdrop-blur-sm" onClick={() => setIsShoppingListOpen(false)} />
+          <div className="fixed inset-0 z-[1200] flex justify-end font-bold">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsShoppingListOpen(false)} />
             
             <motion.div 
-              initial={{ y: "100%" }} 
-              animate={{ y: 0 }} 
-              exit={{ y: "100%" }} 
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="relative w-full h-[90vh] sm:h-auto sm:max-h-[90vh] sm:max-w-4xl bg-gray-50 sm:rounded-3xl shadow-2xl flex flex-col font-bold overflow-hidden rounded-t-[2rem]"
+              initial={{ x: "100%" }} 
+              animate={{ x: 0 }} 
+              exit={{ x: "100%" }} 
+              transition={{ type: "spring", damping: 25, stiffness: 250 }}
+              className="relative w-full md:max-w-2xl h-[100dvh] bg-gray-50 flex flex-col font-bold overflow-hidden shadow-2xl rounded-none"
             >
-               <header className="px-6 py-5 bg-white border-b border-gray-100 flex items-center justify-between sticky top-0 z-10">
+               <header className="px-6 md:px-8 py-6 bg-white border-b border-gray-100 flex items-center justify-between sticky top-0 z-10">
                   <div className="flex flex-col">
-                      <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tighter text-[#1A1A18] leading-none flex items-center gap-2">
-                        <ShoppingCart size={24} className="text-amber-500" /> 
-                        {locale === 'en' ? 'Shopping List' : locale === 'zh' ? 'Shopping List' : 'สรุปรายการจัดซื้อ (สต็อกต่ำ)'}
+                      <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-[#1A1A18] leading-none flex items-center gap-2">
+                        <ShoppingCart size={28} className="text-black" /> 
+                        {locale === 'en' ? 'Shopping List' : locale === 'zh' ? 'Shopping List' : 'สรุปรายการจัดซื้อ'}
                       </h2>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mt-1 leading-none">{locale === 'en' ? 'Items grouped by supplier' : locale === 'zh' ? 'Items grouped by supplier' : 'รายการวัตถุดิบที่ต้องสั่งซื้อ แยกตามร้านค้า'}</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mt-2 leading-none">{locale === 'en' ? 'Items grouped by supplier' : locale === 'zh' ? 'Items grouped by supplier' : 'รายการวัตถุดิบที่ต้องสั่งซื้อ แยกตามร้านค้า'}</p>
                   </div>
-                  <button onClick={() => setIsShoppingListOpen(false)} className="w-10 h-10 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded-full flex items-center justify-center text-gray-500 transition-colors">
+                  <button onClick={() => setIsShoppingListOpen(false)} className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-white border border-gray-200 hover:border-black transition-all text-gray-400 hover:text-black">
                       <X size={20} />
                   </button>
                </header>
