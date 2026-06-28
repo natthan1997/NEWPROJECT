@@ -646,6 +646,61 @@ export default function CustomerMenuPage() {
     return () => clearInterval(interval)
   }, [table?.id, tableClearedAlert, triggerTableClearedAnimation])
 
+  // Scroll Spy for categories
+  useEffect(() => {
+    if (typeof window === 'undefined' || !nickname) return;
+    
+    const handleScroll = () => {
+      // Find the sticky header height dynamically or assume ~120px
+      const headerOffset = 180;
+      const scrollPosition = window.scrollY + headerOffset;
+      
+      const sections = document.querySelectorAll('.scroll-spy-section');
+      if (sections.length === 0) return;
+      
+      let currentActiveId = 'all';
+      let found = false;
+      
+      sections.forEach((section) => {
+        const sectionTop = (section as HTMLElement).offsetTop;
+        const sectionHeight = (section as HTMLElement).offsetHeight;
+        
+        if (scrollPosition >= sectionTop && scrollPosition < sectionTop + sectionHeight) {
+          currentActiveId = section.id.replace('category-', '');
+          found = true;
+        }
+      });
+
+      if (window.scrollY < 100) {
+        currentActiveId = 'all';
+      }
+      
+      setActiveCategoryId((prevId) => {
+        if (prevId !== currentActiveId) {
+          const tab = document.getElementById(`tab-${currentActiveId}`);
+          const container = document.getElementById('category-tabs-container');
+          if (tab && container) {
+            container.scrollTo({
+              left: tab.offsetLeft - container.offsetWidth / 2 + tab.offsetWidth / 2,
+              behavior: 'smooth'
+            });
+          }
+          return currentActiveId;
+        }
+        return prevId;
+      });
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    const timeout = setTimeout(handleScroll, 100);
+
+    return () => {
+      clearTimeout(timeout);
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [categories, items, nickname]);
+
   // Prevent background scrolling when modals are open
   useEffect(() => {
     const isModalOpen = showCart || showTableBill || showPaymentModal || !!modifierModalItem || tableClearedAlert || orderStatus === 'success'
@@ -1058,6 +1113,7 @@ export default function CustomerMenuPage() {
                       <div className="space-y-3">
                           <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">{t.askNickname}</label>
                           <input 
+                              id="nickname-input"
                               type="text" 
                               value={tempName}
                               onChange={e => setTempName(e.target.value)}
@@ -1067,9 +1123,15 @@ export default function CustomerMenuPage() {
                           />
                       </div>
                       <button 
-                          onClick={handleSetNickname}
-                          disabled={!tempName.trim()}
-                          className="w-full py-4 bg-black text-white text-[11px] font-black uppercase tracking-[0.3em] transition-all hover:bg-gray-900 active:bg-black disabled:opacity-50 rounded-none"
+                          onClick={() => {
+                            if (!tempName.trim()) {
+                              alert(locale === 'en' ? 'Please enter your nickname first.' : locale === 'zh' ? '请输入您的昵称。' : 'กรุณาใส่ชื่อของคุณก่อนกดยืนยัน');
+                              document.getElementById('nickname-input')?.focus();
+                              return;
+                            }
+                            handleSetNickname();
+                          }}
+                          className="w-full py-4 bg-black text-white text-[11px] font-black uppercase tracking-[0.3em] transition-all hover:bg-gray-900 active:bg-black rounded-none"
                       >
                           {t.viewMenu}
                       </button>
@@ -1146,17 +1208,26 @@ export default function CustomerMenuPage() {
 
         {/* Category Navigation - Mockup Style */}
         <div className="sticky top-0 z-40 bg-white shadow-sm flex flex-col w-full">
-            <div className="flex overflow-x-auto scrollbar-hide px-4 sm:px-10 border-b border-gray-100 items-end min-h-[50px]">
+            <div className="flex overflow-x-auto scrollbar-hide px-4 sm:px-10 border-b border-gray-100 items-end min-h-[50px]" id="category-tabs-container">
                 {popularItems.length > 0 && (
                     <button 
-                        onClick={() => setActiveCategoryId('popular')}
+                        id="tab-popular"
+                        onClick={() => {
+                            setActiveCategoryId('popular');
+                            const el = document.getElementById('category-popular');
+                            if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 160, behavior: 'smooth' });
+                        }}
                         className={`flex-shrink-0 px-4 py-3 text-[11px] font-bold uppercase tracking-widest transition-colors border-b-2 whitespace-nowrap ${activeCategoryId === 'popular' ? 'border-black text-black' : 'border-transparent text-gray-400 hover:text-black'} ${isSplitLocked ? 'opacity-30 cursor-not-allowed' : ''}`}
                     >
                         {t.popular}
                     </button>
                 )}
                 <button 
-                    onClick={() => setActiveCategoryId('all')}
+                    id="tab-all"
+                    onClick={() => {
+                        setActiveCategoryId('all');
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
                     className={`flex-shrink-0 px-4 py-3 text-[11px] font-bold uppercase tracking-widest transition-colors border-b-2 whitespace-nowrap ${activeCategoryId === 'all' ? 'border-black text-black' : 'border-transparent text-gray-400 hover:text-black'}`}
                 >
                     {t.allMenu}
@@ -1164,7 +1235,12 @@ export default function CustomerMenuPage() {
                 {categories.map(cat => (
                     <button 
                         key={cat.id}
-                        onClick={() => setActiveCategoryId(cat.id)}
+                        id={`tab-${cat.id}`}
+                        onClick={() => {
+                            setActiveCategoryId(cat.id);
+                            const el = document.getElementById(`category-${cat.id}`);
+                            if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 160, behavior: 'smooth' });
+                        }}
                         className={`flex-shrink-0 px-4 py-3 text-[11px] font-bold uppercase tracking-widest transition-colors border-b-2 whitespace-nowrap ${activeCategoryId === cat.id ? 'border-black text-black' : 'border-transparent text-gray-400 hover:text-black'}`}
                     >
                         {cat.name}
@@ -1183,7 +1259,7 @@ export default function CustomerMenuPage() {
 
         {/* 🏆 Tier 1: Signature Series (Recommended) */}
         {activeCategoryId === 'all' && (
-          <section className="px-4 sm:px-6 mt-6 max-w-7xl mx-auto">
+          <section id="category-all" className="px-4 sm:px-6 mt-6 max-w-7xl mx-auto scroll-spy-section">
             <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-600 mb-6 flex items-center gap-3">
               <Star size={12} fill="currentColor" /> {locale === 'en' ? 'Signature Series • Recommended menu' : locale === 'zh' ? '招牌系列 • 推荐菜单' : 'Signature Series • เมนูแนะนำ'}</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -1223,7 +1299,7 @@ export default function CustomerMenuPage() {
 
         {/* ❤️ Tier 2: Most Loved (Best Sellers) */}
         {activeCategoryId === 'all' && (
-          <section className="px-4 sm:px-6 mt-10 mb-6 max-w-7xl mx-auto">
+          <section id="category-popular" className="px-4 sm:px-6 mt-10 mb-6 max-w-7xl mx-auto scroll-spy-section">
             <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-400 mb-6 px-1">{locale === 'en' ? 'Most Loved • เมนูยอดนิยม' : locale === 'zh' ? 'Most Loved • เมนูยอดนิยม' : 'Most Loved • เมนูยอดนิยม'}</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {displayItems.filter(i => i.is_popular).slice(0, 4).map(item => (
@@ -1270,7 +1346,7 @@ export default function CustomerMenuPage() {
             );
             if (catItems.length === 0) return null;
             return (
-              <div key={cat.id} className="space-y-6">
+              <div key={cat.id} id={`category-${cat.id}`} className="space-y-6 scroll-spy-section pt-4">
                 <div className="flex items-center gap-4">
                     <h2 className="text-[11px] font-black uppercase tracking-[0.3em] text-black whitespace-nowrap">{cat.name}</h2>
                     <div className="h-px bg-gray-100 w-full" />
