@@ -168,7 +168,8 @@ export default function LiffMenuPage() {
     setActiveOrders: ctxSetActiveOrders,
   } = useLiff();
 
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [isFetchingItems, setIsFetchingItems] = useState(true);
   const [items, setItems] = useState<MenuItem[]>([]);
   const [activeCategoryId, setActiveCategoryId] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -590,6 +591,7 @@ export default function LiffMenuPage() {
       const { data: itemData, error: itemError } = await itemQuery;
       if (itemError) console.error('Fetch Items Error:', itemError);
       if (itemData) setItems(sortMenuItemsByOrder(itemData));
+      setIsFetchingItems(false);
     };
 
     const fetchActiveOrders = async () => {
@@ -2013,7 +2015,13 @@ export default function LiffMenuPage() {
               </div>
             );
           })}
-          {filteredItems.length === 0 && (
+          {filteredItems.length === 0 && isFetchingItems && (
+            <div className="flex min-h-[220px] flex-col items-center justify-center border border-dashed border-gray-200 bg-gray-50 px-6 text-center animate-pulse">
+              <div className="w-8 h-8 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin mb-4" />
+              <div className="text-[11px] font-black uppercase tracking-[0.3em] text-gray-500">กำลังโหลดเมนู...</div>
+            </div>
+          )}
+          {filteredItems.length === 0 && !isFetchingItems && (
             <div className="flex min-h-[220px] items-center justify-center border border-dashed border-gray-200 bg-gray-50 px-6 text-center">
               <div>
                 <div className="text-[11px] font-black uppercase tracking-[0.3em] text-gray-500">ยังไม่มีเมนูให้แสดง</div>
