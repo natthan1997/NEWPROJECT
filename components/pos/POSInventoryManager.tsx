@@ -2605,7 +2605,7 @@ export default function POSInventoryManager({
                 </div>
                 <div className="text-right">
                   <h2 className="text-2xl font-black uppercase tracking-widest border-b-4 border-black pb-2 mb-2 inline-block">Purchase Order</h2>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm mt-2 text-right justify-end">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm mt-2 text-right justify-end whitespace-nowrap">
                     <span className="font-bold text-gray-500">{locale === 'en' ? 'Date:' : locale === 'zh' ? '日期:' : 'วันที่:'}</span>
                     <span className="font-black">{currentDate}</span>
                     <span className="font-bold text-gray-500">{locale === 'en' ? 'PO Number:' : locale === 'zh' ? 'PO Number:' : 'เลขที่ใบสั่งซื้อ:'}</span>
@@ -2633,15 +2633,15 @@ export default function POSInventoryManager({
               </div>
               
               {/* Table Section */}
-              <table className="w-full text-left border-collapse mb-8">
+              <table className="w-full text-left border-collapse mb-8 table-fixed">
                 <thead>
                   <tr className="border-y-2 border-black">
-                    <th className="py-2 px-2 font-black uppercase tracking-widest text-[10px] text-center w-12">{locale === 'en' ? 'No.' : 'ลำดับ'}</th>
-                    <th className="py-2 px-2 font-black uppercase tracking-widest text-[10px] w-32">{locale === 'en' ? 'SKU' : 'รหัสสินค้า'}</th>
+                    <th className="py-2 px-2 font-black uppercase tracking-widest text-[10px] text-center w-10">{locale === 'en' ? 'No.' : 'ลำดับ'}</th>
+                    <th className="py-2 px-2 font-black uppercase tracking-widest text-[10px] w-20">{locale === 'en' ? 'SKU' : 'รหัสสินค้า'}</th>
                     <th className="py-2 px-2 font-black uppercase tracking-widest text-[10px]">{locale === 'en' ? 'Description' : 'รายการสินค้า'}</th>
-                    <th className="py-2 px-2 font-black uppercase tracking-widest text-[10px] text-center w-24">{locale === 'en' ? 'Qty' : 'จำนวน'}</th>
-                    <th className="py-2 px-2 font-black uppercase tracking-widest text-[10px] text-center w-24">{locale === 'en' ? 'Unit' : 'หน่วย'}</th>
-                    <th className="py-2 px-2 font-black uppercase tracking-widest text-[10px] w-48">{locale === 'en' ? 'Remarks' : 'หมายเหตุ'}</th>
+                    <th className="py-2 px-2 font-black uppercase tracking-widest text-[10px] text-center w-16">{locale === 'en' ? 'Qty' : 'จำนวน'}</th>
+                    <th className="py-2 px-2 font-black uppercase tracking-widest text-[10px] text-center w-20">{locale === 'en' ? 'Unit' : 'หน่วย'}</th>
+                    <th className="py-2 px-2 font-black uppercase tracking-widest text-[10px] w-32">{locale === 'en' ? 'Remarks' : 'หมายเหตุ'}</th>
                   </tr>
                 </thead>
                 <tbody className="text-sm">
@@ -2655,12 +2655,12 @@ export default function POSInventoryManager({
                     
                     return (
                       <tr key={item.id} className="border-b border-gray-200">
-                        <td className="py-2 px-2 text-center font-bold text-gray-500">{index + 1}</td>
-                        <td className="py-2 px-2 font-mono text-xs text-gray-500">{item.sku || '-'}</td>
-                        <td className="py-2 px-2 font-black text-[#1A1A18]">{item.name}</td>
-                        <td className="py-2 px-2 text-center font-black text-lg">{displayOrderAmount}</td>
-                        <td className="py-2 px-2 text-center uppercase font-bold">{displayUnit}</td>
-                        <td className="py-2 px-2 text-xs font-bold text-gray-400">
+                        <td className="py-2 px-2 text-center font-bold text-gray-500 whitespace-nowrap">{index + 1}</td>
+                        <td className="py-2 px-2 font-mono text-xs text-gray-500 whitespace-nowrap truncate">{item.sku || '-'}</td>
+                        <td className="py-2 px-2 font-black text-[#1A1A18] pr-4">{item.name}</td>
+                        <td className="py-2 px-2 text-center font-black text-lg whitespace-nowrap">{displayOrderAmount}</td>
+                        <td className="py-2 px-2 text-center uppercase font-bold whitespace-nowrap truncate">{displayUnit}</td>
+                        <td className="py-2 px-2 text-xs font-bold text-gray-400 whitespace-nowrap overflow-hidden text-ellipsis">
                           {hasPurchaseUnit && `(= ${displayOrderAmount * factor} ${item.unit})`}
                         </td>
                       </tr>
