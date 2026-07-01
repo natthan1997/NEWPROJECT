@@ -2373,7 +2373,7 @@ export default function POSInventoryManager({
                   </div>
                </header>
 
-               <div className="flex-1 overflow-y-auto no-scrollbar p-3 md:p-6 space-y-4 md:space-y-6 pb-32">
+               <div className="print:hidden flex-1 overflow-y-auto no-scrollbar p-3 md:p-6 space-y-4 md:space-y-6 pb-32">
                   {(() => {
                       // Filter low stock items and apply category and supplier filter
                       const lowStockItems = inventory.filter(item => {
@@ -2565,52 +2565,89 @@ export default function POSInventoryManager({
 
       {/* PRINTABLE PDF REPORT (ONLY VISIBLE WHEN PRINTING) */}
       <div className="hidden print:block w-full bg-white text-black font-sans p-8 absolute top-0 left-0 z-[9999]">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-black mb-2">{locale === 'en' ? 'Purchase List Report' : locale === 'zh' ? '采购清单报告' : 'รายงานรายการที่ต้องสั่งซื้อ (ต่ำกว่าเกณฑ์)'}</h1>
-          <p className="text-gray-500">{locale === 'en' ? 'Date:' : locale === 'zh' ? '日期:' : 'วันที่พิมพ์:'} {new Date().toLocaleDateString('th-TH')}</p>
+        <div className="text-center mb-8 border-b-2 border-black pb-4">
+          <h1 className="text-3xl font-black mb-2 tracking-wide">{locale === 'en' ? 'PURCHASE ORDER' : locale === 'zh' ? '采购单' : 'ใบสั่งซื้อสินค้า (PURCHASE ORDER)'}</h1>
+          <p className="text-gray-500 font-bold">{locale === 'en' ? 'Date:' : locale === 'zh' ? '日期:' : 'วันที่:'} {new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
         </div>
         
-        <table className="w-full text-left border-collapse border border-gray-300">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="border border-gray-300 p-3 font-black text-sm">{locale === 'en' ? 'No.' : 'ลำดับ'}</th>
-              <th className="border border-gray-300 p-3 font-black text-sm">{locale === 'en' ? 'Material / Item' : 'ชื่อวัตถุดิบ'}</th>
-              <th className="border border-gray-300 p-3 font-black text-sm">{locale === 'en' ? 'Current Stock' : 'สต็อกปัจจุบัน'}</th>
-              <th className="border border-gray-300 p-3 font-black text-sm">{locale === 'en' ? 'Min. Stock' : 'ขั้นต่ำที่ต้องมี'}</th>
-              <th className="border border-gray-300 p-3 font-black text-sm">{locale === 'en' ? 'Supplier' : 'แหล่งจัดซื้อ'}</th>
-              <th className="border border-gray-300 p-3 font-black text-sm">{locale === 'en' ? 'Order Qty' : 'จำนวนที่สั่ง (หน่วยซื้อ)'}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {inventory.filter(i => (i.stock_quantity || 0) <= (i.min_stock_level || 0)).map((item, index) => {
-              const supplier = suppliers.find(s => s.id === item.supplier_id)
-              const deficiency = Math.max(0, (item.min_stock_level || 0) - (item.stock_quantity || 0));
-              const factor = Number(item.conversion_factor) || 1;
-              const hasPurchaseUnit = item.purchase_unit && factor > 1;
-              const orderAmount = hasPurchaseUnit ? Math.ceil(deficiency / factor) : deficiency;
-              const displayUnit = hasPurchaseUnit ? item.purchase_unit : item.unit;
+        {(() => {
+          // Re-use logic to filter and group items, including cart items
+          const printItems = inventory.filter(item => {
+            const isLow = Number(item.stock_quantity) <= Number(item.min_stock_level) || shoppingCart[item.id] !== undefined;
+            const matchesCategory = shoppingListCategoryFilter === 'all' || item.category_id === shoppingListCategoryFilter;
+            const matchesSupplier = shoppingListSupplierFilter === 'all' || item.supplier_id === shoppingListSupplierFilter;
+            return isLow && matchesCategory && matchesSupplier;
+          });
+
+          if (printItems.length === 0) {
+              return <div className="text-center py-20 text-gray-400">ไม่มีรายการสั่งซื้อ</div>;
+          }
+
+          const grouped: Record<string, typeof inventory> = {};
+          printItems.forEach(item => {
+              const supplierObj = suppliers.find(s => s.id === item.supplier_id);
+              const supName = supplierObj ? supplierObj.name : 'ไม่ระบุแหล่งซื้อ (Uncategorized)';
+              if (!grouped[supName]) grouped[supName] = [];
+              grouped[supName].push(item);
+          });
+
+          return Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b)).map(([supplier, items]) => (
+            <div key={supplier} className="mb-12 break-inside-avoid">
+              <h2 className="text-lg font-black bg-gray-100 p-2 border-l-4 border-black mb-4 uppercase flex items-center gap-2">
+                <Landmark size={18} /> {supplier}
+              </h2>
+              <table className="w-full text-left border-collapse border border-gray-300 mb-2 text-sm">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="border border-gray-300 p-2.5 font-black text-center w-12">{locale === 'en' ? 'No.' : 'ลำดับ'}</th>
+                    <th className="border border-gray-300 p-2.5 font-black w-32">{locale === 'en' ? 'SKU' : 'รหัสสินค้า'}</th>
+                    <th className="border border-gray-300 p-2.5 font-black">{locale === 'en' ? 'Item Name' : 'รายการสินค้า'}</th>
+                    <th className="border border-gray-300 p-2.5 font-black text-center w-32">{locale === 'en' ? 'Qty' : 'จำนวนสั่งซื้อ'}</th>
+                    <th className="border border-gray-300 p-2.5 font-black text-center w-24">{locale === 'en' ? 'Unit' : 'หน่วย'}</th>
+                    <th className="border border-gray-300 p-2.5 font-black w-48">{locale === 'en' ? 'Note' : 'หมายเหตุ'}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((item, index) => {
+                    const deficiency = Math.max(0, (item.min_stock_level || 0) - (item.stock_quantity || 0));
+                    const factor = Number(item.conversion_factor) || 1;
+                    const hasPurchaseUnit = item.purchase_unit && factor > 1;
+                    const orderAmount = hasPurchaseUnit ? Math.ceil(deficiency / factor) : deficiency;
+                    const displayOrderAmount = shoppingCart[item.id] !== undefined ? shoppingCart[item.id] : orderAmount;
+                    const displayUnit = hasPurchaseUnit ? item.purchase_unit : item.unit;
+                    
+                    return (
+                      <tr key={item.id} className="border-b border-gray-300">
+                        <td className="border border-gray-300 p-2 text-center">{index + 1}</td>
+                        <td className="border border-gray-300 p-2 text-gray-500 font-mono text-xs">{item.sku || '-'}</td>
+                        <td className="border border-gray-300 p-2 font-bold text-[#1A1A18]">{item.name}</td>
+                        <td className="border border-gray-300 p-2 text-center font-black text-lg">{displayOrderAmount}</td>
+                        <td className="border border-gray-300 p-2 text-center uppercase">{displayUnit}</td>
+                        <td className="border border-gray-300 p-2 text-xs text-gray-400">
+                          {hasPurchaseUnit && `(= ${displayOrderAmount * factor} ${item.unit})`}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
               
-              return (
-                <tr key={item.id} className="border-b border-gray-300">
-                  <td className="border border-gray-300 p-3">{index + 1}</td>
-                  <td className="border border-gray-300 p-3 font-bold">{item.name} {item.sku && <span className="text-xs text-gray-500 ml-2">({item.sku})</span>}</td>
-                  <td className="border border-gray-300 p-3 text-red-600 font-bold">{item.stock_quantity || 0} {item.unit}</td>
-                  <td className="border border-gray-300 p-3">{item.min_stock_level || 0} {item.unit}</td>
-                  <td className="border border-gray-300 p-3">{supplier ? supplier.name : '-'}</td>
-                  <td className="border border-gray-300 p-3">
-                    <span className="font-bold text-lg">{orderAmount}</span> <span className="uppercase text-sm">{displayUnit}</span>
-                    {hasPurchaseUnit && <div className="text-xs text-gray-500 mt-1">(= {orderAmount * factor} {item.unit})</div>}
-                  </td>
-                </tr>
-              )
-            })}
-            {inventory.filter(i => (i.stock_quantity || 0) <= (i.min_stock_level || 0)).length === 0 && (
-              <tr>
-                <td colSpan={6} className="text-center p-6 text-gray-500">{locale === 'en' ? 'No items need purchasing at this time.' : 'ไม่มีรายการวัตถุดิบที่ต้องสั่งซื้อ'}</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              {/* Signature Areas */}
+              <div className="grid grid-cols-2 gap-8 mt-6">
+                <div className="border border-gray-300 rounded-lg p-4">
+                  <div className="text-center text-xs font-bold text-gray-500 mb-8">{locale === 'en' ? 'Authorized By (Buyer)' : 'ผู้สั่งซื้อ / ผู้อนุมัติ'}</div>
+                  <div className="border-b border-gray-400 mx-8 mb-2"></div>
+                  <div className="text-center text-xs text-gray-400">(วันที่ ...................................)</div>
+                </div>
+                <div className="border border-gray-300 rounded-lg p-4">
+                  <div className="text-center text-xs font-bold text-gray-500 mb-8">{locale === 'en' ? 'Received By (Supplier)' : 'ผู้รับบิล / ผู้จัดส่ง'}</div>
+                  <div className="border-b border-gray-400 mx-8 mb-2"></div>
+                  <div className="text-center text-xs text-gray-400">(วันที่ ...................................)</div>
+                </div>
+              </div>
+            </div>
+          ));
+        })()}
       </div>
     </>
   )
