@@ -2338,6 +2338,7 @@ export default function POSInventoryManager({
                                       const hasPurchaseUnit = item.purchase_unit && factor > 1;
                                       const orderAmount = hasPurchaseUnit ? Math.ceil(deficiency / factor) : deficiency;
                                       const displayUnit = hasPurchaseUnit ? item.purchase_unit : item.unit;
+                                      const stockPercent = Math.min(100, (item.stock_quantity / Math.max(1, item.min_stock_level)) * 100);
                                       const isPurchased = purchasedItems.has(item.id);
 
                                       return (
