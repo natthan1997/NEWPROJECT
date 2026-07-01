@@ -606,6 +606,18 @@ export default function POSInventoryManager({
       icon: ClipboardCheck,
       onClick: () => setIsAuditTypeModalOpen(true),
     },
+    {
+      key: 'pdf',
+      label: locale === 'en' ? 'PDF Report' : locale === 'zh' ? 'PDF 报告' : 'รายงาน PDF',
+      icon: Download,
+      onClick: () => window.print(),
+    },
+    {
+      key: 'summary',
+      label: locale === 'en' ? 'Quick Summary' : locale === 'zh' ? '快速总结' : 'สรุปสต็อกด่วน',
+      icon: ListChecks,
+      onClick: () => setIsSummaryOpen(true),
+    },
   ] as const
 
   return (
