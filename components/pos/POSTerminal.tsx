@@ -1700,6 +1700,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             cost_price: item.cost_price || 0,
             subtotal: ((getEffectiveItemUnitPrice(item) + modsPrice) * item.quantity) - (item.discount_amount || 0),
             selected_modifiers: item.selected_modifiers,
+            customer_name: item.customer_name || 'ลูกค้า',
             discount_amount: item.discount_amount || 0,
             discount_reason: item.discount_reason || null,
           }
@@ -1894,6 +1895,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
           cost_price: item.cost_price || 0,
           subtotal: ((getEffectiveItemUnitPrice(item) + modsPrice) * item.quantity) - (item.discount_amount || 0),
           selected_modifiers: item.selected_modifiers,
+          customer_name: item.customer_name || 'ลูกค้า',
           discount_amount: item.discount_amount || 0,
           discount_reason: item.discount_reason || null,
         }

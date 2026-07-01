@@ -290,17 +290,39 @@ export default function CustomerMenuPage() {
     setNickname(null)
     setTempName('')
     if (typeof window !== 'undefined') {
-      localStorage.removeItem(`customer_nickname_${table_id}`)
+      localStorage.removeItem(`customer_session_${table_id}`)
+      localStorage.removeItem(`customer_nickname_${table_id}`) // clear legacy
     }
   }, [table_id])
 
   const restoreLocalTableSession = useCallback(() => {
     if (typeof window === 'undefined') return false
-    const savedName = localStorage.getItem(`customer_nickname_${table_id}`)
-    if (!savedName) return false
-    setNickname(savedName)
-    setTempName(savedName)
-    return true
+    
+    const savedSession = localStorage.getItem(`customer_session_${table_id}`)
+    
+    // Legacy support check
+    const legacyName = localStorage.getItem(`customer_nickname_${table_id}`)
+    if (legacyName && !savedSession) {
+        localStorage.removeItem(`customer_nickname_${table_id}`)
+        return false // Force new prompt for legacy sessions to fix the bug
+    }
+
+    if (!savedSession) return false
+    
+    try {
+        const parsed = JSON.parse(savedSession)
+        const isExpired = Date.now() - parsed.timestamp > 12 * 60 * 60 * 1000 // 12 hours
+        if (isExpired) {
+            localStorage.removeItem(`customer_session_${table_id}`)
+            return false
+        }
+        setNickname(parsed.name)
+        setTempName(parsed.name)
+        return true
+    } catch (e) {
+        localStorage.removeItem(`customer_session_${table_id}`)
+        return false
+    }
   }, [table_id])
 
   const triggerTableClearedAnimation = useCallback(() => {
@@ -491,7 +513,8 @@ export default function CustomerMenuPage() {
           const name = tempName.trim()
           setNickname(name)
           if (typeof window !== 'undefined') {
-              localStorage.setItem(`customer_nickname_${table_id}`, name)
+              localStorage.setItem(`customer_session_${table_id}`, JSON.stringify({ name, timestamp: Date.now() }))
+              localStorage.removeItem(`customer_nickname_${table_id}`) // Cleanup legacy
           }
           if (table?.id) {
               setTable(prev => prev ? { ...prev, status: 'occupied' } : prev)
@@ -1595,6 +1618,7 @@ export default function CustomerMenuPage() {
                                     setNickname('')
                                     setTempName('')
                                     if (typeof window !== 'undefined') {
+                                        localStorage.removeItem(`customer_session_${table_id}`)
                                         localStorage.removeItem(`customer_nickname_${table_id}`)
                                     }
                                 }}
