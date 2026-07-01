@@ -65,6 +65,8 @@ export default function POSInventoryManager({
 
   // --- Shopping List State ---
   const [isShoppingListOpen, setIsShoppingListOpen] = useState(false)
+  const [isShoppingMode, setIsShoppingMode] = useState(false)
+  const [purchasedItems, setPurchasedItems] = useState<Set<string>>(new Set())
   const [expandedInventoryCardId, setExpandedInventoryCardId] = useState<string | null>(null)
 
   // --- Usage / History View ---
@@ -2269,21 +2271,24 @@ export default function POSInventoryManager({
                <header className="px-6 md:px-8 py-6 bg-white border-b border-gray-200 flex items-center justify-between sticky top-0 z-10 shadow-sm">
                   <div className="flex flex-col">
                       <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-[#1A1A18] leading-none flex items-center gap-3">
-                        <div className="w-10 h-10 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center shrink-0">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isShoppingMode ? 'bg-indigo-100 text-indigo-600' : 'bg-amber-100 text-amber-600'}`}>
                           <ShoppingCart size={22} />
                         </div>
                       {locale === 'en' ? 'Purchase List' : locale === 'zh' ? 'Purchase List' : 'สรุปรายการจัดซื้อ'}
                       </h2>
-                      <p className="text-[11px] font-bold tracking-widest text-gray-400 mt-2 leading-none uppercase">{locale === 'en' ? 'Items grouped by supplier' : locale === 'zh' ? 'Items grouped by supplier' : 'รายการวัตถุดิบที่ต้องสั่งซื้อ แยกตามแหล่งจัดซื้อ'}</p>
+                      <p className="text-[11px] font-bold tracking-widest text-gray-400 mt-2 leading-none uppercase">{isShoppingMode ? 'โหมดเลือกซื้อของ (กดที่รายการเพื่อติ้ก)' : locale === 'en' ? 'Items grouped by supplier' : locale === 'zh' ? 'Items grouped by supplier' : 'รายการวัตถุดิบที่ต้องสั่งซื้อ แยกตามแหล่งจัดซื้อ'}</p>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <button 
+                      onClick={() => setIsShoppingMode(!isShoppingMode)} 
+                      className={`print:hidden flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 h-10 md:h-12 font-black uppercase text-[9px] sm:text-[10px] md:text-[11px] tracking-widest rounded-xl shadow-md transition-colors ${isShoppingMode ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-emerald-600 text-white hover:bg-emerald-700'}`}
+                    >
+                        <CheckCircle2 size={16} /> <span className="hidden sm:inline">{isShoppingMode ? 'เสร็จสิ้นการซื้อ' : 'เริ่มไปซื้อของ'}</span><span className="sm:hidden">{isShoppingMode ? 'เสร็จ' : 'เริ่มซื้อ'}</span>
+                    </button>
                     <button onClick={() => window.print()} className="print:hidden hidden sm:flex items-center gap-2 px-4 h-10 md:h-12 bg-[#1A1A18] text-white font-black uppercase text-[10px] md:text-[11px] tracking-widest rounded-xl shadow-md hover:bg-black transition-colors">
-                        <Download size={16} /> {locale === 'en' ? 'PDF Report' : locale === 'zh' ? 'PDF 报告' : 'พิมพ์รายงาน PDF'}
+                        <Download size={16} /> {locale === 'en' ? 'PDF' : locale === 'zh' ? 'PDF' : 'PDF'}
                     </button>
-                    <button onClick={() => window.print()} className="print:hidden sm:hidden w-10 h-10 flex items-center justify-center bg-[#1A1A18] text-white rounded-full shadow-md hover:bg-black transition-colors">
-                        <Download size={16} />
-                    </button>
-                    <button onClick={() => setIsShoppingListOpen(false)} className="print:hidden w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-gray-50 border border-gray-200 rounded-full hover:bg-gray-100 transition-all text-gray-500 hover:text-black">
+                    <button onClick={() => { setIsShoppingListOpen(false); setIsShoppingMode(false); setPurchasedItems(new Set()); }} className="print:hidden w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-gray-50 border border-gray-200 rounded-full hover:bg-gray-100 transition-all text-gray-500 hover:text-black shrink-0">
                         <X size={20} />
                     </button>
                   </div>
@@ -2333,18 +2338,31 @@ export default function POSInventoryManager({
                                       const hasPurchaseUnit = item.purchase_unit && factor > 1;
                                       const orderAmount = hasPurchaseUnit ? Math.ceil(deficiency / factor) : deficiency;
                                       const displayUnit = hasPurchaseUnit ? item.purchase_unit : item.unit;
-                                      const stockPercent = Math.min(100, (item.stock_quantity / Math.max(1, item.min_stock_level)) * 100);
+                                      const isPurchased = purchasedItems.has(item.id);
 
                                       return (
-                                        <div key={item.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 sm:p-5 hover:bg-gray-50/80 transition-colors">
+                                        <div 
+                                          key={item.id} 
+                                          onClick={() => {
+                                            if (isShoppingMode) {
+                                              setPurchasedItems(prev => {
+                                                const next = new Set(prev);
+                                                if (next.has(item.id)) next.delete(item.id);
+                                                else next.add(item.id);
+                                                return next;
+                                              });
+                                            }
+                                          }}
+                                          className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 sm:p-5 transition-colors relative ${isShoppingMode ? 'cursor-pointer hover:bg-gray-50' : ''} ${isPurchased ? 'opacity-40 grayscale bg-gray-50' : 'hover:bg-gray-50/80'}`}
+                                        >
                                             
                                             {/* Item Info */}
                                             <div className="flex items-center gap-4 flex-1">
-                                              <div className="w-10 h-10 rounded-full bg-red-50 border border-red-100 text-red-500 flex items-center justify-center shrink-0 shadow-sm">
-                                                <AlertTriangle size={18} />
+                                              <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-sm transition-colors ${isPurchased ? 'bg-gray-200 text-gray-400 border border-gray-300' : 'bg-red-50 border border-red-100 text-red-500'}`}>
+                                                {isPurchased ? <CheckCircle2 size={18} /> : <AlertTriangle size={18} />}
                                               </div>
                                               <div>
-                                                <div className="text-[14px] sm:text-[15px] font-black uppercase text-[#1A1A18] leading-tight">{item.name}</div>
+                                                <div className={`text-[14px] sm:text-[15px] font-black uppercase text-[#1A1A18] leading-tight transition-all ${isPurchased ? 'line-through' : ''}`}>{item.name}</div>
                                                 <div className="text-[10px] font-bold text-gray-400 mt-1 tracking-widest">{item.sku ? `SKU: ${item.sku}` : 'NO SKU'}</div>
                                               </div>
                                             </div>
@@ -2365,21 +2383,25 @@ export default function POSInventoryManager({
 
                                             {/* Big Order Action Box */}
                                             <div className="w-full sm:w-auto flex justify-end mt-2 sm:mt-0">
-                                              <div className="flex items-center gap-4 bg-amber-50 px-4 py-2.5 rounded-xl border border-amber-100 shadow-sm min-w-[140px]">
+                                              <div className={`flex items-center gap-4 px-4 py-2.5 rounded-xl border shadow-sm min-w-[140px] transition-colors ${isPurchased ? 'bg-gray-100 border-gray-200' : 'bg-amber-50 border-amber-100'}`}>
                                                 <div className="text-right">
-                                                  <div className="text-[11px] font-black text-amber-700 uppercase tracking-widest leading-none mb-1">สั่งเพิ่ม</div>
+                                                  <div className={`text-[11px] font-black uppercase tracking-widest leading-none mb-1 ${isPurchased ? 'text-gray-500' : 'text-amber-700'}`}>{isPurchased ? 'ซื้อแล้ว' : 'สั่งเพิ่ม'}</div>
                                                   {hasPurchaseUnit ? (
-                                                    <div className="text-[9px] font-black text-amber-600/70 tracking-wider">(= {orderAmount * factor} {item.unit})</div>
+                                                    <div className={`text-[9px] font-black tracking-wider ${isPurchased ? 'text-gray-400' : 'text-amber-600/70'}`}>(= {orderAmount * factor} {item.unit})</div>
                                                   ) : (
                                                     <div className="text-[9px] font-black text-amber-600/70 tracking-wider invisible">(=)</div>
                                                   )}
                                                 </div>
-                                                <div className="text-[22px] font-black text-amber-600 tabular-nums leading-none">
+                                                <div className={`text-[22px] font-black tabular-nums leading-none ${isPurchased ? 'text-gray-400' : 'text-amber-600'}`}>
                                                   {orderAmount} <span className="text-[12px] font-bold uppercase ml-0.5">{displayUnit}</span>
                                                 </div>
                                               </div>
                                             </div>
 
+                                            {/* Selection Overlay */}
+                                            {isShoppingMode && !isPurchased && (
+                                              <div className="absolute inset-0 bg-indigo-500/0 hover:bg-indigo-500/5 transition-colors z-10 rounded-lg pointer-events-none border border-transparent hover:border-indigo-200" />
+                                            )}
                                         </div>
                                       );
                                   })}
