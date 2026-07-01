@@ -2563,12 +2563,7 @@ export default function POSInventoryManager({
       </AnimatePresence>
 
       {/* PRINTABLE PDF REPORT (ONLY VISIBLE WHEN PRINTING) */}
-      <div className="hidden print:block w-full bg-white text-black font-sans p-8">
-        <div className="text-center mb-8 border-b-2 border-black pb-4">
-          <h1 className="text-3xl font-black mb-2 tracking-wide">{locale === 'en' ? 'PURCHASE ORDER' : locale === 'zh' ? '采购单' : 'ใบสั่งซื้อสินค้า (PURCHASE ORDER)'}</h1>
-          <p className="text-gray-500 font-bold">{locale === 'en' ? 'Date:' : locale === 'zh' ? '日期:' : 'วันที่:'} {new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-        </div>
-        
+      <div className="hidden print:block w-full bg-white text-black font-sans">
         {(() => {
           // Re-use logic to filter and group items, including cart items
           const printItems = inventory.filter(item => {
@@ -2590,23 +2585,66 @@ export default function POSInventoryManager({
               grouped[supName].push(item);
           });
 
-          return Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b)).map(([supplier, items]) => (
-            <div key={supplier} className="mb-12 break-inside-avoid">
-              <h2 className="text-lg font-black bg-gray-100 p-2 border-l-4 border-black mb-4 uppercase flex items-center gap-2">
-                <Landmark size={18} /> {supplier}
-              </h2>
-              <table className="w-full text-left border-collapse border border-gray-300 mb-2 text-sm">
+          const currentDate = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+          const poNumberBase = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+
+          return Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b)).map(([supplier, items], pageIndex) => {
+            const poNumber = `PO-${poNumberBase}-${String(pageIndex + 1).padStart(2, '0')}`;
+            
+            return (
+            <div key={supplier} className={`w-full bg-white p-8 ${pageIndex > 0 ? 'break-before-page' : ''}`}>
+              {/* Header Section */}
+              <div className="flex justify-between items-start mb-10">
+                <div>
+                  <h1 className="text-3xl font-black tracking-tighter mb-1">XYL STUDIO</h1>
+                  <p className="text-xs text-gray-500 font-bold max-w-[250px]">
+                    123 Landscape Design Blvd.<br/>
+                    Bangkok, Thailand 10110<br/>
+                    Tel: 02-XXX-XXXX
+                  </p>
+                </div>
+                <div className="text-right">
+                  <h2 className="text-2xl font-black uppercase tracking-widest border-b-4 border-black pb-2 mb-2 inline-block">Purchase Order</h2>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm mt-2 text-right justify-end">
+                    <span className="font-bold text-gray-500">{locale === 'en' ? 'Date:' : locale === 'zh' ? '日期:' : 'วันที่:'}</span>
+                    <span className="font-black">{currentDate}</span>
+                    <span className="font-bold text-gray-500">{locale === 'en' ? 'PO Number:' : locale === 'zh' ? 'PO Number:' : 'เลขที่ใบสั่งซื้อ:'}</span>
+                    <span className="font-black">{poNumber}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Vendor & Ship To Section */}
+              <div className="grid grid-cols-2 gap-12 mb-10 text-sm">
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 border-b border-gray-200 pb-1">{locale === 'en' ? 'Vendor / Supplier' : 'สั่งซื้อจาก (Supplier)'}</div>
+                  <div className="font-black text-lg">{supplier}</div>
+                  <div className="text-gray-500 mt-1 font-bold">
+                    {locale === 'en' ? 'Please deliver the items listed below' : 'โปรดจัดส่งสินค้าตามรายการด้านล่างนี้'}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 border-b border-gray-200 pb-1">{locale === 'en' ? 'Ship To' : 'จัดส่งที่'}</div>
+                  <div className="font-black text-lg">XYL STUDIO (HQ)</div>
+                  <div className="text-gray-500 mt-1 font-bold">
+                    แผนกรับสินค้า / คลังวัตถุดิบ
+                  </div>
+                </div>
+              </div>
+              
+              {/* Table Section */}
+              <table className="w-full text-left border-collapse mb-12">
                 <thead>
-                  <tr className="bg-gray-50">
-                    <th className="border border-gray-300 p-2.5 font-black text-center w-12">{locale === 'en' ? 'No.' : 'ลำดับ'}</th>
-                    <th className="border border-gray-300 p-2.5 font-black w-32">{locale === 'en' ? 'SKU' : 'รหัสสินค้า'}</th>
-                    <th className="border border-gray-300 p-2.5 font-black">{locale === 'en' ? 'Item Name' : 'รายการสินค้า'}</th>
-                    <th className="border border-gray-300 p-2.5 font-black text-center w-32">{locale === 'en' ? 'Qty' : 'จำนวนสั่งซื้อ'}</th>
-                    <th className="border border-gray-300 p-2.5 font-black text-center w-24">{locale === 'en' ? 'Unit' : 'หน่วย'}</th>
-                    <th className="border border-gray-300 p-2.5 font-black w-48">{locale === 'en' ? 'Note' : 'หมายเหตุ'}</th>
+                  <tr className="border-y-2 border-black">
+                    <th className="py-3 px-2 font-black uppercase tracking-widest text-[10px] text-center w-12">{locale === 'en' ? 'No.' : 'ลำดับ'}</th>
+                    <th className="py-3 px-2 font-black uppercase tracking-widest text-[10px] w-32">{locale === 'en' ? 'SKU' : 'รหัสสินค้า'}</th>
+                    <th className="py-3 px-2 font-black uppercase tracking-widest text-[10px]">{locale === 'en' ? 'Description' : 'รายการสินค้า'}</th>
+                    <th className="py-3 px-2 font-black uppercase tracking-widest text-[10px] text-center w-24">{locale === 'en' ? 'Qty' : 'จำนวน'}</th>
+                    <th className="py-3 px-2 font-black uppercase tracking-widest text-[10px] text-center w-24">{locale === 'en' ? 'Unit' : 'หน่วย'}</th>
+                    <th className="py-3 px-2 font-black uppercase tracking-widest text-[10px] w-48">{locale === 'en' ? 'Remarks' : 'หมายเหตุ'}</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="text-sm">
                   {items.map((item, index) => {
                     const deficiency = Math.max(0, (item.min_stock_level || 0) - (item.stock_quantity || 0));
                     const factor = Number(item.conversion_factor) || 1;
@@ -2616,13 +2654,13 @@ export default function POSInventoryManager({
                     const displayUnit = hasPurchaseUnit ? item.purchase_unit : item.unit;
                     
                     return (
-                      <tr key={item.id} className="border-b border-gray-300">
-                        <td className="border border-gray-300 p-2 text-center">{index + 1}</td>
-                        <td className="border border-gray-300 p-2 text-gray-500 font-mono text-xs">{item.sku || '-'}</td>
-                        <td className="border border-gray-300 p-2 font-bold text-[#1A1A18]">{item.name}</td>
-                        <td className="border border-gray-300 p-2 text-center font-black text-lg">{displayOrderAmount}</td>
-                        <td className="border border-gray-300 p-2 text-center uppercase">{displayUnit}</td>
-                        <td className="border border-gray-300 p-2 text-xs text-gray-400">
+                      <tr key={item.id} className="border-b border-gray-200">
+                        <td className="py-4 px-2 text-center font-bold text-gray-500">{index + 1}</td>
+                        <td className="py-4 px-2 font-mono text-xs text-gray-500">{item.sku || '-'}</td>
+                        <td className="py-4 px-2 font-black text-[#1A1A18]">{item.name}</td>
+                        <td className="py-4 px-2 text-center font-black text-lg">{displayOrderAmount}</td>
+                        <td className="py-4 px-2 text-center uppercase font-bold">{displayUnit}</td>
+                        <td className="py-4 px-2 text-xs font-bold text-gray-400">
                           {hasPurchaseUnit && `(= ${displayOrderAmount * factor} ${item.unit})`}
                         </td>
                       </tr>
@@ -2631,21 +2669,21 @@ export default function POSInventoryManager({
                 </tbody>
               </table>
               
-              {/* Signature Areas */}
-              <div className="grid grid-cols-2 gap-8 mt-6">
-                <div className="border border-gray-300 rounded-lg p-4">
-                  <div className="text-center text-xs font-bold text-gray-500 mb-8">{locale === 'en' ? 'Authorized By (Buyer)' : 'ผู้สั่งซื้อ / ผู้อนุมัติ'}</div>
-                  <div className="border-b border-gray-400 mx-8 mb-2"></div>
-                  <div className="text-center text-xs text-gray-400">(วันที่ ...................................)</div>
+              {/* Signatures Section */}
+              <div className="grid grid-cols-2 gap-16 mt-16 pt-8 break-inside-avoid">
+                <div className="text-center">
+                  <div className="border-b border-gray-400 mx-8 mb-3 h-12"></div>
+                  <div className="text-xs font-black uppercase tracking-widest mb-1">{locale === 'en' ? 'Authorized By' : 'ผู้สั่งซื้อ / ผู้อนุมัติ'}</div>
+                  <div className="text-[10px] font-bold text-gray-400">{locale === 'en' ? 'Date: ____/____/____' : 'วันที่: ____/____/____'}</div>
                 </div>
-                <div className="border border-gray-300 rounded-lg p-4">
-                  <div className="text-center text-xs font-bold text-gray-500 mb-8">{locale === 'en' ? 'Received By (Supplier)' : 'ผู้รับบิล / ผู้จัดส่ง'}</div>
-                  <div className="border-b border-gray-400 mx-8 mb-2"></div>
-                  <div className="text-center text-xs text-gray-400">(วันที่ ...................................)</div>
+                <div className="text-center">
+                  <div className="border-b border-gray-400 mx-8 mb-3 h-12"></div>
+                  <div className="text-xs font-black uppercase tracking-widest mb-1">{locale === 'en' ? 'Received By' : 'ผู้รับบิล / ผู้จัดส่ง'}</div>
+                  <div className="text-[10px] font-bold text-gray-400">{locale === 'en' ? 'Date: ____/____/____' : 'วันที่: ____/____/____'}</div>
                 </div>
               </div>
             </div>
-          ));
+          )})}
         })()}
       </div>
     </>

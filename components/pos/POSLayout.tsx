@@ -157,16 +157,16 @@ export default function POSLayout({
     );
 
     return (
-        <div className={`xyl-pos-scale h-screen h-[100dvh] flex overflow-hidden font-sans ${isDark ? 'bg-[#1A1A18] text-white' : 'bg-[#FDFDFB] text-[#1A1A18]'} selection:bg-sage-600/10 font-bold`}>
+        <div className={`print:block print:h-auto print:overflow-visible xyl-pos-scale h-screen h-[100dvh] flex overflow-hidden font-sans ${isDark ? 'bg-[#1A1A18] text-white' : 'bg-[#FDFDFB] text-[#1A1A18]'} selection:bg-sage-600/10 font-bold`}>
             
             {/* PERSISTENT SIDEBAR FOR LG SCREENS */}
-            <aside className={`hidden xl:flex w-[280px] 2xl:w-[320px] h-full flex-col flex-shrink-0 font-bold border-r ${isDark ? 'bg-[#1A1A18] border-white/5' : 'bg-[#F5F4F0] border-[#E5E5DF]'}`}>
+            <aside className={`print:hidden hidden xl:flex w-[280px] 2xl:w-[320px] h-full flex-col flex-shrink-0 font-bold border-r ${isDark ? 'bg-[#1A1A18] border-white/5' : 'bg-[#F5F4F0] border-[#E5E5DF]'}`}>
                 {renderSidebarContent()}
             </aside>
 
             {/* OFF-CANVAS SIDEBAR FOR MOBILE/TABLET PORTRAIT */}
             {isSidebarOpen && (
-                <div className="fixed inset-0 z-[1000] xl:hidden flex animate-in fade-in duration-300 font-bold">
+                <div className="print:hidden fixed inset-0 z-[1000] xl:hidden flex animate-in fade-in duration-300 font-bold">
                     <div 
                         className={`absolute inset-0 backdrop-blur-md transition-all ${isDark ? 'bg-black/80' : 'bg-[#3a3a38]/40'}`} 
                         onClick={() => setIsSidebarOpen(false)}
@@ -178,9 +178,9 @@ export default function POSLayout({
             )}
 
             {/* MAIN CONTENT WRAPPER */}
-            <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+            <div className="flex-1 flex flex-col min-w-0 overflow-hidden print:overflow-visible">
                 {/* 2. MAIN HEADER (Sticky) */}
-                <header className={`h-[60px] sm:h-[70px] border-b flex items-center justify-between px-3 sm:px-6 xl:px-10 sticky top-0 z-[50] flex-shrink-0 font-bold ${isDark ? 'bg-[#1A1A18] border-white/5' : 'bg-white border-[#F0F0E8]'}`}>
+                <header className={`print:hidden h-[60px] sm:h-[70px] border-b flex items-center justify-between px-3 sm:px-6 xl:px-10 sticky top-0 z-[50] flex-shrink-0 font-bold ${isDark ? 'bg-[#1A1A18] border-white/5' : 'bg-white border-[#F0F0E8]'}`}>
                     <div className="flex items-center gap-3 sm:gap-6 xl:gap-10 flex-1 font-bold min-w-[140px] sm:min-w-0 flex-shrink-0 z-10">
                         <button 
                             onClick={() => setIsSidebarOpen(true)}
@@ -209,7 +209,7 @@ export default function POSLayout({
             </header>
 
             {/* 3. MAIN CONTENT CONTAINER */}
-            <main className={`flex-1 relative flex flex-col font-bold custom-scrollbar min-h-0 ${activeView === 'delivery' ? 'overflow-visible' : (activeView === 'terminal' || activeView === 'kitchen') ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+            <main className={`print:overflow-visible print:block flex-1 relative flex flex-col font-bold custom-scrollbar min-h-0 ${activeView === 'delivery' ? 'overflow-visible' : (activeView === 'terminal' || activeView === 'kitchen') ? 'overflow-hidden' : 'overflow-y-auto'}`}>
                 {children}
             </main>
             </div>
@@ -223,11 +223,13 @@ export default function POSLayout({
                 .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.05); border-radius: 0; }
                 .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.1); }
 
-                html, body {
-                    overscroll-behavior-y: none;
-                    scroll-behavior: smooth;
-                    height: 100%;
-                    overflow: hidden;
+                @media screen {
+                    html, body {
+                        overscroll-behavior-y: none;
+                        scroll-behavior: smooth;
+                        height: 100%;
+                        overflow: hidden;
+                    }
                 }
 
                 .xyl-pos-scale .text-xs { font-size: 0.875rem !important; line-height: 1.3rem !important; }
