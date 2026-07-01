@@ -2355,10 +2355,9 @@ export default function POSInventoryManager({
                         <button 
                           onClick={handleConfirmShoppingList}
                           disabled={isSaving}
-                          className="print:hidden w-auto h-10 md:h-12 px-4 flex justify-center items-center gap-2 rounded-xl shadow-sm transition-colors shrink-0 bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
+                          className="print:hidden w-10 h-10 md:w-12 md:h-12 flex justify-center items-center rounded-xl shadow-sm transition-colors shrink-0 bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
                         >
                             {isSaving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-                            <span className="text-[11px] font-black uppercase tracking-widest">{locale === 'en' ? 'Confirm' : locale === 'zh' ? 'Confirm' : 'ยืนยันการซื้อ'}</span>
                         </button>
                     ) : (
                         <button 
