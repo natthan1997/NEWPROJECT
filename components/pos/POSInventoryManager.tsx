@@ -2289,16 +2289,16 @@ export default function POSInventoryManager({
                   </div>
                </header>
 
-               <div className="flex-1 overflow-y-auto no-scrollbar p-4 md:p-8 space-y-6 md:space-y-8 pb-32">
+               <div className="flex-1 overflow-y-auto no-scrollbar p-3 md:p-6 space-y-4 md:space-y-6 pb-32">
                   {(() => {
                       // Filter low stock items
                       const lowStockItems = inventory.filter(item => Number(item.stock_quantity) <= Number(item.min_stock_level));
                       if (lowStockItems.length === 0) {
                           return (
-                              <div className="flex flex-col items-center justify-center py-32 opacity-50">
-                                  <CheckCircle2 size={64} className="text-sage-500 mb-6" />
-                                  <div className="text-2xl font-black uppercase text-[#1A1A18]">สต็อกเต็มทุกรายการ</div>
-                                  <div className="text-[12px] font-bold uppercase tracking-widest text-gray-500 mt-2">ไม่จำเป็นต้องสั่งซื้อสินค้าเพิ่มในขณะนี้</div>
+                              <div className="flex flex-col items-center justify-center py-20 opacity-50">
+                                  <CheckCircle2 size={48} className="text-sage-500 mb-4" />
+                                  <div className="text-xl font-black uppercase text-[#1A1A18]">สต็อกเต็มทุกรายการ</div>
+                                  <div className="text-[11px] font-bold uppercase tracking-widest text-gray-500 mt-2">ไม่จำเป็นต้องสั่งซื้อสินค้าเพิ่มในขณะนี้</div>
                               </div>
                           );
                       }
@@ -2313,20 +2313,20 @@ export default function POSInventoryManager({
                       });
 
                       return Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b)).map(([supplier, items]) => (
-                          <div key={supplier} className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+                          <div key={supplier} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
                               {/* Supplier Header */}
-                              <div className="px-6 py-4 bg-gray-50/50 border-b border-gray-100 flex items-center justify-between">
-                                  <div className="flex items-center gap-3">
-                                      <div className="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center">
-                                          <Landmark size={16} />
+                              <div className="px-4 py-2.5 bg-gray-50/50 border-b border-gray-100 flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                      <div className="w-6 h-6 bg-indigo-50 text-indigo-600 rounded-md flex items-center justify-center">
+                                          <Landmark size={14} />
                                       </div>
-                                      <h3 className="text-[15px] font-black uppercase tracking-wide text-[#1A1A18]">{supplier}</h3>
+                                      <h3 className="text-[13px] font-black uppercase tracking-wide text-[#1A1A18]">{supplier}</h3>
                                   </div>
-                                  <div className="text-[11px] font-bold bg-white border border-gray-200 px-3 py-1 rounded-full text-gray-500 shadow-sm">{items.length} รายการ</div>
+                                  <div className="text-[10px] font-bold bg-white border border-gray-200 px-2.5 py-0.5 rounded-full text-gray-500 shadow-sm">{items.length} รายการ</div>
                               </div>
                               
                               {/* Table Header (Desktop) */}
-                              <div className="hidden sm:grid grid-cols-12 gap-4 px-6 py-3 bg-white border-b border-gray-100 text-[10px] font-black uppercase tracking-widest text-gray-400">
+                              <div className="hidden sm:grid grid-cols-12 gap-2 px-4 py-2 bg-white border-b border-gray-100 text-[9px] font-black uppercase tracking-widest text-gray-400">
                                 <div className="col-span-5">รายการสินค้า (Item)</div>
                                 <div className="col-span-2 text-right">สต็อกปัจจุบัน</div>
                                 <div className="col-span-2 text-right">จุดสั่งซื้อ</div>
@@ -2336,33 +2336,33 @@ export default function POSInventoryManager({
                               {/* Item List */}
                               <div className="divide-y divide-gray-100">
                                   {items.map(item => (
-                                      <div key={item.id} className="p-4 sm:px-6 sm:py-3 flex flex-col sm:grid sm:grid-cols-12 sm:items-center gap-2 sm:gap-4 hover:bg-gray-50/80 transition-colors">
+                                      <div key={item.id} className="p-3 sm:px-4 sm:py-2 flex flex-col sm:grid sm:grid-cols-12 sm:items-center gap-1.5 sm:gap-2 hover:bg-gray-50/80 transition-colors">
                                           
                                           {/* Item Info */}
                                           <div className="col-span-5 flex flex-col justify-center">
-                                            <div className="text-[13px] font-black uppercase text-[#1A1A18] leading-tight">{item.name}</div>
-                                            <div className="text-[10px] font-bold text-gray-400 mt-0.5 tracking-wide">{item.sku ? `SKU: ${item.sku}` : '-'}</div>
+                                            <div className="text-[12px] font-black uppercase text-[#1A1A18] leading-tight">{item.name}</div>
+                                            <div className="text-[9px] font-bold text-gray-400 mt-0.5 tracking-wide">{item.sku ? `SKU: ${item.sku}` : '-'}</div>
                                           </div>
                                           
                                           {/* Current Stock */}
-                                          <div className="flex sm:contents items-center justify-between mt-3 sm:mt-0">
-                                            <span className="text-[11px] font-bold text-gray-400 sm:hidden">สต็อกปัจจุบัน:</span>
-                                            <div className="col-span-2 text-right text-[15px] font-black text-red-500 tabular-nums">
-                                              {item.stock_quantity} <span className="text-[10px] text-gray-400 font-bold ml-0.5">{item.unit}</span>
+                                          <div className="flex sm:contents items-center justify-between mt-1 sm:mt-0">
+                                            <span className="text-[10px] font-bold text-gray-400 sm:hidden">สต็อกปัจจุบัน:</span>
+                                            <div className="col-span-2 text-right text-[13px] font-black text-red-500 tabular-nums">
+                                              {item.stock_quantity} <span className="text-[9px] text-gray-400 font-bold ml-0.5">{item.unit}</span>
                                             </div>
                                           </div>
 
                                           {/* Min Stock */}
-                                          <div className="flex sm:contents items-center justify-between mt-1 sm:mt-0">
-                                            <span className="text-[11px] font-bold text-gray-400 sm:hidden">จุดสั่งซื้อ (Min):</span>
-                                            <div className="col-span-2 text-right text-[15px] font-black text-gray-600 tabular-nums">
-                                              {item.min_stock_level} <span className="text-[10px] text-gray-400 font-bold ml-0.5">{item.unit}</span>
+                                          <div className="flex sm:contents items-center justify-between mt-0.5 sm:mt-0">
+                                            <span className="text-[10px] font-bold text-gray-400 sm:hidden">จุดสั่งซื้อ (Min):</span>
+                                            <div className="col-span-2 text-right text-[13px] font-black text-gray-600 tabular-nums">
+                                              {item.min_stock_level} <span className="text-[9px] text-gray-400 font-bold ml-0.5">{item.unit}</span>
                                             </div>
                                           </div>
 
                                           {/* To Order Amount */}
-                                          <div className="flex sm:contents items-center justify-between mt-3 sm:mt-0 pt-3 sm:pt-0 border-t border-dashed border-gray-200 sm:border-0">
-                                            <span className="text-[11px] font-black text-amber-600 uppercase tracking-widest sm:hidden">ต้องสั่งเพิ่ม:</span>
+                                          <div className="flex sm:contents items-center justify-between mt-1.5 sm:mt-0 pt-2 sm:pt-0 border-t border-dashed border-gray-200 sm:border-0">
+                                            <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest sm:hidden">ต้องสั่งเพิ่ม:</span>
                                             <div className="col-span-3 text-right">
                                               {(() => {
                                                 const deficiency = Math.max(0, item.min_stock_level - item.stock_quantity);
@@ -2372,12 +2372,12 @@ export default function POSInventoryManager({
                                                 const displayUnit = hasPurchaseUnit ? item.purchase_unit : item.unit;
                                                 return (
                                                   <div className="flex flex-col items-end">
-                                                    <div className="inline-flex items-center justify-center bg-amber-50 border border-amber-200 text-amber-700 px-3 py-1 rounded-lg min-w-[5rem] shadow-sm">
-                                                      <span className="text-[16px] font-black tabular-nums">{orderAmount}</span>
-                                                      <span className="text-[10px] font-bold ml-1.5 uppercase">{displayUnit}</span>
+                                                    <div className="inline-flex items-center justify-center bg-amber-50 border border-amber-200 text-amber-700 px-2 py-0.5 rounded-md min-w-[4rem] shadow-sm">
+                                                      <span className="text-[14px] font-black tabular-nums">{orderAmount}</span>
+                                                      <span className="text-[9px] font-bold ml-1 uppercase">{displayUnit}</span>
                                                     </div>
                                                     {hasPurchaseUnit && (
-                                                      <div className="text-[9.5px] font-black tracking-wider text-amber-600/60 mt-1 uppercase">
+                                                      <div className="text-[8.5px] font-black tracking-wider text-amber-600/60 mt-0.5 uppercase">
                                                         (= {orderAmount * factor} {item.unit})
                                                       </div>
                                                     )}
