@@ -439,7 +439,6 @@ export default function CustomerMenuPage() {
           } else {
               if (!restoreLocalTableSession()) {
                   setNickname(null)
-                  setTempName('')
               }
           }
       } else {
@@ -450,7 +449,6 @@ export default function CustomerMenuPage() {
               // Restore their name so they don't lose it on refresh!
               if (!restoreLocalTableSession()) {
                   setNickname(null)
-                  setTempName('')
               }
           } else {
               // Table is available. Force new session.
@@ -577,7 +575,6 @@ export default function CustomerMenuPage() {
           } else {
               if (!restoreLocalTableSession()) {
                   setNickname(null)
-                  setTempName('')
               }
           }
       } else {
@@ -591,7 +588,6 @@ export default function CustomerMenuPage() {
               // Restore their name so they don't lose it on refresh!
               if (!restoreLocalTableSession()) {
                   setNickname(null)
-                  setTempName('')
               }
           } else {
               // Leave session active
