@@ -2432,7 +2432,6 @@ export default function POSInventoryManager({
                                       const stockPercent = Math.min(100, (item.stock_quantity / Math.max(1, item.min_stock_level)) * 100);
                                       const isPurchased = purchasedItems.has(item.id);
 
-                                      return (
                                       const isActive = activeShoppingItemId === item.id;
                                       
                                       return (
