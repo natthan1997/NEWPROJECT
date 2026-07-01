@@ -2357,25 +2357,25 @@ export default function POSInventoryManager({
                           <X size={18} />
                       </button>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
                     <select
-                      className="print:hidden h-10 md:h-12 bg-gray-50 border border-gray-200 rounded-xl px-3 text-[11px] font-black uppercase outline-none focus:border-black transition-colors flex-1 min-w-[120px]"
+                      className="print:hidden h-10 md:h-12 bg-gray-50 border border-gray-200 rounded-xl px-2 text-[10px] sm:text-[11px] font-black uppercase outline-none focus:border-black transition-colors flex-1 min-w-[100px]"
                       value={shoppingListCategoryFilter}
                       onChange={(e) => setShoppingListCategoryFilter(e.target.value)}
                     >
-                      <option value="all">{locale === 'en' ? 'All Categories' : locale === 'zh' ? 'All Categories' : 'ทุกหมวดหมู่'}</option>
+                      <option value="all">{locale === 'en' ? 'All' : locale === 'zh' ? 'All' : 'ทั้งหมด'}</option>
                       {categories.map(cat => (
                         <option key={cat.id} value={cat.id}>{cat.name}</option>
                       ))}
                     </select>
                     <button 
                       onClick={() => { setIsShoppingMode(!isShoppingMode); setActiveShoppingItemId(null); }} 
-                      className={`print:hidden flex-1 sm:flex-none flex justify-center items-center gap-1.5 px-3 h-10 md:h-12 font-black uppercase text-[10px] md:text-[11px] tracking-widest rounded-xl shadow-md transition-colors ${isShoppingMode ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-emerald-600 text-white hover:bg-emerald-700'}`}
+                      className={`print:hidden w-10 h-10 md:w-12 md:h-12 flex justify-center items-center rounded-xl shadow-sm transition-colors shrink-0 ${isShoppingMode ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-emerald-600 text-white hover:bg-emerald-700'}`}
                     >
-                        <CheckCircle2 size={16} /> <span>{isShoppingMode ? 'เสร็จสิ้นการซื้อ' : 'เริ่มไปซื้อของ'}</span>
+                        <CheckCircle2 size={18} />
                     </button>
-                    <button onClick={() => window.print()} className="print:hidden flex justify-center items-center gap-2 px-4 h-10 md:h-12 bg-[#1A1A18] text-white font-black uppercase text-[10px] md:text-[11px] tracking-widest rounded-xl shadow-md hover:bg-black transition-colors w-full sm:w-auto mt-1 sm:mt-0">
-                        <Download size={16} /> {locale === 'en' ? 'PDF' : locale === 'zh' ? 'PDF' : 'โหลด PDF'}
+                    <button onClick={() => window.print()} className="print:hidden w-10 h-10 md:w-12 md:h-12 flex justify-center items-center bg-[#1A1A18] text-white rounded-xl shadow-sm hover:bg-black transition-colors shrink-0">
+                        <Download size={18} />
                     </button>
                   </div>
                </header>
@@ -2421,7 +2421,8 @@ export default function POSInventoryManager({
                               </div>
                               
                               {/* Item List */}
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3">
+                              {/* Item List */}
+                              <div className="grid grid-cols-2 gap-2 p-2">
                                   {items.map(item => {
                                       const deficiency = Math.max(0, item.min_stock_level - item.stock_quantity);
                                       const factor = Number(item.conversion_factor) || 1;
@@ -2442,28 +2443,28 @@ export default function POSInventoryManager({
                                                 setRestockInputAmounts(prev => ({ ...prev, [item.id]: String(orderAmount) }));
                                               }
                                             }}
-                                            className={`flex flex-col gap-3 p-4 rounded-xl border transition-all relative flex-1 ${isShoppingMode && !isPurchased && !isActive ? 'cursor-pointer hover:border-indigo-300 hover:shadow-md' : ''} ${isPurchased ? 'opacity-40 bg-gray-50 border-gray-200' : isActive ? 'bg-indigo-50/30 border-indigo-200 shadow-inner' : 'bg-white border-gray-100 shadow-sm'}`}
+                                            className={`flex flex-col gap-2 p-2.5 rounded-xl border transition-all relative flex-1 ${isShoppingMode && !isPurchased && !isActive ? 'cursor-pointer hover:border-indigo-300 hover:shadow-md' : ''} ${isPurchased ? 'opacity-40 bg-gray-50 border-gray-200' : isActive ? 'bg-indigo-50/30 border-indigo-200 shadow-inner' : 'bg-white border-gray-100 shadow-sm'}`}
                                           >
                                               
                                               {/* Item Info */}
-                                              <div className="flex items-start gap-3">
-                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${isPurchased ? 'bg-gray-200 text-gray-400' : isActive ? 'bg-indigo-100 text-indigo-600' : 'bg-red-50 text-red-500'}`}>
-                                                  {isPurchased ? <CheckCircle2 size={18} /> : isActive ? <ShoppingCart size={18} /> : <AlertTriangle size={18} />}
+                                              <div className="flex items-start gap-2">
+                                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${isPurchased ? 'bg-gray-200 text-gray-400' : isActive ? 'bg-indigo-100 text-indigo-600' : 'bg-red-50 text-red-500'}`}>
+                                                  {isPurchased ? <CheckCircle2 size={14} /> : isActive ? <ShoppingCart size={14} /> : <AlertTriangle size={14} />}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                  <div className={`text-[13px] font-black uppercase text-[#1A1A18] leading-tight truncate ${isPurchased ? 'line-through text-gray-500' : ''}`}>{item.name}</div>
-                                                  <div className="text-[9px] font-bold text-gray-400 mt-0.5 tracking-widest truncate">{item.sku ? `SKU: ${item.sku}` : 'NO SKU'}</div>
+                                                  <div className={`text-[11px] font-black uppercase text-[#1A1A18] leading-tight truncate ${isPurchased ? 'line-through text-gray-500' : ''}`}>{item.name}</div>
+                                                  <div className="text-[8px] font-bold text-gray-400 mt-0.5 tracking-widest truncate">{item.sku ? `SKU: ${item.sku}` : 'NO SKU'}</div>
                                                 </div>
                                               </div>
                                               
                                               {/* Stock Progress Bar (Hidden when active) */}
                                               {!isActive && (
-                                                <div className="w-full flex flex-col gap-1.5 mt-1">
+                                                <div className="w-full flex flex-col gap-1 mt-1">
                                                   <div className="flex justify-between items-end">
-                                                    <span className="text-[10px] font-black text-red-500 uppercase tracking-widest">เหลือ {item.stock_quantity} <span className="text-[9px]">{item.unit}</span></span>
-                                                    <span className="text-[9px] font-bold text-gray-400">จุดสั่งซื้อ {item.min_stock_level}</span>
+                                                    <span className="text-[8px] font-black text-red-500 uppercase tracking-widest">เหลือ {item.stock_quantity}</span>
+                                                    <span className="text-[8px] font-bold text-gray-400">จุดสั่งซื้อ {item.min_stock_level}</span>
                                                   </div>
-                                                  <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                                                  <div className="h-1 w-full bg-gray-100 rounded-full overflow-hidden">
                                                     <div 
                                                       className="h-full bg-red-500 rounded-full transition-all duration-500" 
                                                       style={{ width: `${stockPercent}%` }}
@@ -2474,27 +2475,27 @@ export default function POSInventoryManager({
 
                                               {/* Big Order Action Box (Hidden when active) */}
                                               {!isActive && (
-                                                <div className="mt-auto pt-2 flex flex-col gap-2">
-                                                  <div className={`flex items-center justify-between px-3 py-2.5 rounded-lg border min-h-[46px] transition-colors ${isPurchased ? 'bg-gray-100 border-gray-200' : 'bg-amber-50 border-amber-100'}`}>
+                                                <div className="mt-auto pt-1.5 flex flex-col gap-1.5">
+                                                  <div className={`flex items-center justify-between px-2 py-1.5 rounded-md border transition-colors ${isPurchased ? 'bg-gray-100 border-gray-200' : 'bg-amber-50 border-amber-100'}`}>
                                                     <div className="flex flex-col justify-center">
-                                                      <div className={`text-[9px] font-black uppercase tracking-widest leading-none mb-0.5 ${isPurchased ? 'text-gray-500' : 'text-amber-700'}`}>{isPurchased ? 'ซื้อแล้ว' : 'สั่งเพิ่ม'}</div>
+                                                      <div className={`text-[8px] font-black uppercase tracking-widest leading-none mb-0.5 ${isPurchased ? 'text-gray-500' : 'text-amber-700'}`}>{isPurchased ? 'ซื้อแล้ว' : 'สั่งเพิ่ม'}</div>
                                                       {hasPurchaseUnit ? (
-                                                        <div className={`text-[8px] font-black tracking-wider ${isPurchased ? 'text-gray-400' : 'text-amber-600/70'}`}>(= {orderAmount * factor} {item.unit})</div>
+                                                        <div className={`text-[7px] font-black tracking-wider ${isPurchased ? 'text-gray-400' : 'text-amber-600/70'}`}>(= {orderAmount * factor} {item.unit})</div>
                                                       ) : (
-                                                        <div className="text-[8px] font-black text-amber-600/70 tracking-wider invisible">(=)</div>
+                                                        <div className="text-[7px] font-black text-amber-600/70 tracking-wider invisible">(=)</div>
                                                       )}
                                                     </div>
-                                                    <div className={`text-[18px] font-black tabular-nums leading-none flex items-baseline gap-1 ${isPurchased ? 'text-gray-400' : 'text-amber-600'}`}>
-                                                      {orderAmount} <span className="text-[10px] font-bold uppercase">{displayUnit}</span>
+                                                    <div className={`text-[14px] font-black tabular-nums leading-none flex items-baseline gap-0.5 ${isPurchased ? 'text-gray-400' : 'text-amber-600'}`}>
+                                                      {orderAmount} <span className="text-[8px] font-bold uppercase">{displayUnit}</span>
                                                     </div>
                                                   </div>
                                                   {isShoppingMode && isPurchased && (
                                                       <button 
                                                         onClick={(e) => { e.stopPropagation(); handleUndoShoppingListRestock(item); }}
                                                         disabled={isSaving}
-                                                        className="w-full h-8 flex items-center justify-center bg-gray-200 hover:bg-gray-300 text-gray-600 rounded-lg text-[9px] font-black uppercase transition-colors"
+                                                        className="w-full h-6 flex items-center justify-center bg-gray-200 hover:bg-gray-300 text-gray-600 rounded-md text-[8px] font-black uppercase transition-colors"
                                                       >
-                                                        ยกเลิกการซื้อ
+                                                        ยกเลิก
                                                       </button>
                                                   )}
                                                 </div>
@@ -2508,43 +2509,43 @@ export default function POSInventoryManager({
                                           
                                           {/* Active Input Panel */}
                                           {isActive && (
-                                            <div className="p-3 bg-indigo-50/50 border-t border-indigo-100 rounded-b-xl flex flex-col gap-2">
-                                                <div className="text-[10px] font-black text-indigo-800 uppercase tracking-widest text-center">จำนวนที่ซื้อ ({displayUnit})</div>
-                                                <div className="flex items-center bg-white border border-indigo-200 rounded-lg overflow-hidden shadow-sm h-10">
+                                            <div className="p-2 bg-indigo-50/50 border-t border-indigo-100 rounded-b-xl flex flex-col gap-1.5">
+                                                <div className="text-[8px] font-black text-indigo-800 uppercase tracking-widest text-center">ซื้อ ({displayUnit})</div>
+                                                <div className="flex items-center bg-white border border-indigo-200 rounded-md overflow-hidden shadow-sm h-8">
                                                     <button 
                                                         onClick={() => setRestockInputAmounts(prev => ({ ...prev, [item.id]: String(Math.max(1, Number(prev[item.id] || 0) - 1)) }))}
-                                                        className="w-10 h-full flex items-center justify-center text-indigo-600 hover:bg-indigo-50 transition-colors"
+                                                        className="w-8 h-full flex items-center justify-center text-indigo-600 hover:bg-indigo-50 transition-colors"
                                                     >
-                                                      <Minus size={14} />
+                                                      <Minus size={12} />
                                                     </button>
                                                     <input 
                                                         type="number" 
-                                                        className="flex-1 h-full text-center font-black text-base text-indigo-900 outline-none w-full"
+                                                        className="flex-1 h-full text-center font-black text-[12px] text-indigo-900 outline-none w-full p-0"
                                                         value={restockInputAmounts[item.id] || ''}
                                                         onChange={(e) => setRestockInputAmounts(prev => ({ ...prev, [item.id]: e.target.value }))}
                                                         onFocus={(e) => e.target.select()}
                                                     />
                                                     <button 
                                                         onClick={() => setRestockInputAmounts(prev => ({ ...prev, [item.id]: String(Number(prev[item.id] || 0) + 1) }))}
-                                                        className="w-10 h-full flex items-center justify-center text-indigo-600 hover:bg-indigo-50 transition-colors"
+                                                        className="w-8 h-full flex items-center justify-center text-indigo-600 hover:bg-indigo-50 transition-colors"
                                                     >
-                                                      <Plus size={14} />
+                                                      <Plus size={12} />
                                                     </button>
                                                 </div>
-                                                <div className="flex items-center gap-2 mt-1">
+                                                <div className="flex items-center gap-1.5 mt-1">
                                                     <button 
                                                         onClick={() => setActiveShoppingItemId(null)}
-                                                        className="flex-1 h-9 rounded-lg font-black uppercase text-[9px] text-gray-500 hover:bg-gray-200 transition-colors bg-gray-100"
+                                                        className="flex-1 h-7 rounded-md font-black uppercase text-[8px] text-gray-500 hover:bg-gray-200 transition-colors bg-gray-100"
                                                     >
                                                         ยกเลิก
                                                     </button>
                                                     <button 
                                                         disabled={isSaving || !restockInputAmounts[item.id] || Number(restockInputAmounts[item.id]) <= 0}
                                                         onClick={() => handleShoppingListRestock(item, Number(restockInputAmounts[item.id]))}
-                                                        className="flex-1 h-9 rounded-lg font-black uppercase text-[9px] text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-1"
+                                                        className="flex-1 h-7 rounded-md font-black uppercase text-[8px] text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-1"
                                                     >
-                                                        {isSaving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
-                                                        รับเข้า
+                                                        {isSaving ? <Loader2 size={10} className="animate-spin" /> : <Save size={10} />}
+                                                        บันทึก
                                                     </button>
                                                 </div>
                                             </div>
