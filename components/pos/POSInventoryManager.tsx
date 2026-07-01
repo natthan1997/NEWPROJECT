@@ -68,6 +68,7 @@ export default function POSInventoryManager({
   const [isShoppingListOpen, setIsShoppingListOpen] = useState(false)
   const [isShoppingMode, setIsShoppingMode] = useState(false)
   const [shoppingListCategoryFilter, setShoppingListCategoryFilter] = useState<string>('all')
+  const [shoppingListSupplierFilter, setShoppingListSupplierFilter] = useState<string>('all')
   const [restockInputAmounts, setRestockInputAmounts] = useState<Record<string, string>>({})
   const [activeShoppingItemId, setActiveShoppingItemId] = useState<string | null>(null)
   const [purchasedItems, setPurchasedItems] = useState<Set<string>>(new Set())
@@ -2359,11 +2360,21 @@ export default function POSInventoryManager({
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <select
-                      className="print:hidden h-10 md:h-12 bg-gray-50 border border-gray-200 rounded-xl px-2 text-[10px] sm:text-[11px] font-black uppercase outline-none focus:border-black transition-colors flex-1 min-w-[100px]"
+                      className="print:hidden h-10 md:h-12 bg-gray-50 border border-gray-200 rounded-xl px-2 text-[10px] sm:text-[11px] font-black uppercase outline-none focus:border-black transition-colors flex-1 min-w-[90px]"
+                      value={shoppingListSupplierFilter}
+                      onChange={(e) => setShoppingListSupplierFilter(e.target.value)}
+                    >
+                      <option value="all">{locale === 'en' ? 'All Suppliers' : locale === 'zh' ? 'All Suppliers' : 'ทุกแหล่งซื้อ'}</option>
+                      {suppliers.map(sup => (
+                        <option key={sup.id} value={sup.id}>{sup.name}</option>
+                      ))}
+                    </select>
+                    <select
+                      className="print:hidden h-10 md:h-12 bg-gray-50 border border-gray-200 rounded-xl px-2 text-[10px] sm:text-[11px] font-black uppercase outline-none focus:border-black transition-colors flex-1 min-w-[90px]"
                       value={shoppingListCategoryFilter}
                       onChange={(e) => setShoppingListCategoryFilter(e.target.value)}
                     >
-                      <option value="all">{locale === 'en' ? 'All' : locale === 'zh' ? 'All' : 'ทั้งหมด'}</option>
+                      <option value="all">{locale === 'en' ? 'All Categories' : locale === 'zh' ? 'All Categories' : 'ทุกหมวดหมู่'}</option>
                       {categories.map(cat => (
                         <option key={cat.id} value={cat.id}>{cat.name}</option>
                       ))}
@@ -2382,11 +2393,12 @@ export default function POSInventoryManager({
 
                <div className="flex-1 overflow-y-auto no-scrollbar p-3 md:p-6 space-y-4 md:space-y-6 pb-32">
                   {(() => {
-                      // Filter low stock items and apply category filter
+                      // Filter low stock items and apply category and supplier filter
                       const lowStockItems = inventory.filter(item => {
                         const isLow = Number(item.stock_quantity) <= Number(item.min_stock_level) || purchasedItems.has(item.id);
                         const matchesCategory = shoppingListCategoryFilter === 'all' || item.category_id === shoppingListCategoryFilter;
-                        return isLow && matchesCategory;
+                        const matchesSupplier = shoppingListSupplierFilter === 'all' || item.supplier_id === shoppingListSupplierFilter;
+                        return isLow && matchesCategory && matchesSupplier;
                       });
                       if (lowStockItems.length === 0) {
                           return (
