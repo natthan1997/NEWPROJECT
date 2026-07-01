@@ -64,8 +64,12 @@ export default function POSInventoryManager({
   const [selectedItemIdsForAssign, setSelectedItemIdsForAssign] = useState<string[]>([])
 
   // --- Shopping List State ---
+  // --- Shopping List State ---
   const [isShoppingListOpen, setIsShoppingListOpen] = useState(false)
   const [isShoppingMode, setIsShoppingMode] = useState(false)
+  const [shoppingListCategoryFilter, setShoppingListCategoryFilter] = useState<string>('all')
+  const [restockInputAmounts, setRestockInputAmounts] = useState<Record<string, string>>({})
+  const [activeShoppingItemId, setActiveShoppingItemId] = useState<string | null>(null)
   const [purchasedItems, setPurchasedItems] = useState<Set<string>>(new Set())
   const [expandedInventoryCardId, setExpandedInventoryCardId] = useState<string | null>(null)
 
@@ -409,6 +413,79 @@ export default function POSInventoryManager({
         fetchInventory()
     }
     setIsSaving(false)
+  }
+  
+  const handleShoppingListRestock = async (item: any, quantityInPurchaseUnit: number) => {
+      if (!quantityInPurchaseUnit || quantityInPurchaseUnit <= 0) return;
+      setIsSaving(true);
+      
+      const factor = Number(item.conversion_factor) || 1;
+      const amountInBaseUnit = quantityInPurchaseUnit * factor;
+      const newBaseQty = (item.stock_quantity || 0) + amountInBaseUnit;
+      
+      const { error } = await supabase.from('inventory_items')
+          .update({ stock_quantity: newBaseQty })
+          .eq('id', item.id);
+      
+      if (!error) {
+          const reason = 'restock';
+          const refMsg = `Purchased: ${quantityInPurchaseUnit} ${item.purchase_unit || item.unit} (Factor: ${factor}) via Shopping Mode`;
+          
+          await logMovement(item.id, amountInBaseUnit, newBaseQty, reason, refMsg);
+          
+          setPurchasedItems(prev => {
+              const next = new Set(prev);
+              next.add(item.id);
+              return next;
+          });
+          
+          setInventory(prev => prev.map(i => i.id === item.id ? { ...i, stock_quantity: newBaseQty } : i));
+          setActiveShoppingItemId(null);
+      } else {
+          alert('Failed to restock item');
+      }
+      setIsSaving(false);
+  }
+
+  const handleUndoShoppingListRestock = async (item: any) => {
+      setIsSaving(true);
+      
+      const lastAddedStr = restockInputAmounts[item.id];
+      if (!lastAddedStr) {
+          setIsSaving(false);
+          return;
+      }
+      const lastAdded = Number(lastAddedStr);
+      
+      const factor = Number(item.conversion_factor) || 1;
+      const amountInBaseUnit = lastAdded * factor;
+      const newBaseQty = Math.max(0, (item.stock_quantity || 0) - amountInBaseUnit);
+      
+      const { error } = await supabase.from('inventory_items')
+          .update({ stock_quantity: newBaseQty })
+          .eq('id', item.id);
+          
+      if (!error) {
+          const reason = 'restock_undo';
+          const refMsg = `Undo Purchase: ${lastAdded} ${item.purchase_unit || item.unit} via Shopping Mode`;
+          
+          await logMovement(item.id, -amountInBaseUnit, newBaseQty, reason, refMsg);
+          
+          setPurchasedItems(prev => {
+              const next = new Set(prev);
+              next.delete(item.id);
+              return next;
+          });
+          
+          setInventory(prev => prev.map(i => i.id === item.id ? { ...i, stock_quantity: newBaseQty } : i));
+          
+          setRestockInputAmounts(prev => {
+              const next = { ...prev };
+              delete next[item.id];
+              return next;
+          });
+      }
+      setIsSaving(false);
   }
 
   const handleDualCountChange = (item: any, type: 'full' | 'partial' | 'partial_add', value: string) => {
@@ -2279,8 +2356,18 @@ export default function POSInventoryManager({
                       <p className="text-[11px] font-bold tracking-widest text-gray-400 mt-2 leading-none uppercase">{isShoppingMode ? 'โหมดเลือกซื้อของ (กดที่รายการเพื่อติ้ก)' : locale === 'en' ? 'Items grouped by supplier' : locale === 'zh' ? 'Items grouped by supplier' : 'รายการวัตถุดิบที่ต้องสั่งซื้อ แยกตามแหล่งจัดซื้อ'}</p>
                   </div>
                   <div className="flex items-center gap-2 sm:gap-3">
+                    <select
+                      className="print:hidden h-10 md:h-12 bg-gray-50 border border-gray-200 rounded-xl px-3 text-[11px] font-black uppercase outline-none focus:border-black transition-colors"
+                      value={shoppingListCategoryFilter}
+                      onChange={(e) => setShoppingListCategoryFilter(e.target.value)}
+                    >
+                      <option value="all">{locale === 'en' ? 'All Categories' : locale === 'zh' ? 'All Categories' : 'ทุกหมวดหมู่'}</option>
+                      {categories.map(cat => (
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                      ))}
+                    </select>
                     <button 
-                      onClick={() => setIsShoppingMode(!isShoppingMode)} 
+                      onClick={() => { setIsShoppingMode(!isShoppingMode); setActiveShoppingItemId(null); }} 
                       className={`print:hidden flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 h-10 md:h-12 font-black uppercase text-[9px] sm:text-[10px] md:text-[11px] tracking-widest rounded-xl shadow-md transition-colors ${isShoppingMode ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-emerald-600 text-white hover:bg-emerald-700'}`}
                     >
                         <CheckCircle2 size={16} /> <span className="hidden sm:inline">{isShoppingMode ? 'เสร็จสิ้นการซื้อ' : 'เริ่มไปซื้อของ'}</span><span className="sm:hidden">{isShoppingMode ? 'เสร็จ' : 'เริ่มซื้อ'}</span>
@@ -2288,7 +2375,7 @@ export default function POSInventoryManager({
                     <button onClick={() => window.print()} className="print:hidden hidden sm:flex items-center gap-2 px-4 h-10 md:h-12 bg-[#1A1A18] text-white font-black uppercase text-[10px] md:text-[11px] tracking-widest rounded-xl shadow-md hover:bg-black transition-colors">
                         <Download size={16} /> {locale === 'en' ? 'PDF' : locale === 'zh' ? 'PDF' : 'PDF'}
                     </button>
-                    <button onClick={() => { setIsShoppingListOpen(false); setIsShoppingMode(false); setPurchasedItems(new Set()); }} className="print:hidden w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-gray-50 border border-gray-200 rounded-full hover:bg-gray-100 transition-all text-gray-500 hover:text-black shrink-0">
+                    <button onClick={() => { setIsShoppingListOpen(false); setIsShoppingMode(false); setPurchasedItems(new Set()); setActiveShoppingItemId(null); }} className="print:hidden w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-gray-50 border border-gray-200 rounded-full hover:bg-gray-100 transition-all text-gray-500 hover:text-black shrink-0">
                         <X size={20} />
                     </button>
                   </div>
@@ -2296,8 +2383,12 @@ export default function POSInventoryManager({
 
                <div className="flex-1 overflow-y-auto no-scrollbar p-3 md:p-6 space-y-4 md:space-y-6 pb-32">
                   {(() => {
-                      // Filter low stock items
-                      const lowStockItems = inventory.filter(item => Number(item.stock_quantity) <= Number(item.min_stock_level));
+                      // Filter low stock items and apply category filter
+                      const lowStockItems = inventory.filter(item => {
+                        const isLow = Number(item.stock_quantity) <= Number(item.min_stock_level);
+                        const matchesCategory = shoppingListCategoryFilter === 'all' || item.category_id === shoppingListCategoryFilter;
+                        return isLow && matchesCategory;
+                      });
                       if (lowStockItems.length === 0) {
                           return (
                               <div className="flex flex-col items-center justify-center py-20 opacity-50">
@@ -2342,67 +2433,126 @@ export default function POSInventoryManager({
                                       const isPurchased = purchasedItems.has(item.id);
 
                                       return (
-                                        <div 
-                                          key={item.id} 
-                                          onClick={() => {
-                                            if (isShoppingMode) {
-                                              setPurchasedItems(prev => {
-                                                const next = new Set(prev);
-                                                if (next.has(item.id)) next.delete(item.id);
-                                                else next.add(item.id);
-                                                return next;
-                                              });
-                                            }
-                                          }}
-                                          className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 sm:p-5 transition-colors relative ${isShoppingMode ? 'cursor-pointer hover:bg-gray-50' : ''} ${isPurchased ? 'opacity-40 grayscale bg-gray-50' : 'hover:bg-gray-50/80'}`}
-                                        >
-                                            
-                                            {/* Item Info */}
-                                            <div className="flex items-center gap-4 flex-1">
-                                              <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-sm transition-colors ${isPurchased ? 'bg-gray-200 text-gray-400 border border-gray-300' : 'bg-red-50 border border-red-100 text-red-500'}`}>
-                                                {isPurchased ? <CheckCircle2 size={18} /> : <AlertTriangle size={18} />}
+                                      const isActive = activeShoppingItemId === item.id;
+                                      
+                                      return (
+                                        <div key={item.id} className="relative">
+                                          <div 
+                                            onClick={() => {
+                                              if (isShoppingMode && !isPurchased && !isActive) {
+                                                setActiveShoppingItemId(item.id);
+                                                setRestockInputAmounts(prev => ({ ...prev, [item.id]: String(orderAmount) }));
+                                              }
+                                            }}
+                                            className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 sm:p-5 transition-colors relative ${isShoppingMode && !isPurchased && !isActive ? 'cursor-pointer hover:bg-gray-50' : ''} ${isPurchased ? 'opacity-40 bg-gray-50' : isActive ? 'bg-indigo-50/30' : 'hover:bg-gray-50/80'}`}
+                                          >
+                                              
+                                              {/* Item Info */}
+                                              <div className="flex items-center gap-4 flex-1">
+                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-sm transition-colors ${isPurchased ? 'bg-gray-200 text-gray-400 border border-gray-300' : isActive ? 'bg-indigo-100 text-indigo-600 border border-indigo-200' : 'bg-red-50 border border-red-100 text-red-500'}`}>
+                                                  {isPurchased ? <CheckCircle2 size={18} /> : isActive ? <ShoppingCart size={18} /> : <AlertTriangle size={18} />}
+                                                </div>
+                                                <div>
+                                                  <div className={`text-[14px] sm:text-[15px] font-black uppercase text-[#1A1A18] leading-tight transition-all ${isPurchased ? 'line-through text-gray-500' : ''}`}>{item.name}</div>
+                                                  <div className="text-[10px] font-bold text-gray-400 mt-1 tracking-widest">{item.sku ? `SKU: ${item.sku}` : 'NO SKU'}</div>
+                                                </div>
                                               </div>
-                                              <div>
-                                                <div className={`text-[14px] sm:text-[15px] font-black uppercase text-[#1A1A18] leading-tight transition-all ${isPurchased ? 'line-through' : ''}`}>{item.name}</div>
-                                                <div className="text-[10px] font-bold text-gray-400 mt-1 tracking-widest">{item.sku ? `SKU: ${item.sku}` : 'NO SKU'}</div>
-                                              </div>
-                                            </div>
-                                            
-                                            {/* Stock Progress Bar */}
-                                            <div className="w-full sm:w-48 flex flex-col gap-1.5 mt-2 sm:mt-0">
-                                              <div className="flex justify-between items-end">
-                                                <span className="text-[10px] font-black text-red-500 uppercase tracking-widest">เหลือ {item.stock_quantity} <span className="text-[9px]">{item.unit}</span></span>
-                                                <span className="text-[10px] font-bold text-gray-400">จุดสั่งซื้อ {item.min_stock_level}</span>
-                                              </div>
-                                              <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
-                                                <div 
-                                                  className="h-full bg-red-500 rounded-full transition-all duration-500" 
-                                                  style={{ width: `${stockPercent}%` }}
-                                                />
-                                              </div>
-                                            </div>
+                                              
+                                              {/* Stock Progress Bar (Hidden when active) */}
+                                              {!isActive && (
+                                                <div className="w-full sm:w-48 flex flex-col gap-1.5 mt-2 sm:mt-0">
+                                                  <div className="flex justify-between items-end">
+                                                    <span className="text-[10px] font-black text-red-500 uppercase tracking-widest">เหลือ {item.stock_quantity} <span className="text-[9px]">{item.unit}</span></span>
+                                                    <span className="text-[10px] font-bold text-gray-400">จุดสั่งซื้อ {item.min_stock_level}</span>
+                                                  </div>
+                                                  <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                                                    <div 
+                                                      className="h-full bg-red-500 rounded-full transition-all duration-500" 
+                                                      style={{ width: `${stockPercent}%` }}
+                                                    />
+                                                  </div>
+                                                </div>
+                                              )}
 
-                                            {/* Big Order Action Box */}
-                                            <div className="w-full sm:w-auto flex justify-end mt-2 sm:mt-0">
-                                              <div className={`flex items-center gap-4 px-4 py-2.5 rounded-xl border shadow-sm min-w-[140px] transition-colors ${isPurchased ? 'bg-gray-100 border-gray-200' : 'bg-amber-50 border-amber-100'}`}>
-                                                <div className="text-right">
-                                                  <div className={`text-[11px] font-black uppercase tracking-widest leading-none mb-1 ${isPurchased ? 'text-gray-500' : 'text-amber-700'}`}>{isPurchased ? 'ซื้อแล้ว' : 'สั่งเพิ่ม'}</div>
-                                                  {hasPurchaseUnit ? (
-                                                    <div className={`text-[9px] font-black tracking-wider ${isPurchased ? 'text-gray-400' : 'text-amber-600/70'}`}>(= {orderAmount * factor} {item.unit})</div>
-                                                  ) : (
-                                                    <div className="text-[9px] font-black text-amber-600/70 tracking-wider invisible">(=)</div>
+                                              {/* Big Order Action Box (Hidden when active) */}
+                                              {!isActive && (
+                                                <div className="w-full sm:w-auto flex justify-end mt-2 sm:mt-0 flex-col sm:flex-row gap-2">
+                                                  <div className={`flex items-center gap-4 px-4 py-2.5 rounded-xl border shadow-sm min-w-[140px] transition-colors ${isPurchased ? 'bg-gray-100 border-gray-200' : 'bg-amber-50 border-amber-100'}`}>
+                                                    <div className="text-right">
+                                                      <div className={`text-[11px] font-black uppercase tracking-widest leading-none mb-1 ${isPurchased ? 'text-gray-500' : 'text-amber-700'}`}>{isPurchased ? 'ซื้อแล้ว' : 'สั่งเพิ่ม'}</div>
+                                                      {hasPurchaseUnit ? (
+                                                        <div className={`text-[9px] font-black tracking-wider ${isPurchased ? 'text-gray-400' : 'text-amber-600/70'}`}>(= {orderAmount * factor} {item.unit})</div>
+                                                      ) : (
+                                                        <div className="text-[9px] font-black text-amber-600/70 tracking-wider invisible">(=)</div>
+                                                      )}
+                                                    </div>
+                                                    <div className={`text-[22px] font-black tabular-nums leading-none ${isPurchased ? 'text-gray-400' : 'text-amber-600'}`}>
+                                                      {orderAmount} <span className="text-[12px] font-bold uppercase ml-0.5">{displayUnit}</span>
+                                                    </div>
+                                                  </div>
+                                                  {isShoppingMode && isPurchased && (
+                                                      <button 
+                                                        onClick={(e) => { e.stopPropagation(); handleUndoShoppingListRestock(item); }}
+                                                        disabled={isSaving}
+                                                        className="px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-600 rounded-xl text-[10px] font-black uppercase shadow-sm transition-colors"
+                                                      >
+                                                        ยกเลิก
+                                                      </button>
                                                   )}
                                                 </div>
-                                                <div className={`text-[22px] font-black tabular-nums leading-none ${isPurchased ? 'text-gray-400' : 'text-amber-600'}`}>
-                                                  {orderAmount} <span className="text-[12px] font-bold uppercase ml-0.5">{displayUnit}</span>
-                                                </div>
-                                              </div>
-                                            </div>
+                                              )}
 
-                                            {/* Selection Overlay */}
-                                            {isShoppingMode && !isPurchased && (
-                                              <div className="absolute inset-0 bg-indigo-500/0 hover:bg-indigo-500/5 transition-colors z-10 rounded-lg pointer-events-none border border-transparent hover:border-indigo-200" />
-                                            )}
+                                              {/* Selection Overlay */}
+                                              {isShoppingMode && !isPurchased && !isActive && (
+                                                <div className="absolute inset-0 bg-indigo-500/0 hover:bg-indigo-500/5 transition-colors z-10 rounded-lg pointer-events-none border border-transparent hover:border-indigo-200" />
+                                              )}
+                                          </div>
+                                          
+                                          {/* Active Input Panel */}
+                                          {isActive && (
+                                            <div className="p-4 sm:p-5 bg-indigo-50/30 border-t border-indigo-100">
+                                                <div className="flex flex-col sm:flex-row items-center gap-3">
+                                                    <div className="flex-1 w-full text-[11px] font-black text-indigo-800 uppercase tracking-widest">ระบุจำนวนที่ซื้อ ({displayUnit})</div>
+                                                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                                                        <div className="flex items-center bg-white border border-indigo-200 rounded-xl overflow-hidden shadow-sm">
+                                                            <button 
+                                                                onClick={() => setRestockInputAmounts(prev => ({ ...prev, [item.id]: String(Math.max(1, Number(prev[item.id] || 0) - 1)) }))}
+                                                                className="w-12 h-12 flex items-center justify-center text-indigo-600 hover:bg-indigo-50 transition-colors"
+                                                            >
+                                                              <Minus size={18} />
+                                                            </button>
+                                                            <input 
+                                                                type="number" 
+                                                                className="w-16 h-12 text-center font-black text-lg text-indigo-900 outline-none"
+                                                                value={restockInputAmounts[item.id] || ''}
+                                                                onChange={(e) => setRestockInputAmounts(prev => ({ ...prev, [item.id]: e.target.value }))}
+                                                                onFocus={(e) => e.target.select()}
+                                                            />
+                                                            <button 
+                                                                onClick={() => setRestockInputAmounts(prev => ({ ...prev, [item.id]: String(Number(prev[item.id] || 0) + 1) }))}
+                                                                className="w-12 h-12 flex items-center justify-center text-indigo-600 hover:bg-indigo-50 transition-colors"
+                                                            >
+                                                              <Plus size={18} />
+                                                            </button>
+                                                        </div>
+                                                        <button 
+                                                            onClick={() => setActiveShoppingItemId(null)}
+                                                            className="h-12 px-4 rounded-xl font-black uppercase text-[10px] text-gray-500 hover:bg-gray-200 transition-colors bg-gray-100"
+                                                        >
+                                                            ยกเลิก
+                                                        </button>
+                                                        <button 
+                                                            disabled={isSaving || !restockInputAmounts[item.id] || Number(restockInputAmounts[item.id]) <= 0}
+                                                            onClick={() => handleShoppingListRestock(item, Number(restockInputAmounts[item.id]))}
+                                                            className="h-12 px-6 rounded-xl font-black uppercase text-[10px] text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-md disabled:opacity-50 flex items-center gap-2"
+                                                        >
+                                                            {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                                                            บันทึกรับเข้า
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                          )}
                                         </div>
                                       );
                                   })}
