@@ -2683,7 +2683,8 @@ export default function POSInventoryManager({
                 </div>
               </div>
             </div>
-          )})}
+          );
+          });
         })()}
       </div>
     </>

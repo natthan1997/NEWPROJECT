@@ -827,3 +827,10 @@ textarea,
 select {
   transition: all 0.2s ease;
 }
+@media print {
+  html, body {
+    height: auto !important;
+    overflow: visible !important;
+    min-height: 100vh !important;
+  }
+}
