@@ -622,7 +622,7 @@ export default function POSInventoryManager({
 
   return (
     <>
-      <div className="p-3 sm:p-8 font-bold overflow-y-auto no-scrollbar overflow-x-hidden w-full max-w-[100vw]">
+      <div className="print:hidden p-3 sm:p-8 font-bold overflow-y-auto no-scrollbar overflow-x-hidden w-full max-w-[100vw]">
           {/* AUDIT SUMMARY DRAWER (MOBILE FULLSCREEN) */}
           {isAuditSummaryOpen && (
               <div className="fixed inset-0 z-[200] bg-white sm:bg-black/50 p-0 sm:p-10 overflow-y-auto">
