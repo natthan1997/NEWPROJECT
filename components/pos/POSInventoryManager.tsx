@@ -2272,13 +2272,21 @@ export default function POSInventoryManager({
                         <div className="w-10 h-10 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center shrink-0">
                           <ShoppingCart size={22} />
                         </div>
-                        {locale === 'en' ? 'Purchase List' : locale === 'zh' ? 'Purchase List' : 'สรุปรายการจัดซื้อ'}
+                      {locale === 'en' ? 'Purchase List' : locale === 'zh' ? 'Purchase List' : 'สรุปรายการจัดซื้อ'}
                       </h2>
                       <p className="text-[11px] font-bold tracking-widest text-gray-400 mt-2 leading-none uppercase">{locale === 'en' ? 'Items grouped by supplier' : locale === 'zh' ? 'Items grouped by supplier' : 'รายการวัตถุดิบที่ต้องสั่งซื้อ แยกตามแหล่งจัดซื้อ'}</p>
                   </div>
-                  <button onClick={() => setIsShoppingListOpen(false)} className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-gray-50 border border-gray-200 rounded-full hover:bg-gray-100 transition-all text-gray-500 hover:text-black">
-                      <X size={20} />
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => window.print()} className="print:hidden hidden sm:flex items-center gap-2 px-4 h-10 md:h-12 bg-[#1A1A18] text-white font-black uppercase text-[10px] md:text-[11px] tracking-widest rounded-xl shadow-md hover:bg-black transition-colors">
+                        <Download size={16} /> {locale === 'en' ? 'PDF Report' : locale === 'zh' ? 'PDF 报告' : 'พิมพ์รายงาน PDF'}
+                    </button>
+                    <button onClick={() => window.print()} className="print:hidden sm:hidden w-10 h-10 flex items-center justify-center bg-[#1A1A18] text-white rounded-full shadow-md hover:bg-black transition-colors">
+                        <Download size={16} />
+                    </button>
+                    <button onClick={() => setIsShoppingListOpen(false)} className="print:hidden w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-gray-50 border border-gray-200 rounded-full hover:bg-gray-100 transition-all text-gray-500 hover:text-black">
+                        <X size={20} />
+                    </button>
+                  </div>
                </header>
 
                <div className="flex-1 overflow-y-auto no-scrollbar p-4 md:p-8 space-y-6 md:space-y-8 pb-32">
@@ -2356,10 +2364,26 @@ export default function POSInventoryManager({
                                           <div className="flex sm:contents items-center justify-between mt-3 sm:mt-0 pt-3 sm:pt-0 border-t border-dashed border-gray-200 sm:border-0">
                                             <span className="text-[11px] font-black text-amber-600 uppercase tracking-widest sm:hidden">ต้องสั่งเพิ่ม:</span>
                                             <div className="col-span-3 text-right">
-                                              <div className="inline-flex items-center justify-center bg-amber-50 border border-amber-200 text-amber-700 px-3 py-1 rounded-lg min-w-[5rem] shadow-sm">
-                                                <span className="text-[16px] font-black tabular-nums">{Math.max(0, item.min_stock_level - item.stock_quantity)}</span>
-                                                <span className="text-[10px] font-bold ml-1.5 uppercase">{item.unit}</span>
-                                              </div>
+                                              {(() => {
+                                                const deficiency = Math.max(0, item.min_stock_level - item.stock_quantity);
+                                                const factor = Number(item.conversion_factor) || 1;
+                                                const hasPurchaseUnit = item.purchase_unit && factor > 1;
+                                                const orderAmount = hasPurchaseUnit ? Math.ceil(deficiency / factor) : deficiency;
+                                                const displayUnit = hasPurchaseUnit ? item.purchase_unit : item.unit;
+                                                return (
+                                                  <div className="flex flex-col items-end">
+                                                    <div className="inline-flex items-center justify-center bg-amber-50 border border-amber-200 text-amber-700 px-3 py-1 rounded-lg min-w-[5rem] shadow-sm">
+                                                      <span className="text-[16px] font-black tabular-nums">{orderAmount}</span>
+                                                      <span className="text-[10px] font-bold ml-1.5 uppercase">{displayUnit}</span>
+                                                    </div>
+                                                    {hasPurchaseUnit && (
+                                                      <div className="text-[9.5px] font-black tracking-wider text-amber-600/60 mt-1 uppercase">
+                                                        (= {orderAmount * factor} {item.unit})
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                );
+                                              })()}
                                             </div>
                                           </div>
 
@@ -2374,6 +2398,56 @@ export default function POSInventoryManager({
           </div>
         )}
       </AnimatePresence>
+
+      {/* PRINTABLE PDF REPORT (ONLY VISIBLE WHEN PRINTING) */}
+      <div className="hidden print:block w-full bg-white text-black font-sans p-8 absolute top-0 left-0 z-[9999]">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-black mb-2">{locale === 'en' ? 'Purchase List Report' : locale === 'zh' ? '采购清单报告' : 'รายงานรายการที่ต้องสั่งซื้อ (ต่ำกว่าเกณฑ์)'}</h1>
+          <p className="text-gray-500">{locale === 'en' ? 'Date:' : locale === 'zh' ? '日期:' : 'วันที่พิมพ์:'} {new Date().toLocaleDateString('th-TH')}</p>
+        </div>
+        
+        <table className="w-full text-left border-collapse border border-gray-300">
+          <thead>
+            <tr className="bg-gray-100">
+              <th className="border border-gray-300 p-3 font-black text-sm">{locale === 'en' ? 'No.' : 'ลำดับ'}</th>
+              <th className="border border-gray-300 p-3 font-black text-sm">{locale === 'en' ? 'Material / Item' : 'ชื่อวัตถุดิบ'}</th>
+              <th className="border border-gray-300 p-3 font-black text-sm">{locale === 'en' ? 'Current Stock' : 'สต็อกปัจจุบัน'}</th>
+              <th className="border border-gray-300 p-3 font-black text-sm">{locale === 'en' ? 'Min. Stock' : 'ขั้นต่ำที่ต้องมี'}</th>
+              <th className="border border-gray-300 p-3 font-black text-sm">{locale === 'en' ? 'Supplier' : 'แหล่งจัดซื้อ'}</th>
+              <th className="border border-gray-300 p-3 font-black text-sm">{locale === 'en' ? 'Order Qty' : 'จำนวนที่สั่ง (หน่วยซื้อ)'}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {inventory.filter(i => (i.stock_quantity || 0) <= (i.min_stock_level || 0)).map((item, index) => {
+              const supplier = suppliers.find(s => s.id === item.supplier_id)
+              const deficiency = Math.max(0, (item.min_stock_level || 0) - (item.stock_quantity || 0));
+              const factor = Number(item.conversion_factor) || 1;
+              const hasPurchaseUnit = item.purchase_unit && factor > 1;
+              const orderAmount = hasPurchaseUnit ? Math.ceil(deficiency / factor) : deficiency;
+              const displayUnit = hasPurchaseUnit ? item.purchase_unit : item.unit;
+              
+              return (
+                <tr key={item.id} className="border-b border-gray-300">
+                  <td className="border border-gray-300 p-3">{index + 1}</td>
+                  <td className="border border-gray-300 p-3 font-bold">{item.name} {item.sku && <span className="text-xs text-gray-500 ml-2">({item.sku})</span>}</td>
+                  <td className="border border-gray-300 p-3 text-red-600 font-bold">{item.stock_quantity || 0} {item.unit}</td>
+                  <td className="border border-gray-300 p-3">{item.min_stock_level || 0} {item.unit}</td>
+                  <td className="border border-gray-300 p-3">{supplier ? supplier.name : '-'}</td>
+                  <td className="border border-gray-300 p-3">
+                    <span className="font-bold text-lg">{orderAmount}</span> <span className="uppercase text-sm">{displayUnit}</span>
+                    {hasPurchaseUnit && <div className="text-xs text-gray-500 mt-1">(= {orderAmount * factor} {item.unit})</div>}
+                  </td>
+                </tr>
+              )
+            })}
+            {inventory.filter(i => (i.stock_quantity || 0) <= (i.min_stock_level || 0)).length === 0 && (
+              <tr>
+                <td colSpan={6} className="text-center p-6 text-gray-500">{locale === 'en' ? 'No items need purchasing at this time.' : 'ไม่มีรายการวัตถุดิบที่ต้องสั่งซื้อ'}</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </>
   )
 }
