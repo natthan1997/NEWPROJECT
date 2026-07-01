@@ -71,7 +71,7 @@ export default function POSInventoryManager({
   const [shoppingListSupplierFilter, setShoppingListSupplierFilter] = useState<string>('all')
   const [restockInputAmounts, setRestockInputAmounts] = useState<Record<string, string>>({})
   const [activeShoppingItemId, setActiveShoppingItemId] = useState<string | null>(null)
-  const [purchasedItems, setPurchasedItems] = useState<Set<string>>(new Set())
+  const [shoppingCart, setShoppingCart] = useState<Record<string, number>>({})
   const [expandedInventoryCardId, setExpandedInventoryCardId] = useState<string | null>(null)
 
   // --- Usage / History View ---
@@ -416,68 +416,51 @@ export default function POSInventoryManager({
     setIsSaving(false)
   }
   
-  const handleShoppingListRestock = async (item: any, quantityInPurchaseUnit: number) => {
-      if (!quantityInPurchaseUnit || quantityInPurchaseUnit <= 0) return;
-      setIsSaving(true);
-      
-      const factor = Number(item.conversion_factor) || 1;
-      const amountInBaseUnit = quantityInPurchaseUnit * factor;
-      const newBaseQty = (item.stock_quantity || 0) + amountInBaseUnit;
-      
-      const { error } = await supabase.from('inventory_items')
-          .update({ stock_quantity: newBaseQty })
-          .eq('id', item.id);
-      
-      if (!error) {
-          const reason = 'restock';
-          const refMsg = `Purchased: ${quantityInPurchaseUnit} ${item.purchase_unit || item.unit} (Factor: ${factor}) via Shopping Mode`;
-          
-          await logMovement(item.id, amountInBaseUnit, newBaseQty, reason, refMsg);
-          
-          setPurchasedItems(prev => {
-              const next = new Set(prev);
-              next.add(item.id);
+  const handleShoppingListRestock = (item: any, quantityInPurchaseUnit: number) => {
+      if (!quantityInPurchaseUnit || quantityInPurchaseUnit <= 0) {
+          setShoppingCart(prev => {
+              const next = { ...prev };
+              delete next[item.id];
               return next;
           });
-          
-          setInventory(prev => prev.map(i => i.id === item.id ? { ...i, stock_quantity: newBaseQty } : i));
-          setActiveShoppingItemId(null);
       } else {
-          alert('Failed to restock item');
+          setShoppingCart(prev => ({ ...prev, [item.id]: quantityInPurchaseUnit }));
       }
-      setIsSaving(false);
+      setActiveShoppingItemId(null);
   }
 
-  const handleUndoShoppingListRestock = async (item: any) => {
+  const handleConfirmShoppingList = async () => {
+      const itemIds = Object.keys(shoppingCart);
+      if (itemIds.length === 0) return;
+      
       setIsSaving(true);
       
-      const lastAddedStr = restockInputAmounts[item.id];
-      if (!lastAddedStr) {
-          setIsSaving(false);
-          return;
+      for (const itemId of itemIds) {
+          const quantityInPurchaseUnit = shoppingCart[itemId];
+          const item = inventory.find(i => i.id === itemId);
+          if (!item) continue;
+          
+          const factor = Number(item.conversion_factor) || 1;
+          const amountInBaseUnit = quantityInPurchaseUnit * factor;
+          const newBaseQty = (item.stock_quantity || 0) + amountInBaseUnit;
+          
+          const { error } = await supabase.from('inventory_items')
+              .update({ stock_quantity: newBaseQty })
+              .eq('id', itemId);
+              
+          if (!error) {
+              const reason = 'restock';
+              const refMsg = `Purchased: ${quantityInPurchaseUnit} ${item.purchase_unit || item.unit} (Factor: ${factor}) via Shopping Mode`;
+              await logMovement(itemId, amountInBaseUnit, newBaseQty, reason, refMsg);
+          }
       }
-      const lastAdded = Number(lastAddedStr);
       
-      const factor = Number(item.conversion_factor) || 1;
-      const amountInBaseUnit = lastAdded * factor;
-      const newBaseQty = Math.max(0, (item.stock_quantity || 0) - amountInBaseUnit);
-      
-      const { error } = await supabase.from('inventory_items')
-          .update({ stock_quantity: newBaseQty })
-          .eq('id', item.id);
-          
-      if (!error) {
-          const reason = 'restock_undo';
-          const refMsg = `Undo Purchase: ${lastAdded} ${item.purchase_unit || item.unit} via Shopping Mode`;
-          
-          await logMovement(item.id, -amountInBaseUnit, newBaseQty, reason, refMsg);
-          
-          setPurchasedItems(prev => {
-              const next = new Set(prev);
-              next.delete(item.id);
-              return next;
-          });
-          
+      fetchInventory();
+      setShoppingCart({});
+      setIsShoppingMode(false);
+      setIsShoppingListOpen(false);
+      setIsSaving(false);
+  }
           setInventory(prev => prev.map(i => i.id === item.id ? { ...i, stock_quantity: newBaseQty } : i));
           
           setRestockInputAmounts(prev => {
@@ -2354,7 +2337,7 @@ export default function POSInventoryManager({
                         </div>
                       {locale === 'en' ? 'Purchase List' : locale === 'zh' ? 'Purchase List' : 'สรุปรายการจัดซื้อ'}
                       </h2>
-                      <button onClick={() => { setIsShoppingListOpen(false); setIsShoppingMode(false); setPurchasedItems(new Set()); setActiveShoppingItemId(null); }} className="print:hidden w-8 h-8 md:w-10 md:h-10 flex items-center justify-center bg-gray-50 border border-gray-200 rounded-full hover:bg-gray-100 transition-all text-gray-500 hover:text-black shrink-0">
+                      <button onClick={() => { setIsShoppingListOpen(false); setIsShoppingMode(false); setShoppingCart({}); setActiveShoppingItemId(null); }} className="print:hidden w-8 h-8 md:w-10 md:h-10 flex items-center justify-center bg-gray-50 border border-gray-200 rounded-full hover:bg-gray-100 transition-all text-gray-500 hover:text-black shrink-0">
                           <X size={18} />
                       </button>
                   </div>
@@ -2379,12 +2362,23 @@ export default function POSInventoryManager({
                         <option key={cat.id} value={cat.id}>{cat.name}</option>
                       ))}
                     </select>
-                    <button 
-                      onClick={() => { setIsShoppingMode(!isShoppingMode); setActiveShoppingItemId(null); }} 
-                      className={`print:hidden w-10 h-10 md:w-12 md:h-12 flex justify-center items-center rounded-xl shadow-sm transition-colors shrink-0 ${isShoppingMode ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-emerald-600 text-white hover:bg-emerald-700'}`}
-                    >
-                        <CheckCircle2 size={18} />
-                    </button>
+                    {isShoppingMode && Object.keys(shoppingCart).length > 0 ? (
+                        <button 
+                          onClick={handleConfirmShoppingList}
+                          disabled={isSaving}
+                          className="print:hidden w-auto h-10 md:h-12 px-4 flex justify-center items-center gap-2 rounded-xl shadow-sm transition-colors shrink-0 bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
+                        >
+                            {isSaving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                            <span className="text-[11px] font-black uppercase tracking-widest">{locale === 'en' ? 'Confirm' : locale === 'zh' ? 'Confirm' : 'ยืนยันการซื้อ'}</span>
+                        </button>
+                    ) : (
+                        <button 
+                          onClick={() => { setIsShoppingMode(!isShoppingMode); setActiveShoppingItemId(null); }} 
+                          className={`print:hidden w-10 h-10 md:w-12 md:h-12 flex justify-center items-center rounded-xl shadow-sm transition-colors shrink-0 ${isShoppingMode ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-emerald-600 text-white hover:bg-emerald-700'}`}
+                        >
+                            <CheckCircle2 size={18} />
+                        </button>
+                    )}
                     <button onClick={() => window.print()} className="print:hidden w-10 h-10 md:w-12 md:h-12 flex justify-center items-center bg-[#1A1A18] text-white rounded-xl shadow-sm hover:bg-black transition-colors shrink-0">
                         <Download size={18} />
                     </button>
@@ -2395,7 +2389,7 @@ export default function POSInventoryManager({
                   {(() => {
                       // Filter low stock items and apply category and supplier filter
                       const lowStockItems = inventory.filter(item => {
-                        const isLow = Number(item.stock_quantity) <= Number(item.min_stock_level) || purchasedItems.has(item.id);
+                        const isLow = Number(item.stock_quantity) <= Number(item.min_stock_level) || shoppingCart[item.id] !== undefined;
                         const matchesCategory = shoppingListCategoryFilter === 'all' || item.category_id === shoppingListCategoryFilter;
                         const matchesSupplier = shoppingListSupplierFilter === 'all' || item.supplier_id === shoppingListSupplierFilter;
                         return isLow && matchesCategory && matchesSupplier;
@@ -2442,29 +2436,29 @@ export default function POSInventoryManager({
                                       const orderAmount = hasPurchaseUnit ? Math.ceil(deficiency / factor) : deficiency;
                                       const displayUnit = hasPurchaseUnit ? item.purchase_unit : item.unit;
                                       const stockPercent = Math.min(100, (item.stock_quantity / Math.max(1, item.min_stock_level)) * 100);
-                                      const isPurchased = purchasedItems.has(item.id);
-
+                                      const isPurchased = shoppingCart[item.id] !== undefined;
+                                      const displayOrderAmount = isPurchased ? shoppingCart[item.id] : orderAmount;
                                       const isActive = activeShoppingItemId === item.id;
                                       
                                       return (
                                         <div key={item.id} className="relative flex flex-col">
                                           <div 
                                             onClick={() => {
-                                              if (isShoppingMode && !isPurchased && !isActive) {
+                                              if (isShoppingMode && !isActive) {
                                                 setActiveShoppingItemId(item.id);
-                                                setRestockInputAmounts(prev => ({ ...prev, [item.id]: String(orderAmount) }));
+                                                setRestockInputAmounts(prev => ({ ...prev, [item.id]: String(displayOrderAmount) }));
                                               }
                                             }}
-                                            className={`flex flex-col gap-2 p-2.5 rounded-xl border transition-all relative flex-1 ${isShoppingMode && !isPurchased && !isActive ? 'cursor-pointer hover:border-indigo-300 hover:shadow-md' : ''} ${isPurchased ? 'opacity-40 bg-gray-50 border-gray-200' : isActive ? 'bg-indigo-50/30 border-indigo-200 shadow-inner' : 'bg-white border-gray-100 shadow-sm'}`}
+                                            className={`flex flex-col gap-2 p-2.5 rounded-xl border transition-all relative flex-1 ${isShoppingMode && !isActive ? 'cursor-pointer hover:shadow-md' : ''} ${isPurchased ? 'bg-indigo-50/50 border-indigo-200' : isActive ? 'bg-indigo-50/30 border-indigo-200 shadow-inner' : 'bg-white border-gray-100 shadow-sm'}`}
                                           >
                                               
                                               {/* Item Info */}
                                               <div className="flex items-start gap-2">
-                                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${isPurchased ? 'bg-gray-200 text-gray-400' : isActive ? 'bg-indigo-100 text-indigo-600' : 'bg-red-50 text-red-500'}`}>
+                                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${isPurchased ? 'bg-indigo-200 text-indigo-700' : isActive ? 'bg-indigo-100 text-indigo-600' : 'bg-red-50 text-red-500'}`}>
                                                   {isPurchased ? <CheckCircle2 size={14} /> : isActive ? <ShoppingCart size={14} /> : <AlertTriangle size={14} />}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                  <div className={`text-[11px] font-black uppercase text-[#1A1A18] leading-tight truncate ${isPurchased ? 'line-through text-gray-500' : ''}`}>{item.name}</div>
+                                                  <div className={`text-[11px] font-black uppercase text-[#1A1A18] leading-tight truncate`}>{item.name}</div>
                                                   <div className="text-[8px] font-bold text-gray-400 mt-0.5 tracking-widest truncate">{item.sku ? `SKU: ${item.sku}` : 'NO SKU'}</div>
                                                 </div>
                                               </div>
@@ -2488,24 +2482,30 @@ export default function POSInventoryManager({
                                               {/* Big Order Action Box (Hidden when active) */}
                                               {!isActive && (
                                                 <div className="mt-auto pt-1.5 flex flex-col gap-1.5">
-                                                  <div className={`flex items-center justify-between px-2 py-1.5 rounded-md border transition-colors ${isPurchased ? 'bg-gray-100 border-gray-200' : 'bg-amber-50 border-amber-100'}`}>
+                                                  <div className={`flex items-center justify-between px-2 py-1.5 rounded-md border transition-colors ${isPurchased ? 'bg-indigo-100 border-indigo-200 text-indigo-800' : 'bg-amber-50 border-amber-100 text-amber-700'}`}>
                                                     <div className="flex flex-col justify-center">
-                                                      <div className={`text-[8px] font-black uppercase tracking-widest leading-none mb-0.5 ${isPurchased ? 'text-gray-500' : 'text-amber-700'}`}>{isPurchased ? 'ซื้อแล้ว' : 'สั่งเพิ่ม'}</div>
+                                                      <div className={`text-[8px] font-black uppercase tracking-widest leading-none mb-0.5`}>{isPurchased ? 'ซื้อแล้ว' : 'สั่งเพิ่ม'}</div>
                                                       {hasPurchaseUnit ? (
-                                                        <div className={`text-[7px] font-black tracking-wider ${isPurchased ? 'text-gray-400' : 'text-amber-600/70'}`}>(= {orderAmount * factor} {item.unit})</div>
+                                                        <div className={`text-[7px] font-black tracking-wider ${isPurchased ? 'text-indigo-600/70' : 'text-amber-600/70'}`}>(= {displayOrderAmount * factor} {item.unit})</div>
                                                       ) : (
-                                                        <div className="text-[7px] font-black text-amber-600/70 tracking-wider invisible">(=)</div>
+                                                        <div className="text-[7px] font-black tracking-wider invisible">(=)</div>
                                                       )}
                                                     </div>
-                                                    <div className={`text-[14px] font-black tabular-nums leading-none flex items-baseline gap-0.5 ${isPurchased ? 'text-gray-400' : 'text-amber-600'}`}>
-                                                      {orderAmount} <span className="text-[8px] font-bold uppercase">{displayUnit}</span>
+                                                    <div className={`text-[14px] font-black tabular-nums leading-none flex items-baseline gap-0.5`}>
+                                                      {displayOrderAmount} <span className="text-[8px] font-bold uppercase">{displayUnit}</span>
                                                     </div>
                                                   </div>
                                                   {isShoppingMode && isPurchased && (
                                                       <button 
-                                                        onClick={(e) => { e.stopPropagation(); handleUndoShoppingListRestock(item); }}
-                                                        disabled={isSaving}
-                                                        className="w-full h-6 flex items-center justify-center bg-gray-200 hover:bg-gray-300 text-gray-600 rounded-md text-[8px] font-black uppercase transition-colors"
+                                                        onClick={(e) => { 
+                                                          e.stopPropagation(); 
+                                                          setShoppingCart(prev => {
+                                                              const next = { ...prev };
+                                                              delete next[item.id];
+                                                              return next;
+                                                          });
+                                                        }}
+                                                        className="w-full h-6 flex items-center justify-center bg-white hover:bg-red-50 border border-gray-200 hover:border-red-200 text-gray-400 hover:text-red-500 rounded-md text-[8px] font-black uppercase transition-colors"
                                                       >
                                                         ยกเลิก
                                                       </button>
@@ -2514,7 +2514,7 @@ export default function POSInventoryManager({
                                               )}
 
                                               {/* Selection Overlay */}
-                                              {isShoppingMode && !isPurchased && !isActive && (
+                                              {isShoppingMode && !isActive && (
                                                 <div className="absolute inset-0 bg-indigo-500/0 hover:bg-indigo-500/5 transition-colors z-10 rounded-xl pointer-events-none" />
                                               )}
                                           </div>
