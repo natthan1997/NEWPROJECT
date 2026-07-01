@@ -2384,7 +2384,7 @@ export default function POSInventoryManager({
                   {(() => {
                       // Filter low stock items and apply category filter
                       const lowStockItems = inventory.filter(item => {
-                        const isLow = Number(item.stock_quantity) <= Number(item.min_stock_level);
+                        const isLow = Number(item.stock_quantity) <= Number(item.min_stock_level) || purchasedItems.has(item.id);
                         const matchesCategory = shoppingListCategoryFilter === 'all' || item.category_id === shoppingListCategoryFilter;
                         return isLow && matchesCategory;
                       });
