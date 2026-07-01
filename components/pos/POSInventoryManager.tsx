@@ -461,17 +461,6 @@ export default function POSInventoryManager({
       setIsShoppingListOpen(false);
       setIsSaving(false);
   }
-          setInventory(prev => prev.map(i => i.id === item.id ? { ...i, stock_quantity: newBaseQty } : i));
-          
-          setRestockInputAmounts(prev => {
-              const next = { ...prev };
-              delete next[item.id];
-              return next;
-          });
-      }
-      setIsSaving(false);
-  }
-
   const handleDualCountChange = (item: any, type: 'full' | 'partial' | 'partial_add', value: string) => {
       const full = type === 'full' ? value.replace(/[^0-9.]/g, '') : (auditFullCounts[item.id] || '');
       let partial = type === 'partial' ? value.replace(/[^0-9.]/g, '') : (auditPartialCounts[item.id] || '');
