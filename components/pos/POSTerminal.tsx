@@ -2358,10 +2358,8 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                         setPendingOrderTypeSwitch('dine_in');
                     } else {
                         setOrderType('dine_in');
-                        if (!selectedTable) {
-                            fetchTables()
-                            setShowTableModal(true)
-                        }
+                        fetchTables()
+                        setShowTableModal(true)
                     }
                   }}
                   className={`flex h-12 flex-1 items-center justify-center gap-3 text-[10px] font-black uppercase tracking-widest transition-all ${orderType === 'dine_in' ? 'bg-[#1A1A18] text-white shadow-lg' : 'text-gray-400 hover:text-black'}`}
