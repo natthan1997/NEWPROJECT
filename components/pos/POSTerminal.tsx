@@ -2819,11 +2819,46 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                                 if (editingOrderId) {
                                     if (isOccupied) {
                                         if (confirm(`โต๊ะ ${targetTable.table_number} มีลูกค้าอยู่แล้ว ต้องการนำบิลของโต๊ะ ${selectedTable?.table_number || 'ปัจจุบัน'} ไปรวมบิลด้วยใช่หรือไม่?`)) {
-                                            supabase.from('pos_tables').update({ parent_table_id: targetTable.id }).eq('id', selectedTable?.id).then(() => {
-                                                fetchTables();
-                                                setShowTableModal(false);
-                                                alert('รวมโต๊ะสำเร็จ! บิลและรายการอาหารจะถูกผูกรวมกับโต๊ะหลัก');
-                                            });
+                                            setIsProcessing(true);
+                                            (async () => {
+                                                try {
+                                                    const targetOrder = pendingForThisTable[0];
+                                                    if (!targetOrder) throw new Error('ไม่พบออเดอร์ปลายทาง');
+                                                    
+                                                    // 1. Get items from current order
+                                                    const { data: currentItems } = await supabase.from('pos_order_items').select('*').eq('order_id', editingOrderId);
+                                                    
+                                                    // 2. Update items to target order with origin modifier
+                                                    if (currentItems && currentItems.length > 0) {
+                                                        const updatedItems = currentItems.map(item => {
+                                                            const mods = item.selected_modifiers || [];
+                                                            mods.push({ name: `[ย้ายมาจากโต๊ะ ${selectedTable?.table_number || 'เดิม'}]`, price_adjustment: 0, qty: 1 });
+                                                            return { ...item, order_id: targetOrder.id, selected_modifiers: mods };
+                                                        });
+                                                        await supabase.from('pos_order_items').upsert(updatedItems);
+                                                    }
+                                                    
+                                                    // 3. Cancel current order
+                                                    await supabase.from('pos_orders').update({ status: 'cancelled' }).eq('id', editingOrderId);
+                                                    
+                                                    // 4. Update table parent
+                                                    if (selectedTable?.id) {
+                                                        await supabase.from('pos_tables').update({ parent_table_id: targetTable.id }).eq('id', selectedTable.id);
+                                                    }
+                                                    
+                                                    alert('รวมโต๊ะสำเร็จ! รายการอาหารถูกย้ายไปรวมในบิลของโต๊ะ ' + targetTable.table_number + ' เรียบร้อยแล้ว');
+                                                    
+                                                    // 5. Reset POS UI to view the new combined order
+                                                    fetchTables();
+                                                    refreshPendingOrders();
+                                                    setShowTableModal(false);
+                                                    handleResumeOrder(targetOrder);
+                                                } catch (err: any) {
+                                                    alert('Error merging tables: ' + err.message);
+                                                } finally {
+                                                    setIsProcessing(false);
+                                                }
+                                            })();
                                         }
                                         return;
                                     } else {
