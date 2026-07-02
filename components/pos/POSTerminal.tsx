@@ -2883,8 +2883,8 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                           isSelected 
                             ? 'border-black bg-black text-white shadow-xl scale-105 z-10' 
                             : isOccupied 
-                              ? 'border-black bg-white text-black hover:bg-gray-50 shadow-sm' 
-                              : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300 hover:bg-gray-50'
+                              ? 'border-gray-300 bg-white text-black hover:bg-gray-50 shadow-[0_4px_20px_rgba(0,0,0,0.04)]' 
+                              : 'border-gray-200 bg-white text-gray-400 hover:border-gray-300 hover:bg-gray-50'
                         }`}
                       >
                         {/* Occupied Badge */}
@@ -2906,19 +2906,19 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 
                         {/* Linked Table Indicator */}
                         {(table.parent_table_id || isParent) && (
-                          <div className={`absolute bottom-0 inset-x-0 py-1 flex items-center justify-center gap-1 border-t ${
+                          <div className={`absolute bottom-0 inset-x-0 py-1.5 flex items-center justify-center gap-1 border-t ${
                             isSelected
                               ? 'bg-white/10 border-white/20'
                               : isOccupied
-                                ? 'bg-gray-50 border-gray-200'
-                                : 'bg-gray-50 border-gray-100'
+                                ? 'bg-gray-50/80 border-gray-100'
+                                : 'bg-gray-50/50 border-gray-100'
                           }`}>
                             <span className={`text-[7px] font-black uppercase tracking-widest ${
-                              isSelected ? 'text-white' : 'text-gray-600'
+                              isSelected ? 'text-white' : 'text-gray-500'
                             }`}>
                               {table.parent_table_id 
                                 ? `🔗 โต๊ะ ${targetTable.table_number}`
-                                : `🔗 +${childrenTables.map(t => t.table_number).join(',')}`
+                                : `🔗 รวมกับ ${childrenTables.map(t => t.table_number).join(', ')}`
                               }
                             </span>
                           </div>
