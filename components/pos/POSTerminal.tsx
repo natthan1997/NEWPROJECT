@@ -2368,7 +2368,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                   }}
                   className={`flex h-12 flex-1 items-center justify-center gap-3 text-[10px] font-black uppercase tracking-widest transition-all ${orderType === 'dine_in' ? 'bg-[#1A1A18] text-white shadow-lg' : 'text-gray-400 hover:text-black'}`}
                 >
-                  <Users size={14} /> {locale === 'en' ? ' กินที่ร้าน / Dine-in                   ' : locale === 'zh' ? ' กินที่ร้าน / Dine-in                   ' : ' กินที่ร้าน / Dine-in                   '}{selectedTable && (
+                  <Users size={18} /> {selectedTable && (
                     <span className="ml-2 bg-emerald-500 px-1.5 py-0.5 text-[8px] text-white">
                       T-{selectedTable.table_number}
                     </span>
@@ -2385,7 +2385,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                   }}
                   className={`flex h-12 flex-1 items-center justify-center gap-3 text-[10px] font-black uppercase tracking-widest transition-all ${orderType === 'takeaway' ? 'bg-[#1A1A18] text-white shadow-lg' : 'text-gray-400 hover:text-black'}`}
                 >
-                  <ShoppingBag size={14} /> {locale === 'en' ? ' กลับบ้าน / Takeaway ' : locale === 'zh' ? ' 外带 / Takeaway ' : ' กลับบ้าน / Takeaway '}</button>
+                  <ShoppingBag size={18} /></button>
                 <button
                   onClick={() => {
                     if (editingOrderId) {
@@ -2706,7 +2706,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                   disabled={isProcessing || cart.length === 0 || isHeldOrderBaselineLoading || (!!editingOrderId && !hasUnsavedOrderChanges)}
                   className="flex h-16 flex-1 items-center justify-center gap-3 border border-[#1A1A18] text-[10px] font-black uppercase tracking-[0.3em] transition-all hover:bg-black hover:text-white disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400"
                 >
-                  <Printer size={16} /> {isHeldOrderBaselineLoading ? 'กำลังเช็กบิลพัก' : !!editingOrderId && !hasUnsavedOrderChanges ? 'พักแล้ว เพิ่มรายการใหม่' : locale === 'en' ? ' พักบิล / ส่งออเดอร์                 ' : locale === 'zh' ? ' พักบิล / ส่งออเดอร์                 ' : ' พักบิล / ส่งออเดอร์                 '}</button>
+                  <Printer size={16} /> {isHeldOrderBaselineLoading ? 'กำลังเช็กบิลพัก' : !!editingOrderId && !hasUnsavedOrderChanges ? 'พักแล้ว เพิ่มรายการใหม่' : locale === 'en' ? 'พักบิล' : locale === 'zh' ? 'พักบิล' : 'พักบิล'}</button>
                 <button
                   onClick={() => {
                     if (orderType === 'dine_in' && !selectedTable) {
