@@ -720,31 +720,62 @@ export default function POSModifierManager({
                   className="w-full border-none border-none bg-gray-50 px-6 py-4 text-xl font-black font-bold text-black outline-none focus:ring-2 focus:ring-[#1A1A18]"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-8 border-none font-bold">
+              <div className="grid grid-cols-1 gap-8 border-none font-bold">
                 <div className="space-y-4 border-none font-bold">
                   <label className="border-none text-[10px] font-black font-bold uppercase text-gray-400">
-                    MIN SELECT (0=Optional)
+                    {locale === 'en' ? 'REQUIREMENT / เงื่อนไขการเลือก' : 'เงื่อนไขการเลือก'}
                   </label>
-                  <input
-                    type="number"
-                    value={editingGroup.min_select}
-                    onChange={e =>
-                      setEditingGroup({ ...editingGroup, min_select: Number(e.target.value) })
-                    }
-                    className="w-full border-none border-none bg-gray-50 px-6 py-4 text-xl font-black font-bold text-black outline-none focus:ring-2 focus:ring-[#1A1A18]"
-                  />
+                  <div className="flex gap-4">
+                    <button 
+                      type="button" 
+                      onClick={() => setEditingGroup({ ...editingGroup, min_select: 1 })}
+                      className={`flex-1 py-4 px-6 text-sm border-2 transition-all ${editingGroup.min_select > 0 ? 'border-[#1A1A18] bg-[#1A1A18] text-white' : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'}`}
+                    >
+                      จำเป็นต้องเลือก (Required)
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={() => setEditingGroup({ ...editingGroup, min_select: 0 })}
+                      className={`flex-1 py-4 px-6 text-sm border-2 transition-all ${editingGroup.min_select === 0 ? 'border-[#1A1A18] bg-[#1A1A18] text-white' : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'}`}
+                    >
+                      ไม่บังคับ (Optional)
+                    </button>
+                  </div>
                 </div>
+
                 <div className="space-y-4 border-none font-bold">
                   <label className="border-none text-[10px] font-black font-bold uppercase text-gray-400">
-                    {locale === 'en' ? '                     MAX SELECT (สูงสุด)                   ' : locale === 'zh' ? '                     MAX SELECT (สูงสุด)                   ' : '                     MAX SELECT (สูงสุด)                   '}</label>
-                  <input
-                    type="number"
-                    value={editingGroup.max_selection}
-                    onChange={e =>
-                      setEditingGroup({ ...editingGroup, max_selection: Number(e.target.value) })
-                    }
-                    className="w-full border-none border-none bg-gray-50 px-6 py-4 text-xl font-black font-bold text-black outline-none focus:ring-2 focus:ring-[#1A1A18]"
-                  />
+                    {locale === 'en' ? 'SELECTION LIMIT / จำนวนที่เลือกได้' : 'จำนวนที่เลือกได้'}
+                  </label>
+                  <div className="flex gap-4">
+                    <button 
+                      type="button" 
+                      onClick={() => setEditingGroup({ ...editingGroup, max_selection: 1 })}
+                      className={`flex-1 py-4 px-4 text-sm border-2 transition-all ${editingGroup.max_selection === 1 ? 'border-[#1A1A18] bg-[#1A1A18] text-white' : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'}`}
+                    >
+                      เลือกได้ข้อเดียว (Single)
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={() => setEditingGroup({ ...editingGroup, max_selection: 99 })}
+                      className={`flex-1 py-4 px-4 text-sm border-2 transition-all ${editingGroup.max_selection > 1 ? 'border-[#1A1A18] bg-[#1A1A18] text-white' : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'}`}
+                    >
+                      เลือกได้หลายข้อ (Multiple)
+                    </button>
+                  </div>
+                  {editingGroup.max_selection > 1 && (
+                    <div className="mt-4 flex items-center gap-4 bg-gray-50 p-4 border border-gray-100">
+                      <span className="text-xs text-gray-600 uppercase tracking-widest">จำกัดจำนวนสูงสุด:</span>
+                      <input 
+                        type="number" 
+                        value={editingGroup.max_selection}
+                        onChange={e => setEditingGroup({ ...editingGroup, max_selection: Math.max(2, Number(e.target.value)) })}
+                        className="w-24 bg-white border border-gray-200 px-4 py-2 text-lg font-black text-black outline-none focus:border-[#1A1A18]"
+                        min="2"
+                      />
+                      <span className="text-xs text-gray-400">(ใส่ 99 ถ้าไม่จำกัด)</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -840,7 +871,7 @@ export default function POSModifierManager({
               </div>
               <div className="space-y-4 border-none font-bold">
                 <label className="border-none text-[10px] font-black font-bold uppercase text-gray-400">
-                  {locale === 'en' ? '                   ราคาที่ปรับเพิ่ม/ลด (+ / -)                 ' : locale === 'zh' ? '                   ราคาที่ปรับเพิ่ม/ลด (+ / -)                 ' : '                   ราคาที่ปรับเพิ่ม/ลด (+ / -)                 '}</label>
+                  {locale === 'en' ? '                   ADDITIONAL PRICE / ราคาที่บวกเพิ่ม (+)                 ' : locale === 'zh' ? '                   ADDITIONAL PRICE / ราคาที่บวกเพิ่ม (+)                 ' : '                   ราคาที่บวกเพิ่ม (+)                 '}</label>
                 <div className="relative">
                   <span className="absolute left-6 top-1/2 -translate-y-1/2 text-xl font-black font-bold text-gray-300">
                     {locale === 'en' ? '                     ฿                   ' : locale === 'zh' ? '                     ฿                   ' : '                     ฿                   '}</span>
