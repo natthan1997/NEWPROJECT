@@ -2807,11 +2807,11 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                   
                   const isSelected = selectedTable?.id === targetTable.id;
                   
-                  // Premium typography logic
-                  const isShortName = table.table_number.length <= 2;
+                  // Text size logic
+                  const isShortName = table.table_number.length <= 3;
                   const tableNumClass = isShortName 
-                    ? 'text-4xl sm:text-5xl font-medium tracking-tight' 
-                    : 'text-lg sm:text-xl font-bold tracking-tight leading-none break-words px-2';
+                    ? 'text-3xl sm:text-4xl font-black tracking-tighter' 
+                    : 'text-sm sm:text-base font-bold tracking-tight leading-tight break-words px-1';
 
                   return (
                     <div key={table.id} className="relative aspect-square flex flex-col group">
@@ -2878,38 +2878,44 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                             }
                           }
                         }}
-                        className={`w-full h-full relative flex flex-col items-center justify-center overflow-visible rounded-3xl transition-all duration-500 ease-out ${
+                        className={`w-full h-full relative flex flex-col items-center justify-center overflow-visible rounded-3xl transition-all duration-300 ease-out border-2 ${
                           isSelected 
-                            ? 'bg-[#1A1A18] text-white shadow-[0_20px_40px_rgba(0,0,0,0.2)] scale-105 z-10 ring-4 ring-[#1A1A18]/20 ring-offset-2' 
+                            ? 'bg-emerald-500 text-white border-emerald-500 shadow-xl shadow-emerald-500/20 scale-105 z-10' 
                             : isOccupied 
-                              ? 'bg-white text-[#1A1A18] border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:shadow-[0_12px_40px_rgb(0,0,0,0.1)] hover:-translate-y-1' 
-                              : 'bg-[#F9F9F9] text-gray-400 border border-transparent hover:bg-white hover:text-gray-700 hover:border-gray-200 hover:shadow-lg hover:shadow-black/5 hover:-translate-y-1'
+                              ? 'bg-[#1A1A18] text-white border-[#1A1A18] shadow-lg' 
+                              : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50 hover:shadow-md'
                         }`}
                       >
-                        {/* Zone - Top Left */}
-                        <span className={`absolute top-4 left-4 text-[9px] font-bold uppercase tracking-widest ${isSelected ? 'text-white/60' : isOccupied ? 'text-gray-400' : 'text-gray-400'}`}>
-                          {table.zone || 'MAIN'}
-                        </span>
-
-                        {/* Occupied Pulse - Top Right */}
-                        {isOccupied && !isSelected && (
-                          <div className="absolute top-4 right-4 flex items-center justify-center w-2 h-2">
-                            <div className="absolute w-full h-full rounded-full bg-emerald-500 animate-ping opacity-75"></div>
-                            <div className="relative w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
-                          </div>
-                        )}
-                        
-                        {/* Table Name - Center */}
-                        <span className={`${tableNumClass} ${(table.parent_table_id || isParent) ? 'mb-2' : ''}`}>
-                          {table.table_number}
-                        </span>
+                        <div className="flex flex-col h-full w-full p-3 sm:p-4">
+                            {/* Top Row: Zone & Dot */}
+                            <div className="flex justify-between items-start w-full">
+                                <span className={`text-[8px] sm:text-[9px] font-bold uppercase tracking-widest ${isSelected ? 'text-white/80' : isOccupied ? 'text-gray-400' : 'text-gray-400'}`}>
+                                {table.zone || 'MAIN'}
+                                </span>
+                                {isOccupied && !isSelected && (
+                                <div className="relative flex items-center justify-center w-2 h-2 mt-0.5">
+                                    <div className="absolute w-full h-full rounded-full bg-emerald-400 animate-ping opacity-75"></div>
+                                    <div className="relative w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                                </div>
+                                )}
+                            </div>
+                            
+                            {/* Center: Table Name */}
+                            <div className="flex-1 flex items-center justify-center w-full">
+                                <span className={`${tableNumClass} text-center`}>
+                                {table.table_number}
+                                </span>
+                            </div>
+                        </div>
 
                         {/* Linked Table Floating Pill */}
                         {(table.parent_table_id || isParent) && (
-                          <div className={`absolute -bottom-3 inset-x-0 mx-auto w-max px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-md backdrop-blur-md transition-all ${
+                          <div className={`absolute -bottom-3 inset-x-0 mx-auto w-max px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-md backdrop-blur-md transition-all z-20 ${
                             isSelected
-                              ? 'bg-white text-black border border-white'
-                              : 'bg-[#1A1A18] text-white border border-[#1A1A18]'
+                              ? 'bg-white text-emerald-600 border border-emerald-100'
+                              : isOccupied
+                                ? 'bg-white text-[#1A1A18] border border-gray-200'
+                                : 'bg-[#1A1A18] text-white border border-[#1A1A18]'
                           }`}>
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
                             <span className="text-[9px] font-black uppercase tracking-widest">
