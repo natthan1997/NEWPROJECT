@@ -47,6 +47,7 @@ import POSShiftModal from '@/components/pos/POSShiftModal'
 import POSMemberManager from '@/components/pos/POSMemberManager'
 import POSHistory from '@/components/pos/POSHistory'
 import POSManagementUnified from '@/components/pos/POSManagementUnified'
+import POSMenuAppConfig from '@/components/pos/POSMenuAppConfig'
 import XYLLoader from '@/components/loaders/XYLLoader'
 import POSBranchSelectModal from '@/components/pos/POSBranchSelectModal'
 import { useI18n } from "@/lib/I18nContext";
@@ -971,6 +972,8 @@ function RestaurantOSPageContent() {
         return <POSModifierManager {...commonProps} />
       case 'members':
         return <POSMemberManager {...commonProps} />
+      case 'menu-management':
+        return <POSMenuAppConfig {...commonProps} />
       case 'management':
         return <POSManagementUnified {...commonProps} />
       case 'history':
