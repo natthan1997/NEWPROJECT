@@ -2873,8 +2873,8 @@ export default function LiffMenuPage() {
               initial={{ y: '100%' }} 
               animate={{ y: 0 }} 
               exit={{ y: '100%' }} 
-              className="relative w-full max-w-xl bg-white flex flex-col font-bold overflow-hidden"
-              style={{ maxHeight: '90vh' }}
+              className="relative w-full max-w-xl bg-white flex flex-col font-bold overflow-hidden rounded-t-[24px]"
+              style={{ maxHeight: '85svh' }}
             >
               <header className="flex items-center gap-4 border-b border-gray-100 bg-white px-5 py-4 sticky top-0 z-10 touch-none">
                 <button onClick={() => { setPendingItem(null); setModifierGroups([]); }} className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-black active:scale-90 transition-all">

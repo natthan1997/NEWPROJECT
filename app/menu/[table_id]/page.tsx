@@ -2030,9 +2030,9 @@ export default function CustomerMenuPage() {
 
               <footer className="flex flex-col bg-white/90 backdrop-blur-md p-4 border-t border-gray-100 relative z-20" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
                 {(() => {
-                  const incomplete = modifierGroups.filter(g => tempSelectedModifiers.filter(m => m.group_id === g.id).length < (g.min_selection || g.min_select || 0))
+                  const incomplete = modifierGroups.filter(g => tempSelectedModifiers.filter(m => m.group_id === g.id).reduce((sum, m) => sum + (m.qty || 1), 0) < (g.min_selection || g.min_select || 0))
                   const canConfirm = incomplete.length === 0
-                  const totalPrice = (modifierModalItem.sale_price || 0) + tempSelectedModifiers.reduce((acc, m) => acc + (m.price_adjustment || m.price || 0), 0)
+                  const totalPrice = (modifierModalItem.sale_price || 0) + tempSelectedModifiers.reduce((acc, m) => acc + ((m.price_adjustment || m.price || 0) * (m.qty || 1)), 0)
 
                   return (
                     <div className="flex w-full items-center gap-3">
