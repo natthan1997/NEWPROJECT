@@ -787,6 +787,7 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
                                                 {activePlatforms.includes('foodpanda') && <th className="p-4 text-[10px] font-black uppercase tracking-widest text-[#D70F64] w-28 text-center bg-[#D70F64]/5">Foodpanda</th>}
                                                 {activePlatforms.includes('robinhood') && <th className="p-4 text-[10px] font-black uppercase tracking-widest text-[#6023A2] w-28 text-center bg-[#6023A2]/5">Robinhood</th>}
                                                 
+                                                <th className="p-4 text-[10px] font-black uppercase tracking-widest text-gray-400 min-w-[100px] text-center">ตัวเลือก</th>
                                                 <th className="p-4 text-[10px] font-black uppercase tracking-widest text-gray-400 w-32 text-center">สถานะ</th>
                                                 <th className="p-4 text-[10px] font-black uppercase tracking-widest text-gray-400 w-16 text-center">จัดการ</th>
                                             </tr>
@@ -892,6 +893,27 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
                                                             <input type="number" defaultValue={item.platform_prices?.robinhood || ''} placeholder="Auto" onBlur={(e) => handleBulkUpdate(item.id, 'platform_prices', {...(item.platform_prices || {}), robinhood: Number(e.target.value) || null})} className="w-full bg-transparent outline-none focus:bg-white focus:ring-2 focus:ring-[#6023A2]/20 rounded-md py-1.5 text-[14px] font-black text-[#6023A2] text-center placeholder:text-[#6023A2]/30 transition-all" />
                                                         </td>
                                                     )}
+
+                                                    {/* Options Column */}
+                                                    <td className="p-4 align-middle">
+                                                        <div className="flex flex-wrap gap-1 justify-center max-w-[160px] mx-auto">
+                                                            {allModifierGroups.map(group => {
+                                                                const active = (item.modifiers || []).some((modifier: any) => modifier.group_id === group.id)
+                                                                return (
+                                                                    <button
+                                                                        key={group.id}
+                                                                        type="button"
+                                                                        onClick={() => handleModifierGroupToggle(item.id, group.id)}
+                                                                        className={`px-2 py-1 text-[9px] font-bold tracking-wider rounded transition-all ${
+                                                                            active ? 'bg-black text-white' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                                                                        }`}
+                                                                    >
+                                                                        {group.name}
+                                                                    </button>
+                                                                )
+                                                            })}
+                                                        </div>
+                                                    </td>
 
                                                     {/* Status Column */}
                                                     <td className="p-4">
