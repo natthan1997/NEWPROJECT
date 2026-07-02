@@ -53,6 +53,8 @@ import {
   Tag,
   Check,
   Truck,
+  Utensils,
+  Motorcycle,
   AlertTriangle,
   Delete,
 } from 'lucide-react'
@@ -2368,7 +2370,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                   }}
                   className={`flex h-12 flex-1 items-center justify-center gap-3 text-[10px] font-black uppercase tracking-widest transition-all ${orderType === 'dine_in' ? 'bg-[#1A1A18] text-white shadow-lg' : 'text-gray-400 hover:text-black'}`}
                 >
-                  <Users size={18} /> {selectedTable && (
+                  <Utensils size={18} /> {selectedTable && (
                     <span className="ml-2 bg-emerald-500 px-1.5 py-0.5 text-[8px] text-white">
                       T-{selectedTable.table_number}
                     </span>
@@ -2398,7 +2400,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                   }}
                   className={`flex h-12 flex-1 items-center justify-center gap-3 text-[10px] font-black uppercase tracking-widest transition-all ${orderType === 'delivery' ? 'bg-[#1A1A18] text-white shadow-lg' : 'text-gray-400 hover:text-black'}`}
                 >
-                  <Truck size={14} /> {locale === 'en' ? ' เดลิเวอรี่ / Delivery ' : locale === 'zh' ? ' 外卖 / Delivery ' : ' เดลิเวอรี่ / Delivery '}
+                  <Motorcycle size={18} />
                 </button>
               </div>
               {orderType === 'delivery' && (
