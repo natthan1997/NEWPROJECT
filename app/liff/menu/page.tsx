@@ -131,8 +131,9 @@ const formatCartModifierLine = (modifier: any) => {
   if (!modifier) return '';
   const name = modifier.display_name || modifier.label || modifier.group_name || modifier.name || '';
   const value = modifier.value || modifier.selected_value || modifier.option_value || modifier.option_name || '';
-  if (value && value !== name) return `${name}: ${value}`;
-  return name;
+  const qtyPrefix = modifier.qty > 1 ? `${modifier.qty}x ` : '';
+  if (value && value !== name) return `${qtyPrefix}${name}: ${value}`;
+  return `${qtyPrefix}${name}`;
 };
 const getCartModifierSummary = (item: any) =>
   buildOrderItemModifiers(item.selected_modifiers || [], item.note)
@@ -1058,7 +1059,7 @@ export default function LiffMenuPage() {
   }, [categories, items]);
 
   const cartTotal = useMemo(() => cart.reduce((acc, item) => {
-    const modsPrice = item.selected_modifiers?.reduce((macc: number, m: any) => macc + (m.price_adjustment || m.price || 0), 0) || 0;
+    const modsPrice = item.selected_modifiers?.reduce((macc: number, m: any) => macc + ((m.price_adjustment || m.price || 0) * (m.qty || 1)), 0) || 0;
     return acc + ((item.sale_price + modsPrice) * item.quantity);
   }, 0), [cart]);
   const totalDiscount = useMemo(() => pointsDiscount + couponDiscount, [pointsDiscount, couponDiscount]);
@@ -1512,6 +1513,7 @@ export default function LiffMenuPage() {
         name: mod?.name || '',
         value: mod?.value || '',
         price: Number(mod?.price_adjustment || mod?.price || 0),
+        qty: mod?.qty || 1,
       })),
     })),
   })
@@ -2106,7 +2108,7 @@ export default function LiffMenuPage() {
                               <button onClick={() => addToCart(item, item.selected_modifiers)} className="text-gray-900 active:scale-125 transition-transform"><Plus size={10} /></button>
                            </div>
                            <span className="text-[12px] font-black text-black">
-                              {locale === 'en' ? '฿' : locale === 'zh' ? '฿' : '฿'}{((item.sale_price + (item.selected_modifiers?.reduce((acc, m) => acc + (m.price_adjustment || m.price || 0), 0) || 0)) * item.quantity).toLocaleString()}
+                              {locale === 'en' ? '฿' : locale === 'zh' ? '฿' : '฿'}{((item.sale_price + (item.selected_modifiers?.reduce((acc: number, m: any) => acc + ((m.price_adjustment || m.price || 0) * (m.qty || 1)), 0) || 0)) * item.quantity).toLocaleString()}
                            </span>
                         </div>
                       </div>
@@ -2888,8 +2890,9 @@ export default function LiffMenuPage() {
                   const minReq = group.min_selection || group.min_select || 0
                   const maxAllowed = group.max_selection || group.max_select || 99
                   const selectedInGroup = tempSelectedModifiers.filter(m => m.group_id === group.id)
-                  const isComplete = selectedInGroup.length >= minReq
-                  const isAtMax = selectedInGroup.length >= maxAllowed
+                  const totalQtyInGroup = selectedInGroup.reduce((sum, m) => sum + (m.qty || 1), 0)
+                  const isComplete = totalQtyInGroup >= minReq
+                  const isAtMax = totalQtyInGroup >= maxAllowed
                   const isError = errorGroupId === group.id
 
                   return (
@@ -2923,7 +2926,9 @@ export default function LiffMenuPage() {
                       
                       <div className="flex flex-col gap-1">
                         {group.options?.map((opt: any, optIdx: number) => {
-                          const isSelected = tempSelectedModifiers.some(m => m.id === opt.id)
+                          const existingOptIndex = tempSelectedModifiers.findIndex(m => m.id === opt.id)
+                          const isSelected = existingOptIndex > -1
+                          const optQty = isSelected ? (tempSelectedModifiers[existingOptIndex].qty || 1) : 0
                           const isDisabled = !isSelected && isAtMax && maxAllowed > 1
                           
                           return (
@@ -2933,12 +2938,18 @@ export default function LiffMenuPage() {
                               onClick={() => {
                                 let nextSelected = [...tempSelectedModifiers]
                                 if (isSelected) {
-                                  nextSelected = nextSelected.filter(m => m.id !== opt.id)
+                                  if (maxAllowed === 1) {
+                                    nextSelected.splice(existingOptIndex, 1)
+                                  } else {
+                                    if (!isAtMax) {
+                                      nextSelected[existingOptIndex] = { ...nextSelected[existingOptIndex], qty: optQty + 1 }
+                                    }
+                                  }
                                 } else {
                                   if (maxAllowed === 1) {
-                                    nextSelected = [...nextSelected.filter(m => m.group_id !== group.id), opt]
+                                    nextSelected = [...nextSelected.filter(m => m.group_id !== group.id), { ...opt, qty: 1 }]
                                   } else {
-                                    nextSelected = [...nextSelected, opt]
+                                    nextSelected = [...nextSelected, { ...opt, qty: 1 }]
                                   }
                                 }
                                 setTempSelectedModifiers(nextSelected)
@@ -2962,11 +2973,35 @@ export default function LiffMenuPage() {
                                 </div>
                                 <span className={`text-[15px] truncate leading-tight pt-0.5 ${isSelected ? 'text-black font-bold' : 'text-gray-700 font-medium'}`}>{opt.name}</span>
                               </div>
-                              {opt.price_adjustment !== 0 && (
-                                  <div className={`text-[14px] font-medium shrink-0 pt-0.5 ${isSelected ? 'text-black' : 'text-gray-500'}`}>
-                                    {opt.price_adjustment > 0 ? `+฿${opt.price_adjustment}` : `-฿${Math.abs(opt.price_adjustment)}`}
+                              <div className="flex items-center gap-3">
+                                {isSelected && maxAllowed > 1 && (
+                                  <div className="flex items-center gap-1.5 bg-black/5 rounded-full px-1.5 py-0.5" onClick={(e) => e.stopPropagation()}>
+                                    <div
+                                      onClick={() => {
+                                        let nextSelected = [...tempSelectedModifiers]
+                                        const idx = nextSelected.findIndex(m => m.id === opt.id)
+                                        if (idx > -1) {
+                                          if ((nextSelected[idx].qty || 1) > 1) {
+                                            nextSelected[idx] = { ...nextSelected[idx], qty: nextSelected[idx].qty - 1 }
+                                          } else {
+                                            nextSelected.splice(idx, 1)
+                                          }
+                                          setTempSelectedModifiers(nextSelected)
+                                        }
+                                      }}
+                                      className="w-6 h-6 rounded-full bg-white text-red-500 flex items-center justify-center shadow-sm cursor-pointer border border-gray-200 hover:bg-gray-50"
+                                    >
+                                      <Minus size={12} strokeWidth={4} />
+                                    </div>
+                                    <span className="text-[12px] font-bold px-1">{optQty}</span>
                                   </div>
-                              )}
+                                )}
+                                {opt.price_adjustment !== 0 && (
+                                    <div className={`text-[14px] font-medium shrink-0 pt-0.5 ${isSelected ? 'text-black' : 'text-gray-500'}`}>
+                                      {opt.price_adjustment > 0 ? `+฿${opt.price_adjustment}` : `-฿${Math.abs(opt.price_adjustment)}`}
+                                    </div>
+                                )}
+                              </div>
                             </button>
                           )
                         })}
@@ -2978,9 +3013,9 @@ export default function LiffMenuPage() {
 
               <footer className="flex flex-col bg-white/90 backdrop-blur-md p-4 border-t border-gray-100 relative z-20" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
                 {(() => {
-                  const incomplete = modifierGroups.filter(g => tempSelectedModifiers.filter(m => m.group_id === g.id).length < (g.min_selection || g.min_select || 0))
+                  const incomplete = modifierGroups.filter(g => tempSelectedModifiers.filter(m => m.group_id === g.id).reduce((sum, m) => sum + (m.qty || 1), 0) < (g.min_selection || g.min_select || 0))
                   const canConfirm = incomplete.length === 0
-                  const totalPrice = (pendingItem.sale_price || 0) + tempSelectedModifiers.reduce((acc, m) => acc + (m.price_adjustment || m.price || 0), 0)
+                  const totalPrice = (pendingItem.sale_price || 0) + tempSelectedModifiers.reduce((acc, m) => acc + ((m.price_adjustment || m.price || 0) * (m.qty || 1)), 0)
 
                   return (
                     <div className="flex w-full items-center gap-3">

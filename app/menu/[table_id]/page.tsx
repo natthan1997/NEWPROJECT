@@ -46,16 +46,18 @@ const buildOrderItemModifiers = (selectedModifiers: any[] = [], note?: string | 
 const formatModifierLabel = (modifier: any) => {
   if (!modifier) return ''
   const name = modifier.display_name || modifier.label || modifier.group_name || modifier.name || ''
+  if (!name) return ''
   const value = modifier.value || modifier.selected_value || modifier.option_value || modifier.option_name || ''
-  if (value && value !== name) return `${name}: ${value}`
-  return name
+  const qtyPrefix = modifier.qty > 1 ? `${modifier.qty}x ` : ''
+  if (value && value !== name) return `${qtyPrefix}${name}: ${value}`
+  return `${qtyPrefix}${name}`
 }
 const getItemModifierSummary = (item: any) => buildOrderItemModifiers(item.selected_modifiers || [], item.note).map(formatModifierLabel).filter(Boolean).join(', ')
 const getModifierIdsKey = (modifiers: any[] = []) => modifiers.map((modifier: any) => modifier.id).sort().join(',')
 const isSameCartLine = (item: any, id: string, modifiers: any[] = []) =>
   item.id === id && getModifierIdsKey(item.selected_modifiers || []) === getModifierIdsKey(modifiers)
 const getCartItemUnitPrice = (item: any) =>
-  Number(item.sale_price || 0) + ((item.selected_modifiers || []).reduce((acc: number, modifier: any) => acc + Number(modifier.price_adjustment || modifier.price || 0), 0))
+  Number(item.sale_price || 0) + ((item.selected_modifiers || []).reduce((acc: number, modifier: any) => acc + (Number(modifier.price_adjustment || modifier.price || 0) * (modifier.qty || 1)), 0))
 
 
 const translations = {
@@ -1905,8 +1907,9 @@ export default function CustomerMenuPage() {
                   const minReq = group.min_selection || group.min_select || 0
                   const maxAllowed = group.max_selection || group.max_select || 99
                   const selectedInGroup = tempSelectedModifiers.filter(m => m.group_id === group.id)
-                  const isComplete = selectedInGroup.length >= minReq
-                  const isAtMax = selectedInGroup.length >= maxAllowed
+                  const totalQtyInGroup = selectedInGroup.reduce((sum, m) => sum + (m.qty || 1), 0)
+                  const isComplete = totalQtyInGroup >= minReq
+                  const isAtMax = totalQtyInGroup >= maxAllowed
                   const isError = errorGroupId === group.id
 
                   return (
@@ -1940,7 +1943,9 @@ export default function CustomerMenuPage() {
                       
                       <div className="flex flex-col gap-1">
                         {group.options?.map((opt: any, optIdx: number) => {
-                          const isSelected = tempSelectedModifiers.some(m => m.id === opt.id)
+                          const existingOptIndex = tempSelectedModifiers.findIndex(m => m.id === opt.id)
+                          const isSelected = existingOptIndex > -1
+                          const optQty = isSelected ? (tempSelectedModifiers[existingOptIndex].qty || 1) : 0
                           const isDisabled = !isSelected && isAtMax && maxAllowed > 1
                           
                           return (
@@ -1950,12 +1955,18 @@ export default function CustomerMenuPage() {
                               onClick={() => {
                                 let nextSelected = [...tempSelectedModifiers]
                                 if (isSelected) {
-                                  nextSelected = nextSelected.filter(m => m.id !== opt.id)
+                                  if (maxAllowed === 1) {
+                                    nextSelected.splice(existingOptIndex, 1)
+                                  } else {
+                                    if (!isAtMax) {
+                                      nextSelected[existingOptIndex] = { ...nextSelected[existingOptIndex], qty: optQty + 1 }
+                                    }
+                                  }
                                 } else {
                                   if (maxAllowed === 1) {
-                                    nextSelected = [...nextSelected.filter(m => m.group_id !== group.id), opt]
+                                    nextSelected = [...nextSelected.filter(m => m.group_id !== group.id), { ...opt, qty: 1 }]
                                   } else {
-                                    nextSelected = [...nextSelected, opt]
+                                    nextSelected = [...nextSelected, { ...opt, qty: 1 }]
                                   }
                                 }
                                 setTempSelectedModifiers(nextSelected)
@@ -1979,11 +1990,35 @@ export default function CustomerMenuPage() {
                                 </div>
                                 <span className={`text-[15px] truncate leading-tight pt-0.5 ${isSelected ? 'text-black font-bold' : 'text-gray-700 font-medium'}`}>{opt.name}</span>
                               </div>
-                              {opt.price_adjustment !== 0 && (
-                                  <div className={`text-[14px] font-medium shrink-0 pt-0.5 ${isSelected ? 'text-black' : 'text-gray-500'}`}>
-                                    {opt.price_adjustment > 0 ? `+฿${opt.price_adjustment}` : `-฿${Math.abs(opt.price_adjustment)}`}
+                              <div className="flex items-center gap-3">
+                                {isSelected && maxAllowed > 1 && (
+                                  <div className="flex items-center gap-1.5 bg-black/5 rounded-full px-1.5 py-0.5" onClick={(e) => e.stopPropagation()}>
+                                    <div
+                                      onClick={() => {
+                                        let nextSelected = [...tempSelectedModifiers]
+                                        const idx = nextSelected.findIndex(m => m.id === opt.id)
+                                        if (idx > -1) {
+                                          if ((nextSelected[idx].qty || 1) > 1) {
+                                            nextSelected[idx] = { ...nextSelected[idx], qty: nextSelected[idx].qty - 1 }
+                                          } else {
+                                            nextSelected.splice(idx, 1)
+                                          }
+                                          setTempSelectedModifiers(nextSelected)
+                                        }
+                                      }}
+                                      className="w-6 h-6 rounded-full bg-white text-red-500 flex items-center justify-center shadow-sm cursor-pointer border border-gray-200 hover:bg-gray-50"
+                                    >
+                                      <Minus size={12} strokeWidth={4} />
+                                    </div>
+                                    <span className="text-[12px] font-bold px-1">{optQty}</span>
                                   </div>
-                              )}
+                                )}
+                                {opt.price_adjustment !== 0 && (
+                                    <div className={`text-[14px] font-medium shrink-0 pt-0.5 ${isSelected ? 'text-black' : 'text-gray-500'}`}>
+                                      {opt.price_adjustment > 0 ? `+฿${opt.price_adjustment}` : `-฿${Math.abs(opt.price_adjustment)}`}
+                                    </div>
+                                )}
+                              </div>
                             </button>
                           )
                         })}
