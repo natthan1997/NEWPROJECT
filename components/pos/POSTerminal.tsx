@@ -2802,15 +2802,19 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                   const pendingForThisTable = pendingOrders.filter(
                     o => o.table_id === targetTable.id && o.status === 'pending'
                   )
-                  // Consider table occupied if there's a pending order OR if table status is occupied (customer scanned & entered name)
                   const isOccupied = pendingForThisTable.length > 0 || targetTable.status === 'occupied'
                   const isIdleOccupied = targetTable.status === 'occupied' && pendingForThisTable.length === 0
                   
                   const isSelected = selectedTable?.id === targetTable.id;
-                  const tableNumTextSize = table.table_number.length > 3 ? 'text-sm sm:text-base' : 'text-xl sm:text-2xl';
+                  
+                  // Premium typography logic
+                  const isShortName = table.table_number.length <= 2;
+                  const tableNumClass = isShortName 
+                    ? 'text-4xl sm:text-5xl font-medium tracking-tight' 
+                    : 'text-lg sm:text-xl font-bold tracking-tight leading-none break-words px-2';
 
                   return (
-                    <div key={table.id} className="relative aspect-square flex flex-col">
+                    <div key={table.id} className="relative aspect-square flex flex-col group">
                       <button
                         onClick={() => {
                           if (selectedTable?.id === targetTable.id) {
@@ -2830,10 +2834,8 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                                                     const targetOrder = pendingForThisTable[0];
                                                     if (!targetOrder) throw new Error('ไม่พบออเดอร์ปลายทาง');
                                                     
-                                                    // 1. Get items from current order
                                                     const { data: currentItems } = await supabase.from('pos_order_items').select('*').eq('order_id', editingOrderId);
                                                     
-                                                    // 2. Update items to target order with origin modifier
                                                     if (currentItems && currentItems.length > 0) {
                                                         const updatedItems = currentItems.map(item => {
                                                             const mods = item.selected_modifiers || [];
@@ -2843,17 +2845,14 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                                                         await supabase.from('pos_order_items').upsert(updatedItems);
                                                     }
                                                     
-                                                    // 3. Cancel current order
                                                     await supabase.from('pos_orders').update({ status: 'cancelled' }).eq('id', editingOrderId);
                                                     
-                                                    // 4. Update table parent
                                                     if (selectedTable?.id) {
                                                         await supabase.from('pos_tables').update({ parent_table_id: targetTable.id }).eq('id', selectedTable.id);
                                                     }
                                                     
                                                     alert('รวมโต๊ะสำเร็จ! รายการอาหารถูกย้ายไปรวมในบิลของโต๊ะ ' + targetTable.table_number + ' เรียบร้อยแล้ว');
                                                     
-                                                    // 5. Reset POS UI to view the new combined order
                                                     fetchTables();
                                                     refreshPendingOrders();
                                                     resetDeliveryDraft();
@@ -2879,51 +2878,51 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                             }
                           }
                         }}
-                        className={`w-full h-full relative flex flex-col items-center justify-center overflow-hidden rounded-2xl border transition-all duration-300 ${
+                        className={`w-full h-full relative flex flex-col items-center justify-center overflow-visible rounded-3xl transition-all duration-500 ease-out ${
                           isSelected 
-                            ? 'border-black bg-black text-white shadow-xl scale-105 z-10' 
+                            ? 'bg-[#1A1A18] text-white shadow-[0_20px_40px_rgba(0,0,0,0.2)] scale-105 z-10 ring-4 ring-[#1A1A18]/20 ring-offset-2' 
                             : isOccupied 
-                              ? 'border-gray-300 bg-white text-black hover:bg-gray-50 shadow-[0_4px_20px_rgba(0,0,0,0.04)]' 
-                              : 'border-gray-200 bg-white text-gray-400 hover:border-gray-300 hover:bg-gray-50'
+                              ? 'bg-white text-[#1A1A18] border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:shadow-[0_12px_40px_rgb(0,0,0,0.1)] hover:-translate-y-1' 
+                              : 'bg-[#F9F9F9] text-gray-400 border border-transparent hover:bg-white hover:text-gray-700 hover:border-gray-200 hover:shadow-lg hover:shadow-black/5 hover:-translate-y-1'
                         }`}
                       >
-                        {/* Occupied Badge */}
+                        {/* Zone - Top Left */}
+                        <span className={`absolute top-4 left-4 text-[9px] font-bold uppercase tracking-widest ${isSelected ? 'text-white/60' : isOccupied ? 'text-gray-400' : 'text-gray-400'}`}>
+                          {table.zone || 'MAIN'}
+                        </span>
+
+                        {/* Occupied Pulse - Top Right */}
                         {isOccupied && !isSelected && (
-                          <div className="absolute top-2.5 right-2.5 flex items-center gap-1">
-                            <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+                          <div className="absolute top-4 right-4 flex items-center justify-center w-2 h-2">
+                            <div className="absolute w-full h-full rounded-full bg-emerald-500 animate-ping opacity-75"></div>
+                            <div className="relative w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
                           </div>
                         )}
                         
-                        {/* Table Name */}
-                        <span className={`${tableNumTextSize} font-black tracking-tighter text-center break-words line-clamp-2 w-full px-1 leading-none ${(table.parent_table_id || isParent) ? 'mb-2' : ''}`}>
+                        {/* Table Name - Center */}
+                        <span className={`${tableNumClass} ${(table.parent_table_id || isParent) ? 'mb-2' : ''}`}>
                           {table.table_number}
                         </span>
-                        
-                        {/* Zone */}
-                        <span className={`mt-1.5 text-[8px] font-bold uppercase tracking-widest ${isSelected ? 'text-gray-400' : 'text-gray-400'}`}>
-                          {table.zone || 'Main'}
-                        </span>
 
-                        {/* Linked Table Indicator */}
+                        {/* Linked Table Floating Pill */}
                         {(table.parent_table_id || isParent) && (
-                          <div className={`absolute bottom-0 inset-x-0 py-1.5 flex items-center justify-center gap-1 border-t ${
+                          <div className={`absolute -bottom-3 inset-x-0 mx-auto w-max px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-md backdrop-blur-md transition-all ${
                             isSelected
-                              ? 'bg-white/10 border-white/20'
-                              : isOccupied
-                                ? 'bg-gray-50/80 border-gray-100'
-                                : 'bg-gray-50/50 border-gray-100'
+                              ? 'bg-white text-black border border-white'
+                              : 'bg-[#1A1A18] text-white border border-[#1A1A18]'
                           }`}>
-                            <span className={`text-[7px] font-black uppercase tracking-widest ${
-                              isSelected ? 'text-white' : 'text-gray-500'
-                            }`}>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                            <span className="text-[9px] font-black uppercase tracking-widest">
                               {table.parent_table_id 
-                                ? `🔗 โต๊ะ ${targetTable.table_number}`
-                                : `🔗 รวมกับ ${childrenTables.map(t => t.table_number).join(', ')}`
+                                ? `โต๊ะ ${targetTable.table_number}`
+                                : `+ โต๊ะ ${childrenTables.map(t => t.table_number).join(', ')}`
                               }
                             </span>
                           </div>
                         )}
                       </button>
+                      
+                      {/* Idle Clear Button */}
                       {isIdleOccupied && (
                         <button
                           type="button"
@@ -2931,7 +2930,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                             e.stopPropagation()
                             handleClearIdleTable(table)
                           }}
-                          className="absolute -bottom-2 inset-x-2 z-20 rounded-full border border-amber-300 bg-amber-50 px-2 py-1 text-[8px] font-black uppercase tracking-widest text-amber-700 shadow-sm transition-all hover:border-amber-500 hover:bg-amber-100"
+                          className="absolute -bottom-8 inset-x-0 mx-auto w-max z-20 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-amber-600 shadow-sm transition-all hover:border-amber-400 hover:bg-amber-100 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0"
                         >
                           เคลียร์โต๊ะ
                         </button>
