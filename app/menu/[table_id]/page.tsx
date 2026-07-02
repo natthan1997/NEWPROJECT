@@ -350,7 +350,7 @@ export default function CustomerMenuPage() {
     }, 5500)
   }, [clearLocalTableSession])
 
-  const refreshShopAvailability = useCallback(async (branchId?: string | null) => {
+  const refreshShopAvailability = useCallback(async (branchId?: string | null, tableData?: any) => {
     let settingsQuery = supabase
       .from('pos_shop_settings')
       .select('status, is_open, status_expiry, opening_hours, branch_id')
@@ -383,6 +383,12 @@ export default function CustomerMenuPage() {
     } else if (!hasActiveShift) {
       nextOpen = false
       nextMessage = 'ขณะนี้ร้านปิดให้บริการ'
+    }
+
+    // Bypass check if table has allow_after_hours = true
+    const currentTable = tableData || table;
+    if (currentTable?.allow_after_hours) {
+        nextOpen = true;
     }
 
     setIsShopOpen(nextOpen)
@@ -508,7 +514,7 @@ export default function CustomerMenuPage() {
       tableStatusRef.current = finalTableData.status ?? null
       setTable(finalTableData)
       
-      await refreshShopAvailability(finalTableData.branch_id)
+      await refreshShopAvailability(finalTableData.branch_id, finalTableData)
 
       // Check session using the fetched table
       await checkTableSession(finalTableData, { animateOnRelease: false })
