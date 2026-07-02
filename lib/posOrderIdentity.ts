@@ -91,14 +91,6 @@ export const reservePOSOrderIdentity = async (
   }
 
   let orderNumber = existingOrderNumber || fallbackOrderNumber(prefix)
-  if (!existingOrderNumber) {
-    try {
-      const { data } = await supabase.rpc('generate_unique_order_number', { prefix })
-      if (data) orderNumber = data
-    } catch {
-      orderNumber = fallbackOrderNumber(prefix)
-    }
-  }
 
   // Reset queue logic: Reset every day, OR when there are no active orders today
   const startOfDay = new Date()
@@ -155,6 +147,10 @@ export const reservePOSOrderIdentity = async (
   }
 
   const queueNumber = latestQueue + 1
+
+  if (!existingOrderNumber) {
+    orderNumber = `A${String(queueNumber).padStart(3, '0')}`
+  }
 
   return { orderNumber, queueNumber }
 }
