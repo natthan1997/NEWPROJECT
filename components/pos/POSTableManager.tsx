@@ -281,6 +281,12 @@ export default function POSTableManager({
                               <div className={`mt-2 w-2 h-2 rounded-full ${table.status === 'available' ? 'bg-green-500' : 'bg-white shadow-[0_0_5px_rgba(255,255,255,0.8)]'}`}></div>
                           </div>
                           
+                          {table.parent_table_id && (
+                              <div className="absolute -bottom-3 bg-indigo-500 text-white text-[8px] px-2 py-0.5 rounded-full font-bold shadow-md whitespace-nowrap">
+                                  🔗 รวมกับโต๊ะ {tables.find(t => t.id === table.parent_table_id)?.table_number}
+                              </div>
+                          )}
+
                           {!isLayoutMode && (
                             <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
                                 <button onClick={(e) => { e.stopPropagation(); setShowQrModal(table); }} className="p-1 sm:p-2 text-gray-400 hover:text-black bg-white/90 rounded"><QrCode size={14} /></button>
@@ -325,6 +331,20 @@ export default function POSTableManager({
                                 <option value="VIP">VIP LOUNGE</option>
                             </select>
                         </div>
+                      </div>
+                      <div className="space-y-3">
+                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#1A1A18]/50">MERGE WITH (รวมบิลกับโต๊ะ)</label>
+                          <select 
+                            value={editingTable.parent_table_id || ''} 
+                            onChange={e => setEditingTable({...editingTable, parent_table_id: e.target.value || null})} 
+                            className="w-full bg-indigo-50 border border-indigo-100 py-5 px-6 text-sm outline-none font-bold text-indigo-900"
+                          >
+                              <option value="">-- ไม่รวมโต๊ะ (แยกบิลปกติ) --</option>
+                              {tables.filter(t => t.id !== editingTable.id && !t.parent_table_id).map(t => (
+                                  <option key={t.id} value={t.id}>รวมเข้ากับโต๊ะ {t.table_number}</option>
+                              ))}
+                          </select>
+                          <p className="text-xs text-indigo-500 mt-2 font-medium">หากเลือกรวมโต๊ะ บิลและคิวอาหารจะถูกส่งไปที่โต๊ะหลักทั้งหมด</p>
                       </div>
                   </div>
 

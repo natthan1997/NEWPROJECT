@@ -993,6 +993,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         const orderToCancel = pendingOrders.find(o => o.id === id)
         if (orderToCancel?.table_id) {
           await supabase.from('pos_tables').update({ status: 'available' }).eq('id', orderToCancel.table_id)
+          await supabase.from('pos_tables').update({ parent_table_id: null }).eq('parent_table_id', orderToCancel.table_id)
         }
         
         refreshPendingOrders()
@@ -1338,6 +1339,8 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     if (!shouldClear) return
 
     await supabase.from('pos_tables').update({ status: 'available' }).eq('id', table.id)
+    await supabase.from('pos_tables').update({ parent_table_id: null }).eq('parent_table_id', table.id)
+    await supabase.from('pos_tables').update({ parent_table_id: null }).eq('id', table.id)
 
     if (selectedTable?.id === table.id) {
       setSelectedTable(null)
@@ -2014,6 +2017,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       if (newStatus === 'completed' && selectedTable?.id) {
         try {
           await supabase.from('pos_tables').update({ status: 'available' }).eq('id', selectedTable.id)
+          await supabase.from('pos_tables').update({ parent_table_id: null }).eq('parent_table_id', selectedTable.id)
           fetchTables()
         } catch (tableErr) {
           console.error('Failed to update table status:', tableErr)
@@ -2790,26 +2794,28 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             <div className="flex-1 overflow-y-auto p-4 sm:p-10">
               <div className="grid grid-cols-4 gap-2 sm:gap-4 sm:grid-cols-6 lg:grid-cols-8">
                 {tables.map(table => {
+                  const targetTable = table.parent_table_id ? tables.find(t => t.id === table.parent_table_id) || table : table;
+                  
                   const pendingForThisTable = pendingOrders.filter(
-                    o => o.table_id === table.id && o.status === 'pending'
+                    o => o.table_id === targetTable.id && o.status === 'pending'
                   )
                   // Consider table occupied if there's a pending order OR if table status is occupied (customer scanned & entered name)
-                  const isOccupied = pendingForThisTable.length > 0 || table.status === 'occupied'
-                  const isIdleOccupied = table.status === 'occupied' && pendingForThisTable.length === 0
+                  const isOccupied = pendingForThisTable.length > 0 || targetTable.status === 'occupied'
+                  const isIdleOccupied = targetTable.status === 'occupied' && pendingForThisTable.length === 0
 
                   return (
                     <div key={table.id} className="relative aspect-square flex flex-col">
                       <button
                         onClick={() => {
-                          if (selectedTable?.id === table.id) {
+                          if (selectedTable?.id === targetTable.id) {
                             resetOrderComposer()
                             setTotalPaid(0)
                             setShowTableModal(false)
                           } else {
                             if (pendingForThisTable.length > 0 && cart.length > 0 && !editingOrderId) {
-                                setMergeTableTarget({ table, pendingOrder: pendingForThisTable[0] })
+                                setMergeTableTarget({ table: targetTable, pendingOrder: pendingForThisTable[0] })
                             } else {
-                                setSelectedTable(table)
+                                setSelectedTable(targetTable)
                                 setOrderType('dine_in')
                                 resetDeliveryDraft()
                                 setShowTableModal(false)
@@ -2826,7 +2832,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                             }
                           }
                         }}
-                        className={`flex-1 relative flex flex-col items-center justify-center overflow-hidden border-2 transition-all ${selectedTable?.id === table.id ? 'border-[#1A1A18] bg-[#1A1A18] text-white' : isOccupied ? 'group border-red-600 bg-red-500 text-white' : 'border-gray-100 bg-white text-black hover:border-black'}`}
+                        className={`flex-1 relative flex flex-col items-center justify-center overflow-hidden border-2 transition-all ${selectedTable?.id === targetTable.id ? 'border-[#1A1A18] bg-[#1A1A18] text-white' : isOccupied ? 'group border-red-600 bg-red-500 text-white' : 'border-gray-100 bg-white text-black hover:border-black'}`}
                       >
                         <span className="text-xl font-black">{table.table_number}</span>
                         <span className="mt-1 text-[7px] uppercase tracking-widest opacity-80">
@@ -2835,6 +2841,11 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                         {isOccupied && (
                           <div className="absolute right-0 top-0 bg-red-700 px-1.5 py-0.5 text-[6px] font-black uppercase tracking-tighter text-white">
                             Occupied
+                          </div>
+                        )}
+                        {table.parent_table_id && (
+                          <div className="absolute bottom-1 bg-indigo-600 px-1.5 py-0.5 text-[6px] font-black uppercase tracking-tighter text-white rounded">
+                            🔗 โต๊ะ {targetTable.table_number}
                           </div>
                         )}
                       </button>

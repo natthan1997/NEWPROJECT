@@ -286,6 +286,22 @@ ALTER TABLE pos_tables ADD COLUMN IF NOT EXISTS shape TEXT DEFAULT 'square';`}
               {locale === 'en' ? '               ✅ เมื่อรันเสร็จ คุณจะสามารถลากและบันทึกตำแหน่ง รวมถึงกดเปลี่ยนรูปร่างโต๊ะได้             ' : locale === 'zh' ? '               ✅ เมื่อรันเสร็จ คุณจะสามารถลากและบันทึกตำแหน่ง รวมถึงกดเปลี่ยนรูปร่างโต๊ะได้             ' : '               ✅ เมื่อรันเสร็จ คุณจะสามารถลากและบันทึกตำแหน่ง รวมถึงกดเปลี่ยนรูปร่างโต๊ะได้             '}</p>
           </div>
 
+          <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-6">
+            <h2 className="text-lg font-semibold text-indigo-800 mb-3">
+              🧩 ระบบรวมโต๊ะ (Table Merging)
+            </h2>
+            <p className="text-indigo-700 text-sm mb-3">
+              รันคำสั่งนี้เพื่อเพิ่ม column สำหรับเก็บข้อมูลการรวมโต๊ะ (Parent-Child):
+            </p>
+            <div className="bg-gray-900 text-indigo-400 p-3 rounded text-sm font-mono overflow-x-auto whitespace-pre-wrap">
+{`-- Add parent_table_id to pos_tables
+ALTER TABLE pos_tables ADD COLUMN IF NOT EXISTS parent_table_id UUID REFERENCES pos_tables(id) ON DELETE SET NULL;`}
+            </div>
+            <p className="text-indigo-600 text-xs mt-2">
+              ✅ เมื่อรันเสร็จ ระบบจะรองรับการผูกโต๊ะหลายตัวเข้าด้วยกัน (รวมบิล) ได้ทันที
+            </p>
+          </div>
+
           {/* Feature: Delivery Platform Tracking + GP */}
           <div className="border border-orange-200 rounded-lg p-4 bg-orange-50 mt-4">
             <h2 className="text-lg font-semibold text-orange-800 mb-3">

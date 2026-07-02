@@ -485,20 +485,33 @@ export default function CustomerMenuPage() {
     if (catRes.data) setCategories(catRes.data)
     if (bannerRes.data) setBanners(bannerRes.data)
     if (tableRes.data) {
-      if (tableRes.data.branch_id) {
-        const bName = await getBranchName(tableRes.data.branch_id);
-        tableRes.data.branch = { ...tableRes.data.branch, name: bName || 'XYL STUDIO' };
+      let finalTableData = tableRes.data;
+      if (finalTableData.parent_table_id) {
+          const parentRes = await supabase.from('pos_tables').select('*').eq('id', finalTableData.parent_table_id).single();
+          if (parentRes.data) {
+              finalTableData = {
+                  ...parentRes.data,
+                  display_name: `${parentRes.data.table_number} (+${finalTableData.table_number})`
+              };
+          }
+      } else {
+          finalTableData.display_name = finalTableData.table_number;
       }
-      if (!tableRes.data.branch) {
-        tableRes.data.branch = { name: 'XYL STUDIO' };
+
+      if (finalTableData.branch_id) {
+        const bName = await getBranchName(finalTableData.branch_id);
+        finalTableData.branch = { ...finalTableData.branch, name: bName || 'XYL STUDIO' };
       }
-      tableStatusRef.current = tableRes.data.status ?? null
-      setTable(tableRes.data)
+      if (!finalTableData.branch) {
+        finalTableData.branch = { name: 'XYL STUDIO' };
+      }
+      tableStatusRef.current = finalTableData.status ?? null
+      setTable(finalTableData)
       
-      await refreshShopAvailability(tableRes.data.branch_id)
+      await refreshShopAvailability(finalTableData.branch_id)
 
       // Check session using the fetched table
-      await checkTableSession(tableRes.data, { animateOnRelease: false })
+      await checkTableSession(finalTableData, { animateOnRelease: false })
     }
     setLoading(false)
   }
@@ -1001,11 +1014,11 @@ export default function CustomerMenuPage() {
           if (updErr) throw new Error('อัปเดตยอดไม่ได้: ' + updErr.message)
         } else {
           // สร้างออเดอร์ใหม่โดยใช้ชื่อโต๊ะเป็นเลขออเดอร์
-          const orderNumber = String(table.name || `T${table.table_number || table_id}`).replace(/\s+/g, '')
+          const orderNumber = String(table.name || `T${table.display_name || table.table_number || table_id}`).replace(/\s+/g, '')
           const insertPayload = {
             order_number: orderNumber,
             table_id: table.id,
-            table_number: String(table.table_number || table_id),
+            table_number: String(table.display_name || table.table_number || table_id),
             total_amount: cartTotal,
             status: 'pending',
             source: 'qr',
@@ -1128,7 +1141,7 @@ export default function CustomerMenuPage() {
                   <Clock size={34} className="text-gray-500" />
               </div>
               <h1 className="text-3xl font-black uppercase tracking-tighter mb-3">{table?.branch?.name || 'XYL STUDIO'}</h1>
-              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-gray-400 mb-6">{t.table} {table?.table_number || table_id}</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-gray-400 mb-6">{t.table} {table?.display_name || table?.table_number || table_id}</p>
               <div className="border border-red-100 bg-red-50 px-6 py-4 text-red-600 text-sm font-black">
                   {shopClosedMessage || 'ขณะนี้ร้านปิดให้บริการ'}
               </div>
@@ -1142,7 +1155,7 @@ export default function CustomerMenuPage() {
           <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-black">
               <div className="w-full max-w-sm flex flex-col items-center text-center">
                   <h1 className="text-3xl font-black uppercase tracking-tighter mb-2">{table?.branch?.name || 'XYL STUDIO'}</h1>
-                  <p className="text-gray-400 font-bold text-[10px] uppercase tracking-[0.3em] mb-10 border border-gray-200 px-4 py-1">{t.welcomeTable} <span className="text-black">{table?.table_number || table_id}</span></p>
+                  <p className="text-gray-400 font-bold text-[10px] uppercase tracking-[0.3em] mb-10 border border-gray-200 px-4 py-1">{t.welcomeTable} <span className="text-black">{table?.display_name || table?.table_number || table_id}</span></p>
                   
                   <div className="w-full space-y-6">
                       <div className="space-y-3">
@@ -1222,7 +1235,7 @@ export default function CustomerMenuPage() {
                     <h1 className="text-sm sm:text-base font-bold tracking-wide leading-none">{table?.branch?.name || 'XYL STUDIO'}</h1>
                     <div className="w-1 h-1 bg-white/50 rounded-full hidden sm:block"></div>
                     <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4">
-                        <span className="text-xs sm:text-sm text-white/80 tracking-wide font-medium">{t.table || 'TABLE'} {table?.table_number || table_id}</span>
+                        <span className="text-xs sm:text-sm text-white/80 tracking-wide font-medium">{t.table || 'TABLE'} {table?.display_name || table?.table_number || table_id}</span>
                         {nickname && (
                             <span className="text-[10px] sm:text-xs text-white/60 tracking-widest font-black uppercase mt-1 sm:mt-0">
                                 {t.orderedBy || 'AS'}: {nickname}
@@ -1479,7 +1492,7 @@ export default function CustomerMenuPage() {
                              <h2 className="text-2xl font-black uppercase tracking-tighter text-black">{t.yourOrder}</h2>
                              <span className="text-[9px] font-black uppercase tracking-[0.3em] text-gray-400 mt-1 block">
                                  {nickname ? `${t.orderedBy || 'ORDERING AS'}: ${nickname} • ` : ''} 
-                                 {t.table || 'TABLE'}: {table?.table_number || table_id}
+                                 {t.table || 'TABLE'}: {table?.display_name || table?.table_number || table_id}
                              </span>
                         </div>
                         <button onClick={() => setShowCart(false)} className="w-10 h-10 border border-gray-200 text-black flex items-center justify-center hover:bg-black hover:text-white transition-colors"><X size={18} /></button>
@@ -1583,7 +1596,7 @@ export default function CustomerMenuPage() {
                     <header className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10">
                         <div>
                              <h2 className="text-[20px] font-bold text-black tracking-tight">{t.billTitle}</h2>
-                             <span className="text-[13px] font-medium text-gray-500 mt-0.5 block">{t.tablePrefix} {table?.table_number || table_id}</span>
+                             <span className="text-[13px] font-medium text-gray-500 mt-0.5 block">{t.tablePrefix} {table?.display_name || table?.table_number || table_id}</span>
                         </div>
                         <button onClick={() => setShowTableBill(false)} className="w-9 h-9 bg-gray-100 rounded-full text-gray-500 flex items-center justify-center hover:bg-black hover:text-white transition-all active:scale-95"><X size={18} /></button>
                     </header>
@@ -2099,7 +2112,7 @@ export default function CustomerMenuPage() {
                         orderNumber={openOrder.order_number}
                         orderType={openOrder.order_type || 'dine_in'}
                         orderSource={openOrder.order_source || 'table'}
-                        tableNumber={table?.table_number || String(table_id)}
+                        tableNumber={table?.display_name || table?.table_number || String(table_id)}
                         customerName={nickname || undefined}
                         items={tableBillItems.map(item => ({
                             name: item.item?.name || 'Unknown Item',
