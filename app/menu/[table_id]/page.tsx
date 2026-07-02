@@ -1319,7 +1319,7 @@ export default function CustomerMenuPage() {
               {displayItems.filter(i => i.is_recommended).slice(0, 4).map(item => (
                 <div key={item.id} className={`bg-white border border-gray-100 flex flex-col group overflow-hidden shadow-sm relative ${item.in_stock === false ? 'opacity-60 grayscale' : ''}`}>
                    <div className={`relative aspect-square bg-gray-50 overflow-hidden ${item.in_stock !== false ? 'cursor-pointer' : 'cursor-not-allowed'}`} onClick={() => item.in_stock !== false && handleItemClick(item)}>
-                     {item.image_url ? <img src={item.image_url} alt={getPrimaryMenuName(item)} className="w-full h-full object-cover object-[center_20%] group-hover:scale-110 transition-transform duration-700" /> : <div className="absolute inset-0 flex items-center justify-center text-gray-300"><Utensils size={24} strokeWidth={1} /></div>}
+                     {item.image_url ? <img src={item.image_url} alt={getPrimaryMenuName(item)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" /> : <div className="absolute inset-0 flex items-center justify-center text-gray-300"><Utensils size={24} strokeWidth={1} /></div>}
                      {item.in_stock === false && (
                         <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/35 backdrop-blur-[2px] pointer-events-none">
                            <div className="flex flex-col items-center gap-2">
@@ -1356,7 +1356,7 @@ export default function CustomerMenuPage() {
               {displayItems.filter(i => bestSellingIds.includes(i.id)).slice(0, 4).map(item => (
                 <div key={item.id} className={`bg-white border border-gray-100 flex flex-col group overflow-hidden relative ${item.in_stock === false ? 'opacity-60 grayscale' : ''}`}>
                    <div className={`relative aspect-[4/3] bg-gray-50 overflow-hidden ${item.in_stock !== false ? 'cursor-pointer' : 'cursor-not-allowed'}`} onClick={() => item.in_stock !== false && handleItemClick(item)}>
-                     {item.image_url ? <img src={item.image_url} alt={getPrimaryMenuName(item)} className="w-full h-full object-cover object-[center_20%] group-hover:scale-110 transition-transform duration-700" /> : <div className="absolute inset-0 flex items-center justify-center text-gray-300"><Utensils size={24} strokeWidth={1} /></div>}
+                     {item.image_url ? <img src={item.image_url} alt={getPrimaryMenuName(item)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" /> : <div className="absolute inset-0 flex items-center justify-center text-gray-300"><Utensils size={24} strokeWidth={1} /></div>}
                      {item.in_stock === false && (
                         <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/35 backdrop-blur-[2px] pointer-events-none">
                            <div className="flex flex-col items-center gap-2">

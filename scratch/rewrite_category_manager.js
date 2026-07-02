@@ -1,199 +1,10 @@
-'use client';
-import React, { useState, useEffect } from 'react'
-import { Tag, Plus, Trash2, Save, X, GripVertical, Loader2, Edit3, AlertTriangle, CheckCircle2 } from 'lucide-react'
-import { supabase } from '@/lib/supabaseClient'
-import { motion, AnimatePresence, Reorder } from 'framer-motion'
-import { useI18n } from '@/lib/I18nContext'
+import fs from 'fs';
 
-interface Category {
-  id: string
-  name: string
-  color?: string
-  icon?: string
-  order_index?: number
-  branch_id?: string | null
-  item_count?: number
-}
+const filePath = 'components/pos/POSCategoryManager.tsx';
+let content = fs.readFileSync(filePath, 'utf8');
 
-interface POSCategoryManagerProps {
-  shopSettings?: any
-  onCategoriesChange?: (categories: Category[]) => void
-}
-
-export default function POSCategoryManager({ shopSettings, onCategoriesChange }: POSCategoryManagerProps) {
-  const { locale } = useI18n()
-  const [categories, setCategories] = useState<Category[]>([])
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [isAddOpen, setIsAddOpen] = useState(false)
-  const [editingCat, setEditingCat] = useState<Category | null>(null)
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
-  const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
-  const [hasOrderChanges, setHasOrderChanges] = useState(false)
-
-  // Form state
-  const [formName, setFormName] = useState('')
-
-  const branchId = shopSettings?.branch_id || null
-
-  const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
-    setToast({ msg, type })
-    setTimeout(() => setToast(null), 3000)
-  }
-
-  const fetchCategories = async () => {
-    setLoading(true)
-    try {
-      let query = supabase
-        .from('pos_menu_categories')
-        .select('*, pos_menu_items(count)')
-        .order('order_index')
-
-      if (branchId) {
-        query = query.eq('branch_id', branchId)
-      } else {
-        query = query.is('branch_id', null)
-      }
-
-      const { data, error } = await query
-      if (error) throw error
-
-      // Get item counts per category
-      const cats = (data || []).map((c: any) => ({
-        ...c,
-        item_count: c.pos_menu_items?.[0]?.count || 0
-      }))
-
-      // Also fetch actual item counts
-      const catIds = cats.map((c: any) => c.id)
-      if (catIds.length > 0) {
-        let countQuery = supabase
-          .from('pos_menu_items')
-          .select('category_id')
-          .in('category_id', catIds)
-          .eq('is_active', true)
-
-        if (branchId) countQuery = countQuery.eq('branch_id', branchId)
-        else countQuery = countQuery.is('branch_id', null)
-
-        const { data: itemData } = await countQuery
-        const countMap: Record<string, number> = {}
-        itemData?.forEach((i: any) => {
-          countMap[i.category_id] = (countMap[i.category_id] || 0) + 1
-        })
-        cats.forEach((c: any) => { c.item_count = countMap[c.id] || 0 })
-      }
-
-      setCategories(cats)
-      setHasOrderChanges(false)
-      onCategoriesChange?.(cats)
-    } catch (e: any) {
-      showToast(e.message || 'โหลดหมวดหมู่ไม่สำเร็จ', 'error')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    fetchCategories()
-  }, [shopSettings?.branch_id])
-
-  const openAdd = () => {
-    setFormName('')
-    setEditingCat(null)
-    setIsAddOpen(true)
-  }
-
-  const openEdit = (cat: Category) => {
-    setFormName(cat.name)
-    setEditingCat(cat)
-    setIsAddOpen(true)
-  }
-
-  const handleSave = async () => {
-    if (!formName.trim()) return showToast('กรุณาใส่ชื่อหมวดหมู่', 'error')
-    setSaving(true)
-    try {
-      const payload: any = {
-        name: formName.trim(),
-        branch_id: branchId,
-      }
-
-      if (editingCat) {
-        // Update
-        const { error } = await supabase
-          .from('pos_menu_categories')
-          .update(payload)
-          .eq('id', editingCat.id)
-        if (error) throw error
-        showToast('อัปเดตหมวดหมู่สำเร็จ')
-      } else {
-        // Insert
-        payload.order_index = categories.length
-        const { error } = await supabase
-          .from('pos_menu_categories')
-          .insert(payload)
-        if (error) throw error
-        showToast('เพิ่มหมวดหมู่สำเร็จ')
-      }
-
-      setIsAddOpen(false)
-      await fetchCategories()
-    } catch (e: any) {
-      showToast(e.message || 'บันทึกไม่สำเร็จ', 'error')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleDelete = async (cat: Category) => {
-    if (cat.item_count && cat.item_count > 0) {
-      return showToast(`ไม่สามารถลบได้ — ยังมีสินค้า ${cat.item_count} รายการในหมวดนี้ กรุณาย้ายสินค้าออกก่อน`, 'error')
-    }
-    setSaving(true)
-    try {
-      const { error } = await supabase
-        .from('pos_menu_categories')
-        .delete()
-        .eq('id', cat.id)
-      if (error) throw error
-      showToast('ลบหมวดหมู่สำเร็จ')
-      setDeleteConfirmId(null)
-      await fetchCategories()
-    } catch (e: any) {
-      showToast(e.message || 'ลบไม่สำเร็จ', 'error')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleCategoryReorder = (nextCategories: Category[]) => {
-    const updatedCats = nextCategories.map((c, i) => ({ ...c, order_index: i }))
-    setCategories(updatedCats)
-    setHasOrderChanges(true)
-  }
-
-  const handleSaveOrder = async () => {
-    setSaving(true)
-    try {
-      await Promise.all(
-        categories.map((c, index) =>
-          supabase.from('pos_menu_categories').update({ order_index: index }).eq('id', c.id)
-        )
-      )
-      const normalized = categories.map((c, index) => ({ ...c, order_index: index }))
-      setCategories(normalized)
-      setHasOrderChanges(false)
-      onCategoriesChange?.(normalized)
-      showToast('บันทึกลำดับหมวดหมู่สำเร็จ')
-    } catch (e: any) {
-      showToast(e.message || 'บันทึกลำดับไม่สำเร็จ', 'error')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-
+// Replace the return statement with the new design
+const newReturn = `
   return (
     <div className="p-4 sm:p-8 max-w-4xl mx-auto pb-32">
       {/* Toast */}
@@ -203,9 +14,9 @@ export default function POSCategoryManager({ shopSettings, onCategoriesChange }:
             initial={{ opacity: 0, y: 50, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-full flex items-center gap-3 shadow-2xl ${
+            className={\`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-full flex items-center gap-3 shadow-2xl \${
               toast.type === 'error' ? 'bg-rose-500 text-white' : 'bg-[#1A1A18] text-white'
-            }`}
+            }\`}
           >
             {toast.type === 'error' ? <AlertTriangle size={18} /> : <CheckCircle2 size={18} />}
             <span className="text-[13px] font-bold tracking-wide">{toast.msg}</span>
@@ -286,7 +97,7 @@ export default function POSCategoryManager({ shopSettings, onCategoriesChange }:
                     <div className="text-[12px] font-medium text-gray-400 flex items-center gap-2 mt-0.5">
                       <span>ลำดับที่ {idx + 1}</span>
                       <span className="w-1 h-1 rounded-full bg-gray-300" />
-                      <span className={`${(cat.item_count || 0) > 0 ? 'text-emerald-600 font-bold' : ''}`}>
+                      <span className={\`\${(cat.item_count || 0) > 0 ? 'text-emerald-600 font-bold' : ''}\`}>
                         {cat.item_count || 0} รายการ
                       </span>
                     </div>
@@ -322,7 +133,7 @@ export default function POSCategoryManager({ shopSettings, onCategoriesChange }:
                     <button
                       onClick={() => {
                         if ((cat.item_count || 0) > 0) {
-                          showToast(`ไม่สามารถลบได้ — มีสินค้า ${cat.item_count} รายการอยู่ในหมวดนี้`, 'error')
+                          showToast(\`ไม่สามารถลบได้ — มีสินค้า \${cat.item_count} รายการอยู่ในหมวดนี้\`, 'error')
                         } else {
                           setDeleteConfirmId(cat.id)
                         }
@@ -403,3 +214,10 @@ export default function POSCategoryManager({ shopSettings, onCategoriesChange }:
     </div>
   )
 }
+`;
+
+const targetStart = content.indexOf('  return (');
+content = content.substring(0, targetStart) + newReturn;
+
+fs.writeFileSync(filePath, content);
+console.log('POSCategoryManager updated');

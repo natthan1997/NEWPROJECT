@@ -1,395 +1,17 @@
-'use client';
-import React, { useState, useEffect } from 'react'
-import {
-  Plus,
-  Search,
-  Edit3,
-  Trash2,
-  Loader2,
-  Check,
-  X,
-  Save,
-  Settings,
-  Layers,
-  Menu,
-  ChevronRight,
-  List,
-  LayoutGrid,
-  Info,
-  AlertTriangle,
-  Star,
-  GripVertical,
-} from 'lucide-react'
-import { supabase } from '@/lib/supabaseClient'
-import { motion, AnimatePresence, Reorder, useDragControls } from 'framer-motion'
-import { useI18n } from "@/lib/I18nContext";
+import fs from 'fs';
 
-interface POSModifierManagerProps {
-  profile: any
-  activeView: string
-  allowedNav: any[]
-  onSetView: (view: any) => void
-  activeShift?: any
-  onShiftModalOpen?: () => void
-  setViewExtraHeader: (node: React.ReactNode) => void
-  shopSettings?: any
+const filePath = 'components/pos/POSModifierManager.tsx';
+let content = fs.readFileSync(filePath, 'utf8');
+
+const targetStr = '  return (\n    <div className="no-scrollbar relative min-h-full overflow-y-auto p-4 font-bold sm:p-10">';
+const targetStart = content.indexOf(targetStr);
+
+if (targetStart === -1) {
+    console.log("Could not find the target string in POSModifierManager.tsx");
+    process.exit(1);
 }
 
-const ModifierGroupItem = ({
-  group,
-  onReorderOptions,
-}: {
-  group: any
-  onReorderOptions: (newOptions: any[]) => void
-}) => {
-  const controls = useDragControls()
-  const { locale } = useI18n();
-
-  return (
-    <Reorder.Item
-      value={group}
-      dragListener={false}
-      dragControls={controls}
-      className="flex flex-col border-2 border-[#1A1A18] bg-white shadow-sm"
-    >
-      <div className="flex items-center gap-4 border-b border-gray-100 bg-gray-50 p-4">
-        <div
-          onPointerDown={e => controls.start(e)}
-          className="cursor-grab p-1 active:cursor-grabbing"
-          style={{ touchAction: 'none' }}
-        >
-          <GripVertical size={20} className="text-gray-400" />
-        </div>
-        <h3 className="font-black uppercase tracking-tighter text-black">{group.name}</h3>
-      </div>
-      {group.options && group.options.length > 0 && (
-        <div className="bg-white p-4">
-          <Reorder.Group
-            axis="y"
-            values={group.options}
-            onReorder={onReorderOptions}
-            className="space-y-2"
-          >
-            {group.options.map((opt: any) => (
-              <Reorder.Item
-                key={opt.id}
-                value={opt}
-                className="group/item flex cursor-grab items-center gap-3 border border-gray-100 bg-white p-3 transition-all hover:border-[#1A1A18]/20 hover:shadow-sm active:cursor-grabbing"
-                style={{ touchAction: 'none' }}
-              >
-                <Menu size={14} className="text-gray-300 group-hover/item:text-black" />
-                <span className="text-[12px] font-bold uppercase text-gray-600 transition-colors group-hover/item:text-black">
-                  {opt.name}
-                </span>
-                {opt.price_adjustment > 0 && (
-                  <span className="ml-auto text-[10px] font-black text-emerald-600">
-                    {locale === 'en' ? '                     + ฿' : locale === 'zh' ? '                     + ฿' : '                     + ฿'}{opt.price_adjustment}
-                  </span>
-                )}
-              </Reorder.Item>
-            ))}
-          </Reorder.Group>
-        </div>
-      )}
-    </Reorder.Item>
-  )
-}
-
-export default function POSModifierManager({
-  profile, activeView, allowedNav, onSetView, activeShift, onShiftModalOpen, setViewExtraHeader, shopSettings
-}: POSModifierManagerProps) {
-  const { locale } = useI18n();
-  const [groups, setGroups] = useState<any[]>([])
-  const [allOptions, setAllOptions] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState('')
-
-  const [isGroupEditorOpen, setIsGroupEditorOpen] = useState(false)
-  const [editingGroup, setEditingGroup] = useState<any>(null)
-
-  const [isOptionEditorOpen, setIsOptionEditorOpen] = useState(false)
-  const [editingOption, setEditingOption] = useState<any>(null)
-
-  const [isSaving, setIsSaving] = useState(false)
-
-  const [allMenuItems, setAllMenuItems] = useState<any[]>([])
-  const [groupLinks, setGroupLinks] = useState<string[]>([])
-
-  // --- Bulk Edit / Table View ---
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid')
-  const [visibleColumns, setVisibleColumns] = useState<string[]>([
-    'name',
-    'group_name',
-    'price_adjustment',
-    'is_active',
-  ])
-  const [showColumnSelector, setShowColumnSelector] = useState(false)
-  const [isSortMode, setIsSortMode] = useState(false)
-  const [isSavingOrder, setIsSavingOrder] = useState(false)
-
-  const handleReorderGroups = (newGroups: any[]) => {
-    setGroups(newGroups)
-  }
-
-  const handleReorderOptions = (groupId: string, newOptions: any[]) => {
-    setGroups(prev => prev.map(g => (g.id === groupId ? { ...g, options: newOptions } : g)))
-  }
-
-  // DEBOUNCED SAVE LOGIC
-  useEffect(() => {
-    if (!isSortMode) return
-
-    const saveOrder = async () => {
-      setIsSavingOrder(true)
-      try {
-        // 1. Save Groups Order
-        const groupUpdates = groups.map((g, idx) => ({ id: g.id, sort_order: idx + 1 }))
-        for (const update of groupUpdates) {
-          await supabase
-            .from('pos_menu_modifier_groups')
-            .update({ sort_order: update.sort_order })
-            .eq('id', update.id)
-        }
-
-        // 2. Save Options Order within each group
-        for (const group of groups) {
-          if (group.options) {
-            const optionUpdates = group.options.map((o: any, idx: number) => ({
-              id: o.id,
-              sort_order: idx + 1,
-            }))
-            for (const update of optionUpdates) {
-              await supabase
-                .from('pos_menu_modifiers')
-                .update({ sort_order: update.sort_order })
-                .eq('id', update.id)
-            }
-          }
-        }
-      } catch (e) {
-        console.error('Failed to save order:', e)
-      } finally {
-        setIsSavingOrder(false)
-      }
-    }
-
-    const timer = setTimeout(saveOrder, 2000)
-    return () => clearTimeout(timer)
-  }, [groups, isSortMode])
-
-  const columns = [
-    { id: 'name', label: 'ชื่อรายการย่อย' },
-    { id: 'group_name', label: 'กลุ่มตัวเลือก' },
-    { id: 'price_adjustment', label: 'ราคาเพิ่ม/ลด' },
-    { id: 'sort_order', label: 'ลำดับ' },
-    { id: 'is_active', label: 'เปิดใช้งาน' },
-  ]
-
-  useEffect(() => {
-    if (shopSettings) {
-      fetchData()
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shopSettings?.branch_id])
-
-  useEffect(() => {
-    setViewExtraHeader(
-      <div className="flex items-center justify-end gap-4">
-        <div className="flex items-center gap-1 border border-gray-100 bg-gray-50 p-1">
-          <button
-            onClick={() => setIsSortMode(prev => !prev)}
-            className={`flex h-10 items-center justify-center px-4 transition-all ${isSortMode ? 'bg-[#1A1A18] text-white shadow-lg' : 'font-bold text-gray-300 hover:text-black'} gap-2 text-[10px] font-black uppercase tracking-widest`}
-          >
-            <GripVertical size={14} /> {isSortMode ? 'Done Sorting' : 'Sort Mode'}
-          </button>
-          <button
-            onClick={() => setViewMode('grid')}
-            className={`flex h-10 w-10 items-center justify-center transition-all ${viewMode === 'grid' ? 'bg-[#1A1A18] text-white shadow-lg' : 'font-bold text-gray-300 hover:text-black'}`}
-          >
-            <LayoutGrid size={18} />
-          </button>
-          <button
-            onClick={() => setViewMode('table')}
-            className={`flex h-10 w-10 items-center justify-center transition-all ${viewMode === 'table' ? 'bg-[#1A1A18] text-white shadow-lg' : 'font-bold text-gray-300 hover:text-black'}`}
-          >
-            <List size={18} />
-          </button>
-        </div>
-        <button
-          onClick={() => openGroupEditor()}
-          className="flex h-10 items-center justify-center gap-3 whitespace-nowrap bg-[#1A1A18] px-8 font-bold text-white shadow-xl transition-all hover:bg-black"
-        >
-          <Plus size={16} />{' '}
-          <span className="text-[10px] font-black font-bold uppercase tracking-widest">
-            {locale === 'en' ? '             เพิ่มกลุ่มตัวเลือก           ' : locale === 'zh' ? '             เพิ่มกลุ่มตัวเลือก           ' : '             เพิ่มกลุ่มตัวเลือก           '}</span>
-        </button>
-      </div>
-    )
-    return () => setViewExtraHeader(null)
-  }, [setViewExtraHeader, searchTerm, viewMode, isSortMode])
-
-  const fetchData = async () => {
-    setLoading(true)
-    const branchId = shopSettings?.branch_id
-
-    let query = supabase
-      .from('pos_menu_modifier_groups')
-      .select('*, options:pos_menu_modifiers(*)')
-      .order('sort_order', { ascending: true })
-      .order('name', { ascending: true })
-
-    if (branchId) {
-      query = query.eq('branch_id', branchId)
-    } else {
-      query = query.is('branch_id', null)
-    }
-
-    const { data: groupData } = await query
-
-    // Fetch all menu items for linking
-    const { data: itemData } = await supabase
-      .from('pos_menu_items')
-      .select('id, name')
-      .order('name')
-    if (itemData) setAllMenuItems(itemData)
-
-    if (groupData) {
-      setGroups(groupData)
-      const flatOptions: any[] = []
-      groupData.forEach((g: any) => {
-        if (g.options) {
-          // Sort options within group
-          const sortedOptions = [...g.options].sort(
-            (a: any, b: any) => a.sort_order - b.sort_order || a.name.localeCompare(b.name)
-          )
-          sortedOptions.forEach((o: any) => {
-            flatOptions.push({ ...o, group_name: g.name })
-          })
-        }
-      })
-      setAllOptions(flatOptions)
-    }
-    setLoading(false)
-  }
-
-  const fetchGroupLinks = async (groupId: string) => {
-    const { data } = await supabase
-      .from('pos_item_modifier_links')
-      .select('item_id')
-      .eq('group_id', groupId)
-    if (data) setGroupLinks(data.map(d => d.item_id))
-    else setGroupLinks([])
-  }
-
-  const openGroupEditor = (group: any = null) => {
-    setEditingGroup(
-      group || { name: '', min_selection: 0, max_selection: 1, sort_order: 0, is_active: true }
-    )
-    if (group) fetchGroupLinks(group.id)
-    else setGroupLinks([])
-    setIsGroupEditorOpen(true)
-  }
-
-  const openOptionEditor = (group: any, option: any = null) => {
-    setEditingOption(
-      option || {
-        group_id: group.id,
-        name: '',
-        price_adjustment: 0,
-        sort_order: 0,
-        is_active: true,
-      }
-    )
-    setIsOptionEditorOpen(true)
-  }
-
-  const handleSaveGroup = async () => {
-    setIsSaving(true)
-    try {
-      const { options, ...cleanGroup } = editingGroup
-
-      // Ensure we use the correct column names for selection constraints
-      const groupToSave = {
-        ...cleanGroup,
-        min_selection: cleanGroup.min_select || cleanGroup.min_selection || 0,
-        max_selection: cleanGroup.max_select || cleanGroup.max_selection || 1,
-        // Sync with the legacy columns if they exist
-        min_select: cleanGroup.min_select || cleanGroup.min_selection || 0,
-        max_select: cleanGroup.max_select || cleanGroup.max_selection || 1,
-        branch_id: shopSettings?.branch_id || null
-      }
-
-      const { data: savedGroup, error } = await supabase
-        .from('pos_menu_modifier_groups')
-        .upsert(groupToSave)
-        .select()
-        .single()
-
-      if (!error && savedGroup) {
-        const groupId = savedGroup.id
-
-        // Sync links
-        await supabase.from('pos_item_modifier_links').delete().eq('group_id', groupId)
-        if (groupLinks.length > 0) {
-          const links = groupLinks.map(itemId => ({ group_id: groupId, item_id: itemId }))
-          await supabase.from('pos_item_modifier_links').insert(links)
-        }
-
-        setIsGroupEditorOpen(false)
-        fetchData()
-      } else {
-        alert('Error: ' + error?.message)
-      }
-    } catch (e) {
-      console.error(e)
-    }
-    setIsSaving(false)
-  }
-
-  const handleSaveOption = async () => {
-    setIsSaving(true)
-    const { group_name, ...optionToSave } = editingOption
-    const { error } = await supabase.from('pos_menu_modifiers').upsert(optionToSave)
-    if (!error) {
-      setIsOptionEditorOpen(false)
-      fetchData()
-    } else {
-      alert('Error: ' + error.message)
-    }
-    setIsSaving(false)
-  }
-
-  const handleBulkUpdate = async (id: string, field: string, value: any) => {
-    const { error } = await supabase
-      .from('pos_menu_modifiers')
-      .update({ [field]: value })
-      .eq('id', id)
-    if (!error) {
-      setAllOptions(prev => prev.map(opt => (opt.id === id ? { ...opt, [field]: value } : opt)))
-      // Still need to update groups state too if we want grid to sync
-      fetchData()
-    }
-  }
-
-  const handleDeleteGroup = async (id: string) => {
-    if (!confirm('ยืนยันการลบกลุ่มนี้? รายการย่อยทั้งหมดจะถูกลบไปด้วย')) return
-    await supabase.from('pos_menu_modifier_groups').delete().eq('id', id)
-    fetchData()
-  }
-
-  const handleDeleteOption = async (id: string) => {
-    if (!confirm('ยืนยันการลบรายการย่อยนี้?')) return
-    await supabase.from('pos_menu_modifiers').delete().eq('id', id)
-    fetchData()
-  }
-
-  const filteredGroups = groups.filter(g => g.name.toLowerCase().includes(searchTerm.toLowerCase()))
-  const filteredOptions = allOptions.filter(
-    o =>
-      o.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      o.group_name.toLowerCase().includes(searchTerm.toLowerCase())
-  )
-  return (
+const newReturn = `  return (
     <div className="no-scrollbar relative min-h-full overflow-y-auto p-4 sm:p-8 max-w-7xl mx-auto pb-32">
       
       {/* HEADER & SEARCH BAR */}
@@ -474,7 +96,7 @@ export default function POSModifierManager({
                   </h3>
                   <div className="mt-2 flex items-center gap-2">
                     <span className="px-2 py-1 bg-white border border-gray-200 rounded-full text-[9px] font-black uppercase tracking-widest text-gray-500 shadow-sm">
-                      {group.min_select === 0 ? 'ระบุหรือไม่ก็ได้' : `ต้องเลือกอย่างน้อย ${group.min_select}`}
+                      {group.min_select === 0 ? 'ระบุหรือไม่ก็ได้' : \`ต้องเลือกอย่างน้อย \${group.min_select}\`}
                     </span>
                     <span className="text-[11px] font-bold text-gray-400">
                       สูงสุด {group.max_select}
@@ -505,7 +127,7 @@ export default function POSModifierManager({
                       className="flex items-center justify-between p-3 px-4 rounded-2xl transition-colors hover:bg-gray-50 group/opt"
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className={`w-2 h-2 rounded-full shrink-0 ${opt.is_active ? 'bg-emerald-500' : 'bg-gray-300'}`} />
+                        <div className={\`w-2 h-2 rounded-full shrink-0 \${opt.is_active ? 'bg-emerald-500' : 'bg-gray-300'}\`} />
                         <span className="text-[13px] font-black text-gray-700 truncate">
                           {opt.name}
                         </span>
@@ -661,9 +283,9 @@ export default function POSModifierManager({
                           if (isActive) setGroupLinks(prev => prev.filter(id => id !== item.id))
                           else setGroupLinks(prev => [...prev, item.id])
                         }}
-                        className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors ${isActive ? 'bg-emerald-50' : 'hover:bg-gray-50'}`}
+                        className={\`w-full flex items-center justify-between px-4 py-3 text-left transition-colors \${isActive ? 'bg-emerald-50' : 'hover:bg-gray-50'}\`}
                       >
-                        <span className={`text-[13px] font-black ${isActive ? 'text-emerald-900' : 'text-gray-700'}`}>
+                        <span className={\`text-[13px] font-black \${isActive ? 'text-emerald-900' : 'text-gray-700'}\`}>
                           {item.name}
                         </span>
                         {isActive && <Check size={16} className="text-emerald-500" />}
@@ -774,3 +396,8 @@ export default function POSModifierManager({
     </div>
   )
 }
+`;
+
+content = content.substring(0, targetStart) + newReturn;
+fs.writeFileSync(filePath, content);
+console.log('POSModifierManager updated');
