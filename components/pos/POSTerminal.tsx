@@ -2796,6 +2796,8 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
               <div className="grid grid-cols-4 gap-2 sm:gap-4 sm:grid-cols-6 lg:grid-cols-8">
                 {tables.map(table => {
                   const targetTable = table.parent_table_id ? tables.find(t => t.id === table.parent_table_id) || table : table;
+                  const childrenTables = tables.filter(t => t.parent_table_id === table.id);
+                  const isParent = childrenTables.length > 0;
                   
                   const pendingForThisTable = pendingOrders.filter(
                     o => o.table_id === targetTable.id && o.status === 'pending'
@@ -2803,6 +2805,9 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                   // Consider table occupied if there's a pending order OR if table status is occupied (customer scanned & entered name)
                   const isOccupied = pendingForThisTable.length > 0 || targetTable.status === 'occupied'
                   const isIdleOccupied = targetTable.status === 'occupied' && pendingForThisTable.length === 0
+                  
+                  const isSelected = selectedTable?.id === targetTable.id;
+                  const tableNumTextSize = table.table_number.length > 3 ? 'text-sm sm:text-base' : 'text-xl sm:text-2xl';
 
                   return (
                     <div key={table.id} className="relative aspect-square flex flex-col">
@@ -2851,36 +2856,14 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                                                     // 5. Reset POS UI to view the new combined order
                                                     fetchTables();
                                                     refreshPendingOrders();
+                                                    resetDeliveryDraft();
                                                     setShowTableModal(false);
-                                                    handleResumeOrder(targetOrder);
                                                 } catch (err: any) {
                                                     alert('Error merging tables: ' + err.message);
                                                 } finally {
                                                     setIsProcessing(false);
                                                 }
                                             })();
-                                        }
-                                        return;
-                                    } else {
-                                        const promptMsg = orderType === 'takeaway' 
-                                            ? `ยืนยันการนำออเดอร์สั่งกลับบ้านนี้ ไปนั่งทานที่โต๊ะ ${targetTable.table_number}?`
-                                            : `ต้องการย้ายออเดอร์นี้ไปโต๊ะ ${targetTable.table_number} ใช่หรือไม่?`;
-                                        
-                                        if (confirm(promptMsg)) {
-                                            supabase.from('pos_orders').update({ table_id: targetTable.id, table_number: targetTable.table_number, order_type: 'dine_in' }).eq('id', editingOrderId).then(() => {
-                                                supabase.from('pos_tables').update({ status: 'occupied' }).eq('id', targetTable.id).then(() => {
-                                                    if (selectedTable?.id) {
-                                                        supabase.from('pos_tables').update({ status: 'available' }).eq('id', selectedTable.id).then(() => fetchTables());
-                                                    } else {
-                                                        fetchTables();
-                                                    }
-                                                    refreshPendingOrders();
-                                                    setSelectedTable(targetTable);
-                                                    setOrderType('dine_in');
-                                                    resetDeliveryDraft();
-                                                    setShowTableModal(false);
-                                                });
-                                            });
                                         }
                                         return;
                                     }
@@ -2896,36 +2879,47 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                             }
                           }
                         }}
-                        className={`w-full h-full relative flex flex-col items-center justify-center overflow-hidden rounded-2xl border-2 p-2 transition-all duration-200 ${
-                          selectedTable?.id === targetTable.id 
-                            ? 'border-[#1A1A18] bg-[#1A1A18] text-white shadow-xl scale-105 z-10' 
+                        className={`w-full h-full relative flex flex-col items-center justify-center overflow-hidden rounded-2xl border transition-all duration-300 ${
+                          isSelected 
+                            ? 'border-black bg-black text-white shadow-xl scale-105 z-10' 
                             : isOccupied 
-                              ? 'border-red-200 bg-red-50 text-red-900 hover:border-red-300 hover:bg-red-100 shadow-sm' 
-                              : 'border-gray-100 bg-white text-gray-800 hover:border-gray-300 hover:shadow-md'
+                              ? 'border-black bg-white text-black hover:bg-gray-50 shadow-sm' 
+                              : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300 hover:bg-gray-50'
                         }`}
                       >
                         {/* Occupied Badge */}
-                        {isOccupied && (
-                          <div className="absolute top-2 right-2 flex items-center gap-1">
-                            <div className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse"></div>
+                        {isOccupied && !isSelected && (
+                          <div className="absolute top-2.5 right-2.5 flex items-center gap-1">
+                            <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
                           </div>
                         )}
                         
                         {/* Table Name */}
-                        <span className="text-lg sm:text-xl font-black tracking-tighter text-center break-words line-clamp-2 w-full px-1 leading-none mt-2">
+                        <span className={`${tableNumTextSize} font-black tracking-tighter text-center break-words line-clamp-2 w-full px-1 leading-none ${(table.parent_table_id || isParent) ? 'mb-2' : ''}`}>
                           {table.table_number}
                         </span>
                         
                         {/* Zone */}
-                        <span className={`mt-1.5 text-[8px] font-bold uppercase tracking-widest ${selectedTable?.id === targetTable.id ? 'text-gray-400' : 'text-gray-500'}`}>
+                        <span className={`mt-1.5 text-[8px] font-bold uppercase tracking-widest ${isSelected ? 'text-gray-400' : 'text-gray-400'}`}>
                           {table.zone || 'Main'}
                         </span>
 
                         {/* Linked Table Indicator */}
-                        {table.parent_table_id && (
-                          <div className="absolute bottom-0 inset-x-0 bg-indigo-50/90 backdrop-blur-sm py-1 flex items-center justify-center gap-1 border-t border-indigo-100">
-                            <span className="text-[7px] font-black uppercase tracking-widest text-indigo-700">
-                              🔗 โต๊ะ {targetTable.table_number}
+                        {(table.parent_table_id || isParent) && (
+                          <div className={`absolute bottom-0 inset-x-0 py-1 flex items-center justify-center gap-1 border-t ${
+                            isSelected
+                              ? 'bg-white/10 border-white/20'
+                              : isOccupied
+                                ? 'bg-gray-50 border-gray-200'
+                                : 'bg-gray-50 border-gray-100'
+                          }`}>
+                            <span className={`text-[7px] font-black uppercase tracking-widest ${
+                              isSelected ? 'text-white' : 'text-gray-600'
+                            }`}>
+                              {table.parent_table_id 
+                                ? `🔗 โต๊ะ ${targetTable.table_number}`
+                                : `🔗 +${childrenTables.map(t => t.table_number).join(',')}`
+                              }
                             </span>
                           </div>
                         )}
