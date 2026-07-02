@@ -5,7 +5,7 @@ import {
   Calculator,
   ChefHat,
   Layers,
-  Package,
+  Package, Utensils,
   BarChart3,
   Menu as MenuIcon,
   X,
@@ -66,6 +66,7 @@ type POSView =
   | 'modifiers'
   | 'management'
   | 'history'
+  | 'menu-management'
 
 function RestaurantOSPageContent() {
     const { locale } = useI18n();
@@ -858,6 +859,7 @@ function RestaurantOSPageContent() {
     { id: 'inventory', label: 'สต็อก', icon: Package, roles: ['admin', 'manager', 'staff'], group: 'management' },
     { id: 'reports', label: 'รายงาน', icon: BarChart3, roles: ['admin'], group: 'management' },
     { id: 'staff', label: 'พนักงาน', icon: Users, roles: ['admin'], group: 'management' },
+    { id: 'menu-management', label: 'จัดการเมนู', icon: Utensils, roles: ['admin', 'manager'], group: 'management' },
     { id: 'management', label: 'จัดการระบบ', icon: Settings, roles: ['admin', 'manager'], group: 'management' },
     { id: 'settings', label: 'ตั้งค่าร้าน', icon: Settings, roles: ['admin', 'manager'], group: 'management' },
   ]
