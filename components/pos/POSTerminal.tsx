@@ -54,7 +54,7 @@ import {
   Check,
   Truck,
   Utensils,
-  Motorcycle,
+  Bike,
   AlertTriangle,
   Delete,
 } from 'lucide-react'
@@ -2400,7 +2400,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                   }}
                   className={`flex h-12 flex-1 items-center justify-center gap-3 text-[10px] font-black uppercase tracking-widest transition-all ${orderType === 'delivery' ? 'bg-[#1A1A18] text-white shadow-lg' : 'text-gray-400 hover:text-black'}`}
                 >
-                  <Motorcycle size={18} />
+                  <Bike size={18} />
                 </button>
               </div>
               {orderType === 'delivery' && (
