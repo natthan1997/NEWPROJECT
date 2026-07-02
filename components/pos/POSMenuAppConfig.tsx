@@ -27,6 +27,7 @@ export default function POSMenuAppConfig({
   shopSettings,
 }: POSMenuAppConfigProps) {
   const [activeTab, setActiveTab] = useState<MenuAppTab>('items')
+  const [childHeader, setChildHeader] = useState<React.ReactNode>(null)
 
   // Set the top extra header (if needed)
   useEffect(() => {
@@ -42,7 +43,6 @@ export default function POSMenuAppConfig({
     { id: 'items', label: 'รายการเมนู', icon: LayoutGrid },
     { id: 'categories', label: 'หมวดหมู่', icon: Tag },
     { id: 'modifiers', label: 'ตัวเลือกเสริม', icon: SlidersHorizontal },
-    { id: 'stock', label: 'อัปเดตสต็อก', icon: ToggleRight },
   ]
 
   return (
@@ -80,6 +80,13 @@ export default function POSMenuAppConfig({
         </div>
       </div>
 
+      {/* TOOLBAR FROM CHILD COMPONENTS */}
+      {childHeader && (
+        <div className="shrink-0 bg-white px-4 py-3 md:px-8 border-b border-gray-100 flex items-center justify-between">
+          {childHeader}
+        </div>
+      )}
+
       {/* MAIN CONTENT AREA */}
       <div className="flex-1 overflow-y-auto relative no-scrollbar">
         <AnimatePresence mode="wait">
@@ -97,10 +104,9 @@ export default function POSMenuAppConfig({
                 activeView={activeView}
                 allowedNav={[]}
                 onSetView={() => {}}
-                setViewExtraHeader={() => {}} // Override to prevent conflicting header changes
+                setViewExtraHeader={setChildHeader}
                 shopSettings={shopSettings}
-                hideStockToggle={true}
-                forceViewMode="grid"
+                hideStockToggle={false}
               />
             )}
 
@@ -118,7 +124,7 @@ export default function POSMenuAppConfig({
                   activeView={activeView}
                   allowedNav={[]}
                   onSetView={() => {}}
-                  setViewExtraHeader={() => {}}
+                  setViewExtraHeader={setChildHeader}
                   shopSettings={shopSettings}
                 />
               </div>
