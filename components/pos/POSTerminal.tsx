@@ -683,7 +683,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       cart.reduce((acc, item) => {
         const modsPrice =
           item.selected_modifiers?.reduce(
-            (ma: number, m: any) => ma + (m.price_adjustment || 0),
+            (ma: number, m: any) => ma + ((m.price_adjustment || 0) * (m.qty || 1)),
             0
           ) || 0
 
@@ -1425,7 +1425,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
           if (!isNaN(val) && val > 0) {
             if (itemDiscountType === 'percent') {
               const basePrice = getEffectiveItemUnitPrice(i)
-              const modsPrice = i.selected_modifiers?.reduce((a: number, m: any) => a + (m.price_adjustment || 0), 0) || 0
+              const modsPrice = i.selected_modifiers?.reduce((a: number, m: any) => a + ((m.price_adjustment || 0) * (m.qty || 1)), 0) || 0
               calcDiscount = ((basePrice + modsPrice) * i.quantity) * (val / 100)
             } else {
               calcDiscount = val
@@ -1691,7 +1691,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 	        : [...cart]
 
 	      const orderItems = cart.map(item => {
-          const modsPrice = item.selected_modifiers?.reduce((a: number, m: any) => a + (m.price_adjustment || 0), 0) || 0;
+          const modsPrice = item.selected_modifiers?.reduce((a: number, m: any) => a + ((m.price_adjustment || 0) * (m.qty || 1)), 0) || 0;
           return {
 	          order_id: finalOrderId,
             item_id: item.id,
@@ -1886,7 +1886,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       }
 
       const orderItems = cart.map(item => {
-        const modsPrice = item.selected_modifiers?.reduce((a: number, m: any) => a + (m.price_adjustment || 0), 0) || 0;
+        const modsPrice = item.selected_modifiers?.reduce((a: number, m: any) => a + ((m.price_adjustment || 0) * (m.qty || 1)), 0) || 0;
         return {
           order_id: finalOrderId,
           item_id: item.id,
@@ -2502,7 +2502,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                           <div className="flex items-center gap-2">
                             {item.discount_amount && item.discount_amount > 0 ? (
                               <span className="text-xs font-bold text-gray-400 line-through">
-                                ฿ {((getEffectiveItemUnitPrice(item) + (item.selected_modifiers?.reduce((a: number, m: any) => a + (m.price_adjustment || 0), 0) || 0)) * item.quantity).toLocaleString()}
+                                ฿ {((getEffectiveItemUnitPrice(item) + (item.selected_modifiers?.reduce((a: number, m: any) => a + ((m.price_adjustment || 0) * (m.qty || 1)), 0) || 0)) * item.quantity).toLocaleString()}
                               </span>
                             ) : null}
                             <span className="text-lg font-black text-black">
@@ -2510,7 +2510,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                               {(
                                 ((getEffectiveItemUnitPrice(item) +
                                   (item.selected_modifiers?.reduce(
-                                    (a: number, m: any) => a + (m.price_adjustment || 0),
+                                    (a: number, m: any) => a + ((m.price_adjustment || 0) * (m.qty || 1)),
                                     0
                                   ) || 0)) *
                                 item.quantity) - (item.discount_amount || 0)
@@ -2540,7 +2540,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                                   className="flex items-center gap-1.5 border border-gray-100 bg-gray-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-tight text-gray-600"
                                 >
                                   <div className="h-1 w-1 bg-emerald-400"></div>
-                                  {m.name}
+                                  {m.qty > 1 ? `${m.qty}x ` : ''}{m.name}
                                 </span>
                               ))}
                             </div>
@@ -3146,8 +3146,9 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                 const minReq = group.min_selection || group.min_select || 0
                 const maxAllowed = group.max_selection || group.max_select || 99
                 const selectedInGroup = tempSelectedModifiers.filter(m => m.group_id === group.id)
-                const isComplete = selectedInGroup.length >= minReq
-                const isAtMax = selectedInGroup.length >= maxAllowed
+                const totalQtyInGroup = selectedInGroup.reduce((sum, m) => sum + (m.qty || 1), 0)
+                const isComplete = totalQtyInGroup >= minReq
+                const isAtMax = totalQtyInGroup >= maxAllowed
 
                 return (
                   <div
@@ -3182,7 +3183,9 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                     </div>
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                       {group.options?.map((opt: any) => {
-                        const isSelected = tempSelectedModifiers.some(m => m.id === opt.id)
+                        const existingOptIndex = tempSelectedModifiers.findIndex(m => m.id === opt.id)
+                        const isSelected = existingOptIndex > -1
+                        const optQty = isSelected ? (tempSelectedModifiers[existingOptIndex].qty || 1) : 0
                         return (
                           <button
                             key={opt.id}
@@ -3190,15 +3193,21 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                             onClick={() => {
                               let nextSelected = [...tempSelectedModifiers]
                               if (isSelected) {
-                                nextSelected = nextSelected.filter(m => m.id !== opt.id)
+                                if (maxAllowed === 1) {
+                                  nextSelected.splice(existingOptIndex, 1)
+                                } else {
+                                  if (!isAtMax) {
+                                    nextSelected[existingOptIndex] = { ...nextSelected[existingOptIndex], qty: optQty + 1 }
+                                  }
+                                }
                               } else {
                                 if (maxAllowed === 1) {
                                   nextSelected = [
                                     ...nextSelected.filter(m => m.group_id !== group.id),
-                                    opt,
+                                    { ...opt, qty: 1 },
                                   ]
                                 } else {
-                                  nextSelected = [...nextSelected, opt]
+                                  nextSelected = [...nextSelected, { ...opt, qty: 1 }]
                                 }
                               }
                               setTempSelectedModifiers(nextSelected)
@@ -3212,11 +3221,37 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                             }`}
                           >
                             <div className="flex w-full items-start justify-between gap-2">
-                              <div className={`text-sm font-black leading-tight ${isSelected ? 'text-emerald-900' : 'text-[#1A1A18]'}`}>
+                              <div className={`text-sm font-black leading-tight pr-8 ${isSelected ? 'text-emerald-900' : 'text-[#1A1A18]'}`}>
                                 {opt.name}
                               </div>
-                              <div className={`flex-shrink-0 flex h-6 w-6 items-center justify-center rounded-full transition-all ${isSelected ? 'bg-emerald-500 text-white' : 'bg-gray-100 text-transparent group-hover:bg-gray-200'}`}>
-                                <Check size={14} strokeWidth={3} />
+                              <div className="absolute right-3 top-3 z-10">
+                                {isSelected && maxAllowed > 1 ? (
+                                  <div className="flex items-center gap-1.5 bg-emerald-100 rounded-full shadow-sm border border-emerald-200 pr-1.5">
+                                    <div
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        let nextSelected = [...tempSelectedModifiers]
+                                        const idx = nextSelected.findIndex(m => m.id === opt.id)
+                                        if (idx > -1) {
+                                          if ((nextSelected[idx].qty || 1) > 1) {
+                                            nextSelected[idx] = { ...nextSelected[idx], qty: nextSelected[idx].qty - 1 }
+                                          } else {
+                                            nextSelected.splice(idx, 1)
+                                          }
+                                          setTempSelectedModifiers(nextSelected)
+                                        }
+                                      }}
+                                      className="w-6 h-6 rounded-full bg-white text-red-500 flex items-center justify-center hover:bg-red-50 cursor-pointer shadow-sm border border-emerald-50"
+                                    >
+                                      <Minus size={12} strokeWidth={4} />
+                                    </div>
+                                    <span className="text-[10px] font-black text-emerald-800">{optQty}</span>
+                                  </div>
+                                ) : (
+                                  <div className={`flex h-6 w-6 items-center justify-center rounded-full transition-all ${isSelected ? 'bg-emerald-500 text-white' : 'bg-gray-100 text-transparent group-hover:bg-gray-200'}`}>
+                                    <Check size={14} strokeWidth={3} />
+                                  </div>
+                                )}
                               </div>
                             </div>
                             <div className="flex w-full items-end justify-between mt-2">
