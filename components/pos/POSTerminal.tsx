@@ -2355,12 +2355,15 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
               <div className="flex w-full bg-gray-100 p-1 font-bold">
                 <button
                   onClick={() => {
-                    if (editingOrderId) {
+                    if (orderType === 'dine_in') {
+                        fetchTables();
+                        setShowTableModal(true);
+                    } else if (editingOrderId) {
                         setPendingOrderTypeSwitch('dine_in');
                     } else {
                         setOrderType('dine_in');
-                        fetchTables()
-                        setShowTableModal(true)
+                        fetchTables();
+                        setShowTableModal(true);
                     }
                   }}
                   className={`flex h-12 flex-1 items-center justify-center gap-3 text-[10px] font-black uppercase tracking-widest transition-all ${orderType === 'dine_in' ? 'bg-[#1A1A18] text-white shadow-lg' : 'text-gray-400 hover:text-black'}`}
@@ -2855,6 +2858,27 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                                                     const targetOrder = pendingForThisTable[0];
                                                     if (!targetOrder) throw new Error('ไม่พบออเดอร์ปลายทาง');
                                                     
+                                                    const { data: oldOrderData } = await supabase.from('pos_orders').select('*').eq('id', editingOrderId).single();
+                                                    
+                                                    if (oldOrderData) {
+                                                        const newTotal = Number(targetOrder.total || 0) + Number(oldOrderData.total || 0);
+                                                        const newSubtotal = Number(targetOrder.subtotal || 0) + Number(oldOrderData.subtotal || 0);
+                                                        const newTax = Number(targetOrder.tax || 0) + Number(oldOrderData.tax || 0);
+                                                        const newServiceCharge = Number(targetOrder.service_charge || 0) + Number(oldOrderData.service_charge || 0);
+                                                        
+                                                        const mergedTableNumber = targetOrder.table_number?.includes(oldOrderData.table_number) 
+                                                            ? targetOrder.table_number 
+                                                            : (targetOrder.table_number + ' + ' + oldOrderData.table_number);
+
+                                                        await supabase.from('pos_orders').update({
+                                                            subtotal: newSubtotal,
+                                                            tax: newTax,
+                                                            service_charge: newServiceCharge,
+                                                            total: newTotal,
+                                                            table_number: mergedTableNumber
+                                                        }).eq('id', targetOrder.id);
+                                                    }
+
                                                     const { data: currentItems } = await supabase.from('pos_order_items').select('*').eq('order_id', editingOrderId);
                                                     
                                                     if (currentItems && currentItems.length > 0) {
