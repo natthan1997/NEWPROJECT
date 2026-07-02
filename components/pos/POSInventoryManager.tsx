@@ -2659,7 +2659,7 @@ export default function POSInventoryManager({
                         <td className="py-2 px-2 text-center font-bold text-gray-500 whitespace-nowrap">{index + 1}</td>
                         <td className="py-2 px-2 font-mono text-xs text-gray-500 whitespace-nowrap truncate">{item.sku || '-'}</td>
                         <td className="py-2 px-2 font-black text-[#1A1A18] pr-4">{item.name}</td>
-                        <td className="py-2 px-2 text-center font-bold text-gray-400 whitespace-nowrap">{item.stock_quantity}</td>
+                        <td className="py-2 px-2 text-center font-bold text-gray-400 whitespace-nowrap">{item.stock_quantity} <span className="text-[10px] uppercase">{item.unit}</span></td>
                         <td className="py-2 px-2 text-center font-black text-lg text-red-600 whitespace-nowrap">{displayOrderAmount}</td>
                         <td className="py-2 px-2 text-center uppercase font-bold whitespace-nowrap truncate">{displayUnit}</td>
                         <td className="py-2 px-2 text-xs font-bold text-gray-400 whitespace-nowrap overflow-hidden text-ellipsis">
