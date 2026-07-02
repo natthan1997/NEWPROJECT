@@ -48,9 +48,10 @@ const formatModifierLabel = (modifier: any) => {
   const name = modifier.display_name || modifier.label || modifier.group_name || modifier.name || ''
   if (!name) return ''
   const value = modifier.value || modifier.selected_value || modifier.option_value || modifier.option_name || ''
+  const price = modifier.price_adjustment && modifier.price_adjustment > 0 ? ` (+฿${modifier.price_adjustment * (modifier.qty || 1)})` : ''
   const qtyPrefix = modifier.qty > 1 ? `${modifier.qty}x ` : ''
-  if (value && value !== name) return `${qtyPrefix}${name}: ${value}`
-  return `${qtyPrefix}${name}`
+  if (value && value !== name) return `${qtyPrefix}${name}: ${value}${price}`
+  return `${qtyPrefix}${name}${price}`
 }
 const getItemModifierSummary = (item: any) => buildOrderItemModifiers(item.selected_modifiers || [], item.note).map(formatModifierLabel).filter(Boolean).join(', ')
 const getModifierIdsKey = (modifiers: any[] = []) => modifiers.map((modifier: any) => modifier.id).sort().join(',')
@@ -2015,7 +2016,7 @@ export default function CustomerMenuPage() {
                                 )}
                                 {opt.price_adjustment !== 0 && (
                                     <div className={`text-[14px] font-medium shrink-0 pt-0.5 ${isSelected ? 'text-black' : 'text-gray-500'}`}>
-                                      {opt.price_adjustment > 0 ? `+฿${opt.price_adjustment}` : `-฿${Math.abs(opt.price_adjustment)}`}
+                                      {opt.price_adjustment * Math.max(1, optQty) > 0 ? `+฿${opt.price_adjustment * Math.max(1, optQty)}` : `-฿${Math.abs(opt.price_adjustment * Math.max(1, optQty))}`}
                                     </div>
                                 )}
                               </div>

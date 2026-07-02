@@ -3263,9 +3263,9 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                                 }`}
                               >
                                 {opt.price_adjustment > 0
-                                  ? `+ ฿${opt.price_adjustment}`
+                                  ? `+ ฿${opt.price_adjustment * Math.max(1, optQty)}`
                                   : opt.price_adjustment < 0
-                                    ? `- ฿${Math.abs(opt.price_adjustment)}`
+                                    ? `- ฿${Math.abs(opt.price_adjustment * Math.max(1, optQty))}`
                                     : 'FREE'}
                               </div>
                             </div>
