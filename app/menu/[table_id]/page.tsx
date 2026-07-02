@@ -1492,7 +1492,7 @@ export default function CustomerMenuPage() {
         {showCart && (
             <div className="fixed inset-0 z-[100] flex justify-end">
                 <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setShowCart(false)}></div>
-                <div className="relative w-full max-w-md bg-white h-screen flex flex-col border-l border-gray-200 animate-in slide-in-from-right duration-300">
+                <div className="relative w-full max-w-md bg-white h-[100dvh] flex flex-col border-l border-gray-200 animate-in slide-in-from-right duration-300">
                     <header className="px-6 py-8 border-b border-gray-100 flex justify-between items-end bg-white">
                         <div>
                              <h2 className="text-2xl font-black uppercase tracking-tighter text-black">{t.yourOrder}</h2>
@@ -1598,7 +1598,7 @@ export default function CustomerMenuPage() {
         {showTableBill && (
             <div className="fixed inset-0 z-[100] flex justify-end">
                 <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setShowTableBill(false)}></div>
-                <div className="relative w-full max-w-md bg-gray-50 h-screen flex flex-col shadow-2xl animate-in slide-in-from-right duration-300">
+                <div className="relative w-full max-w-md bg-gray-50 h-[100dvh] flex flex-col shadow-2xl animate-in slide-in-from-right duration-300">
                     <header className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10">
                         <div>
                              <h2 className="text-[20px] font-bold text-black tracking-tight">{t.billTitle}</h2>
