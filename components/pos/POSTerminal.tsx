@@ -278,7 +278,6 @@ export default function POSTerminal({
   const { locale } = useI18n();
   const [showPointModal, setShowPointModal] = useState(false)
   const [showTableModal, setShowTableModal] = useState(false)
-  const [showOrderActionsModal, setShowOrderActionsModal] = useState(false)
   const [showNotificationModal, setShowNotificationModal] = useState(false)
   const [showDeliveryHub, setShowDeliveryHub] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
@@ -2185,15 +2184,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                 <ChevronDown size={14} className="ml-1 sm:ml-2 opacity-50" />
               </button>
               
-              {editingOrderId && (
-                <button
-                  onClick={() => setShowOrderActionsModal(true)}
-                  className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl transition-all border border-[#E5E5DF] bg-white text-gray-500 hover:border-black hover:text-black shadow-sm"
-                  title="จัดการโต๊ะ (ย้าย/รวมโต๊ะ)"
-                >
-                  <Settings size={18} />
-                </button>
-              )}
+              
             </div>
 
             <div className="relative group w-full flex-1">
@@ -2787,177 +2778,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 
       {/* 7. TABLE SELECTION MODAL */}
       
-      {/* 8. ORDER ACTIONS MODAL (ย้ายโต๊ะ / รวมโต๊ะ / เปลี่ยนเป็น Takeaway) */}
-      {showOrderActionsModal && editingOrderId && (
-        <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setShowOrderActionsModal(false)}
-          ></div>
-          <div className="animate-in zoom-in-95 relative flex w-full max-w-md flex-col bg-white shadow-2xl rounded-2xl overflow-hidden">
-            <header className="flex items-center justify-between border-b border-gray-100 bg-[#FDFDFB] p-6">
-              <div>
-                <h2 className="text-xl font-black uppercase tracking-tighter text-black">
-                  จัดการออเดอร์
-                </h2>
-                <p className="text-[10px] uppercase tracking-widest text-gray-500 mt-1">
-                  {orderType === 'takeaway' ? 'Takeaway' : selectedTable ? `โต๊ะ ${selectedTable.table_number}` : 'Delivery'}
-                </p>
-              </div>
-              <button onClick={() => setShowOrderActionsModal(false)} className="p-2 text-gray-400 hover:text-black transition-colors bg-white border border-gray-200 rounded-full">
-                <X size={16} />
-              </button>
-            </header>
-            
-            <div className="p-6 flex flex-col gap-4">
-              
-              {/* ACTION: ย้ายโต๊ะ (Move Table) */}
-              {orderType === 'dine_in' && selectedTable && (
-                <div className="border border-gray-200 rounded-xl p-4">
-                  <div className="flex items-center gap-3 mb-4">
-                     <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center">
-                        <ArrowRight size={18} />
-                     </div>
-                     <div>
-                        <h3 className="font-bold text-sm">ย้ายโต๊ะ (Move Table)</h3>
-                        <p className="text-[10px] text-gray-500 uppercase">ย้ายออเดอร์นี้ไปโต๊ะอื่นที่ยังว่าง</p>
-                     </div>
-                  </div>
-                  <select 
-                    onChange={async (e) => {
-                       const targetId = e.target.value;
-                       if (!targetId) return;
-                       if (!confirm('ยืนยันการย้ายโต๊ะ?')) { e.target.value = ''; return; }
-                       
-                       setShowOrderActionsModal(false);
-                       setIsProcessing(true);
-                       try {
-                          // 1. Update Order
-                          const targetTable = tables.find(t => t.id === targetId);
-                          await supabase.from('pos_orders').update({ table_id: targetId, table_number: targetTable?.table_number }).eq('id', editingOrderId);
-                          
-                          // 2. Clear old table
-                          await supabase.from('pos_tables').update({ status: 'available' }).eq('id', selectedTable.id);
-                          
-                          // 3. Occupy new table
-                          await supabase.from('pos_tables').update({ status: 'occupied' }).eq('id', targetId);
-                          
-                          setSelectedTable(targetTable);
-                          fetchTables();
-                          refreshPendingOrders();
-                       } catch (err: any) {
-                          alert('Error moving table: ' + err.message);
-                       } finally {
-                          setIsProcessing(false);
-                       }
-                    }}
-                    className="w-full bg-gray-50 border border-gray-200 p-3 rounded-lg text-xs font-bold outline-none"
-                    value=""
-                  >
-                    <option value="" disabled>-- เลือกโต๊ะปลายทางที่ต้องการย้ายไป --</option>
-                    {tables.filter(t => t.id !== selectedTable?.id && t.status === 'available' && !t.parent_table_id).map(t => (
-                       <option key={t.id} value={t.id}>โต๊ะ {t.table_number}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {/* ACTION: รวมโต๊ะ (Merge Table) */}
-              {orderType === 'dine_in' && selectedTable && (
-                <div className="border border-gray-200 rounded-xl p-4">
-                  <div className="flex items-center gap-3 mb-4">
-                     <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center">
-                        <Plus size={18} />
-                     </div>
-                     <div>
-                        <h3 className="font-bold text-sm">รวมโต๊ะ (Merge Table)</h3>
-                        <p className="text-[10px] text-gray-500 uppercase">ดึงโต๊ะอื่นมารวมบิลกับโต๊ะนี้</p>
-                     </div>
-                  </div>
-                  <select 
-                    onChange={async (e) => {
-                       const targetId = e.target.value;
-                       if (!targetId) return;
-                       if (!confirm('ยืนยันการดึงโต๊ะนี้มารวมบิล?')) { e.target.value = ''; return; }
-                       
-                       setShowOrderActionsModal(false);
-                       setIsProcessing(true);
-                       try {
-                          await supabase.from('pos_tables').update({ parent_table_id: selectedTable.id }).eq('id', targetId);
-                          fetchTables();
-                          alert('รวมโต๊ะสำเร็จ! บิลและรายการอาหารของโต๊ะนั้นจะวิ่งมาที่โต๊ะนี้ทั้งหมด');
-                       } catch (err: any) {
-                          alert('Error merging table: ' + err.message);
-                       } finally {
-                          setIsProcessing(false);
-                       }
-                    }}
-                    className="w-full bg-gray-50 border border-gray-200 p-3 rounded-lg text-xs font-bold outline-none"
-                    value=""
-                  >
-                    <option value="" disabled>-- เลือกโต๊ะที่ต้องการนำมารวมกับโต๊ะนี้ --</option>
-                    {tables.filter(t => t.id !== selectedTable?.id && t.status !== 'occupied' && !t.parent_table_id).map(t => (
-                       <option key={t.id} value={t.id}>โต๊ะ {t.table_number}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {/* ACTION: เปลี่ยนประเภทบิล (Change Type) */}
-              <div className="border border-gray-200 rounded-xl p-4">
-                <div className="flex items-center gap-3 mb-4">
-                   <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center">
-                      <RefreshCcw size={18} />
-                   </div>
-                   <div>
-                      <h3 className="font-bold text-sm">เปลี่ยนประเภทบิล</h3>
-                      <p className="text-[10px] text-gray-500 uppercase">เปลี่ยนระหว่าง ทานที่ร้าน / สั่งกลับบ้าน</p>
-                   </div>
-                </div>
-                
-                {orderType === 'dine_in' ? (
-                   <button 
-                      onClick={async () => {
-                         if (!confirm('ยืนยันการเปลี่ยนบิลนี้เป็นสั่งกลับบ้าน (Takeaway)? โต๊ะปัจจุบันจะถูกเคลียร์ให้ว่างทันที')) return;
-                         setShowOrderActionsModal(false);
-                         setIsProcessing(true);
-                         try {
-                            await supabase.from('pos_orders').update({ order_type: 'takeaway', table_id: null, table_number: null }).eq('id', editingOrderId);
-                            if (selectedTable?.id) {
-                               await supabase.from('pos_tables').update({ status: 'available' }).eq('id', selectedTable.id);
-                            }
-                            setOrderType('takeaway');
-                            setSelectedTable(null);
-                            fetchTables();
-                            refreshPendingOrders();
-                         } catch(e: any) { alert(e.message); }
-                         finally { setIsProcessing(false); }
-                      }}
-                      className="w-full bg-[#1A1A18] text-white p-3 rounded-lg text-xs font-bold uppercase tracking-widest hover:scale-[1.02] transition-transform"
-                   >
-                      เปลี่ยนเป็นห่อกลับบ้าน (Takeaway)
-                   </button>
-                ) : (
-                   <button 
-                      onClick={() => {
-                         setShowOrderActionsModal(false);
-                         // Instead of directly moving, we need them to select a table first. 
-                         // Just set order type to dine_in and open table modal.
-                         setOrderType('dine_in');
-                         setShowTableModal(true);
-                      }}
-                      className="w-full bg-[#1A1A18] text-white p-3 rounded-lg text-xs font-bold uppercase tracking-widest hover:scale-[1.02] transition-transform"
-                   >
-                      เปลี่ยนเป็นทานที่ร้าน (เลือกโต๊ะ)
-                   </button>
-                )}
-              </div>
-
-            </div>
-          </div>
-        </div>
-      )}
-{showTableModal && (
+      {showTableModal && (
         <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -2997,30 +2818,47 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                             if (pendingForThisTable.length > 0 && cart.length > 0 && !editingOrderId) {
                                 setMergeTableTarget({ table: targetTable, pendingOrder: pendingForThisTable[0] })
                             } else {
+                                if (editingOrderId) {
+                                    if (isOccupied) {
+                                        if (confirm(`โต๊ะ ${targetTable.table_number} มีลูกค้าอยู่แล้ว ต้องการนำบิลของโต๊ะ ${selectedTable?.table_number || 'ปัจจุบัน'} ไปรวมบิลด้วยใช่หรือไม่?`)) {
+                                            supabase.from('pos_tables').update({ parent_table_id: targetTable.id }).eq('id', selectedTable?.id).then(() => {
+                                                fetchTables();
+                                                setShowTableModal(false);
+                                                alert('รวมโต๊ะสำเร็จ! บิลและรายการอาหารจะถูกผูกรวมกับโต๊ะหลัก');
+                                            });
+                                        }
+                                        return;
+                                    } else {
+                                        const promptMsg = orderType === 'takeaway' 
+                                            ? `ยืนยันการนำออเดอร์สั่งกลับบ้านนี้ ไปนั่งทานที่โต๊ะ ${targetTable.table_number}?`
+                                            : `ต้องการย้ายออเดอร์นี้ไปโต๊ะ ${targetTable.table_number} ใช่หรือไม่?`;
+                                        
+                                        if (confirm(promptMsg)) {
+                                            supabase.from('pos_orders').update({ table_id: targetTable.id, table_number: targetTable.table_number, order_type: 'dine_in' }).eq('id', editingOrderId).then(() => {
+                                                supabase.from('pos_tables').update({ status: 'occupied' }).eq('id', targetTable.id).then(() => {
+                                                    if (selectedTable?.id) {
+                                                        supabase.from('pos_tables').update({ status: 'available' }).eq('id', selectedTable.id).then(() => fetchTables());
+                                                    } else {
+                                                        fetchTables();
+                                                    }
+                                                    refreshPendingOrders();
+                                                    setSelectedTable(targetTable);
+                                                    setOrderType('dine_in');
+                                                    resetDeliveryDraft();
+                                                    setShowTableModal(false);
+                                                });
+                                            });
+                                        }
+                                        return;
+                                    }
+                                }
+
                                 setSelectedTable(targetTable)
                                 setOrderType('dine_in')
                                 resetDeliveryDraft()
                                 setShowTableModal(false)
                                 if (pendingForThisTable.length > 0) {
                                     handleResumeOrder(pendingForThisTable[0])
-                                } else {
-                                    if (editingOrderId) {
-                                        if (orderType === 'takeaway') {
-                                            if (confirm(`ยืนยันการนำออเดอร์สั่งกลับบ้านนี้ ไปนั่งทานที่โต๊ะ ${targetTable.table_number}?`)) {
-                                                supabase.from('pos_orders').update({ table_id: targetTable.id, table_number: targetTable.table_number, order_type: 'dine_in' }).eq('id', editingOrderId).then(() => {
-                                                    supabase.from('pos_tables').update({ status: 'occupied' }).eq('id', targetTable.id).then(() => {
-                                                        fetchTables();
-                                                        refreshPendingOrders();
-                                                    });
-                                                });
-                                                return;
-                                            }
-                                        }
-                                        setCart([])
-                                        setEditingOrderId(null)
-                                        setEditingOrderNumber('')
-                                        setTotalPaid(0)
-                                    }
                                 }
                             }
                           }
@@ -3908,7 +3746,17 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                   
                   // Auto-update db if editing
                   if (editingOrderId) {
-                      await supabase.from('pos_orders').update({ order_type: newType, table_id: newType !== 'dine_in' ? null : undefined }).eq('id', editingOrderId);
+                      if (newType !== 'dine_in') {
+                          await supabase.from('pos_orders').update({ order_type: newType, table_id: null, table_number: null }).eq('id', editingOrderId);
+                          if (selectedTable?.id) {
+                              await supabase.from('pos_tables').update({ status: 'available' }).eq('id', selectedTable.id);
+                          }
+                          fetchTables();
+                          refreshPendingOrders();
+                      } else {
+                          // They are switching to dine_in, open table modal to pick a table
+                          setShowTableModal(true);
+                      }
                   }
                 }}
                 className="w-full rounded-2xl bg-red-500 py-4 text-[13px] font-black uppercase tracking-widest text-white transition-all hover:scale-[1.02] active:scale-[0.98]"
