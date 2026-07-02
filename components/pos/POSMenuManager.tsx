@@ -639,7 +639,7 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
                                    <div className="flex items-center justify-between pt-3 border-t border-gray-100">
                                        <div className="flex flex-col">
                                            <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">ต้นทุน</span>
-                                           <span className="text-[11px] font-bold text-gray-700">฿ {item.cost_price || 0}</span>
+                                           <span className="text-[11px] font-bold text-gray-700">฿ {Number(item.cost_price || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
                                        </div>
                                        <div className="flex flex-col items-end">
                                            <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">กำไร</span>
@@ -751,8 +751,7 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
                   </AnimatePresence>
                 </div>
 
-                
-                <div className="space-y-12">
+                <div className="space-y-8 pb-20">
                     {categorySections.map(cat => {
                         const itemsInCat = filteredItems.filter(item => 
                             cat.id === 'uncategorized' 
@@ -763,257 +762,175 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
                         if (itemsInCat.length === 0) return null;
 
                         const activePlatforms = shopSettings?.opening_hours?.active_delivery_platforms || ['grab', 'lineman', 'shopee', 'foodpanda', 'robinhood'];
-                        const tableColSpan = 5 + activePlatforms.length
 
                         return (
-                            <div key={cat.id} className="bg-white border border-[#F0F0E8] overflow-hidden rounded-xl shadow-sm">
-                                <div className="bg-[#1A1A18] text-white p-4 sm:p-5 flex items-center justify-between">
-                                    <h3 className="text-lg sm:text-xl font-black uppercase tracking-widest">{cat.name}</h3>
-                                    <span className="text-[10px] sm:text-xs font-black opacity-60 bg-white/10 px-3 py-1 rounded-full">{itemsInCat.length} Items</span>
+                            <div key={cat.id} className="bg-white border border-gray-100/80 rounded-3xl overflow-hidden shadow-sm">
+                                <div className="bg-gray-50/50 backdrop-blur-sm px-6 py-4 flex items-center justify-between border-b border-gray-100">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-2 h-6 rounded-full bg-[#1A1A18]"></div>
+                                        <h3 className="text-[16px] sm:text-[18px] font-black text-gray-900 tracking-tight">{cat.name}</h3>
+                                    </div>
+                                    <span className="text-[11px] font-bold text-gray-500 bg-white shadow-sm px-3 py-1 rounded-full">{itemsInCat.length} Items</span>
                                 </div>
                                 <div className="overflow-x-auto no-scrollbar">
-                                    <table className="w-full text-left border-collapse min-w-[800px] sm:min-w-full">
+                                    <table className="w-full text-left min-w-[900px] border-collapse">
                                         <thead>
-                                            <tr className="bg-gray-50/50 border-b border-[#F0F0E8]">
-                                                <th className="p-4 sm:p-6 text-[10px] font-black uppercase tracking-widest text-[#8C8A81] w-12 sm:w-16 text-center border-r border-[#F0F0E8]">Pic</th>
-                                                <th className="p-4 sm:p-6 text-[10px] font-black uppercase tracking-widest text-[#8C8A81] border-r border-[#F0F0E8] w-1/3 sm:w-auto min-w-[190px]">ชื่อเมนู</th>
-                                                <th className="p-4 sm:p-6 text-[10px] font-black uppercase tracking-widest text-[#8C8A81] w-28 sm:w-48 text-center border-r border-[#F0F0E8] bg-gray-50">หน้าร้าน (฿)</th>
+                                            <tr className="border-b border-gray-100">
+                                                <th className="p-4 text-[10px] font-black uppercase tracking-widest text-gray-400 w-16 text-center">รูป</th>
+                                                <th className="p-4 text-[10px] font-black uppercase tracking-widest text-gray-400 min-w-[200px]">รายละเอียดเมนู</th>
+                                                <th className="p-4 text-[10px] font-black uppercase tracking-widest text-gray-400 w-32 text-center bg-gray-50/30">ต้นทุน (฿)</th>
+                                                <th className="p-4 text-[10px] font-black uppercase tracking-widest text-gray-400 w-32 text-center bg-gray-50/50">ราคาขาย (฿)</th>
                                                 
-                                                {activePlatforms.includes('grab') && <th className="p-4 sm:p-6 text-[10px] font-black uppercase tracking-widest text-[#00B14F] w-24 sm:w-32 text-center border-r border-[#F0F0E8] bg-[#00B14F]/5">Grab</th>}
-                                                {activePlatforms.includes('lineman') && <th className="p-4 sm:p-6 text-[10px] font-black uppercase tracking-widest text-[#00B900] w-24 sm:w-32 text-center border-r border-[#F0F0E8] bg-[#00B900]/5">Lineman</th>}
-                                                {activePlatforms.includes('shopee') && <th className="p-4 sm:p-6 text-[10px] font-black uppercase tracking-widest text-[#EE4D2D] w-24 sm:w-32 text-center border-r border-[#F0F0E8] bg-[#EE4D2D]/5">Shopee</th>}
-                                                {activePlatforms.includes('foodpanda') && <th className="p-4 sm:p-6 text-[10px] font-black uppercase tracking-widest text-[#D70F64] w-24 sm:w-32 text-center border-r border-[#F0F0E8] bg-[#D70F64]/5">Foodpanda</th>}
-                                                {activePlatforms.includes('robinhood') && <th className="p-4 sm:p-6 text-[10px] font-black uppercase tracking-widest text-[#6023A2] w-24 sm:w-32 text-center border-r border-[#F0F0E8] bg-[#6023A2]/5">Robinhood</th>}
+                                                {activePlatforms.includes('grab') && <th className="p-4 text-[10px] font-black uppercase tracking-widest text-[#00B14F] w-28 text-center bg-[#00B14F]/5">Grab</th>}
+                                                {activePlatforms.includes('lineman') && <th className="p-4 text-[10px] font-black uppercase tracking-widest text-[#00B900] w-28 text-center bg-[#00B900]/5">Lineman</th>}
+                                                {activePlatforms.includes('shopee') && <th className="p-4 text-[10px] font-black uppercase tracking-widest text-[#EE4D2D] w-28 text-center bg-[#EE4D2D]/5">Shopee</th>}
+                                                {activePlatforms.includes('foodpanda') && <th className="p-4 text-[10px] font-black uppercase tracking-widest text-[#D70F64] w-28 text-center bg-[#D70F64]/5">Foodpanda</th>}
+                                                {activePlatforms.includes('robinhood') && <th className="p-4 text-[10px] font-black uppercase tracking-widest text-[#6023A2] w-28 text-center bg-[#6023A2]/5">Robinhood</th>}
                                                 
-                                                <th className="p-4 sm:p-6 text-[10px] font-black uppercase tracking-widest text-[#8C8A81] w-24 sm:w-32 text-center border-r border-[#F0F0E8]">สถานะ</th>
-                                                <th className="p-4 sm:p-6 text-[10px] font-black uppercase tracking-widest text-[#8C8A81] w-20 sm:w-28 text-center">ลบ</th>
+                                                <th className="p-4 text-[10px] font-black uppercase tracking-widest text-gray-400 w-32 text-center">สถานะ</th>
+                                                <th className="p-4 text-[10px] font-black uppercase tracking-widest text-gray-400 w-16 text-center">จัดการ</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-[#F0F0E8]">
+                                        <tbody className="divide-y divide-gray-50">
                                             {itemsInCat.map((item, idx) => (
-                                                <React.Fragment key={item.id}>
-                                                  <tr className="group hover:bg-sage-50/20 transition-colors align-top">
-                                                      <td className="p-3 sm:p-4 border-r border-[#F0F0E8]">
-                                                          <div className="space-y-3">
-                                                            <div className="w-10 h-10 sm:w-14 sm:h-14 bg-gray-50 border border-gray-100 overflow-hidden mx-auto rounded-lg">
-                                                                {item.image_url ? <img src={item.image_url} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center opacity-10"><ImageIcon size={16} /></div>}
-                                                            </div>
-                                                            <label className="block cursor-pointer">
-                                                              <input
-                                                                type="file"
-                                                                className="hidden"
-                                                                accept="image/*"
-                                                                onChange={(e) => handleInlineImageUpload(item.id, e.target.files?.[0])}
-                                                              />
-                                                              <span className="block border border-[#E5E5DF] bg-white px-2 py-1 text-center text-[9px] font-black uppercase tracking-widest text-gray-500 hover:border-black hover:text-black transition-all">
-                                                                รูป
-                                                              </span>
+                                                <tr key={item.id} className="group hover:bg-gray-50/40 transition-colors align-middle">
+                                                    {/* Image Column */}
+                                                    <td className="p-4 text-center">
+                                                        <div className="relative w-12 h-12 rounded-xl bg-gray-100 overflow-hidden mx-auto shadow-sm group-hover:shadow transition-all">
+                                                            {item.image_url ? (
+                                                                <img src={item.image_url} className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                <div className="w-full h-full flex items-center justify-center text-gray-300"><ImageIcon size={14} /></div>
+                                                            )}
+                                                            <label className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
+                                                                <input type="file" className="hidden" accept="image/*" onChange={(e) => handleInlineImageUpload(item.id, e.target.files?.[0])} />
+                                                                <span className="text-[9px] font-black text-white uppercase tracking-widest">เปลี่ยน</span>
                                                             </label>
-                                                          </div>
-                                                      </td>
-                                                      <td className="p-0 border-r border-[#F0F0E8]">
-                                                          <div className="flex h-full flex-col justify-center gap-2 p-4 sm:p-6">
-                                                              <input 
-                                                                  type="text" 
-                                                                  defaultValue={item.name} 
-                                                                  onBlur={(e) => handleBulkUpdate(item.id, 'name', e.target.value)}
-                                                                  className="w-full bg-transparent outline-none focus:bg-white focus:ring-2 focus:ring-inset focus:ring-black text-sm sm:text-base font-black uppercase text-black transition-all"
-                                                              />
-                                                              <input
-                                                                type="text"
-                                                                defaultValue={item.name_en || ''}
-                                                                onBlur={(e) => handleBulkUpdate(item.id, 'name_en', e.target.value)}
-                                                                placeholder="English name"
-                                                                className="w-full bg-white/70 px-3 py-2 text-[11px] font-semibold text-gray-600 outline-none focus:ring-2 focus:ring-inset focus:ring-black"
-                                                              />
-                                                              <input
-                                                                type="text"
-                                                                defaultValue={item.name_zh || ''}
-                                                                onBlur={(e) => handleBulkUpdate(item.id, 'name_zh', e.target.value)}
-                                                                placeholder="Chinese name"
-                                                                className="w-full bg-white/70 px-3 py-2 text-[11px] font-semibold text-gray-600 outline-none focus:ring-2 focus:ring-inset focus:ring-black"
-                                                              />
-                                                          </div>
-                                                      </td>
-                                                      <td className="p-0 border-r border-[#F0F0E8] bg-gray-50/30">
-                                                          <div className="grid h-full grid-cols-1">
-                                                            <input 
-                                                                type="number" 
-                                                                defaultValue={item.sale_price} 
-                                                                onBlur={(e) => handleBulkUpdate(item.id, 'sale_price', Number(e.target.value))}
-                                                                className="w-full p-4 sm:p-5 bg-transparent outline-none focus:bg-white focus:ring-2 focus:ring-inset focus:ring-black text-lg sm:text-xl font-black text-black text-center transition-all border-b border-[#F0F0E8]"
-                                                            />
-                                                            <input
-                                                              type="number"
-                                                              defaultValue={item.cost_price || 0}
-                                                              onBlur={(e) => handleBulkUpdate(item.id, 'cost_price', Number(e.target.value))}
-                                                              className="w-full p-3 sm:p-4 bg-transparent outline-none focus:bg-white focus:ring-2 focus:ring-inset focus:ring-black text-sm font-black text-gray-600 text-center transition-all"
-                                                              placeholder="ต้นทุน"
-                                                            />
-                                                          </div>
-                                                      </td>
-                                                      
-                                                      {activePlatforms.includes('grab') && (
-                                                          <td className="p-0 border-r border-[#F0F0E8] bg-[#00B14F]/5">
-                                                              <input 
-                                                                  type="number" 
-                                                                  defaultValue={item.platform_prices?.grab || ''} 
-                                                                  placeholder="Auto"
-                                                                  onBlur={(e) => handleBulkUpdate(item.id, 'platform_prices', {...(item.platform_prices || {}), grab: Number(e.target.value) || null})}
-                                                                  className="w-full h-full p-4 sm:p-6 bg-transparent outline-none focus:bg-white focus:ring-2 focus:ring-inset focus:ring-[#00B14F] text-base sm:text-lg font-black text-[#00B14F] placeholder:text-[#00B14F]/30 text-center transition-all"
-                                                              />
-                                                          </td>
-                                                      )}
-                                                      {activePlatforms.includes('lineman') && (
-                                                          <td className="p-0 border-r border-[#F0F0E8] bg-[#00B900]/5">
-                                                              <input 
-                                                                  type="number" 
-                                                                  defaultValue={item.platform_prices?.lineman || ''} 
-                                                                  placeholder="Auto"
-                                                                  onBlur={(e) => handleBulkUpdate(item.id, 'platform_prices', {...(item.platform_prices || {}), lineman: Number(e.target.value) || null})}
-                                                                  className="w-full h-full p-4 sm:p-6 bg-transparent outline-none focus:bg-white focus:ring-2 focus:ring-inset focus:ring-[#00B900] text-base sm:text-lg font-black text-[#00B900] placeholder:text-[#00B900]/30 text-center transition-all"
-                                                              />
-                                                          </td>
-                                                      )}
-                                                      {activePlatforms.includes('shopee') && (
-                                                          <td className="p-0 border-r border-[#F0F0E8] bg-[#EE4D2D]/5">
-                                                              <input 
-                                                                  type="number" 
-                                                                  defaultValue={item.platform_prices?.shopee || ''} 
-                                                                  placeholder="Auto"
-                                                                  onBlur={(e) => handleBulkUpdate(item.id, 'platform_prices', {...(item.platform_prices || {}), shopee: Number(e.target.value) || null})}
-                                                                  className="w-full h-full p-4 sm:p-6 bg-transparent outline-none focus:bg-white focus:ring-2 focus:ring-inset focus:ring-[#EE4D2D] text-base sm:text-lg font-black text-[#EE4D2D] placeholder:text-[#EE4D2D]/30 text-center transition-all"
-                                                              />
-                                                          </td>
-                                                      )}
-                                                      {activePlatforms.includes('foodpanda') && (
-                                                          <td className="p-0 border-r border-[#F0F0E8] bg-[#D70F64]/5">
-                                                              <input 
-                                                                  type="number" 
-                                                                  defaultValue={item.platform_prices?.foodpanda || ''} 
-                                                                  placeholder="Auto"
-                                                                  onBlur={(e) => handleBulkUpdate(item.id, 'platform_prices', {...(item.platform_prices || {}), foodpanda: Number(e.target.value) || null})}
-                                                                  className="w-full h-full p-4 sm:p-6 bg-transparent outline-none focus:bg-white focus:ring-2 focus:ring-inset focus:ring-[#D70F64] text-base sm:text-lg font-black text-[#D70F64] placeholder:text-[#D70F64]/30 text-center transition-all"
-                                                              />
-                                                          </td>
-                                                      )}
-                                                      {activePlatforms.includes('robinhood') && (
-                                                          <td className="p-0 border-r border-[#F0F0E8] bg-[#6023A2]/5">
-                                                              <input 
-                                                                  type="number" 
-                                                                  defaultValue={item.platform_prices?.robinhood || ''} 
-                                                                  placeholder="Auto"
-                                                                  onBlur={(e) => handleBulkUpdate(item.id, 'platform_prices', {...(item.platform_prices || {}), robinhood: Number(e.target.value) || null})}
-                                                                  className="w-full h-full p-4 sm:p-6 bg-transparent outline-none focus:bg-white focus:ring-2 focus:ring-inset focus:ring-[#6023A2] text-base sm:text-lg font-black text-[#6023A2] placeholder:text-[#6023A2]/30 text-center transition-all"
-                                                              />
-                                                          </td>
-                                                      )}
-
-                                                      <td className="p-0 border-r border-[#F0F0E8]">
-                                                          <select 
-                                                              value={item.status}
-                                                              onChange={(e) => handleBulkUpdate(item.id, 'status', e.target.value)}
-                                                              className="w-full h-full p-4 sm:p-6 bg-transparent outline-none focus:bg-white focus:ring-2 focus:ring-inset focus:ring-black text-[10px] sm:text-[11px] font-black uppercase text-center cursor-pointer transition-all"
-                                                          >
-                                                              <option value="active">Active</option>
-                                                              <option value="inactive">Hidden</option>
-                                                              <option value="out_of_stock">Out of Stock</option>
-                                                          </select>
-                                                      </td>
-                                                      <td className="p-4 sm:p-6 text-center">
-                                                          <button onClick={() => handleDeleteItem(item.id)} className="text-gray-300 hover:text-red-500 transition-all p-2 bg-gray-50 hover:bg-red-50 rounded-full">
-                                                              <Trash2 size={18} />
-                                                          </button>
-                                                      </td>
-                                                  </tr>
-                                                  <tr className="bg-[#FAF9F6]/80">
-                                                    <td colSpan={tableColSpan} className="border-t border-[#F0F0E8] px-4 py-4 sm:px-6 sm:py-5">
-                                                      <div className="grid gap-4 lg:grid-cols-[220px_220px_1fr]">
-                                                        <div className="space-y-3">
-                                                          <div>
-                                                            <div className="mb-2 text-[9px] font-black uppercase tracking-[0.18em] text-gray-400">หมวดหมู่</div>
-                                                            <select
-                                                              value={item.category_id || ''}
-                                                              onChange={(e) => handleBulkUpdate(item.id, 'category_id', e.target.value || null)}
-                                                              className="w-full border border-[#E5E5DF] bg-white px-3 py-2 text-[11px] font-black text-black outline-none focus:ring-2 focus:ring-inset focus:ring-black"
-                                                            >
-                                                              <option value="">ไม่ระบุหมวด</option>
-                                                              {categories.map(category => (
-                                                                <option key={category.id} value={category.id}>{category.name}</option>
-                                                              ))}
-                                                            </select>
-                                                          </div>
-                                                          <div>
-                                                            <div className="mb-2 text-[9px] font-black uppercase tracking-[0.18em] text-gray-400">ลิงก์รูปภาพ</div>
-                                                            <input
-                                                              type="text"
-                                                              defaultValue={item.image_url || ''}
-                                                              onBlur={(e) => handleBulkUpdate(item.id, 'image_url', e.target.value || null)}
-                                                              placeholder="https://..."
-                                                              className="w-full border border-[#E5E5DF] bg-white px-3 py-2 text-[11px] font-semibold text-black outline-none focus:ring-2 focus:ring-inset focus:ring-black"
-                                                            />
-                                                          </div>
                                                         </div>
-
-                                                        <div className="space-y-3">
-                                                          <div>
-                                                            <div className="mb-2 text-[9px] font-black uppercase tracking-[0.18em] text-gray-400">การแสดงผล</div>
-                                                            <div className="grid grid-cols-2 gap-2">
-                                                              {[
-                                                                { key: 'is_recommended', label: 'แนะนำ', active: item.is_recommended, activeClass: 'bg-amber-400 text-white border-amber-400' },
-                                                                { key: 'is_popular', label: 'ยอดนิยม', active: item.is_popular, activeClass: 'bg-rose-500 text-white border-rose-500' },
-                                                                { key: 'is_online_available', label: 'QR Menu', active: item.is_online_available !== false, activeClass: 'bg-emerald-500 text-white border-emerald-500' },
-                                                                { key: 'is_delivery_available', label: 'Delivery', active: item.is_delivery_available !== false, activeClass: 'bg-blue-500 text-white border-blue-500' },
-                                                                { key: 'in_stock', label: 'สต็อก (In Stock)', active: item.in_stock !== false, activeClass: 'bg-teal-500 text-white border-teal-500' },
-                                                              ].map(toggle => (
-                                                                <button
-                                                                  key={toggle.key}
-                                                                  type="button"
-                                                                  onClick={() => handleBulkUpdate(item.id, toggle.key, !toggle.active)}
-                                                                  className={`border px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-all ${
-                                                                    toggle.active ? toggle.activeClass : 'border-[#E5E5DF] bg-white text-gray-400'
-                                                                  }`}
-                                                                >
-                                                                  {toggle.label}
-                                                                </button>
-                                                              ))}
-                                                            </div>
-                                                          </div>
-                                                          <div>
-                                                            <div className="mb-2 text-[9px] font-black uppercase tracking-[0.18em] text-gray-400">Modifier Groups</div>
-                                                            <div className="flex flex-wrap gap-2">
-                                                              {allModifierGroups.map(group => {
-                                                                const active = (item.modifiers || []).some((modifier: any) => modifier.group_id === group.id)
-                                                                return (
-                                                                  <button
-                                                                    key={group.id}
-                                                                    type="button"
-                                                                    onClick={() => handleModifierGroupToggle(item.id, group.id)}
-                                                                    className={`border px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-all ${
-                                                                      active ? 'border-black bg-black text-white' : 'border-[#E5E5DF] bg-white text-gray-500'
-                                                                    }`}
-                                                                  >
-                                                                    {group.name}
-                                                                  </button>
-                                                                )
-                                                              })}
-                                                            </div>
-                                                          </div>
-                                                        </div>
-
-                                                        <div>
-                                                          <div className="mb-2 text-[9px] font-black uppercase tracking-[0.18em] text-gray-400">คำอธิบาย</div>
-                                                          <textarea
-                                                            defaultValue={item.description || ''}
-                                                            onBlur={(e) => handleBulkUpdate(item.id, 'description', e.target.value)}
-                                                            placeholder="รายละเอียดเมนู"
-                                                            className="min-h-[112px] w-full border border-[#E5E5DF] bg-white px-3 py-3 text-[11px] font-semibold text-black outline-none focus:ring-2 focus:ring-inset focus:ring-black resize-y"
-                                                          />
-                                                        </div>
-                                                      </div>
                                                     </td>
-                                                  </tr>
-                                                </React.Fragment>
+
+                                                    {/* Details Column */}
+                                                    <td className="p-4">
+                                                        <div className="flex flex-col gap-1.5">
+                                                            <input 
+                                                                type="text" 
+                                                                defaultValue={item.name} 
+                                                                onBlur={(e) => handleBulkUpdate(item.id, 'name', e.target.value)}
+                                                                className="w-full bg-transparent outline-none focus:bg-white focus:ring-2 focus:ring-black/10 rounded-md px-2 py-1 -ml-2 text-[14px] font-black text-gray-900 transition-all"
+                                                            />
+                                                            <div className="flex gap-2">
+                                                                <input
+                                                                    type="text"
+                                                                    defaultValue={item.name_en || ''}
+                                                                    onBlur={(e) => handleBulkUpdate(item.id, 'name_en', e.target.value)}
+                                                                    placeholder="EN Name"
+                                                                    className="w-1/2 bg-transparent outline-none focus:bg-white focus:ring-2 focus:ring-black/10 rounded-md px-2 py-1 -ml-2 text-[11px] font-bold text-gray-400 transition-all placeholder:text-gray-300"
+                                                                />
+                                                                <input
+                                                                    type="text"
+                                                                    defaultValue={item.name_zh || ''}
+                                                                    onBlur={(e) => handleBulkUpdate(item.id, 'name_zh', e.target.value)}
+                                                                    placeholder="ZH Name"
+                                                                    className="w-1/2 bg-transparent outline-none focus:bg-white focus:ring-2 focus:ring-black/10 rounded-md px-2 py-1 text-[11px] font-bold text-gray-400 transition-all placeholder:text-gray-300"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </td>
+
+                                                    {/* Cost Column */}
+                                                    <td className="p-4 bg-gray-50/30">
+                                                        <input
+                                                            type="number"
+                                                            step="0.01"
+                                                            defaultValue={item.cost_price ? Number(item.cost_price).toFixed(2) : ''}
+                                                            onBlur={(e) => handleBulkUpdate(item.id, 'cost_price', Number(e.target.value))}
+                                                            placeholder="0.00"
+                                                            className="w-full bg-transparent outline-none focus:bg-white focus:ring-2 focus:ring-black/10 rounded-md py-1.5 text-[14px] font-black text-gray-500 text-center transition-all"
+                                                        />
+                                                        {item.sale_price > 0 && (
+                                                            <div className="text-[9px] font-bold text-center mt-1 text-gray-400">
+                                                                กำไร: <span className={((item.sale_price - (item.cost_price || 0)) / item.sale_price) > 0.5 ? 'text-emerald-500' : 'text-gray-500'}>
+                                                                    {Math.round(((item.sale_price - (item.cost_price || 0)) / item.sale_price) * 100)}%
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                    </td>
+
+                                                    {/* Sale Price Column */}
+                                                    <td className="p-4 bg-gray-50/50">
+                                                        <input 
+                                                            type="number" 
+                                                            defaultValue={item.sale_price} 
+                                                            onBlur={(e) => handleBulkUpdate(item.id, 'sale_price', Number(e.target.value))}
+                                                            className="w-full bg-transparent outline-none focus:bg-white focus:ring-2 focus:ring-black/10 rounded-md py-1.5 text-[15px] font-black text-gray-900 text-center transition-all"
+                                                        />
+                                                    </td>
+                                                    
+                                                    {/* Platform Prices */}
+                                                    {activePlatforms.includes('grab') && (
+                                                        <td className="p-4 bg-[#00B14F]/5">
+                                                            <input type="number" defaultValue={item.platform_prices?.grab || ''} placeholder="Auto" onBlur={(e) => handleBulkUpdate(item.id, 'platform_prices', {...(item.platform_prices || {}), grab: Number(e.target.value) || null})} className="w-full bg-transparent outline-none focus:bg-white focus:ring-2 focus:ring-[#00B14F]/20 rounded-md py-1.5 text-[14px] font-black text-[#00B14F] text-center placeholder:text-[#00B14F]/30 transition-all" />
+                                                        </td>
+                                                    )}
+                                                    {activePlatforms.includes('lineman') && (
+                                                        <td className="p-4 bg-[#00B900]/5">
+                                                            <input type="number" defaultValue={item.platform_prices?.lineman || ''} placeholder="Auto" onBlur={(e) => handleBulkUpdate(item.id, 'platform_prices', {...(item.platform_prices || {}), lineman: Number(e.target.value) || null})} className="w-full bg-transparent outline-none focus:bg-white focus:ring-2 focus:ring-[#00B900]/20 rounded-md py-1.5 text-[14px] font-black text-[#00B900] text-center placeholder:text-[#00B900]/30 transition-all" />
+                                                        </td>
+                                                    )}
+                                                    {activePlatforms.includes('shopee') && (
+                                                        <td className="p-4 bg-[#EE4D2D]/5">
+                                                            <input type="number" defaultValue={item.platform_prices?.shopee || ''} placeholder="Auto" onBlur={(e) => handleBulkUpdate(item.id, 'platform_prices', {...(item.platform_prices || {}), shopee: Number(e.target.value) || null})} className="w-full bg-transparent outline-none focus:bg-white focus:ring-2 focus:ring-[#EE4D2D]/20 rounded-md py-1.5 text-[14px] font-black text-[#EE4D2D] text-center placeholder:text-[#EE4D2D]/30 transition-all" />
+                                                        </td>
+                                                    )}
+                                                    {activePlatforms.includes('foodpanda') && (
+                                                        <td className="p-4 bg-[#D70F64]/5">
+                                                            <input type="number" defaultValue={item.platform_prices?.foodpanda || ''} placeholder="Auto" onBlur={(e) => handleBulkUpdate(item.id, 'platform_prices', {...(item.platform_prices || {}), foodpanda: Number(e.target.value) || null})} className="w-full bg-transparent outline-none focus:bg-white focus:ring-2 focus:ring-[#D70F64]/20 rounded-md py-1.5 text-[14px] font-black text-[#D70F64] text-center placeholder:text-[#D70F64]/30 transition-all" />
+                                                        </td>
+                                                    )}
+                                                    {activePlatforms.includes('robinhood') && (
+                                                        <td className="p-4 bg-[#6023A2]/5">
+                                                            <input type="number" defaultValue={item.platform_prices?.robinhood || ''} placeholder="Auto" onBlur={(e) => handleBulkUpdate(item.id, 'platform_prices', {...(item.platform_prices || {}), robinhood: Number(e.target.value) || null})} className="w-full bg-transparent outline-none focus:bg-white focus:ring-2 focus:ring-[#6023A2]/20 rounded-md py-1.5 text-[14px] font-black text-[#6023A2] text-center placeholder:text-[#6023A2]/30 transition-all" />
+                                                        </td>
+                                                    )}
+
+                                                    {/* Status Column */}
+                                                    <td className="p-4">
+                                                        <div className="flex flex-col gap-2 items-center">
+                                                            <button
+                                                                onClick={() => handleBulkUpdate(item.id, 'status', item.status === 'active' ? 'inactive' : 'active')}
+                                                                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${item.status === 'active' ? 'bg-[#1A1A18]' : 'bg-gray-200'}`}
+                                                            >
+                                                                <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${item.status === 'active' ? 'translate-x-5' : 'translate-x-1'}`} />
+                                                            </button>
+                                                            <div className="flex gap-1">
+                                                                <button
+                                                                    onClick={() => handleBulkUpdate(item.id, 'is_recommended', !item.is_recommended)}
+                                                                    className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${item.is_recommended ? 'bg-amber-100 text-amber-500' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
+                                                                    title="Recommend"
+                                                                >
+                                                                    <Star size={11} className={item.is_recommended ? "fill-amber-500" : ""} />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleBulkUpdate(item.id, 'out_of_stock', !item.out_of_stock)}
+                                                                    className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${item.out_of_stock ? 'bg-red-100 text-red-500' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
+                                                                    title="Out of Stock"
+                                                                >
+                                                                    <AlertCircle size={11} />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+
+                                                    {/* Actions Column */}
+                                                    <td className="p-4 text-center">
+                                                        <button 
+                                                            onClick={() => handleDeleteItem(item.id)} 
+                                                            className="w-8 h-8 rounded-full bg-red-50 text-red-400 flex items-center justify-center mx-auto hover:bg-red-500 hover:text-white transition-all shadow-sm"
+                                                        >
+                                                            <Trash2 size={12} />
+                                                        </button>
+                                                    </td>
+                                                </tr>
                                             ))}
                                         </tbody>
                                     </table>
@@ -1021,6 +938,7 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
                             </div>
                         );
                     })}
+
                     {filteredItems.length === 0 && (
                       <div className="flex min-h-[280px] items-center justify-center border border-dashed border-[#E5E5DF] bg-[#FAF9F6] px-6 text-center">
                         <div>
