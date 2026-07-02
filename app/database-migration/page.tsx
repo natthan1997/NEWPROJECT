@@ -478,6 +478,24 @@ NOTIFY pgrst, 'reload schema';
             </p>
           </div>
 
+                    {/* Feature: Fix Order Number Constraint */}
+          <div className="border border-red-200 rounded-lg p-4 bg-red-50 mt-4">
+            <h2 className="text-lg font-semibold text-red-800 mb-3">
+              🔧 แก้บั๊กเลขคิวซ้ำ (Duplicate Order Number)
+            </h2>
+            <p className="text-red-700 text-sm mb-3">
+              รันคำสั่งนี้เพื่อปลดล็อกข้อจำกัด (Unique Constraint) ของเลขบิล เพื่อให้ใช้เลขโต๊ะ (เช่น T5) ซ้ำได้เมื่อลูกค้าใหม่มานั่ง:
+            </p>
+            <div className="bg-gray-900 text-red-400 p-3 rounded text-sm font-mono overflow-x-auto whitespace-pre-wrap">
+{`-- Drop the unique constraint on order_number if it exists
+ALTER TABLE pos_orders DROP CONSTRAINT IF EXISTS pos_orders_order_number_key;
+`}
+            </div>
+            <p className="text-red-600 text-xs mt-2">
+              ✅ เมื่อรันเสร็จ จะแก้ปัญหา "duplicate key value violates unique constraint" เวลาส่งบิลเข้าครัวได้ทันที
+            </p>
+          </div>
+
           {/* Feature: Queue Number */}
           <div className="border border-purple-200 rounded-lg p-4 bg-purple-50 mt-4">
             <h2 className="text-lg font-semibold text-purple-800 mb-3">
