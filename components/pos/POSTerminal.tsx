@@ -2896,20 +2896,37 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                             }
                           }
                         }}
-                        className={`flex-1 relative flex flex-col items-center justify-center overflow-hidden border-2 transition-all ${selectedTable?.id === targetTable.id ? 'border-[#1A1A18] bg-[#1A1A18] text-white' : isOccupied ? 'group border-red-600 bg-red-500 text-white' : 'border-gray-100 bg-white text-black hover:border-black'}`}
+                        className={`w-full h-full relative flex flex-col items-center justify-center overflow-hidden rounded-2xl border-2 p-2 transition-all duration-200 ${
+                          selectedTable?.id === targetTable.id 
+                            ? 'border-[#1A1A18] bg-[#1A1A18] text-white shadow-xl scale-105 z-10' 
+                            : isOccupied 
+                              ? 'border-red-200 bg-red-50 text-red-900 hover:border-red-300 hover:bg-red-100 shadow-sm' 
+                              : 'border-gray-100 bg-white text-gray-800 hover:border-gray-300 hover:shadow-md'
+                        }`}
                       >
-                        <span className="text-xl font-black">{table.table_number}</span>
-                        <span className="mt-1 text-[7px] uppercase tracking-widest opacity-80">
-                          {table.zone || 'Main'}
-                        </span>
+                        {/* Occupied Badge */}
                         {isOccupied && (
-                          <div className="absolute right-0 top-0 bg-red-700 px-1.5 py-0.5 text-[6px] font-black uppercase tracking-tighter text-white">
-                            Occupied
+                          <div className="absolute top-2 right-2 flex items-center gap-1">
+                            <div className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse"></div>
                           </div>
                         )}
+                        
+                        {/* Table Name */}
+                        <span className="text-lg sm:text-xl font-black tracking-tighter text-center break-words line-clamp-2 w-full px-1 leading-none mt-2">
+                          {table.table_number}
+                        </span>
+                        
+                        {/* Zone */}
+                        <span className={`mt-1.5 text-[8px] font-bold uppercase tracking-widest ${selectedTable?.id === targetTable.id ? 'text-gray-400' : 'text-gray-500'}`}>
+                          {table.zone || 'Main'}
+                        </span>
+
+                        {/* Linked Table Indicator */}
                         {table.parent_table_id && (
-                          <div className="absolute bottom-1 bg-indigo-600 px-1.5 py-0.5 text-[6px] font-black uppercase tracking-tighter text-white rounded">
-                            🔗 โต๊ะ {targetTable.table_number}
+                          <div className="absolute bottom-0 inset-x-0 bg-indigo-50/90 backdrop-blur-sm py-1 flex items-center justify-center gap-1 border-t border-indigo-100">
+                            <span className="text-[7px] font-black uppercase tracking-widest text-indigo-700">
+                              🔗 โต๊ะ {targetTable.table_number}
+                            </span>
                           </div>
                         )}
                       </button>
@@ -2920,7 +2937,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                             e.stopPropagation()
                             handleClearIdleTable(table)
                           }}
-                          className="mt-2 border border-amber-300 bg-amber-50 px-2 py-1 text-[8px] font-black uppercase tracking-widest text-amber-700 transition-all hover:border-amber-500 hover:bg-amber-100"
+                          className="absolute -bottom-2 inset-x-2 z-20 rounded-full border border-amber-300 bg-amber-50 px-2 py-1 text-[8px] font-black uppercase tracking-widest text-amber-700 shadow-sm transition-all hover:border-amber-500 hover:bg-amber-100"
                         >
                           เคลียร์โต๊ะ
                         </button>
