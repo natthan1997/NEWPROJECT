@@ -1000,8 +1000,8 @@ export default function CustomerMenuPage() {
             .eq('id', existingOrder.id)
           if (updErr) throw new Error('อัปเดตยอดไม่ได้: ' + updErr.message)
         } else {
-          // สร้างออเดอร์ใหม่
-          const orderNumber = `QR-${Date.now().toString().slice(-6)}`
+          // สร้างออเดอร์ใหม่โดยใช้ชื่อโต๊ะเป็นเลขออเดอร์
+          const orderNumber = String(table.name || `T${table.table_number || table_id}`).replace(/\s+/g, '')
           const insertPayload = {
             order_number: orderNumber,
             table_id: table.id,

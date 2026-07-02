@@ -23,6 +23,7 @@ export async function POST(req: Request) {
       branchId: typeof body?.branchId === 'string' ? body.branchId : null,
       shiftId: typeof body?.shiftId === 'string' ? body.shiftId : null,
       existingOrderId: typeof body?.existingOrderId === 'string' ? body.existingOrderId : null,
+      tableName: typeof body?.tableName === 'string' ? body.tableName : null,
     })
 
     return NextResponse.json({ ok: true, ...identity })

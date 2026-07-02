@@ -44,6 +44,7 @@ export const reservePOSOrderIdentity = async (
     branchId?: string | null
     shiftId?: string | null
     existingOrderId?: string | null
+    tableName?: string | null
   }
 ): Promise<POSOrderIdentity> => {
   const prefix = getPOSOrderPrefix(options.orderType)
@@ -149,7 +150,11 @@ export const reservePOSOrderIdentity = async (
   const queueNumber = latestQueue + 1
 
   if (!existingOrderNumber) {
-    orderNumber = `A${String(queueNumber).padStart(3, '0')}`
+    if (options.orderType === 'dine_in' && options.tableName) {
+      orderNumber = options.tableName
+    } else {
+      orderNumber = `A${String(queueNumber).padStart(3, '0')}`
+    }
   }
 
   return { orderNumber, queueNumber }

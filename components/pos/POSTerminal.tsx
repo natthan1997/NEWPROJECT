@@ -954,6 +954,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         branchId: shopSettings?.branch_id || activeShift?.branch_id || null,
         shiftId: activeShift?.id || null,
         existingOrderId: existingOrderId || null,
+        tableName: selectedTable ? String(selectedTable.name || `T${selectedTable.table_number || selectedTable.id}`).replace(/\s+/g, '') : null,
       }),
     })
     const result = await response.json()
