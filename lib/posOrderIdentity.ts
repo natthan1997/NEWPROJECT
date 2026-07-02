@@ -100,30 +100,60 @@ export const reservePOSOrderIdentity = async (
     }
   }
 
-  let queueQuery = supabase
+  // Reset queue logic: Reset every day, OR when there are no active orders today
+  const startOfDay = new Date()
+  startOfDay.setHours(0, 0, 0, 0)
+  const startOfDayIso = startOfDay.toISOString()
+
+  // 1. Check if there are any active orders today
+  let activeOrdersQuery = supabase
     .from('pos_orders')
-    .select('queue_number')
-    .not('queue_number', 'is', null)
+    .select('id')
+    .neq('status', 'completed')
     .neq('status', 'cancelled')
-    .order('queue_number', { ascending: false })
+    .gte('created_at', startOfDayIso)
     .limit(1)
 
   if (options.shiftId) {
-    queueQuery = queueQuery.eq('shift_id', options.shiftId)
+    activeOrdersQuery = activeOrdersQuery.eq('shift_id', options.shiftId)
   } else if (options.branchId) {
-    queueQuery = queueQuery.eq('branch_id', options.branchId)
+    activeOrdersQuery = activeOrdersQuery.eq('branch_id', options.branchId)
   }
 
-  if (options.existingOrderId) {
-    queueQuery = queueQuery.neq('id', options.existingOrderId)
+  const { data: activeOrders } = await activeOrdersQuery
+  const hasActiveOrders = activeOrders && activeOrders.length > 0
+
+  let latestQueue = 0
+
+  if (hasActiveOrders) {
+    // 2. Find the max queue_number for TODAY
+    let queueQuery = supabase
+      .from('pos_orders')
+      .select('queue_number')
+      .not('queue_number', 'is', null)
+      .neq('status', 'cancelled')
+      .gte('created_at', startOfDayIso)
+      .order('queue_number', { ascending: false })
+      .limit(1)
+
+    if (options.shiftId) {
+      queueQuery = queueQuery.eq('shift_id', options.shiftId)
+    } else if (options.branchId) {
+      queueQuery = queueQuery.eq('branch_id', options.branchId)
+    }
+
+    if (options.existingOrderId) {
+      queueQuery = queueQuery.neq('id', options.existingOrderId)
+    }
+
+    const latestQueueResult = await queueQuery.maybeSingle()
+    if (latestQueueResult.error && !isMissingQueueColumnError(latestQueueResult.error)) {
+      throw latestQueueResult.error
+    }
+
+    latestQueue = normalizeQueueNumber(latestQueueResult.data?.queue_number) || 0
   }
 
-  const latestQueueResult = await queueQuery.maybeSingle()
-  if (latestQueueResult.error && !isMissingQueueColumnError(latestQueueResult.error)) {
-    throw latestQueueResult.error
-  }
-
-  const latestQueue = normalizeQueueNumber(latestQueueResult.data?.queue_number) || 0
   const queueNumber = latestQueue + 1
 
   return { orderNumber, queueNumber }
