@@ -22,10 +22,12 @@ interface POSMenuManagerProps {
   activeShift?: any
   setViewExtraHeader: (node: React.ReactNode) => void
   shopSettings?: any
+  forceViewMode?: "grid" | "table" | "stock"
+  hideStockToggle?: boolean
 }
 
 export default function POSMenuManager({ 
-  profile, activeView, allowedNav, onSetView, onShiftModalOpen, activeShift, setViewExtraHeader, shopSettings
+  profile, activeView, allowedNav, onSetView, onShiftModalOpen, activeShift, setViewExtraHeader, shopSettings, forceViewMode, hideStockToggle
 }: POSMenuManagerProps) {
   const { locale } = useI18n();
   const [items, setItems] = useState<any[]>([])
@@ -45,7 +47,7 @@ export default function POSMenuManager({
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
 
   // --- Bulk Edit / Table View ---
-  const [viewMode, setViewMode] = useState<'grid' | 'table' | 'stock'>('grid')
+  const [viewMode, setViewMode] = useState<'grid' | 'table' | 'stock'>(forceViewMode || 'grid')
   const [visibleColumns, setVisibleColumns] = useState<string[]>(['image_url', 'name', 'category_id', 'sale_price', 'cost_price', 'is_recommended'])
   const [showColumnSelector, setShowColumnSelector] = useState(false)
   const [reorderMode, setReorderMode] = useState(false)
@@ -71,6 +73,10 @@ export default function POSMenuManager({
   const getItemOrderKey = (item: any) => item.category_id || 'uncategorized'
 
   const sortMenuItems = (list: any[]) => sortMenuItemsByOrder(list)
+
+  useEffect(() => {
+    if (forceViewMode) setViewMode(forceViewMode)
+  }, [forceViewMode])
 
   const categorySections = useMemo(() => {
     const uncategorizedSection = { id: 'uncategorized', name: 'อื่นๆ (Uncategorized)' }
@@ -158,6 +164,7 @@ export default function POSMenuManager({
     setViewExtraHeader(
       <div className="flex items-center justify-end flex-1">
           <div className="flex items-center gap-4">
+              {forceViewMode !== 'stock' && (
               <div className="flex items-center gap-2 p-1 bg-gray-50 border border-gray-100 mr-2">
                    <button 
                        onClick={() => setViewMode('grid')} 
@@ -171,14 +178,17 @@ export default function POSMenuManager({
                    >
                        <List size={18} />
                    </button>
-                   <button 
-                       onClick={() => setViewMode('stock')} 
-                       className={`px-4 h-10 flex items-center justify-center gap-2 transition-all ${viewMode === 'stock' ? 'bg-amber-500 text-white shadow-lg' : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50'}`}
-                   >
-                       <ToggleRight size={18} />
-                       <span className="text-[10px] font-black uppercase tracking-wider hidden sm:inline">Stock Control</span>
-                   </button>
+                   {!hideStockToggle && (
+                     <button 
+                         onClick={() => setViewMode('stock')} 
+                         className={`px-4 h-10 flex items-center justify-center gap-2 transition-all ${viewMode === 'stock' ? 'bg-amber-500 text-white shadow-lg' : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50'}`}
+                     >
+                         <ToggleRight size={18} />
+                         <span className="text-[10px] font-black uppercase tracking-wider hidden sm:inline">Stock Control</span>
+                     </button>
+                   )}
                </div>
+              )}
               <button
                   onClick={reorderMode ? handleCancelReorder : handleStartReorder}
                   className={`h-10 px-5 flex items-center justify-center gap-2 border transition-all font-bold whitespace-nowrap ${
