@@ -79,7 +79,7 @@ export default function DeliveryManager({ unlockAudio, isAudioEnabled, variant =
     const { data, error } = await supabase
       .from('pos_orders')
       .select('*, items:pos_order_items(*, item:pos_menu_items!item_id(*))')
-      .in('order_type', ['delivery', 'takeaway'])
+      .eq('order_type', 'delivery')
       .neq('status', 'completed')
       .neq('status', 'cancelled')
       .order('created_at', { ascending: false })
