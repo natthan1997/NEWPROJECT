@@ -523,7 +523,7 @@ export default function CustomerMenuPage() {
   }
 
   const handleSetNickname = async () => {
-      const open = await refreshShopAvailability(table?.branch_id)
+      const open = await refreshShopAvailability(table?.branch_id, table)
       if (!open) {
           alert(shopClosedMessage || 'ขณะนี้ร้านปิดให้บริการ')
           return
@@ -649,10 +649,10 @@ export default function CustomerMenuPage() {
         }
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_shop_settings' }, () => {
-        refreshShopAvailability(table.branch_id)
+        refreshShopAvailability(table.branch_id, table)
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_shifts' }, () => {
-        refreshShopAvailability(table.branch_id)
+        refreshShopAvailability(table.branch_id, table)
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_menu_items' }, () => {
         fetchData()
@@ -980,7 +980,7 @@ export default function CustomerMenuPage() {
   const cartTotal = cart.reduce((acc, i) => acc + (getCartItemUnitPrice(i) * i.quantity), 0)
 
   const handlePlaceOrder = async () => {
-      const open = await refreshShopAvailability(table?.branch_id)
+      const open = await refreshShopAvailability(table?.branch_id, table)
       if (!open) {
         setOrderError(shopClosedMessage || 'ขณะนี้ร้านปิดให้บริการ')
         setOrderStatus('error')
