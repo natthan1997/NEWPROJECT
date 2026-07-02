@@ -29,66 +29,49 @@ export default function POSMenuAppConfig({
   const [activeTab, setActiveTab] = useState<MenuAppTab>('items')
   const [childHeader, setChildHeader] = useState<React.ReactNode>(null)
 
-  // Set the top extra header (if needed)
+
+  const tabs = [
+    { id: 'items', label: 'เมนู', icon: LayoutGrid },
+    { id: 'categories', label: 'หมวดหมู่', icon: Tag },
+    { id: 'modifiers', label: 'ตัวเลือก', icon: SlidersHorizontal },
+  ]
+
+  // Render tabs in the parent header to save space
   useEffect(() => {
     setViewExtraHeader(
-      <div className="flex items-center text-lg md:text-xl font-black uppercase tracking-tight text-gray-800">
-        จัดการเมนู (Menu)
+      <div className="flex bg-gray-100 p-1 rounded-lg">
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.id
+          const Icon = tab.icon
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as MenuAppTab)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[13px] font-bold transition-all ${
+                isActive ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Icon size={14} />
+              <span className="hidden sm:inline">{tab.label}</span>
+            </button>
+          )
+        })}
       </div>
     )
     return () => setViewExtraHeader(null)
-  }, [setViewExtraHeader])
-
-  const tabs = [
-    { id: 'items', label: 'รายการเมนู', icon: LayoutGrid },
-    { id: 'categories', label: 'หมวดหมู่', icon: Tag },
-    { id: 'modifiers', label: 'ตัวเลือกเสริม', icon: SlidersHorizontal },
-  ]
+  }, [activeTab, setViewExtraHeader])
 
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-[#F5F5F7]">
-      {/* APP-LIKE TOP TABS (CLEAN, iOS STYLE) */}
-      <div className="shrink-0 bg-[#F5F5F7] px-4 py-4 md:px-8 border-b border-gray-200/60 z-10">
-        <div className="max-w-2xl mx-auto">
-          <div className="flex bg-gray-200/60 p-1.5 rounded-2xl md:rounded-full overflow-x-auto no-scrollbar shadow-inner relative">
-            {tabs.map((tab) => {
-              const isActive = activeTab === tab.id
-              const Icon = tab.icon
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as MenuAppTab)}
-                  className={`relative flex flex-1 min-w-[100px] items-center justify-center gap-2 rounded-xl md:rounded-full py-2.5 px-3 transition-all duration-300 ease-out z-10 ${
-                    isActive
-                      ? 'text-gray-900 font-bold'
-                      : 'text-gray-500 font-medium hover:text-gray-700'
-                  }`}
-                >
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeMenuAppTab"
-                      className="absolute inset-0 bg-white rounded-xl md:rounded-full shadow-sm z-[-1]"
-                      transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-                    />
-                  )}
-                  <Icon size={18} className={isActive ? 'text-[#1A1A18]' : 'text-gray-400'} />
-                  <span className="text-sm whitespace-nowrap">{tab.label}</span>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      </div>
-
+    <div className="flex h-full flex-col bg-white">
       {/* TOOLBAR FROM CHILD COMPONENTS */}
       {childHeader && (
-        <div className="shrink-0 bg-white px-4 py-3 md:px-8 border-b border-gray-100 flex items-center justify-between">
+        <div className="shrink-0 bg-white px-4 py-3 md:px-6 border-b border-gray-100 flex items-center justify-between shadow-sm relative z-10">
           {childHeader}
         </div>
       )}
 
       {/* MAIN CONTENT AREA */}
-      <div className="flex-1 overflow-y-auto relative no-scrollbar">
+      <div className="flex-1 overflow-y-auto relative no-scrollbar bg-gray-50/30">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}

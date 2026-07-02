@@ -1,31 +1,61 @@
 import fs from 'fs';
 
-const filePath = '/Users/chenchirawongpothisan/Downloads/XYLPROJECT/components/pos/POSMenuAppConfig.tsx';
+const filePath = 'components/pos/POSMenuAppConfig.tsx';
 let content = fs.readFileSync(filePath, 'utf8');
 
-// We will add a local state for child header
-content = content.replace(
-  'const [activeTab, setActiveTab] = useState<MenuAppTab>(\'items\')',
-  `const [activeTab, setActiveTab] = useState<MenuAppTab>('items')\n  const [childHeader, setChildHeader] = useState<React.ReactNode>(null)`
-);
+const replacement = `
+  const tabs = [
+    { id: 'items', label: 'เมนู', icon: LayoutGrid },
+    { id: 'categories', label: 'หมวดหมู่', icon: Tag },
+    { id: 'modifiers', label: 'ตัวเลือก', icon: SlidersHorizontal },
+  ]
 
-// We replace the activeTab === 'items' block to pass setChildHeader and remove hideStockToggle
-content = content.replace(
-  /setViewExtraHeader=\{\(\) => \{\}\}.*\n.*shopSettings=\{shopSettings\}\n.*hideStockToggle=\{true\}\n.*forceViewMode="grid"/,
-  `setViewExtraHeader={setChildHeader}\n                shopSettings={shopSettings}\n                hideStockToggle={false}`
-);
+  // Render tabs in the parent header to save space
+  useEffect(() => {
+    setViewExtraHeader(
+      <div className="flex bg-gray-100 p-1 rounded-lg">
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.id
+          const Icon = tab.icon
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as MenuAppTab)}
+              className={\`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[13px] font-bold transition-all \${
+                isActive ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              }\`}
+            >
+              <Icon size={14} />
+              <span className="hidden sm:inline">{tab.label}</span>
+            </button>
+          )
+        })}
+      </div>
+    )
+    return () => setViewExtraHeader(null)
+  }, [activeTab, setViewExtraHeader])
 
-// We replace the activeTab === 'modifiers' block to pass setChildHeader
-content = content.replace(
-  /setViewExtraHeader=\{\(\) => \{\}\}/,
-  `setViewExtraHeader={setChildHeader}`
-);
+  return (
+    <div className="flex h-full flex-col bg-white">
+      {/* TOOLBAR FROM CHILD COMPONENTS */}
+      {childHeader && (
+        <div className="shrink-0 bg-white px-4 py-3 md:px-6 border-b border-gray-100 flex items-center justify-between shadow-sm relative z-10">
+          {childHeader}
+        </div>
+      )}
 
-// Under the APP-LIKE TOP TABS, we will render the childHeader
-content = content.replace(
-  /<\/div>\n      <\/div>\n\n      \{\/\* MAIN CONTENT AREA \*\/\}/,
-  `</div>\n      </div>\n\n      {/* TOOLBAR FROM CHILD COMPONENTS */}\n      {childHeader && (\n        <div className="shrink-0 bg-white px-4 py-3 md:px-8 border-b border-gray-100 flex items-center justify-between">\n          {childHeader}\n        </div>\n      )}\n\n      {/* MAIN CONTENT AREA */}`
-);
+      {/* MAIN CONTENT AREA */}
+      <div className="flex-1 overflow-y-auto relative no-scrollbar bg-gray-50/30">
+`;
 
-fs.writeFileSync(filePath, content);
-console.log('Fixed POSMenuAppConfig');
+// Find where to inject
+const useEffectStart = content.indexOf('  // Set the top extra header (if needed)');
+const mainContentStart = content.indexOf('        <AnimatePresence mode="wait">');
+
+if (useEffectStart !== -1 && mainContentStart !== -1) {
+    content = content.substring(0, useEffectStart) + replacement + content.substring(mainContentStart);
+    fs.writeFileSync(filePath, content);
+    console.log('POSMenuAppConfig updated');
+} else {
+    console.log('Could not find target strings in POSMenuAppConfig');
+}
