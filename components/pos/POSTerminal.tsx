@@ -336,6 +336,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   const [paymentSuccessData, setPaymentSuccessData] = useState<{ received: number, change: number, orderId: string, orderNumber: string, queueNumber?: string, items: any[], subtotal: number, discount: number, tax: number, serviceCharge: number, total: number, paymentMethod: string, timestamp: string, deliveryPlatform?: string, referenceName?: string, tableNumber?: string, customerName?: string, orderType?: string, orderSource?: string, comment?: string, notes?: string, pickupTime?: string } | null>(null)
   const [selectedStoryIndex, setSelectedStoryIndex] = useState<number>(-1)
 
+  const [selectedTableZone, setSelectedTableZone] = useState('All')
   const [printMode, setPrintMode] = useState<'none' | 'receipt' | 'kitchen'>('none');
 
   const [flyingItems, setFlyingItems] = useState<{id: string, x: number, y: number, imageUrl?: string}[]>([])
@@ -2783,18 +2784,38 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             onClick={() => setShowTableModal(false)}
           ></div>
           <div className="animate-in zoom-in-95 relative flex max-h-[90vh] w-full max-w-4xl flex-col bg-[#FDFDFB] font-bold shadow-2xl duration-200">
-            <header className="flex items-center justify-between border-b border-gray-100 bg-white p-6 sm:p-8 font-bold">
-              <div>
+            
+            <header className="flex flex-col border-b border-gray-100 bg-white">
+              <div className="flex items-center justify-between p-6 sm:p-8 pb-4">
                 <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tighter text-black">
-                  {locale === 'en' ? '                   เลือกโต๊ะ                 ' : locale === 'zh' ? '                   เลือกโต๊ะ                 ' : '                   เลือกโต๊ะ                 '}</h2>
+                  {locale === 'en' ? 'Select Table' : locale === 'zh' ? '选择桌子' : 'เลือกโต๊ะ'}
+                </h2>
+                <button onClick={() => setShowTableModal(false)} className="p-2">
+                  <X size={20} />
+                </button>
               </div>
-              <button onClick={() => setShowTableModal(false)} className="p-2">
-                <X size={20} />
-              </button>
+              
+              {/* Zone Filter */}
+              <div className="px-6 sm:px-8 pb-4 flex items-center gap-2 overflow-x-auto hide-scrollbar">
+                {['All', ...Array.from(new Set(tables.map(t => t.zone || 'MAIN')))].map(zone => (
+                  <button
+                    key={zone}
+                    onClick={() => setSelectedTableZone(zone)}
+                    className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest whitespace-nowrap transition-all ${
+                      selectedTableZone === zone
+                        ? 'bg-black text-white shadow-md'
+                        : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                    }`}
+                  >
+                    {zone}
+                  </button>
+                ))}
+              </div>
             </header>
+
             <div className="flex-1 overflow-y-auto p-4 sm:p-10">
               <div className="grid grid-cols-4 gap-2 sm:gap-4 sm:grid-cols-6 lg:grid-cols-8">
-                {tables.map(table => {
+                {tables.filter(t => selectedTableZone === 'All' || (t.zone || 'MAIN') === selectedTableZone).map(table => {
                   const targetTable = table.parent_table_id ? tables.find(t => t.id === table.parent_table_id) || table : table;
                   const childrenTables = tables.filter(t => t.parent_table_id === table.id);
                   const isParent = childrenTables.length > 0;
@@ -2888,10 +2909,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                       >
                         <div className="flex flex-col h-full w-full p-3 sm:p-4">
                             {/* Top Row: Zone & Dot */}
-                            <div className="flex justify-between items-start w-full">
-                                <span className={`text-[8px] sm:text-[9px] font-bold uppercase tracking-widest ${isSelected ? 'text-white/80' : isOccupied ? 'text-gray-400' : 'text-gray-400'}`}>
-                                {table.zone || 'MAIN'}
-                                </span>
+                            <div className="flex justify-end items-start w-full min-h-[16px]">
                                 {isOccupied && !isSelected && (
                                 <div className="relative flex items-center justify-center w-2 h-2 mt-0.5">
                                     <div className="absolute w-full h-full rounded-full bg-emerald-400 animate-ping opacity-75"></div>
