@@ -359,6 +359,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   const [memberSearchQuery, setMemberSearchQuery] = useState('')
   const [isSearchingMember, setIsSearchingMember] = useState(false)
   const [redeemPointsAmount, setRedeemPointsAmount] = useState<string>('')
+  const [memberSearchResults, setMemberSearchResults] = useState<any[]>([])
 
   const openDeliveryPlatformModal = (platformOverride?: string) => {
     // ผู้ใช้ต้องการให้ "กดคือต้องเลือกค่ายใหม่ทุกครั้ง" จึงบังคับเคลียร์ค่า draft เสมอ
@@ -1759,6 +1760,33 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 	  }
 
 
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(async () => {
+      if (memberSearchQuery.trim().length >= 3) {
+        setIsSearchingMember(true)
+        try {
+          const { data } = await supabase
+            .from('pos_members')
+            .select('*')
+            .or(`phone.ilike.%${memberSearchQuery}%,full_name.ilike.%${memberSearchQuery}%,display_name.ilike.%${memberSearchQuery}%`)
+            .limit(5)
+          if (data) {
+            setMemberSearchResults(data)
+          } else {
+            setMemberSearchResults([])
+          }
+        } catch(e) {
+          console.error(e)
+        } finally {
+          setIsSearchingMember(false)
+        }
+      } else {
+        setMemberSearchResults([])
+      }
+    }, 300)
+    return () => clearTimeout(delayDebounceFn)
+  }, [memberSearchQuery])
+
   const handleSearchMemberFlow = async () => {
     if (!memberSearchQuery.trim()) return;
     setIsSearchingMember(true);
@@ -1770,7 +1798,10 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         .limit(1)
         .maybeSingle();
 
-      if (data) {
+      if (memberSearchResults.length > 0) {
+        setSelectedCustomer(memberSearchResults[0]);
+        setMemberCheckoutStep('points');
+      } else if (data) {
         setSelectedCustomer(data);
         setMemberCheckoutStep('points');
       } else {
@@ -3813,19 +3844,47 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                      {locale === 'en' ? 'Enter phone number to check points' : 'ใส่เบอร์โทรศัพท์เพื่อตรวจสอบแต้มและรับสิทธิพิเศษ'}
                    </p>
                    
-                   <input
-                      type="text"
-                      autoFocus
-                      placeholder={locale === 'en' ? 'Phone Number...' : 'เบอร์โทรศัพท์...'}
-                      value={memberSearchQuery}
-                      onChange={(e) => setMemberSearchQuery(e.target.value)}
-                      onKeyDown={(e) => {
-                         if (e.key === 'Enter') {
-                            handleSearchMemberFlow();
-                         }
-                      }}
-                      className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-4 px-6 text-xl font-bold mb-4 focus:outline-none focus:border-black transition-all"
-                   />
+                   <div className="relative mb-4">
+                     <input
+                        type="text"
+                        autoFocus
+                        placeholder={locale === 'en' ? 'Phone Number or Name...' : 'เบอร์โทรศัพท์ หรือ ชื่อ...'}
+                        value={memberSearchQuery}
+                        onChange={(e) => setMemberSearchQuery(e.target.value)}
+                        onKeyDown={(e) => {
+                           if (e.key === 'Enter' && memberSearchResults.length > 0) {
+                              setSelectedCustomer(memberSearchResults[0]);
+                              setMemberCheckoutStep('points');
+                           } else if (e.key === 'Enter') {
+                              handleSearchMemberFlow();
+                           }
+                        }}
+                        className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-4 px-6 text-xl font-bold focus:outline-none focus:border-black transition-all"
+                     />
+                     {memberSearchResults.length > 0 && (
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-10 max-h-[250px] overflow-y-auto">
+                           {memberSearchResults.map((m) => (
+                              <button
+                                 key={m.id}
+                                 onClick={() => {
+                                    setSelectedCustomer(m);
+                                    setMemberCheckoutStep('points');
+                                    setMemberSearchResults([]);
+                                 }}
+                                 className="w-full text-left px-6 py-4 border-b border-gray-50 hover:bg-gray-50 flex items-center justify-between transition-colors last:border-b-0"
+                              >
+                                 <div>
+                                    <div className="font-bold text-gray-800">{m.full_name || m.display_name || 'No Name'}</div>
+                                    <div className="text-sm text-gray-400 mt-1 font-mono">{m.phone}</div>
+                                 </div>
+                                 <div className="text-emerald-500 font-black flex items-center gap-1 bg-emerald-50 px-3 py-1 rounded-full text-xs">
+                                    {m.points || 0} PTS
+                                 </div>
+                              </button>
+                           ))}
+                        </div>
+                     )}
+                   </div>
                    
                    <div className="flex gap-3">
                      <button
