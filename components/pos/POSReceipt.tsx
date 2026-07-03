@@ -3,6 +3,7 @@ import { useI18n } from "@/lib/I18nContext";
 
 export interface ReceiptProps {
   orderNumber: string
+  queueNumber?: string
   orderType: string
   tableNumber?: string
   customerName?: string
@@ -28,6 +29,7 @@ export interface ReceiptProps {
 
 export const POSReceipt = forwardRef<HTMLDivElement, ReceiptProps>(({
   orderNumber,
+  queueNumber,
   orderType,
   tableNumber,
   customerName,
@@ -86,6 +88,12 @@ export const POSReceipt = forwardRef<HTMLDivElement, ReceiptProps>(({
         <h2 className="text-[34px] font-extrabold mb-1 leading-none">XYLEM</h2>
         <p className="text-[17px] leading-tight font-semibold">Cafe & Landscape</p>
         <p className="text-[17px] leading-tight font-bold">{locale === 'en' ? 'ใบเสร็จรับเงิน / Receipt' : locale === 'zh' ? 'ใบเสร็จรับเงิน / Receipt' : 'ใบเสร็จรับเงิน / Receipt'}</p>
+        {queueNumber && (
+          <div className="mt-4 border-t-2 border-b-2 border-black border-dashed py-2">
+            <div className="text-[14px] font-bold">คิวที่ / QUEUE</div>
+            <div className="text-[48px] font-extrabold leading-none">A{String(queueNumber).padStart(3, '0')}</div>
+          </div>
+        )}
       </div>
 
       <div className="mb-4 text-[17px] border-b-2 border-black border-dashed pb-3 font-semibold">

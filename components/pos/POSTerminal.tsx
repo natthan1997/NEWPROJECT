@@ -4011,6 +4011,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
               {printMode === 'receipt' && (
                 <POSReceipt
                   orderNumber={paymentSuccessData.orderNumber}
+                  queueNumber={paymentSuccessData.queueNumber}
                   orderType={paymentSuccessData.orderType || orderType}
                   orderSource={paymentSuccessData.orderSource}
                   deliveryPlatform={paymentSuccessData.deliveryPlatform}

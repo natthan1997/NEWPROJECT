@@ -98,10 +98,29 @@ export const reservePOSOrderIdentity = async (
   startOfDay.setHours(0, 0, 0, 0)
   const startOfDayIso = startOfDay.toISOString()
 
+    // 1. Check if there are any active orders today
+  let activeOrdersQuery = supabase
+    .from('pos_orders')
+    .select('id')
+    .neq('status', 'completed')
+    .neq('status', 'cancelled')
+    .gte('created_at', startOfDayIso)
+    .limit(1)
+
+  if (options.shiftId) {
+    activeOrdersQuery = activeOrdersQuery.eq('shift_id', options.shiftId)
+  } else if (options.branchId) {
+    activeOrdersQuery = activeOrdersQuery.eq('branch_id', options.branchId)
+  }
+
+  const { data: activeOrders } = await activeOrdersQuery
+  const hasActiveOrders = activeOrders && activeOrders.length > 0
+
   let latestQueue = 0
 
-  // Find the max queue_number for TODAY, regardless of active orders
-  let queueQuery = supabase
+  if (hasActiveOrders) {
+    // 2. Find the max queue_number for TODAY
+    let queueQuery = supabase
     .from('pos_orders')
     .select('queue_number')
     .not('queue_number', 'is', null)
@@ -125,7 +144,8 @@ export const reservePOSOrderIdentity = async (
       throw latestQueueResult.error
     }
 
-    latestQueue = normalizeQueueNumber(latestQueueResult.data?.queue_number) || 0
+        latestQueue = normalizeQueueNumber(latestQueueResult.data?.queue_number) || 0
+  }
 
   const queueNumber = latestQueue + 1
 
@@ -133,7 +153,7 @@ export const reservePOSOrderIdentity = async (
     if (options.orderType === 'dine_in' && options.tableName) {
       orderNumber = options.tableName
     } else {
-      orderNumber = `A${String(queueNumber).padStart(3, '0')}`
+      orderNumber = fallbackOrderNumber(prefix)
     }
   }
 

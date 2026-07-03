@@ -169,6 +169,7 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
 
   const buildPrintOrder = (order: any) => ({
     orderNumber: order.order_number,
+    queueNumber: order.queue_number,
     date: new Date(order.created_at).toLocaleString('th-TH'),
     orderSource: order.order_source || 'pos',
     staffName: profile?.full_name || profile?.display_name || 'POS',
@@ -345,6 +346,11 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
                     <div className="text-xs font-black uppercase tracking-widest text-[#1A1A18]">
                       {order.order_number}
                     </div>
+                    {order.queue_number && (
+                      <span className="bg-gray-100 px-1.5 py-0.5 text-[10px] font-black tracking-widest text-gray-700">
+                        คิว A{String(order.queue_number).padStart(3, '0')}
+                      </span>
+                    )}
                     {order.order_type === 'dine_in' && order.table_number && (
                       <span className="bg-amber-100 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-tighter text-amber-700">
                         Table {order.table_number}
