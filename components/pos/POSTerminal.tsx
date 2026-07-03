@@ -57,6 +57,7 @@ import {
   Bike,
   AlertTriangle,
   Delete,
+  Award,
 } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import { supabase, type Profile } from '@/lib/supabaseClient'
