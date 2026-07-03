@@ -92,7 +92,7 @@ export const POSKitchenTicket = forwardRef<HTMLDivElement, KitchenTicketProps>((
           ) : (
             <>
               <div className="text-[15px] font-black uppercase tracking-[0.25em] mb-1">TAKEAWAY</div>
-              <div className="text-6xl font-black leading-none break-words">{queueNumber || '-'}</div>
+              <div className="text-6xl font-black leading-none break-words">{queueNumber ? `#${String(queueNumber).padStart(3, '0')}` : '-'}</div>
               <div className="mt-2 text-[15px] font-black">เลขคิว</div>
             </>
           )}

@@ -91,7 +91,7 @@ export const POSReceipt = forwardRef<HTMLDivElement, ReceiptProps>(({
         {queueNumber && (
           <div className="mt-4 border-t-2 border-b-2 border-black border-dashed py-2">
             <div className="text-[14px] font-bold">คิวที่ / QUEUE</div>
-            <div className="text-[48px] font-extrabold leading-none">A{String(queueNumber).padStart(3, '0')}</div>
+            <div className="text-[48px] font-extrabold leading-none">#{String(queueNumber).padStart(3, '0')}</div>
           </div>
         )}
       </div>
