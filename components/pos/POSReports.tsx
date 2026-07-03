@@ -282,7 +282,7 @@ export default function POSReports({
       // 0. VOIDS & CANCELLED
       const { data: voidOrdersData, error: voidError } = await supabase.from('pos_orders')
          .select('*')
-         .gte('created_at', startISO).lte('created_at', endISO)
+         .gte('updated_at', startISO).lte('updated_at', endISO)
          .in('status', ['cancelled', 'voided'])
          
       if (voidError) console.error('Error fetching void orders:', voidError)
@@ -303,7 +303,7 @@ export default function POSReports({
       }
 
       // 1. REVENUE
-      const { data: allOrders } = await supabase.from('pos_orders').select('*').gte('created_at', startISO).lte('created_at', endISO).in('status', ['paid', 'completed'])
+      const { data: allOrders } = await supabase.from('pos_orders').select('*').gte('updated_at', startISO).lte('updated_at', endISO).in('status', ['paid', 'completed'])
       const branchOrders = (allOrders || []).filter(o => !bId || o.branch_id === bId || (bCode && o.branch_code === bCode))
       const totalRevenue = branchOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0)
       const totalOrders = branchOrders.length
@@ -322,8 +322,8 @@ export default function POSReports({
         const { data: previousOrders } = await supabase
           .from('pos_orders')
           .select('*')
-          .gte('created_at', compareStartISO)
-          .lte('created_at', compareEndISO)
+          .gte('updated_at', compareStartISO)
+          .lte('updated_at', compareEndISO)
           .in('status', ['paid', 'completed'])
 
         const branchPreviousOrders = (previousOrders || []).filter(o => !bId || o.branch_id === bId || (bCode && o.branch_code === bCode))
@@ -348,7 +348,7 @@ export default function POSReports({
       for (let i = 0; i < 24; i++) hourlyHeatmapRaw[i] = { revenue: 0, orders: 0 }
 
       branchOrders.forEach(o => {
-          const d = new Date(o.created_at); const k = timeRange === 'today' ? d.getHours().toString().padStart(2, '0') + ':00' : d.toLocaleDateString('th-TH', { day: '2-digit', month: 'short' })
+          const d = new Date(o.updated_at || o.created_at); const k = timeRange === 'today' ? d.getHours().toString().padStart(2, '0') + ':00' : d.toLocaleDateString('th-TH', { day: '2-digit', month: 'short' })
           trendMap[k] = (trendMap[k] || 0) + (o.total_amount || 0)
           
           const hour = d.getHours()
@@ -1281,7 +1281,7 @@ function DiscountsVoidsReport({ discountTotal, voidedOrders }: any) {
                               <div className="flex items-start justify-between gap-3">
                                   <div>
                                       <div className="text-[13px] font-black text-[#1A1A18]">{o.order_number}</div>
-                                      <div className="mt-1 text-[11px] font-black text-gray-400">{new Date(o.created_at).toLocaleString('th-TH')}</div>
+                                      <div className="mt-1 text-[11px] font-black text-gray-400">{new Date(o.updated_at || o.created_at).toLocaleString('th-TH')}</div>
                                   </div>
                                   <div className="text-[14px] font-black text-red-500">฿{o.total_amount.toLocaleString()}</div>
                               </div>
@@ -1322,7 +1322,7 @@ function DiscountsVoidsReport({ discountTotal, voidedOrders }: any) {
                     <tbody className="divide-y divide-gray-50">
                         {voidedOrders.map((o: any, idx: number) => (
                             <tr key={idx} className="hover:bg-gray-50 transition-all">
-                                <td className="px-6 py-4 text-[10px] font-black">{new Date(o.created_at).toLocaleString('th-TH')}</td>
+                                <td className="px-6 py-4 text-[10px] font-black">{new Date(o.updated_at || o.created_at).toLocaleString('th-TH')}</td>
                                 <td className="px-6 py-4 text-[11px] font-black uppercase">{o.order_number}</td>
                                 <td className="px-6 py-4 text-[11px] font-black">{o.profiles?.display_name || o.profiles?.full_name || o.profiles?.first_name || o.cashier_name || 'ไม่ระบุ'}</td>
                                 <td className="px-6 py-4 text-[11px] font-bold text-gray-500">{o.void_reason || '-'}</td>
