@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import { QrCode, RefreshCcw, Gift, Award, Coffee, X, Edit3, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { QrCode, RefreshCcw, X, ArrowLeft, Check, Edit2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabaseClient';
 import { useI18n } from "@/lib/I18nContext";
@@ -76,93 +76,83 @@ export default function PointGenerator({ onClose }: { onClose?: () => void }) {
   };
 
   return (
-    <div className="bg-white rounded-[32px] relative overflow-hidden shadow-2xl font-sans w-full max-w-[420px] h-[640px] mx-auto flex flex-col border border-gray-100">
-      {/* Subtle Background Elements */}
-      <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-emerald-50 to-white/0 pointer-events-none" />
-      <div className="absolute -top-20 -right-20 w-64 h-64 bg-emerald-400/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="bg-white rounded-[24px] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] w-full max-w-[400px] h-[600px] mx-auto flex flex-col overflow-hidden relative">
       
       {/* Header */}
-      <div className="px-8 h-[90px] flex items-center justify-between shrink-0 relative z-10">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 shadow-inner">
-             {token ? <QrCode size={20} /> : <Gift size={20} />}
-          </div>
-          <div>
-            <h2 className="text-lg font-bold text-gray-800 leading-tight">
-              {token ? 'รับคะแนนสะสม' : 'สร้างรางวัลสำหรับลูกค้า'}
-            </h2>
-            <p className="text-xs text-emerald-600/80 font-medium tracking-wide">Loyalty Management</p>
-          </div>
+      <div className="flex items-center justify-between px-8 pt-8 pb-4 shrink-0">
+        <div>
+          <h2 className="text-xl font-medium text-gray-900 tracking-tight">
+            {token ? (locale === 'en' ? 'Scan to Collect' : 'แสกนรับแต้ม') : (locale === 'en' ? 'Issue Points' : 'แจกแต้ม')}
+          </h2>
+          <p className="text-[11px] text-gray-400 font-medium tracking-widest uppercase mt-1">
+            Loyalty Reward
+          </p>
         </div>
         {onClose && (
           <button 
             onClick={onClose} 
-            className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:text-gray-800 hover:bg-gray-100 transition-all"
+            className="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-gray-50 transition-colors"
           >
-            <X size={18} />
+            <X size={20} strokeWidth={1.5} />
           </button>
         )}
       </div>
 
-      {/* Main Content Area */}
-      <div className="flex-1 relative overflow-hidden z-10">
+      {/* Content */}
+      <div className="flex-1 relative">
         <AnimatePresence mode="wait">
           {!token ? (
             <motion.div 
-              key="setup-view"
-              initial={{ x: -20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: -20, opacity: 0 }}
-              transition={{ duration: 0.3, ease: 'easeOut' }}
-              className="absolute inset-0 px-8 pb-8 pt-4 flex flex-col justify-between"
+              key="setup"
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              transition={{ duration: 0.3 }}
+              className="absolute inset-0 px-8 pb-8 flex flex-col justify-between"
             >
-              <div className="space-y-8">
-                {/* Mode Selector */}
-                <div className="flex p-1 bg-gray-100/80 rounded-2xl shadow-inner">
+              <div className="space-y-10 mt-4">
+                
+                {/* Type Switcher */}
+                <div className="flex bg-gray-50/80 p-1 rounded-full border border-gray-100">
                   <button
                     onClick={() => { setMode('points'); handlePresetClick(10); }}
-                    className={`flex-1 py-2.5 px-4 text-sm font-semibold rounded-xl transition-all flex items-center justify-center gap-2 ${
-                      mode === 'points' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                    className={`flex-1 py-2.5 px-4 text-[13px] font-medium rounded-full transition-all duration-300 ${
+                      mode === 'points' ? 'bg-white text-gray-900 shadow-sm border border-gray-200/50' : 'text-gray-500 hover:text-gray-700'
                     }`}
                   >
-                    <Award size={16} />
                     {locale === 'en' ? 'Points' : 'คะแนน'}
                   </button>
                   <button
                     onClick={() => { setMode('glasses'); handlePresetClick(1); }}
-                    className={`flex-1 py-2.5 px-4 text-sm font-semibold rounded-xl transition-all flex items-center justify-center gap-2 ${
-                      mode === 'glasses' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                    className={`flex-1 py-2.5 px-4 text-[13px] font-medium rounded-full transition-all duration-300 ${
+                      mode === 'glasses' ? 'bg-white text-gray-900 shadow-sm border border-gray-200/50' : 'text-gray-500 hover:text-gray-700'
                     }`}
                   >
-                    <Coffee size={16} />
                     {locale === 'en' ? 'Cups' : 'สะสมแก้ว'}
                   </button>
                 </div>
 
                 {/* Amount Display */}
-                <div className="text-center relative py-6 bg-emerald-50/50 rounded-3xl border border-emerald-100/50">
-                   <p className="text-xs font-medium text-emerald-600/80 uppercase tracking-wider mb-2">
-                     {locale === 'en' ? 'Amount to generate' : 'จำนวนที่จะได้รับ'}
-                   </p>
-                   <div className="flex items-end justify-center gap-2 text-emerald-900">
-                     <p className="text-6xl font-bold tracking-tight leading-none">
+                <div className="text-center">
+                   <div className="flex items-baseline justify-center gap-1.5 text-gray-900">
+                     <span className="text-[64px] font-light tracking-tighter leading-none">
                        {pointsToGenerate}
-                     </p>
-                     <span className="text-lg font-semibold text-emerald-600/70 mb-1">
+                     </span>
+                     <span className="text-sm font-medium text-gray-400 mb-2">
                        {locale === 'en' ? 'pts' : 'แต้ม'}
                      </span>
                    </div>
                 </div>
 
-                {/* Grid Overlay */}
-                <div className="relative h-[110px]">
+                {/* Amount Selection */}
+                <div className="relative h-[90px]">
                    <AnimatePresence mode="wait">
                       {!isCustom ? (
                         <motion.div 
                           key="grid"
-                          initial={{ opacity: 0, y: 10 }}
+                          initial={{ opacity: 0, y: 5 }}
                           animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10 }}
+                          exit={{ opacity: 0, y: -5 }}
                           transition={{ duration: 0.2 }}
                           className="absolute inset-0 grid grid-cols-5 gap-2"
                         >
@@ -170,32 +160,29 @@ export default function PointGenerator({ onClose }: { onClose?: () => void }) {
                             <button 
                               key={val} 
                               onClick={() => handlePresetClick(val)}
-                              className={`rounded-2xl text-lg font-bold transition-all flex flex-col items-center justify-center border-2 ${
-                                amount === val && !isCustom 
-                                  ? 'border-emerald-500 bg-emerald-500 text-white shadow-md shadow-emerald-500/20 transform -translate-y-1' 
-                                  : 'border-gray-100 bg-white text-gray-600 hover:border-emerald-200 hover:bg-emerald-50'
+                              className={`rounded-2xl transition-all flex flex-col items-center justify-center border ${
+                                amount === val
+                                  ? 'border-gray-900 bg-gray-900 text-white' 
+                                  : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
                               }`}
                             >
-                              <span>{val}</span>
-                              <span className={`text-[10px] mt-0.5 ${amount === val && !isCustom ? 'text-emerald-100' : 'text-gray-400 font-medium'}`}>
-                                {mode === 'points' ? 'แต้ม' : 'แก้ว'}
-                              </span>
+                              <span className="text-[17px] font-medium">{val}</span>
                             </button>
                           ))}
                           <button 
                             onClick={handleCustomClick}
-                            className="rounded-2xl border-2 border-dashed border-gray-200 text-gray-500 flex flex-col items-center justify-center hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-600 transition-all bg-gray-50/50"
+                            className="rounded-2xl border border-gray-200 text-gray-500 flex flex-col items-center justify-center hover:bg-gray-50 hover:text-gray-900 transition-all bg-white"
                           >
-                            <Edit3 size={18} />
-                            <span className="text-[10px] font-medium mt-1">{locale === 'en' ? 'Custom' : 'ระบุเอง'}</span>
+                            <Edit2 size={16} strokeWidth={1.5} />
+                            <span className="text-[9px] font-medium mt-1.5">{locale === 'en' ? 'Custom' : 'กำหนดเอง'}</span>
                           </button>
                         </motion.div>
                       ) : (
                         <motion.div 
                           key="input"
-                          initial={{ opacity: 0, y: 10 }}
+                          initial={{ opacity: 0, y: 5 }}
                           animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10 }}
+                          exit={{ opacity: 0, y: -5 }}
                           transition={{ duration: 0.2 }}
                           className="absolute inset-0 flex gap-2"
                         >
@@ -205,19 +192,15 @@ export default function PointGenerator({ onClose }: { onClose?: () => void }) {
                               type="number"
                               value={customValue}
                               onChange={(e) => setCustomValue(e.target.value)}
-                              placeholder={locale === 'en' ? 'Enter amount...' : 'ใส่ตัวเลข...'}
-                              className="w-full h-full px-6 text-3xl font-bold bg-white text-gray-800 border-2 border-emerald-500 rounded-2xl focus:outline-none focus:ring-4 focus:ring-emerald-500/20 transition-all placeholder:text-gray-300 placeholder:text-xl no-spinner"
+                              placeholder="0"
+                              className="w-full h-full px-6 text-2xl font-light text-center bg-gray-50 text-gray-900 border border-gray-200 rounded-2xl focus:outline-none focus:border-gray-400 focus:bg-white transition-all no-spinner"
                             />
-                            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-emerald-500">
-                              {mode === 'points' ? 'แต้ม' : 'แก้ว'}
-                            </div>
                           </div>
                           <button 
                             onClick={() => setIsCustom(false)}
-                            className="w-[72px] h-full rounded-2xl bg-gray-100 text-gray-600 font-medium text-sm flex flex-col items-center justify-center gap-1 hover:bg-gray-200 transition-all"
+                            className="w-[70px] h-full rounded-2xl bg-white border border-gray-200 text-gray-500 font-medium text-sm flex flex-col items-center justify-center hover:bg-gray-50 transition-all"
                           >
-                            <X size={18} />
-                            <span className="text-[10px] uppercase">Cancel</span>
+                            <X size={18} strokeWidth={1.5} />
                           </button>
                         </motion.div>
                       )}
@@ -229,51 +212,54 @@ export default function PointGenerator({ onClose }: { onClose?: () => void }) {
               <button 
                 onClick={generateQR}
                 disabled={loading}
-                className="w-full h-14 bg-emerald-500 text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-emerald-600 hover:shadow-lg hover:shadow-emerald-500/30 transition-all disabled:opacity-70 transform active:scale-[0.98]"
+                className="w-full h-14 bg-gray-900 text-white rounded-[16px] font-medium text-[14px] flex items-center justify-center gap-2 hover:bg-black transition-all disabled:opacity-50"
               >
-                {loading ? <RefreshCcw size={18} className="animate-spin" /> : <QrCode size={18} />}
-                {loading ? (locale === 'en' ? 'Generating...' : 'กำลังดำเนินการ...') : (locale === 'en' ? 'Generate QR Code' : 'สร้างคิวอาร์โค้ดแจกแต้ม')}
+                {loading ? <RefreshCcw size={16} className="animate-spin" /> : <QrCode size={18} strokeWidth={1.5} />}
+                {loading ? (locale === 'en' ? 'Generating...' : 'กำลังสร้าง...') : (locale === 'en' ? 'Generate QR Code' : 'สร้างคิวอาร์โค้ด')}
               </button>
             </motion.div>
           ) : (
             <motion.div 
-              key="result-view"
-              initial={{ x: 20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: 20, opacity: 0 }}
-              transition={{ duration: 0.3, ease: 'easeOut' }}
-              className="absolute inset-0 px-8 pb-8 pt-2 flex flex-col justify-between items-center"
+              key="result"
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              transition={{ duration: 0.3 }}
+              className="absolute inset-0 px-8 pb-8 pt-4 flex flex-col justify-between items-center"
             >
-              <div className="w-full text-center flex-1 flex flex-col items-center justify-center">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[11px] font-semibold tracking-wide mb-6">
-                  <CheckCircle2 size={14} />
-                  {locale === 'en' ? 'READY TO SCAN' : 'สแกนเพื่อรับแต้ม'}
-                </div>
+              <div className="w-full flex-1 flex flex-col items-center justify-center">
                 
-                <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-xl shadow-gray-200/50 mb-6">
-                   <img src={qrUrl!} alt="QR Code" className="w-48 h-48 sm:w-56 sm:h-56 object-contain rounded-xl" />
+                {/* QR Code Container */}
+                <div className="bg-white p-6 rounded-[24px] border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-8 relative">
+                   <div className="absolute -top-3 -right-3 w-8 h-8 bg-gray-900 rounded-full flex items-center justify-center text-white border-4 border-white shadow-sm">
+                     <Check size={14} strokeWidth={3} />
+                   </div>
+                   <img src={qrUrl!} alt="QR Code" className="w-44 h-44 object-contain" />
                 </div>
 
-                <div className="text-center space-y-1">
-                   <p className="text-3xl font-bold text-gray-800 leading-none">
-                     +{pointsToGenerate} <span className="text-base text-gray-500 font-semibold">{locale === 'en' ? 'pts' : 'แต้ม'}</span>
+                <div className="text-center">
+                   <p className="text-[12px] text-gray-400 font-medium tracking-widest uppercase mb-2">
+                     {locale === 'en' ? 'Please scan' : 'ให้ลูกค้าสแกน'}
                    </p>
-                   <p className="text-[11px] font-medium text-gray-400 tracking-wide mt-2">
-                     REF: {token.slice(0, 12)}
+                   <p className="text-[32px] font-medium text-gray-900 leading-none">
+                     +{pointsToGenerate} <span className="text-[14px] text-gray-400 font-normal">{locale === 'en' ? 'pts' : 'แต้ม'}</span>
+                   </p>
+                   <p className="text-[10px] text-gray-300 font-mono tracking-widest mt-4">
+                     {token.slice(0, 12)}
                    </p>
                 </div>
               </div>
 
-              <div className="w-full grid grid-cols-2 gap-3 shrink-0 pt-4 mt-2">
+              <div className="w-full flex gap-3 mt-4">
                 <button 
                   onClick={resetGenerator}
-                  className="h-12 rounded-xl bg-gray-50 text-gray-600 font-semibold text-sm flex items-center justify-center gap-2 hover:bg-gray-100 transition-all border border-gray-200/50"
+                  className="flex-1 h-12 rounded-[14px] bg-white text-gray-600 font-medium text-[13px] flex items-center justify-center gap-2 hover:bg-gray-50 border border-gray-200 transition-all"
                 >
-                  <ArrowLeft size={16} /> {locale === 'en' ? 'Back' : 'กลับ / ทำใหม่'}
+                  <ArrowLeft size={16} strokeWidth={1.5} /> {locale === 'en' ? 'Back' : 'กลับ'}
                 </button>
                 <button 
                   onClick={onClose}
-                  className="h-12 rounded-xl bg-emerald-500 text-white font-semibold text-sm hover:bg-emerald-600 hover:shadow-lg hover:shadow-emerald-500/20 transition-all"
+                  className="flex-1 h-12 rounded-[14px] bg-gray-900 text-white font-medium text-[13px] hover:bg-black transition-all"
                 >
                   {locale === 'en' ? 'Done' : 'เสร็จสิ้น'}
                 </button>
@@ -284,7 +270,6 @@ export default function PointGenerator({ onClose }: { onClose?: () => void }) {
       </div>
       
       <style jsx global>{`
-          /* Force Global Reset for Number Inputs in this component */
           input[type="number"].no-spinner {
             -moz-appearance: textfield !important;
             appearance: textfield !important;
@@ -292,7 +277,6 @@ export default function PointGenerator({ onClose }: { onClose?: () => void }) {
             border-radius: 0 !important;
             box-shadow: none !important;
           }
-          
           input[type="number"].no-spinner::-webkit-inner-spin-button, 
           input[type="number"].no-spinner::-webkit-outer-spin-button { 
             -webkit-appearance: none !important; 
