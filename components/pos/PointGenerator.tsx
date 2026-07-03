@@ -13,6 +13,22 @@ export default function PointGenerator({ onClose }: { onClose?: () => void }) {
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isClaimed, setIsClaimed] = useState(false);
+  const [earnRate, setEarnRate] = useState<number>(1); // 1 THB = 1 Point by default
+
+  useEffect(() => {
+    // Fetch shop settings for earn rate
+    const fetchSettings = async () => {
+      const { data } = await supabase
+        .from('pos_shop_settings')
+        .select('loyalty_earn_rate')
+        .limit(1)
+        .single();
+      if (data && data.loyalty_earn_rate) {
+        setEarnRate(data.loyalty_earn_rate);
+      }
+    };
+    fetchSettings();
+  }, []);
 
   useEffect(() => {
     if (!token) {
@@ -45,8 +61,9 @@ export default function PointGenerator({ onClose }: { onClose?: () => void }) {
     return () => clearInterval(interval);
   }, [token, onClose]);
 
-  // 1 THB = 1 Point
-  const pointsToGenerate = parseInt(purchaseAmount) || 0;
+  // Calculate points based on earn rate
+  const amountInt = parseInt(purchaseAmount) || 0;
+  const pointsToGenerate = earnRate > 0 ? Math.floor(amountInt / earnRate) : 0;
 
   const handleNumpadPress = (num: string) => {
     if (purchaseAmount.length < 6) setPurchaseAmount(prev => prev + num);
@@ -134,9 +151,18 @@ export default function PointGenerator({ onClose }: { onClose?: () => void }) {
               <div className="flex-1">
                 {/* Amount Input */}
                 <div className="mb-3">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2 ml-1 text-center">
-                    {locale === 'en' ? 'Purchase Amount (THB)' : 'กรอกยอดชำระเงินของลูกค้า (บาท)'}
-                  </p>
+                  <div className="flex justify-between items-end mb-2 ml-1">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 text-center flex-1">
+                      {locale === 'en' ? 'Purchase Amount (THB)' : 'กรอกยอดชำระเงินของลูกค้า (บาท)'}
+                    </p>
+                  </div>
+                  {earnRate > 1 && (
+                    <div className="flex justify-center mb-2">
+                       <span className="text-[9px] font-black tracking-widest text-emerald-500 bg-emerald-50 px-2 py-1 rounded-md uppercase">
+                         Rate: {earnRate} {locale === 'en' ? 'THB' : 'บาท'} = 1 {locale === 'en' ? 'PT' : 'แต้ม'}
+                       </span>
+                    </div>
+                  )}
                   <div
                     className={`w-full border-2 rounded-2xl py-4 px-6 text-2xl font-black text-center tracking-widest transition-all min-h-[64px] flex items-center justify-between border-[#1A1A18] bg-white text-black shadow-sm`}
                   >
