@@ -4,10 +4,11 @@ import {
   Users, Search, UserPlus, Phone, Mail, Award, History, 
   ChevronRight, ArrowLeft, Loader2, Save, X, Edit2, 
   TrendingUp, TrendingDown, Star, LayoutGrid, List,
-  Coffee, Sparkles, CheckCircle2, ShieldCheck, UserCheck
+  Coffee, Sparkles, CheckCircle2, ShieldCheck, UserCheck, Settings
 } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import { useI18n } from "@/lib/I18nContext";
+import CrmSettingsPage from '@/app/dashboard/admin/pos-settings/crm/page';
 
 interface Customer {
     id: string
@@ -54,6 +55,7 @@ export default function POSMemberManager({
     const [isSaving, setIsSaving] = useState(false)
     const [editData, setEditData] = useState<Partial<Customer>>({})
     const [searchTerm, setSearchTerm] = useState('')
+    const [showCrmSettings, setShowCrmSettings] = useState(false)
 
     useEffect(() => {
         fetchMembers()
@@ -175,7 +177,12 @@ export default function POSMemberManager({
                     <header className="p-6 border-b border-[#F0F0E8] bg-white space-y-4">
                         <div className="flex items-center justify-between">
                              <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#1A1A18]">{locale === 'en' ? 'รายชื่อสมาชิก' : locale === 'zh' ? 'รายชื่อสมาชิก' : 'รายชื่อสมาชิก'}</h2>
-                             <span className="text-[8px] font-black text-sage-600 bg-sage-50 px-2 py-1 uppercase tracking-widest">{customers.length} {locale === 'en' ? ' ท่าน' : locale === 'zh' ? ' ท่าน' : ' ท่าน'}</span>
+                             <div className="flex gap-2 items-center">
+                                 <span className="text-[8px] font-black text-sage-600 bg-sage-50 px-2 py-1 uppercase tracking-widest">{customers.length} {locale === 'en' ? ' ท่าน' : locale === 'zh' ? ' ท่าน' : ' ท่าน'}</span>
+                                 <button onClick={() => setShowCrmSettings(true)} className="p-1 text-gray-400 hover:text-[#1A1A18] transition-colors" title="ตั้งค่า CRM & Loyalty">
+                                     <Settings size={14} />
+                                 </button>
+                             </div>
                         </div>
                         <div className="relative group">
                            <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-[#1A1A18]" />
@@ -451,6 +458,23 @@ export default function POSMemberManager({
                  </div>
             </div>
 
+            
+            {/* CRM Settings Modal */}
+            {showCrmSettings && (
+                <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6">
+                    <div className="bg-white w-full max-w-7xl h-full max-h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden relative">
+                        <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-gray-50/50">
+                            <h2 className="text-sm font-bold text-gray-900">การตั้งค่า CRM & Loyalty</h2>
+                            <button onClick={() => setShowCrmSettings(false)} className="p-2 bg-white rounded-full text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors shadow-sm">
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto">
+                            <CrmSettingsPage />
+                        </div>
+                    </div>
+                </div>
+            )}
             <style jsx global>{`
                 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Outfit:wght@200;300;400;500;900&family=Noto+Sans+Thai:wght@100;300;500;700;900&display=swap');
                 .font-serif-luxury { font-family: 'Cormorant Garamond', serif; }
