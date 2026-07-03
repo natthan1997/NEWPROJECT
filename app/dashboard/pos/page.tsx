@@ -404,8 +404,8 @@ function RestaurantOSPageContent() {
     let ordersQuery = supabase
       .from('pos_orders')
       .select('status, net_total, total_amount, payment_method, discount_amount, paid_at, branch_id, pos_order_payments(amount, payment_method)')
-      .gte('created_at', start.toISOString())
-      .lt('created_at', end.toISOString())
+      .gte('updated_at', start.toISOString())
+      .lt('updated_at', end.toISOString())
 
     if (branchId) {
       ordersQuery = ordersQuery.or(`branch_id.eq.${branchId},branch_id.is.null`)

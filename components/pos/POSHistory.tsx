@@ -19,20 +19,23 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
   const [paymentEditOrder, setPaymentEditOrder] = useState<any | null>(null)
   const [paymentEditMethod, setPaymentEditMethod] = useState<string>('cash')
   const [paymentEditOpen, setPaymentEditOpen] = useState(false)
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date())
 
   const fetchCompletedOrders = useCallback(async () => {
     setLoading(true)
     try {
       // Use local midnight as the start of today (handles timezone correctly)
-      const now = new Date()
-      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
+      const startOfDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 0, 0, 0, 0)
+      const endOfDay = new Date(startOfDay)
+      endOfDay.setDate(endOfDay.getDate() + 1)
       
       const { data, error } = await supabase
         .from('pos_orders')
         .select('*, pos_order_items(*, item:pos_menu_items!item_id(*)), pos_order_payments(amount, payment_method, status)')
         .in('status', ['paid', 'completed', 'cancelled'])
-        .gte('created_at', startOfDay.toISOString())
-        .order('created_at', { ascending: false })
+        .gte('updated_at', startOfDay.toISOString())
+        .lt('updated_at', endOfDay.toISOString())
+        .order('updated_at', { ascending: false })
 
       if (error) {
         console.error('Error fetching orders:', error)
@@ -50,7 +53,7 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
     } finally {
       setLoading(false)
     }
-  }, [shopSettings?.branch_id, activeShift?.branch_id])
+  }, [shopSettings?.branch_id, activeShift?.branch_id, selectedDate])
 
   // Always fetch when component mounts
   useEffect(() => {
