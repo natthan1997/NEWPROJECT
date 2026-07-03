@@ -1,50 +1,53 @@
 'use client';
 import React, { useState } from 'react';
-import { QrCode, RefreshCcw, CheckCircle2, ArrowLeft, Coffee, Award, X, Delete } from 'lucide-react';
+import { QrCode, RefreshCcw, CheckCircle2, ArrowLeft, Award, X, Delete } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabaseClient';
 import { useI18n } from "@/lib/I18nContext";
 
-type RewardMode = 'glasses' | 'points';
-
 export default function PointGenerator({ onClose }: { onClose?: () => void }) {
   const { locale } = useI18n();
   const [tab, setTab] = useState<'phone' | 'qr'>('phone');
-  const [mode, setMode] = useState<RewardMode>('glasses');
-  const [selectedPreset, setSelectedPreset] = useState<number | null>(1);
-  const [customValue, setCustomValue] = useState<string>('');
   
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [purchaseAmount, setPurchaseAmount] = useState('');
+  
+  const [activeInput, setActiveInput] = useState<'phone' | 'amount'>('amount');
   
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // Calculate actual points to send to API
-  const getDisplayValue = () => {
-    if (selectedPreset !== null) return selectedPreset;
-    return parseInt(customValue) || 0;
+  // 1 THB = 1 Point (or whatever conversion is required, assuming 1:1 for now)
+  const pointsToGenerate = parseInt(purchaseAmount) || 0;
+
+  const handleNumpadPress = (num: string) => {
+    if (activeInput === 'phone') {
+       if (phoneNumber.length < 10) setPhoneNumber(prev => prev + num);
+    } else {
+       if (purchaseAmount.length < 6) setPurchaseAmount(prev => prev + num);
+    }
   };
 
-  const displayValue = getDisplayValue();
-  const pointsToGenerate = mode === 'glasses' ? displayValue * 50 : displayValue;
-
-  const presets = mode === 'glasses' ? [1, 2, 3, 4] : [10, 20, 50, 100];
-  const unitLabel = mode === 'glasses' ? (locale === 'en' ? 'Cups' : 'แก้ว') : (locale === 'en' ? 'Points' : 'แต้ม');
-
-  const handlePresetClick = (val: number) => {
-    setSelectedPreset(val);
-    setCustomValue('');
+  const handleNumpadClear = () => {
+    if (activeInput === 'phone') {
+       setPhoneNumber('');
+    } else {
+       setPurchaseAmount('');
+    }
   };
 
-  const handleCustomChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSelectedPreset(null);
-    setCustomValue(e.target.value);
+  const handleNumpadDelete = () => {
+    if (activeInput === 'phone') {
+       setPhoneNumber(prev => prev.slice(0, -1));
+    } else {
+       setPurchaseAmount(prev => prev.slice(0, -1));
+    }
   };
 
   const processDirectCredit = async () => {
-    if (displayValue <= 0) {
-      alert(locale === 'en' ? 'Please enter a valid amount' : 'กรุณาระบุจำนวนที่ถูกต้อง');
+    if (pointsToGenerate <= 0) {
+      alert(locale === 'en' ? 'Please enter a valid amount' : 'กรุณาระบุยอดชำระเงิน');
       return;
     }
     if (phoneNumber.length < 9) {
@@ -55,7 +58,6 @@ export default function PointGenerator({ onClose }: { onClose?: () => void }) {
     try {
       let { data: member } = await supabase.from('pos_members').select('*').eq('phone', phoneNumber).maybeSingle();
       if (!member) {
-        // Register new member
         const { data: newMember, error: insertError } = await supabase.from('pos_members').insert({
           phone: phoneNumber,
           points: pointsToGenerate,
@@ -65,17 +67,15 @@ export default function PointGenerator({ onClose }: { onClose?: () => void }) {
         if (insertError) throw insertError;
         member = newMember;
       } else {
-        // Increment existing
         const { error: rpcError } = await supabase.rpc('increment_member_points', { user_id: member.id, points_to_add: pointsToGenerate });
         if (rpcError) throw rpcError;
       }
       
-      // Log history
       await supabase.from('pos_points_history').insert({
         member_id: member.id,
         action: 'earn',
         points: pointsToGenerate,
-        description: 'POS Direct Credit'
+        description: 'POS Direct Credit (Amount: ' + pointsToGenerate + ' THB)'
       });
       
       setSuccessMsg(locale === 'en' ? `Successfully added ${pointsToGenerate} PTS to ${phoneNumber}` : `เพิ่ม ${pointsToGenerate} แต้ม ให้เบอร์ ${phoneNumber} สำเร็จ!`);
@@ -88,8 +88,8 @@ export default function PointGenerator({ onClose }: { onClose?: () => void }) {
   };
 
   const generateQR = async () => {
-    if (displayValue <= 0) {
-      alert(locale === 'en' ? 'Please enter a valid amount' : 'กรุณาระบุจำนวนที่ถูกต้อง');
+    if (pointsToGenerate <= 0) {
+      alert(locale === 'en' ? 'Please enter a valid amount' : 'กรุณาระบุยอดชำระเงิน');
       return;
     }
 
@@ -127,10 +127,9 @@ export default function PointGenerator({ onClose }: { onClose?: () => void }) {
   const resetGenerator = () => {
     setToken(null);
     setSuccessMsg(null);
-    setSelectedPreset(1);
-    setCustomValue('');
-    setMode('glasses');
+    setPurchaseAmount('');
     setPhoneNumber('');
+    setActiveInput('amount');
   };
 
   return (
@@ -139,7 +138,7 @@ export default function PointGenerator({ onClose }: { onClose?: () => void }) {
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-[#1A1A18]">
         <h2 className="text-[18px] font-black text-white uppercase tracking-widest">
-          {token || successMsg ? (locale === 'en' ? 'Success' : 'สำเร็จ') : (locale === 'en' ? 'Issue Reward' : 'ให้แต้มลูกค้า')}
+          {token || successMsg ? (locale === 'en' ? 'Success' : 'สำเร็จ') : (locale === 'en' ? 'Issue Points' : 'ให้แต้มลูกค้าตามยอดซื้อ')}
         </h2>
         <button 
           onClick={onClose}
@@ -163,101 +162,89 @@ export default function PointGenerator({ onClose }: { onClose?: () => void }) {
             >
               
               {/* Type Tabs */}
-              <div className="flex bg-gray-100 p-1 rounded-xl mb-6">
+              <div className="flex bg-gray-100 p-1 rounded-xl mb-4">
                 <button
-                  onClick={() => setTab('phone')}
+                  onClick={() => { setTab('phone'); setActiveInput('phone'); }}
                   className={`flex-1 py-2 text-sm font-black rounded-lg transition-all ${tab === 'phone' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-black'}`}
                 >
                   {locale === 'en' ? 'Enter Phone' : 'กรอกเบอร์'}
                 </button>
                 <button
-                  onClick={() => setTab('qr')}
+                  onClick={() => { setTab('qr'); setActiveInput('amount'); }}
                   className={`flex-1 py-2 text-sm font-black rounded-lg transition-all ${tab === 'qr' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-black'}`}
                 >
                   {locale === 'en' ? 'Scan QR' : 'สแกน QR'}
                 </button>
               </div>
 
-              {/* Amount Setup */}
-              <div className="flex bg-gray-50 p-1.5 rounded-[16px] mb-4 shadow-inner border border-gray-100">
-                <button
-                  onClick={() => { setMode('glasses'); setSelectedPreset(1); setCustomValue(''); }}
-                  className={`flex-1 py-3 text-[14px] font-bold rounded-[12px] transition-all flex items-center justify-center gap-2 ${
-                    mode === 'glasses' ? 'bg-white text-gray-900 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-800'
-                  }`}
-                >
-                  <Coffee size={16} className={mode === 'glasses' ? 'text-amber-700' : ''} />
-                  {locale === 'en' ? 'Cups' : 'แก้ว'}
-                </button>
-                <button
-                  onClick={() => { setMode('points'); setSelectedPreset(10); setCustomValue(''); }}
-                  className={`flex-1 py-3 text-[14px] font-bold rounded-[12px] transition-all flex items-center justify-center gap-2 ${
-                    mode === 'points' ? 'bg-white text-gray-900 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-800'
-                  }`}
-                >
-                  <Award size={16} className={mode === 'points' ? 'text-blue-600' : ''} />
-                  {locale === 'en' ? 'Points' : 'แต้ม'}
-                </button>
-              </div>
-
               <div className="flex-1">
-                {/* Grid Presets */}
-                <div className="grid grid-cols-4 gap-2 mb-4">
-                  {presets.map((val) => (
-                    <button 
-                      key={val} 
-                      onClick={() => handlePresetClick(val)}
-                      className={`h-[50px] rounded-[12px] text-[16px] font-bold border-2 transition-all flex items-center justify-center gap-1 ${
-                        selectedPreset === val
-                          ? 'bg-[#1A1A18] border-[#1A1A18] text-white' 
-                          : 'bg-white border-gray-200 text-gray-700 hover:border-black hover:text-black'
-                      }`}
-                    >
-                      {val} <span className="text-[10px] font-medium opacity-80 uppercase">{unitLabel}</span>
-                    </button>
-                  ))}
+                {/* Amount Input */}
+                <div className="mb-3">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1 ml-1">
+                    {locale === 'en' ? 'Purchase Amount (THB)' : 'ยอดชำระเงิน (บาท)'}
+                  </p>
+                  <button
+                    onClick={() => setActiveInput('amount')}
+                    className={`w-full border-2 rounded-2xl py-3 px-6 text-xl font-black text-center tracking-widest transition-all min-h-[56px] flex items-center justify-between ${
+                      activeInput === 'amount' 
+                        ? 'border-[#1A1A18] bg-white text-black shadow-sm' 
+                        : 'border-transparent bg-gray-50 text-gray-400 hover:bg-gray-100'
+                    }`}
+                  >
+                     <span className="text-gray-300">฿</span>
+                     <span>{purchaseAmount || '0'}</span>
+                     <span className="text-emerald-500 text-xs bg-emerald-50 px-2 py-1 rounded-md">+{pointsToGenerate} PTS</span>
+                  </button>
                 </div>
 
                 {tab === 'phone' && (
-                  <div className="mt-6">
-                    <p className="text-[12px] font-black uppercase tracking-widest text-gray-500 mb-2">
+                  <div className="mb-4">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1 ml-1">
                       {locale === 'en' ? 'Customer Phone' : 'เบอร์โทรศัพท์ลูกค้า (สมัครสมาชิกอัตโนมัติ)'}
                     </p>
-                    <div className="w-full bg-[#f8f8f8] border-2 border-transparent focus-within:border-[#1A1A18] rounded-2xl py-4 px-6 text-xl font-black text-center tracking-[0.2em] transition-all bg-white flex items-center justify-center min-h-[60px] mb-4">
+                    <button
+                      onClick={() => setActiveInput('phone')}
+                      className={`w-full border-2 rounded-2xl py-3 px-6 text-xl font-black text-center tracking-[0.2em] transition-all min-h-[56px] flex items-center justify-center ${
+                         activeInput === 'phone' 
+                           ? 'border-[#1A1A18] bg-white text-black shadow-sm' 
+                           : 'border-transparent bg-gray-50 text-gray-400 hover:bg-gray-100'
+                      }`}
+                    >
                       {phoneNumber || <span className="text-gray-300">0XX-XXX-XXXX</span>}
-                    </div>
-                    
-                    <div className="grid grid-cols-3 gap-2 mb-2">
-                      {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
-                        <button
-                          key={num}
-                          onClick={() => setPhoneNumber(prev => prev + num)}
-                          className="h-12 bg-gray-50 hover:bg-gray-100 text-[#1A1A18] font-black text-lg rounded-xl transition-all"
-                        >
-                          {num}
-                        </button>
-                      ))}
-                      <button
-                        onClick={() => setPhoneNumber('')}
-                        className="h-12 bg-red-50 hover:bg-red-100 text-red-500 font-black text-xs uppercase tracking-widest rounded-xl transition-all"
-                      >
-                        CLR
-                      </button>
-                      <button
-                        onClick={() => setPhoneNumber(prev => prev + '0')}
-                        className="h-12 bg-gray-50 hover:bg-gray-100 text-[#1A1A18] font-black text-lg rounded-xl transition-all"
-                      >
-                        0
-                      </button>
-                      <button
-                        onClick={() => setPhoneNumber(prev => prev.slice(0, -1))}
-                        className="h-12 bg-gray-100 hover:bg-gray-200 text-[#1A1A18] flex items-center justify-center rounded-xl transition-all"
-                      >
-                        <Delete size={18} />
-                      </button>
-                    </div>
+                    </button>
                   </div>
                 )}
+                
+                {/* Numpad */}
+                <div className="grid grid-cols-3 gap-2 mb-2 mt-4">
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+                    <button
+                      key={num}
+                      onClick={() => handleNumpadPress(String(num))}
+                      className="h-12 bg-gray-50 hover:bg-gray-100 text-[#1A1A18] font-black text-lg rounded-xl transition-all"
+                    >
+                      {num}
+                    </button>
+                  ))}
+                  <button
+                    onClick={handleNumpadClear}
+                    className="h-12 bg-red-50 hover:bg-red-100 text-red-500 font-black text-xs uppercase tracking-widest rounded-xl transition-all"
+                  >
+                    CLR
+                  </button>
+                  <button
+                    onClick={() => handleNumpadPress('0')}
+                    className="h-12 bg-gray-50 hover:bg-gray-100 text-[#1A1A18] font-black text-lg rounded-xl transition-all"
+                  >
+                    0
+                  </button>
+                  <button
+                    onClick={handleNumpadDelete}
+                    className="h-12 bg-gray-100 hover:bg-gray-200 text-[#1A1A18] flex items-center justify-center rounded-xl transition-all"
+                  >
+                    <Delete size={18} />
+                  </button>
+                </div>
               </div>
 
               {/* Action Button */}
@@ -265,20 +252,20 @@ export default function PointGenerator({ onClose }: { onClose?: () => void }) {
                 {tab === 'phone' ? (
                   <button 
                     onClick={processDirectCredit}
-                    disabled={loading || displayValue <= 0 || phoneNumber.length < 9}
-                    className="w-full h-[60px] bg-[#1A1A18] text-white rounded-[16px] font-black text-[16px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-black transition-all disabled:opacity-50 active:scale-[0.98] shadow-lg"
+                    disabled={loading || pointsToGenerate <= 0 || phoneNumber.length < 9}
+                    className="w-full h-[56px] bg-[#1A1A18] text-white rounded-[16px] font-black text-[14px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-black transition-all disabled:opacity-50 active:scale-[0.98] shadow-lg"
                   >
-                    {loading ? <RefreshCcw size={20} className="animate-spin" /> : <Award size={20} />}
-                    {loading ? (locale === 'en' ? 'Processing...' : 'กำลังดำเนินการ...') : (locale === 'en' ? 'Give Points' : 'ให้แต้มทันที')}
+                    {loading ? <RefreshCcw size={18} className="animate-spin" /> : <Award size={18} />}
+                    {loading ? (locale === 'en' ? 'Processing...' : 'กำลังดำเนินการ...') : (locale === 'en' ? 'Give Points' : `ให้ ${pointsToGenerate} แต้ม ทันที`)}
                   </button>
                 ) : (
                   <button 
                     onClick={generateQR}
-                    disabled={loading || displayValue <= 0}
-                    className="w-full h-[60px] bg-[#1A1A18] text-white rounded-[16px] font-black text-[16px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-black transition-all disabled:opacity-50 active:scale-[0.98] shadow-lg"
+                    disabled={loading || pointsToGenerate <= 0}
+                    className="w-full h-[56px] bg-[#1A1A18] text-white rounded-[16px] font-black text-[14px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-black transition-all disabled:opacity-50 active:scale-[0.98] shadow-lg"
                   >
-                    {loading ? <RefreshCcw size={20} className="animate-spin" /> : <QrCode size={20} />}
-                    {loading ? (locale === 'en' ? 'Generating...' : 'กำลังสร้าง...') : (locale === 'en' ? 'Generate QR' : 'สร้างคิวอาร์สแกน')}
+                    {loading ? <RefreshCcw size={18} className="animate-spin" /> : <QrCode size={18} />}
+                    {loading ? (locale === 'en' ? 'Generating...' : 'กำลังสร้าง...') : (locale === 'en' ? 'Generate QR' : `สร้างคิวอาร์สแกนรับ ${pointsToGenerate} แต้ม`)}
                   </button>
                 )}
               </div>
@@ -300,14 +287,9 @@ export default function PointGenerator({ onClose }: { onClose?: () => void }) {
                  </div>
                  
                  <div className="flex items-baseline justify-center text-[#1A1A18] leading-none tracking-tight">
-                   <span className="text-[56px] font-black tracking-tighter">{displayValue}</span>
-                   <span className="text-[20px] text-gray-400 font-bold ml-2 uppercase tracking-widest">{unitLabel}</span>
+                   <span className="text-[56px] font-black tracking-tighter">{pointsToGenerate}</span>
+                   <span className="text-[20px] text-gray-400 font-bold ml-2 uppercase tracking-widest">PTS</span>
                  </div>
-                 {mode === 'glasses' && (
-                   <p className="text-[14px] text-emerald-500 font-black mt-2 tracking-widest">
-                     ( = {pointsToGenerate} PTS )
-                   </p>
-                 )}
               </div>
 
               {/* QR Code */}
@@ -327,7 +309,7 @@ export default function PointGenerator({ onClose }: { onClose?: () => void }) {
                   onClick={resetGenerator}
                   className="w-full h-[56px] bg-white text-gray-800 border-2 border-gray-200 rounded-[16px] font-black uppercase tracking-widest text-[14px] flex items-center justify-center gap-2 hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-[0.98]"
                 >
-                  <ArrowLeft size={18} /> {locale === 'en' ? 'Back' : 'กลับไปแจกรางวัลใหม่'}
+                  <ArrowLeft size={18} /> {locale === 'en' ? 'Back' : 'กลับไปทำรายการใหม่'}
                 </button>
               </div>
             </motion.div>
@@ -335,19 +317,6 @@ export default function PointGenerator({ onClose }: { onClose?: () => void }) {
         </AnimatePresence>
       </div>
       
-      <style jsx global>{`
-          input[type="number"].no-spinner {
-            -moz-appearance: textfield !important;
-            appearance: textfield !important;
-            margin: 0 !important;
-            box-shadow: none !important;
-          }
-          input[type="number"].no-spinner::-webkit-inner-spin-button, 
-          input[type="number"].no-spinner::-webkit-outer-spin-button { 
-            -webkit-appearance: none !important; 
-            margin: 0 !important; 
-          }
-      `}</style>
     </div>
   );
 }
