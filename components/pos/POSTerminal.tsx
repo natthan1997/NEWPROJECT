@@ -1829,7 +1829,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       return;
     }
     
-    const valPerPoint = shopSettings?.loyalty_points_per_thb || 10;
+    const valPerPoint = (shopSettings?.opening_hours?.loyalty_points_per_thb) || 10;
     const discountValue = pointsToUse * valPerPoint;
     
     if (discountValue > cartTotal) {
@@ -3956,7 +3956,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                      </div>
                      <div className="mt-4 inline-flex items-center gap-2 bg-white/10 px-4 py-2 rounded-full text-xs font-bold text-white/90">
                        <Award size={14} />
-                       1 PTS = {shopSettings?.loyalty_points_per_thb || 10} ฿
+                       1 PTS = {(shopSettings?.opening_hours?.loyalty_points_per_thb) || 10} ฿
                      </div>
                    </div>
                    
@@ -3967,7 +3967,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                        </label>
                        {redeemPointsAmount && parseInt(redeemPointsAmount) > 0 && (
                          <div className="text-xs font-black text-emerald-500 uppercase tracking-widest bg-emerald-50 px-3 py-1 rounded-full">
-                           -{(parseInt(redeemPointsAmount) * (shopSettings?.loyalty_points_per_thb || 10)).toLocaleString()} ฿
+                           -{(parseInt(redeemPointsAmount) * ((shopSettings?.opening_hours?.loyalty_points_per_thb) || 10)).toLocaleString()} ฿
                          </div>
                        )}
                      </div>
@@ -3976,7 +3976,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                         {[50, 100, 200].map(pts => {
                            const canUse = (selectedCustomer?.points || 0) >= pts;
                            // also check if this discount is larger than cart total
-                           const valPerPoint = shopSettings?.loyalty_points_per_thb || 10;
+                           const valPerPoint = (shopSettings?.opening_hours?.loyalty_points_per_thb) || 10;
                            const isOverBill = (pts * valPerPoint) > cartTotal;
                            return (
                               <button
@@ -3992,7 +3992,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                         <button
                            disabled={(selectedCustomer?.points || 0) === 0}
                            onClick={() => {
-                              const valPerPoint = shopSettings?.loyalty_points_per_thb || 10;
+                              const valPerPoint = (shopSettings?.opening_hours?.loyalty_points_per_thb) || 10;
                               // Max points they can use is min(their points, cartTotal / valPerPoint)
                               const maxPtsForBill = Math.ceil(cartTotal / valPerPoint);
                               const ptsToUse = Math.min(selectedCustomer?.points || 0, maxPtsForBill);

@@ -20,11 +20,11 @@ export default function PointGenerator({ onClose }: { onClose?: () => void }) {
     const fetchSettings = async () => {
       const { data } = await supabase
         .from('pos_shop_settings')
-        .select('loyalty_earn_rate')
+        .select('opening_hours')
         .limit(1)
         .single();
-      if (data && data.loyalty_earn_rate) {
-        setEarnRate(data.loyalty_earn_rate);
+      if (data && data.opening_hours && data.opening_hours.loyalty_earn_rate) {
+        setEarnRate(data.opening_hours.loyalty_earn_rate);
       }
     };
     fetchSettings();
