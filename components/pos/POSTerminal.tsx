@@ -1352,13 +1352,13 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     await fetchTables()
   }
 
-  const addToCart = async (item: MenuItem, modifiers: any[] = [], qty: number = 1) => {
+  const addToCart = async (item: MenuItem, modifiers: any[] = [], qty: number = 1, fromModal: boolean = false) => {
     if (!activeShift) {
       onOpenShiftModal()
       return
     }
 
-    if (item.modifiers && item.modifiers.length > 0 && modifiers.length === 0) {
+    if (item.modifiers && item.modifiers.length > 0 && !fromModal && modifiers.length === 0) {
       const groupIds = item.modifiers.map((m: any) => m.group_id)
       const { data: groups } = await supabase
         .from('pos_menu_modifier_groups')
@@ -3470,7 +3470,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                     <button
                       disabled={!canConfirm}
                       onClick={() => {
-                        addToCart(modifierModalItem, tempSelectedModifiers, tempQuantity)
+                        addToCart(modifierModalItem, tempSelectedModifiers, tempQuantity, true)
                       }}
                       className={`relative flex h-[60px] w-full sm:w-auto sm:min-w-[200px] flex-1 items-center justify-center gap-3 rounded-[1.25rem] px-6 text-[14px] font-black uppercase tracking-widest transition-all overflow-hidden ${
                         canConfirm 
