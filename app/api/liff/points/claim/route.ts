@@ -43,21 +43,50 @@ export async function POST(req: NextRequest) {
         }
 
         // 2. Ensure member exists
-        const { data: member, error: memberError } = await supabase
+        let { data: member, error: memberError } = await supabase
             .from('pos_members')
             .select('*')
             .eq('line_user_id', lineUserId)
             .maybeSingle()
+            
+        // Check by phone if lineUserId not found, in case they registered at POS
+        if (!member && body.phone) {
+            const { data: memberByPhone } = await supabase
+               .from('pos_members')
+               .select('*')
+               .eq('phone', body.phone)
+               .maybeSingle()
+               
+            if (memberByPhone) {
+                // Link line account
+                await supabase.from('pos_members').update({
+                    line_user_id: lineUserId,
+                    display_name: memberByPhone.display_name || displayName,
+                    avatar_url: memberByPhone.avatar_url || avatarUrl
+                }).eq('id', memberByPhone.id)
+                member = memberByPhone
+            }
+        }
         
         if (!member) {
-            await supabase.from('pos_members').insert({
+            if (!body.phone) {
+                return NextResponse.json({ 
+                    success: false, 
+                    requirePhone: true, 
+                    message: 'Please register with your phone number' 
+                })
+            }
+        
+            const { data: newMember } = await supabase.from('pos_members').insert({
                 line_user_id: lineUserId,
+                phone: body.phone,
                 display_name: displayName,
                 avatar_url: avatarUrl,
                 points: 0,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
-            })
+            }).select().single()
+            member = newMember
         } else {
             // Update profile if they scan but info was empty
             if (!member.display_name || !member.avatar_url) {
