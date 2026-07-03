@@ -296,18 +296,30 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
   return (
     <div className="flex h-full flex-col bg-[#FDFDFB]">
       <header className="flex-shrink-0 flex items-center justify-between border-b border-[#F0F0E8] bg-white p-6 sm:p-10">
-        <div>
+        <div className="flex flex-col">
           <h2 className="text-xl sm:text-2xl font-black tracking-tighter uppercase text-[#1A1A18] flex items-center gap-3">
             <Receipt className="text-emerald-500" /> 
-            {locale === 'en' ? '              ประวัติการขาย (วันนี้)           ' : locale === 'zh' ? '              ประวัติการขาย (วันนี้)           ' : '              ประวัติการขาย (วันนี้)           '}</h2>
+            {locale === 'en' ? '              ประวัติการขาย           ' : locale === 'zh' ? '              ประวัติการขาย           ' : '              ประวัติการขาย           '}</h2>
           <p className="mt-1 text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-widest">
             Sales History · {completedOrders.length} {locale === 'en' ? ' รายการ           ' : locale === 'zh' ? ' รายการ           ' : ' รายการ           '}</p>
         </div>
-        <button
-          onClick={fetchCompletedOrders}
-          disabled={loading}
-          className="flex items-center gap-2 border border-[#F0F0E8] bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gray-500 transition-all hover:bg-black hover:text-white disabled:opacity-50"
-        >
+        <div className="flex items-center gap-3">
+          <input 
+            type="date" 
+            value={selectedDate.toISOString().split('T')[0]}
+            onChange={(e) => {
+              if (e.target.value) {
+                const newDate = new Date(e.target.value);
+                setSelectedDate(newDate);
+              }
+            }}
+            className="border border-[#F0F0E8] bg-white px-3 py-2 text-[10px] font-black uppercase tracking-widest text-gray-500 focus:outline-none"
+          />
+          <button
+            onClick={fetchCompletedOrders}
+            disabled={loading}
+            className="flex items-center gap-2 border border-[#F0F0E8] bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gray-500 transition-all hover:bg-black hover:text-white disabled:opacity-50"
+          >
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           {locale === 'en' ? 'Refresh' : locale === 'zh' ? '刷新' : '           รีเฟรช         '}</button>
       </header>
