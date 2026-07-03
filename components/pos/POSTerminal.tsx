@@ -1766,7 +1766,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       const { data, error } = await supabase
         .from('pos_members')
         .select('*')
-        .or(`phone.ilike.%${memberSearchQuery}%,full_name.ilike.%${memberSearchQuery}%,line_display_name.ilike.%${memberSearchQuery}%`)
+        .or(`phone.ilike.%${memberSearchQuery}%,full_name.ilike.%${memberSearchQuery}%,display_name.ilike.%${memberSearchQuery}%`)
         .limit(1)
         .maybeSingle();
 
