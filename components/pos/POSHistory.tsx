@@ -306,7 +306,7 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
         <div className="flex items-center gap-3">
           <input 
             type="date" 
-            value={selectedDate.toISOString().split('T')[0]}
+            value={selectedDate.toLocaleDateString('en-CA')}
             onChange={(e) => {
               if (e.target.value) {
                 const newDate = new Date(e.target.value);
@@ -322,6 +322,7 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
           >
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           {locale === 'en' ? 'Refresh' : locale === 'zh' ? '刷新' : '           รีเฟรช         '}</button>
+        </div>
       </header>
 
       <div className="flex-1 overflow-y-auto p-4 sm:p-10 space-y-3">
