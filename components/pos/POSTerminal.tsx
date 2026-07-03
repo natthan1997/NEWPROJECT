@@ -1042,6 +1042,17 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 
         setEditingOrderId(order.id)
         setEditingOrderNumber(order.order_number)
+
+        // Customer Logic
+        let customerToSet = null
+        if (order.customer_id) {
+            const { data } = await supabase.from('pos_members').select('*').eq('id', order.customer_id).maybeSingle()
+            if (data) customerToSet = data
+        } else if (order.line_user_id) {
+            const { data } = await supabase.from('pos_members').select('*').eq('line_user_id', order.line_user_id).maybeSingle()
+            if (data) customerToSet = data
+        }
+        setSelectedCustomer(customerToSet)
         
         // Fetch existing payments
         const { data: payments } = await supabase
@@ -1988,11 +1999,11 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         if (pointsToEarn > 0) {
           try {
             await supabase.rpc('increment_member_points', {
-              user_id: selectedCustomer.id,
+              user_id: selectedCustomer.line_user_id || selectedCustomer.id,
               points_to_add: pointsToEarn,
             })
             const historyObj: any = {
-              member_id: selectedCustomer.id,
+              member_id: selectedCustomer.line_user_id || selectedCustomer.id,
               order_id: finalOrderId,
               points: pointsToEarn,
               type: 'earn',

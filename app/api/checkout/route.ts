@@ -200,6 +200,13 @@ export async function POST(req: Request) {
       shiftId: activeShift?.id || null,
     })
 
+    // Look up customer by lineUserId
+    let customerId = null
+    if (lineUserId) {
+      const { data: member } = await supabase.from('pos_members').select('id').eq('line_user_id', lineUserId).maybeSingle()
+      if (member) customerId = member.id
+    }
+
     // 4. CREATE THE ORDER RECORD
     const orderInsertPayload: any = {
       order_number: identity.orderNumber,
@@ -207,6 +214,7 @@ export async function POST(req: Request) {
       shift_id: activeShift?.id || null,
       payment_intent_id: paymentIntentId,
       line_user_id: lineUserId,
+      customer_id: customerId,
       customer_name: customerName,
       customer_image: customerImage,
       order_type: orderType,
