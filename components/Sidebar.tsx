@@ -433,7 +433,12 @@ export default function Sidebar({ isOpen, onMenuClick, isLocked, onLockToggle, o
             {
               name: (copy as any).posSettings || 'POS Settings',
               href: '/dashboard/admin/pos-settings',
-              current: pathname.startsWith('/dashboard/admin/pos-settings'),
+              current: pathname === '/dashboard/admin/pos-settings' || pathname.startsWith('/dashboard/admin/pos-settings') && !pathname.startsWith('/dashboard/admin/pos-settings/crm'),
+            },
+            {
+              name: 'CRM & Loyalty',
+              href: '/dashboard/admin/pos-settings/crm',
+              current: pathname.startsWith('/dashboard/admin/pos-settings/crm'),
             },
             {
               name: copy.promotions || 'Promotions',

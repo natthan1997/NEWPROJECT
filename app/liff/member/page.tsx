@@ -1,19 +1,9 @@
+
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-  ChevronLeft, 
-  Star, 
-  History, 
-  Gift, 
-  TrendingUp, 
-  Award,
-  ChevronRight,
-  User,
-  Clock,
-  QrCode,
-  CheckCircle2,
-  XCircle
+  ChevronLeft, History, Gift, TrendingUp, User, Info, X, Check
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
@@ -22,7 +12,7 @@ import XYLLoader from '@/components/loaders/XYLLoader';
 import { useI18n } from "@/lib/I18nContext";
 
 export default function LiffMemberPage() {
-    const { locale } = useI18n();
+  const { locale } = useI18n();
   const router = useRouter();
   const supabase = createClient();
   const { lineProfile, loading: liffLoading, hasSeenLoader } = useLiff();
@@ -30,45 +20,117 @@ export default function LiffMemberPage() {
   const [memberInfo, setMemberInfo] = useState<any>(null);
   const [pointsHistory, setPointsHistory] = useState<any[]>([]);
   const [rewards, setRewards] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'history' | 'rewards'>('rewards');
+  const [activeTab, setActiveTab] = useState<'rewards' | 'history'>('rewards');
   const [loading, setLoading] = useState(true);
+  const [showBenefits, setShowBenefits] = useState(false);
+
+  const t = {
+    th: {
+      loading: 'กำลังโหลดข้อมูล...',
+      title: 'XYL Member',
+      points: 'คะแนนของคุณ',
+      rewardsCatalog: 'ของรางวัล',
+      pointsHistory: 'ประวัติ',
+      pointsToNextTier: 'คะแนนเพื่อเลื่อนระดับ',
+      maxTier: 'คุณคือสมาชิกระดับสูงสุด',
+      redeem: 'แลกรางวัล',
+      noRewards: 'ยังไม่มีของรางวัลในขณะนี้',
+      checkBackLater: 'โปรดกลับมาตรวจสอบใหม่ในภายหลัง',
+      earnedPoints: 'ได้รับคะแนน',
+      redeemedReward: 'แลกของรางวัล',
+      noHistory: 'ยังไม่มีประวัติการใช้งาน',
+      historyEmpty: 'ประวัติคะแนนของคุณจะแสดงที่นี่',
+      pts: 'pts',
+      benefitsTitle: 'สิทธิประโยชน์',
+      close: 'ปิด',
+      howToEarn: 'วิธีสะสมคะแนน',
+      earnRule: 'ทุก 100 บาท = 1 คะแนน'
+    },
+    en: {
+      loading: 'Loading data...',
+      title: 'XYL Member',
+      points: 'Your Points',
+      rewardsCatalog: 'Rewards',
+      pointsHistory: 'History',
+      pointsToNextTier: 'points to',
+      maxTier: 'Top Tier Achieved',
+      redeem: 'Redeem',
+      noRewards: 'No rewards available',
+      checkBackLater: 'Please check back later.',
+      earnedPoints: 'Earned Points',
+      redeemedReward: 'Redeemed Reward',
+      noHistory: 'No History',
+      historyEmpty: 'Your points history will appear here.',
+      pts: 'pts',
+      benefitsTitle: 'Benefits',
+      close: 'Close',
+      howToEarn: 'How to earn',
+      earnRule: '100 THB = 1 Point'
+    },
+    zh: {
+      loading: '正在加载...',
+      title: 'XYL 会员',
+      points: '您的积分',
+      rewardsCatalog: '奖励',
+      pointsHistory: '历史',
+      pointsToNextTier: '分升级至',
+      maxTier: '最高等级',
+      redeem: '兑换',
+      noRewards: '暂无奖励',
+      checkBackLater: '请稍后回来查看。',
+      earnedPoints: '获得积分',
+      redeemedReward: '兑换奖励',
+      noHistory: '无历史记录',
+      historyEmpty: '您的积分历史将显示在此处。',
+      pts: '分',
+      benefitsTitle: '会员权益',
+      close: '关闭',
+      howToEarn: '如何赚取',
+      earnRule: '100 泰铢 = 1 积分'
+    }
+  };
+  const dict = t[(locale as keyof typeof t) || 'th'];
+
+  const [tiers, setTiers] = useState([
+    { name: 'Bronze', minPoints: 0, bg: 'bg-[#F2ECE4]', text: 'text-[#8C6D53]', barColor: 'bg-[#C19A6B]', benefits: ['อัตราสะสมคะแนน 100 บาท = 1 คะแนน', 'รับสิทธิ์ลุ้นกล่องสุ่มเมื่อครบ 50 คะแนน'] },
+    { name: 'Silver', minPoints: 500, bg: 'bg-[#F0F2F5]', text: 'text-[#64748B]', barColor: 'bg-[#94A3B8]', benefits: ['อัตราสะสมคะแนน x1.2', 'เครื่องดื่มพิเศษในเดือนเกิด', 'สิทธิ์สั่งซื้อต้นไม้คอลเลกชันใหม่ล่วงหน้า 12 ชม.'] },
+    { name: 'Gold', minPoints: 2000, bg: 'bg-[#FCF7E8]', text: 'text-[#B48529]', barColor: 'bg-[#D4AF37]', benefits: ['อัตราสะสมคะแนน x1.5', 'ส่วนลด 5% ทุกออเดอร์', 'สิทธิ์ Fast Track ลัดคิวเข้ารับบริการ', 'สิทธิ์สั่งซื้อต้นไม้ Rare Item ล่วงหน้า 24 ชม.'] },
+    { name: 'Platinum', minPoints: 5000, bg: 'bg-[#EBF1F5]', text: 'text-[#3E6578]', barColor: 'bg-[#6495ED]', benefits: ['อัตราสะสมคะแนน x2.0', 'ส่วนลด 10% ทุกออเดอร์', 'สิทธิ์ Fast Track ขั้นสูงสุด', 'เบอร์ติดต่อสายตรง (Direct Line) ปรึกษาผู้เชี่ยวชาญ 24 ชม.'] }
+  ]);
+  const [campaigns, setCampaigns] = useState<any[]>([]);
 
   const fetchData = async () => {
     const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
     if (!userId) return;
-
     try {
       setLoading(true);
-      
-      // 1. Fetch Member Info
-      const { data: member } = await supabase
-        .from('pos_members')
-        .select('*')
-        .eq('line_user_id', userId)
-        .maybeSingle();
-      
+      const { data: member } = await supabase.from('pos_members').select('*').eq('line_user_id', userId).maybeSingle();
       if (member) setMemberInfo(member);
-
-      // 2. Fetch Points History
-      const { data: history } = await supabase
-        .from('pos_points_history')
-        .select('*')
-        .eq('member_id', userId)
-        .order('created_at', { ascending: false });
-      
+      const { data: history } = await supabase.from('pos_points_history').select('*').eq('member_id', userId).order('created_at', { ascending: false });
       if (history) setPointsHistory(history);
-
-      // 3. Fetch Rewards
-      const { data: rewardsData } = await supabase
-        .from('pos_rewards')
-        .select('*')
-        .eq('is_active', true)
-        .order('points_required', { ascending: true });
-      
+      const { data: rewardsData } = await supabase.from('pos_rewards').select('*').eq('is_active', true).order('points_required', { ascending: true });
       if (rewardsData) setRewards(rewardsData);
-
+      
+      const { data: tiersData, error: tiersError } = await supabase.from('pos_loyalty_tiers').select('*').eq('is_active', true).order('min_points', { ascending: true });
+      if (tiersData && !tiersError) {
+        setTiers(tiersData.map(t => ({
+          name: t.name, minPoints: t.min_points, bg: t.bg_color, text: t.text_color, barColor: t.bar_color, benefits: t.benefits
+        })));
+      }
+      
+      const { data: campData, error: campError } = await supabase.from('pos_campaigns').select('*').eq('is_active', true).order('sort_order', { ascending: true });
+      if (campData && !campError) {
+        setCampaigns(campData);
+      } else {
+        // Fallback default campaigns if table not ready
+        setCampaigns([
+          { id: '1', title: 'ฝนตกรับคะแนน x2', description: 'รับคะแนนสองเท่าทุกออเดอร์ในวันฝนตก!', icon: '🌧️', type_tag: 'Flash Event', bg_gradient_from: 'from-[#EBF1F5]', bg_gradient_to: 'to-[#D6E4EE]', text_color: 'text-[#1F333C]', tag_color: 'text-[#3E6578]' },
+          { id: '2', title: 'ลุ้นกล่องสุ่มทุก 50 Pts', description: 'สะสมครบทุก 50 คะแนน รับสิทธิ์เปิดกล่องสุ่มส่วนลด!', icon: '🎁', type_tag: 'Milestone', bg_gradient_from: 'from-[#FCF7E8]', bg_gradient_to: 'to-[#F5E6C4]', text_color: 'text-[#8B651B]', tag_color: 'text-[#B48529]' },
+          { id: '3', title: 'รักษาสถานะของคุณ', description: 'อย่าลืมซื้อสินค้า 1 ชิ้นภายใน 30 วันเพื่อคงระดับ', icon: '⚠️', type_tag: 'Expiring Soon', bg_gradient_from: 'from-[#FFF0F0]', bg_gradient_to: 'to-[#FFE0E0]', text_color: 'text-[#B33535]', tag_color: 'text-[#D94C4C]' }
+        ]);
+      }
     } catch (err) {
-      console.error('Error fetching member data:', err);
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -78,178 +140,311 @@ export default function LiffMemberPage() {
     if (!liffLoading) fetchData();
   }, [lineProfile, liffLoading]);
 
-  if (liffLoading && !hasSeenLoader) return <XYLLoader tagline={locale === 'en' ? 'กำลังตรวจสอบสิทธิประโยชน์ของคุณ...' : locale === 'zh' ? 'กำลังตรวจสอบสิทธิประโยชน์ของคุณ...' : 'กำลังตรวจสอบสิทธิประโยชน์ของคุณ...'} />;
+  if (liffLoading && !hasSeenLoader) return <XYLLoader tagline={dict.loading} />;
+
+  const totalAccumulated = memberInfo?.total_accumulated_points || memberInfo?.points || 0;
+  let currentTierIndex = 0;
+  for (let i = tiers.length - 1; i >= 0; i--) {
+    if (totalAccumulated >= tiers[i].minPoints) {
+      currentTierIndex = i;
+      break;
+    }
+  }
+  const currentTier = tiers[currentTierIndex];
+  const nextTier = currentTierIndex < tiers.length - 1 ? tiers[currentTierIndex + 1] : null;
+  const progressPercent = nextTier ? Math.min(100, Math.max(0, ((totalAccumulated - currentTier.minPoints) / (nextTier.minPoints - currentTier.minPoints)) * 100)) : 100;
+
+  const handleBack = () => {
+    if (window.history.length > 2) {
+      router.back();
+    } else {
+      router.push('/liff/menu');
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-[#fcfcf9] pb-24">
-      {/* 🏛️ Boutique Header */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 flex items-center px-4 py-4">
-        <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-400">
-          <ChevronLeft size={24} />
+    <div className="min-h-screen bg-white text-[#111111] font-sans overflow-x-hidden pb-24 selection:bg-gray-200">
+      
+      {/* 📱 Minimal Header */}
+      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md px-4 py-4 flex items-center justify-between border-b border-gray-100">
+        <button onClick={handleBack} className="p-2 -ml-2 text-gray-400 hover:text-gray-900 transition-colors">
+          <ChevronLeft size={24} strokeWidth={2} />
         </button>
-        <div className="ml-2">
-          <h1 className="text-sm font-black uppercase tracking-[0.2em] text-[#1A1A18]">{locale === 'en' ? 'คะแนนสะสม' : locale === 'zh' ? 'คะแนนสะสม' : 'คะแนนสะสม'}</h1>
-        </div>
+        <h1 className="text-[15px] font-medium tracking-wide">{dict.title}</h1>
+        <button onClick={() => setShowBenefits(true)} className="p-2 -mr-2 text-gray-400 hover:text-gray-900 transition-colors">
+          <Info size={20} strokeWidth={2} />
+        </button>
       </header>
 
-      <main className="px-6 py-8 space-y-10">
+      <main className="px-5 py-6 space-y-8">
         
-        {/* 🎫 Profile Card (Neumorphic) */}
-        <section className="relative">
-          <div className="bg-white border border-gray-100 p-8 shadow-sm relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-10 opacity-[0.03] -rotate-12 translate-x-1/4 -translate-y-1/4">
-               <Award size={180} />
-            </div>
-            
-            <div className="flex items-center gap-6 mb-10">
-              <div className="w-16 h-16 bg-gray-50 border-2 border-white shadow-md overflow-hidden flex-shrink-0">
+        {/* 💳 Clean Tier Card with Power Bar */}
+        <section>
+          <div className={`w-full rounded-2xl p-6 ${currentTier.bg} transition-colors duration-500`}>
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-12 h-12 rounded-full bg-white/60 overflow-hidden flex items-center justify-center flex-shrink-0">
                 {lineProfile?.pictureUrl ? (
                   <img src={lineProfile.pictureUrl} alt={lineProfile.displayName} className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-300">
-                    <User size={32} />
-                  </div>
+                  <User size={20} className={currentTier.text} />
                 )}
               </div>
               <div>
-                <h2 className="text-lg font-black uppercase tracking-tighter text-black leading-none mb-2">
-                  {lineProfile?.displayName || 'XYL Member'}
+                <h2 className="text-[16px] font-semibold text-gray-900 leading-tight">
+                  {lineProfile?.displayName || 'Member'}
                 </h2>
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 bg-[#1A1A18] text-white text-[7px] font-black uppercase tracking-[0.2em]">
-                    {memberInfo?.tier || 'Bronze'} Tier
-                  </span>
-                  <span className="text-[8px] font-bold text-gray-300 uppercase tracking-widest leading-none">XYL Studio Identity</span>
-                </div>
+                <p className="text-[13px] text-gray-500 mt-0.5">
+                  ID: {memberInfo?.phone || lineProfile?.userId?.substring(0, 8)}
+                </p>
+              </div>
+              <div className="ml-auto text-right">
+                <span className={`text-[13px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-white/50 ${currentTier.text}`}>
+                  {currentTier.name}
+                </span>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 pt-10 border-t border-gray-50">
-               <div>
-                 <p className="text-[8px] font-black uppercase text-gray-400 tracking-widest mb-1">Available Points</p>
-                 <div className="flex items-baseline gap-2">
-                   <span className="text-4xl font-black tracking-tighter text-emerald-600">{memberInfo?.points || 0}</span>
-                   <span className="text-[8px] font-black uppercase text-emerald-600/50">PTS</span>
-                 </div>
-               </div>
-               <div className="flex flex-col justify-end items-end text-right">
-                  <p className="text-[8px] font-black uppercase text-gray-400 tracking-widest mb-1">{locale === 'en' ? 'สะสมทั้งหมด' : locale === 'zh' ? 'สะสมทั้งหมด' : 'สะสมทั้งหมด'}</p>
-                  <p className="text-xs font-black text-black uppercase tracking-tighter">
-                    {memberInfo?.total_spent?.toLocaleString() || 0} THB
-                  </p>
-               </div>
+            <div>
+              <p className="text-[12px] text-gray-500 mb-1">{dict.points}</p>
+              <div className="flex items-baseline gap-1.5">
+                <span className={`text-4xl font-medium tracking-tight text-gray-900`}>
+                  {(memberInfo?.points || 0).toLocaleString()}
+                </span>
+                <span className="text-[14px] text-gray-500 font-medium">{dict.pts}</span>
+              </div>
+            </div>
+            
+            {/* THICK PROGRESS BAR (Power Bar) */}
+            <div className="mt-8 bg-white/40 p-4 rounded-xl">
+              {nextTier ? (
+                <div>
+                  <div className="flex justify-between items-end mb-2">
+                    <span className="text-[12px] font-medium text-gray-600">{currentTier.name}</span>
+                    <div className="text-right">
+                      <span className="text-[10px] text-gray-500 uppercase tracking-wider block">{dict.pointsToNextTier} {nextTier.name}</span>
+                      <span className="text-[14px] font-bold text-gray-900">{(nextTier.minPoints - totalAccumulated).toLocaleString()} {dict.pts}</span>
+                    </div>
+                  </div>
+                  
+                  {/* The actual Bar */}
+                  <div className="h-3.5 w-full bg-black/10 rounded-full overflow-hidden shadow-inner">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${progressPercent}%` }}
+                      transition={{ duration: 1.2, ease: "easeOut", delay: 0.2 }}
+                      className={`h-full rounded-full ${currentTier.barColor} relative`}
+                    >
+                      {/* Shine effect on bar */}
+                      <div className="absolute top-0 right-0 bottom-0 w-8 bg-gradient-to-r from-transparent to-white/30" />
+                    </motion.div>
+                  </div>
+                  
+                  <div className="flex justify-between items-center text-[11px] text-gray-500 mt-2 font-medium">
+                    <span>{currentTier.minPoints.toLocaleString()}</span>
+                    <span>{nextTier.minPoints.toLocaleString()}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-[13px] font-medium text-gray-700 text-center py-2 flex items-center justify-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  {dict.maxTier}
+                </div>
+              )}
             </div>
           </div>
         </section>
 
-        {/* 🔄 Tabs Section */}
-        <section className="space-y-8">
-           <div className="flex border-b border-gray-100">
-              <button 
-                onClick={() => setActiveTab('rewards')}
-                className={`flex-1 py-4 text-[10px] font-black uppercase tracking-[0.2em] transition-all relative ${activeTab === 'rewards' ? 'text-black' : 'text-gray-300'}`}
-              >
-                Available Rewards
-                {activeTab === 'rewards' && <motion.div layoutId="tab-active" className="absolute bottom-0 left-0 right-0 h-0.5 bg-black" />}
-              </button>
-              <button 
-                onClick={() => setActiveTab('history')}
-                className={`flex-1 py-4 text-[10px] font-black uppercase tracking-[0.2em] transition-all relative ${activeTab === 'history' ? 'text-black' : 'text-gray-300'}`}
-              >
-                Points History
-                {activeTab === 'history' && <motion.div layoutId="tab-active" className="absolute bottom-0 left-0 right-0 h-0.5 bg-black" />}
-              </button>
-           </div>
+        {/* 📢 Special Campaigns / Gamification Banners */}
+        <section className="space-y-3">
+          <h3 className="text-[14px] font-medium text-gray-900 px-1">{locale === 'en' ? 'Special Campaigns' : 'แคมเปญพิเศษ'}</h3>
+          
+          <div 
+            className="flex gap-3 overflow-x-auto pb-4 snap-x -mx-5 px-5" 
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            {/* Custom style for webkit scrollbar hiding since tailwind plugin isn't active */}
+            <style jsx>{`
+              div::-webkit-scrollbar {
+                display: none;
+              }
+            `}</style>
 
-           <AnimatePresence mode="wait">
-             {activeTab === 'rewards' ? (
-               <motion.div 
-                 key="rewards"
-                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                 className="grid grid-cols-1 gap-4"
-               >
-                 {rewards.length > 0 ? rewards.map((reward) => (
-                   <div key={reward.id} className="bg-white border border-gray-100 p-5 flex gap-5 items-center group">
-                      <div className="w-16 h-16 bg-gray-50 flex-shrink-0 flex items-center justify-center p-2">
-                        {reward.image_url ? (
-                          <img src={reward.image_url} alt={reward.title} className="w-full h-full object-contain" />
-                        ) : (
-                          <Gift size={24} className="text-gray-200" />
-                        )}
+            {campaigns.map((camp) => (
+              <div key={camp.id} className={`min-w-[240px] snap-center bg-gradient-to-br ${camp.bg_gradient_from} ${camp.bg_gradient_to} rounded-2xl p-4 flex flex-col justify-between shadow-sm relative overflow-hidden`}>
+                <div className="absolute -right-4 -top-4 text-6xl opacity-10">{camp.icon}</div>
+                <div>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${camp.tag_color} bg-white/50 px-2 py-1 rounded-md mb-2 inline-block`}>
+                    {camp.type_tag}
+                  </span>
+                  <h4 className={`text-[14px] font-semibold ${camp.text_color} leading-tight mb-1`}>{camp.title}</h4>
+                  <p className={`text-[12px] ${camp.tag_color}`}>{camp.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* 🪄 Minimal Tabs */}
+        <section>
+          <div className="flex border-b border-gray-100 mb-6">
+            <button 
+              onClick={() => setActiveTab('rewards')}
+              className={`flex-1 pb-3 text-[14px] font-medium transition-colors relative ${activeTab === 'rewards' ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              {dict.rewardsCatalog}
+              {activeTab === 'rewards' && (
+                <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-gray-900" />
+              )}
+            </button>
+            <button 
+              onClick={() => setActiveTab('history')}
+              className={`flex-1 pb-3 text-[14px] font-medium transition-colors relative ${activeTab === 'history' ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              {dict.pointsHistory}
+              {activeTab === 'history' && (
+                <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-gray-900" />
+              )}
+            </button>
+          </div>
+
+          <AnimatePresence mode="wait">
+            {activeTab === 'rewards' ? (
+              <motion.div 
+                key="rewards"
+                initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} transition={{ duration: 0.2 }}
+                className="space-y-4"
+              >
+                {rewards.length > 0 ? rewards.map((reward) => (
+                  <div key={reward.id} className="flex gap-4 p-4 rounded-xl border border-gray-100 hover:border-gray-200 transition-colors">
+                    <div className="w-20 h-20 bg-gray-50 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center">
+                      {reward.image_url ? (
+                        <img src={reward.image_url} alt={reward.title} className="w-full h-full object-cover" />
+                      ) : (
+                        <Gift size={24} className="text-gray-300" />
+                      )}
+                    </div>
+                    <div className="flex-1 flex flex-col">
+                      <h4 className="text-[14px] font-medium text-gray-900 leading-tight mb-1">{reward.title || reward.name}</h4>
+                      <p className="text-[12px] text-gray-500 line-clamp-2 leading-relaxed">{reward.description}</p>
+                      
+                      <div className="mt-auto flex items-center justify-between pt-2">
+                        <span className="text-[13px] font-medium text-gray-900">{reward.points_required.toLocaleString()} {dict.pts}</span>
+                        
+                        <button 
+                          disabled={(memberInfo?.points || 0) < reward.points_required}
+                          className={`text-[13px] font-medium px-4 py-1.5 rounded-full transition-colors ${
+                            (memberInfo?.points || 0) >= reward.points_required 
+                            ? 'bg-gray-900 text-white hover:bg-gray-800' 
+                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          }`}
+                        >
+                          {dict.redeem}
+                        </button>
                       </div>
-                      <div className="flex-1">
-                        <h4 className="text-[11px] font-black text-black uppercase tracking-tight">{reward.title}</h4>
-                        <p className="text-[9px] font-bold text-gray-400 mt-0.5 line-clamp-1">{reward.description}</p>
-                        <div className="flex items-center gap-1.5 mt-2">
-                           <Star size={10} fill="#10b981" stroke="none" />
-                           <span className="text-[10px] font-black text-emerald-600">{reward.points_required} PTS</span>
-                        </div>
+                    </div>
+                  </div>
+                )) : (
+                  <div className="py-16 text-center">
+                    <p className="text-[14px] text-gray-400 mb-1">{dict.noRewards}</p>
+                    <p className="text-[13px] text-gray-300">{dict.checkBackLater}</p>
+                  </div>
+                )}
+              </motion.div>
+            ) : (
+              <motion.div 
+                key="history"
+                initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} transition={{ duration: 0.2 }}
+                className="space-y-4"
+              >
+                {pointsHistory.length > 0 ? pointsHistory.map((item) => (
+                  <div key={item.id} className="flex justify-between items-center py-3 border-b border-gray-50 last:border-0">
+                    <div className="flex gap-3 items-center">
+                      <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400">
+                        {item.type === 'earn' ? <TrendingUp size={18} /> : <Gift size={18} />}
                       </div>
-                      <button 
-                         disabled={(memberInfo?.points || 0) < reward.points_required}
-                        className={`px-4 py-2 text-[8px] font-black uppercase tracking-widest transition-all ${
-                          (memberInfo?.points || 0) >= reward.points_required 
-                          ? 'bg-black text-white active:scale-95' 
-                          : 'bg-gray-100 text-gray-300 cursor-not-allowed'
-                        }`}
-                      >
-                        Redeem
-                      </button>
-                   </div>
-                 )) : (
-                   <div className="py-20 text-center opacity-30">
-                      <Gift className="mx-auto mb-4" size={32} />
-                      <p className="text-[10px] font-black uppercase tracking-widest">No rewards available yet</p>
-                   </div>
-                 )}
-               </motion.div>
-             ) : (
-               <motion.div 
-                 key="history"
-                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                 className="space-y-4"
-               >
-                 {pointsHistory.length > 0 ? pointsHistory.map((item) => (
-                   <div key={item.id} className="bg-white border border-gray-50 p-5 flex justify-between items-center">
-                     <div className="flex gap-4 items-center">
-                        <div className={`w-10 h-10 flex items-center justify-center ${item.type === 'earn' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
-                           {item.type === 'earn' ? <TrendingUp size={16} /> : <Gift size={16} />}
-                        </div>
-                        <div>
-                          <h4 className="text-[10px] font-black uppercase tracking-tight text-gray-900">
-                             {item.description || (item.type === 'earn' ? 'Earned Points' : 'Redeemed Reward')}
-                          </h4>
-                          <p className="text-[8px] font-bold text-gray-400 mt-1 uppercase flex items-center gap-1">
-                             <Clock size={8} /> {new Date(item.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}
-                          </p>
-                        </div>
-                     </div>
-                     <span className={`text-xs font-black ${item.type === 'earn' ? 'text-emerald-600' : 'text-amber-600'}`}>
-                        {item.type === 'earn' ? '+' : '-'}{item.points}
-                     </span>
-                   </div>
-                 )) : (
-                   <div className="py-20 text-center opacity-30">
-                      <History className="mx-auto mb-4" size={32} />
-                      <p className="text-[10px] font-black uppercase tracking-widest">No points history found</p>
-                   </div>
-                 )}
-               </motion.div>
-             )}
-           </AnimatePresence>
+                      <div>
+                        <p className="text-[14px] font-medium text-gray-900">
+                          {item.description || (item.type === 'earn' ? dict.earnedPoints : dict.redeemedReward)}
+                        </p>
+                        <p className="text-[12px] text-gray-400 mt-0.5">
+                          {new Date(item.created_at).toLocaleDateString(locale === 'en' ? 'en-US' : locale === 'zh' ? 'zh-CN' : 'th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </p>
+                      </div>
+                    </div>
+                    <span className={`text-[14px] font-medium ${item.type === 'earn' ? 'text-gray-900' : 'text-gray-500'}`}>
+                      {item.type === 'earn' ? '+' : '-'}{item.points.toLocaleString()}
+                    </span>
+                  </div>
+                )) : (
+                  <div className="py-16 text-center">
+                    <p className="text-[14px] text-gray-400 mb-1">{dict.noHistory}</p>
+                    <p className="text-[13px] text-gray-300">{dict.historyEmpty}</p>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </section>
       </main>
 
-      {/* 🧭 Tier Progress Footnote */}
-      <footer className="px-8 py-12 text-center">
-         <div className="inline-flex items-center gap-3 bg-emerald-50/50 px-6 py-3 rounded-none border border-emerald-100/50">
-            <Award size={12} className="text-emerald-500" />
-            <p className="text-[9px] font-bold text-emerald-700 uppercase tracking-tight">
-               {locale === 'en' ? '                สั่งเพิ่มอีก ' : locale === 'zh' ? '                สั่งเพิ่มอีก ' : '                สั่งเพิ่มอีก '}<span className="font-black">{locale === 'en' ? '฿1,200' : locale === 'zh' ? '฿1,200' : '฿1,200'}</span> {locale === 'en' ? ' เพื่อเลื่อนระดับเป็น ' : locale === 'zh' ? ' เพื่อเลื่อนระดับเป็น ' : ' เพื่อเลื่อนระดับเป็น '}<span className="font-black">Silver Tier</span>
-            </p>
-         </div>
-         <p className="mt-12 text-[7px] font-black uppercase tracking-[0.4em] text-gray-300">XYL STUDIO LOYALTY PROGRAM</p>
-      </footer>
+      {/* 👑 Minimal Benefits Bottom Sheet */}
+      <AnimatePresence>
+        {showBenefits && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setShowBenefits(false)}
+              className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.08)] max-h-[90vh] overflow-y-auto pb-safe"
+            >
+              <div className="sticky top-0 bg-white/90 backdrop-blur-md z-10 px-6 py-5 flex items-center justify-between border-b border-gray-50">
+                <h3 className="text-[16px] font-medium text-gray-900">{dict.benefitsTitle}</h3>
+                <button onClick={() => setShowBenefits(false)} className="p-2 -mr-2 text-gray-400 hover:text-gray-900 transition-colors">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-8">
+                
+                {/* How to earn */}
+                <div>
+                  <h4 className="text-[13px] text-gray-500 mb-2">{dict.howToEarn}</h4>
+                  <p className="text-[16px] font-medium text-gray-900">{dict.earnRule}</p>
+                </div>
+
+                {/* Tiers List */}
+                <div className="space-y-6">
+                  {tiers.map((tier) => (
+                    <div key={tier.name} className="flex gap-4">
+                      <div className={`w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center ${tier.bg} ${tier.text} text-[13px] font-bold uppercase tracking-wider`}>
+                        {tier.name[0]}
+                      </div>
+                      <div>
+                        <div className="flex items-baseline gap-2 mb-2">
+                          <h4 className="text-[15px] font-medium text-gray-900">{tier.name}</h4>
+                          <span className="text-[12px] text-gray-400">{tier.minPoints.toLocaleString()} {dict.pts}</span>
+                        </div>
+                        <ul className="space-y-2">
+                          {tier.benefits.map((b, i) => (
+                            <li key={i} className="flex items-start gap-2 text-[13px] text-gray-600">
+                              <Check size={16} strokeWidth={2} className="text-gray-300 flex-shrink-0 mt-0.5" />
+                              <span>{b}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
