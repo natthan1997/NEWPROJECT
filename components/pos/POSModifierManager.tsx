@@ -311,11 +311,11 @@ export default function POSModifierManager({
       // Ensure we use the correct column names for selection constraints
       const groupToSave = {
         ...cleanGroup,
-        min_selection: cleanGroup.min_select || cleanGroup.min_selection || 0,
-        max_selection: cleanGroup.max_select || cleanGroup.max_selection || 1,
+        min_selection: cleanGroup.min_select ?? cleanGroup.min_selection ?? 0,
+        max_selection: cleanGroup.max_select ?? cleanGroup.max_selection ?? 1,
         // Sync with the legacy columns if they exist
-        min_select: cleanGroup.min_select || cleanGroup.min_selection || 0,
-        max_select: cleanGroup.max_select || cleanGroup.max_selection || 1,
+        min_select: cleanGroup.min_select ?? cleanGroup.min_selection ?? 0,
+        max_select: cleanGroup.max_select ?? cleanGroup.max_selection ?? 1,
         branch_id: shopSettings?.branch_id || null
       }
 

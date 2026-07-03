@@ -3438,11 +3438,12 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
               </div>
               {/* VALIDATION MESSAGE */}
               {(() => {
-                const incomplete = modifierGroups.filter(
-                  g =>
-                    tempSelectedModifiers.filter(m => m.group_id === g.id).length <
-                    (g.min_selection || g.min_select || 0)
-                )
+                const incomplete = modifierGroups.filter(g => {
+                  const minReq = Number(g.min_selection ?? g.min_select ?? 0);
+                  const selectedInGroup = tempSelectedModifiers.filter(m => m.group_id === g.id);
+                  const totalQtyInGroup = selectedInGroup.reduce((sum, m) => sum + (m.qty || 1), 0);
+                  return totalQtyInGroup < minReq;
+                })
                 const canConfirm = incomplete.length === 0
 
                 return (
