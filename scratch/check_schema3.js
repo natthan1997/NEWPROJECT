@@ -7,13 +7,7 @@ const supabase = createClient(
 );
 
 async function check() {
-  const { data, error } = await supabase.from('pos_points_history').insert({
-    member_id: 'fake',
-    points_change: 50,
-    action: 'earn',
-    description: 'test'
-  }).select();
-  
-  console.log("Insert result:", data, error);
+  const { data, error } = await supabase.rpc('get_schema', { table_name: 'pos_points_history' });
+  console.log("Schema result:", data, error);
 }
 check();

@@ -1,12 +1,17 @@
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config({ path: '.env.local' });
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient(
+  "https://cdjbzyrflzckjgxbqjqb.supabase.co",
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
-async function main() {
-    const { data, error } = await supabase.from('pos_menu_items').select('*').limit(1);
-    console.log(data, error);
+async function check() {
+  const { data, error } = await supabase.from('pos_points_history').select('*').limit(1);
+  if (error) {
+    console.log('Error querying pos_points_history:', error);
+  } else {
+    console.log('Success, data:', data);
+  }
 }
-main();
+check();

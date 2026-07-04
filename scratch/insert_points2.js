@@ -7,10 +7,12 @@ const supabase = createClient(
 );
 
 async function check() {
+  const { data: member } = await supabase.from('pos_members').select('*').limit(1).single();
+  
   const { data, error } = await supabase.from('pos_points_history').insert({
-    member_id: 'fake',
+    member_id: member.id, // we'll use UUID since the error earlier said "Failing row contains (UUID, line_user_id, ...)" wait... the row had UUID, line_user_id... so it has both?
     points_change: 50,
-    action: 'earn',
+    type: 'earn',
     description: 'test'
   }).select();
   
