@@ -2315,8 +2315,8 @@ export default function LiffMenuPage() {
                      }}>
                         <span className="text-[14px] font-bold text-[#1A1A18]">{locale === 'en' ? 'Promo Code' : 'คูปอง'}</span>
                         <div className="flex items-center gap-2">
-                           {totalDiscount > 0 ? (
-                              <span className="text-[14px] font-bold text-emerald-500">-฿{totalDiscount.toLocaleString()}</span>
+                           {couponDiscount > 0 ? (
+                              <span className="text-[14px] font-bold text-emerald-500">-฿{couponDiscount.toLocaleString()}</span>
                            ) : (
                               <span className="text-[14px] font-bold text-gray-400">{couponCode ? couponCode : (locale === 'en' ? 'Use code' : 'ใช้คูปอง')}</span>
                            )}
