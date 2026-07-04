@@ -1,4 +1,7 @@
+import fs from 'fs';
 
+const filePath = 'app/liff/member/page.tsx';
+const content = `
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -91,55 +94,38 @@ export default function LiffMemberPage() {
   };
   const dict = t[(locale as keyof typeof t) || 'th'];
 
-  const [tiers, setTiers] = useState([
-    { name: 'Bronze', minPoints: 0, bg: 'bg-[#F2ECE4]', text: 'text-[#8C6D53]', barColor: 'bg-[#C19A6B]', benefits: ['อัตราสะสมคะแนน 100 บาท = 1 คะแนน', 'รับสิทธิ์ลุ้นกล่องสุ่มเมื่อครบ 50 คะแนน'] },
-    { name: 'Silver', minPoints: 500, bg: 'bg-[#F0F2F5]', text: 'text-[#64748B]', barColor: 'bg-[#94A3B8]', benefits: ['อัตราสะสมคะแนน x1.2', 'เครื่องดื่มพิเศษในเดือนเกิด', 'สิทธิ์สั่งซื้อต้นไม้คอลเลกชันใหม่ล่วงหน้า 12 ชม.'] },
-    { name: 'Gold', minPoints: 2000, bg: 'bg-[#FCF7E8]', text: 'text-[#B48529]', barColor: 'bg-[#D4AF37]', benefits: ['อัตราสะสมคะแนน x1.5', 'ส่วนลด 5% ทุกออเดอร์', 'สิทธิ์ Fast Track ลัดคิวเข้ารับบริการ', 'สิทธิ์สั่งซื้อต้นไม้ Rare Item ล่วงหน้า 24 ชม.'] },
-    { name: 'Platinum', minPoints: 5000, bg: 'bg-[#EBF1F5]', text: 'text-[#3E6578]', barColor: 'bg-[#6495ED]', benefits: ['อัตราสะสมคะแนน x2.0', 'ส่วนลด 10% ทุกออเดอร์', 'สิทธิ์ Fast Track ขั้นสูงสุด', 'เบอร์ติดต่อสายตรง (Direct Line) ปรึกษาผู้เชี่ยวชาญ 24 ชม.'] }
-  ]);
-  const [campaigns, setCampaigns] = useState<any[]>([]);
+  const TIERS = [
+    { 
+      name: 'Bronze', minPoints: 0, 
+      bg: 'bg-[#F2ECE4]', 
+      text: 'text-[#8C6D53]', 
+      barColor: 'bg-[#C19A6B]',
+      benefits: ['อัตราสะสมคะแนนปกติ']
+    },
+    { 
+      name: 'Silver', minPoints: 500, 
+      bg: 'bg-[#F0F2F5]', 
+      text: 'text-[#64748B]', 
+      barColor: 'bg-[#94A3B8]',
+      benefits: ['อัตราสะสมคะแนน x1.2', 'รับเครื่องดื่มฟรีในเดือนเกิด']
+    },
+    { 
+      name: 'Gold', minPoints: 2000, 
+      bg: 'bg-[#FCF7E8]', 
+      text: 'text-[#B48529]', 
+      barColor: 'bg-[#D4AF37]',
+      benefits: ['อัตราสะสมคะแนน x1.5', 'ส่วนลด 5% ทุกออเดอร์', 'เค้กและเครื่องดื่มฟรีในเดือนเกิด']
+    },
+    { 
+      name: 'Platinum', minPoints: 5000, 
+      bg: 'bg-[#EBF1F5]', 
+      text: 'text-[#3E6578]', 
+      barColor: 'bg-[#6495ED]',
+      benefits: ['อัตราสะสมคะแนน x2.0', 'ส่วนลด 10% ทุกออเดอร์', 'เข้าร่วมเวิร์กชอปประจำปีฟรี']
+    }
+  ];
 
-  
-  const handlePlayMysteryBox = async () => {
-    if ((memberInfo?.points || 0) < 50) {
-      alert(locale === 'en' ? 'Not enough points (Requires 50 Pts)' : 'แต้มไม่พอ (ต้องใช้ 50 แต้ม)');
-      return;
-    }
-    
-    setIsPlayingBox(true);
-    setMysteryBoxState('opening');
-    
-    try {
-      const res = await fetch('/api/liff/mystery-box', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: profile?.userId })
-      });
-      const data = await res.json();
-      
-      if (data.success) {
-        // Wait for animation
-        setTimeout(() => {
-          setMysteryBoxResult(data.wonPoints);
-          setMysteryBoxState('result');
-          fetchData(); // Refresh points
-          setIsPlayingBox(false);
-        }, 1500);
-      } else {
-        alert(data.error || 'Failed to play');
-        setMysteryBoxState('idle');
-        setShowMysteryBox(false);
-        setIsPlayingBox(false);
-      }
-    } catch (e) {
-      alert('Error connecting to server');
-      setMysteryBoxState('idle');
-      setShowMysteryBox(false);
-      setIsPlayingBox(false);
-    }
-  };
-  
-const fetchData = async () => {
+  const fetchData = async () => {
     const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
     if (!userId) return;
     try {
@@ -150,25 +136,6 @@ const fetchData = async () => {
       if (history) setPointsHistory(history);
       const { data: rewardsData } = await supabase.from('pos_rewards').select('*').eq('is_active', true).order('points_required', { ascending: true });
       if (rewardsData) setRewards(rewardsData);
-      
-      const { data: tiersData, error: tiersError } = await supabase.from('pos_loyalty_tiers').select('*').eq('is_active', true).order('min_points', { ascending: true });
-      if (tiersData && !tiersError) {
-        setTiers(tiersData.map(t => ({
-          name: t.name, minPoints: t.min_points, bg: t.bg_color, text: t.text_color, barColor: t.bar_color, benefits: t.benefits
-        })));
-      }
-      
-      const { data: campData, error: campError } = await supabase.from('pos_campaigns').select('*').eq('is_active', true).order('sort_order', { ascending: true });
-      if (campData && !campError) {
-        setCampaigns(campData);
-      } else {
-        // Fallback default campaigns if table not ready
-        setCampaigns([
-          { id: '1', title: 'ฝนตกรับคะแนน x2', description: 'รับคะแนนสองเท่าทุกออเดอร์ในวันฝนตก!', icon: '🌧️', type_tag: 'Flash Event', bg_gradient_from: 'from-[#EBF1F5]', bg_gradient_to: 'to-[#D6E4EE]', text_color: 'text-[#1F333C]', tag_color: 'text-[#3E6578]' },
-          { id: '2', title: 'ลุ้นกล่องสุ่มทุก 50 Pts', description: 'สะสมครบทุก 50 คะแนน รับสิทธิ์เปิดกล่องสุ่มส่วนลด!', icon: '🎁', type_tag: 'Milestone', bg_gradient_from: 'from-[#FCF7E8]', bg_gradient_to: 'to-[#F5E6C4]', text_color: 'text-[#8B651B]', tag_color: 'text-[#B48529]' },
-          { id: '3', title: 'รักษาสถานะของคุณ', description: 'อย่าลืมซื้อสินค้า 1 ชิ้นภายใน 30 วันเพื่อคงระดับ', icon: '⚠️', type_tag: 'Expiring Soon', bg_gradient_from: 'from-[#FFF0F0]', bg_gradient_to: 'to-[#FFE0E0]', text_color: 'text-[#B33535]', tag_color: 'text-[#D94C4C]' }
-        ]);
-      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -184,17 +151,18 @@ const fetchData = async () => {
 
   const totalAccumulated = memberInfo?.total_accumulated_points || memberInfo?.points || 0;
   let currentTierIndex = 0;
-  for (let i = tiers.length - 1; i >= 0; i--) {
-    if (totalAccumulated >= tiers[i].minPoints) {
+  for (let i = TIERS.length - 1; i >= 0; i--) {
+    if (totalAccumulated >= TIERS[i].minPoints) {
       currentTierIndex = i;
       break;
     }
   }
-  const currentTier = tiers[currentTierIndex];
-  const nextTier = currentTierIndex < tiers.length - 1 ? tiers[currentTierIndex + 1] : null;
+  const currentTier = TIERS[currentTierIndex];
+  const nextTier = currentTierIndex < TIERS.length - 1 ? TIERS[currentTierIndex + 1] : null;
   const progressPercent = nextTier ? Math.min(100, Math.max(0, ((totalAccumulated - currentTier.minPoints) / (nextTier.minPoints - currentTier.minPoints)) * 100)) : 100;
 
   const handleBack = () => {
+    // If history length is small, we probably came directly via a link
     if (window.history.length > 2) {
       router.back();
     } else {
@@ -220,7 +188,7 @@ const fetchData = async () => {
         
         {/* 💳 Clean Tier Card with Power Bar */}
         <section>
-          <div className={`w-full rounded-2xl p-6 ${currentTier.bg} transition-colors duration-500`}>
+          <div className={\`w-full rounded-2xl p-6 \${currentTier.bg} transition-colors duration-500\`}>
             <div className="flex items-center gap-4 mb-8">
               <div className="w-12 h-12 rounded-full bg-white/60 overflow-hidden flex items-center justify-center flex-shrink-0">
                 {lineProfile?.pictureUrl ? (
@@ -238,7 +206,7 @@ const fetchData = async () => {
                 </p>
               </div>
               <div className="ml-auto text-right">
-                <span className={`text-[13px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-white/50 ${currentTier.text}`}>
+                <span className={\`text-[13px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-white/50 \${currentTier.text}\`}>
                   {currentTier.name}
                 </span>
               </div>
@@ -247,7 +215,7 @@ const fetchData = async () => {
             <div>
               <p className="text-[12px] text-gray-500 mb-1">{dict.points}</p>
               <div className="flex items-baseline gap-1.5">
-                <span className={`text-4xl font-medium tracking-tight text-gray-900`}>
+                <span className={\`text-4xl font-medium tracking-tight text-gray-900\`}>
                   {(memberInfo?.points || 0).toLocaleString()}
                 </span>
                 <span className="text-[14px] text-gray-500 font-medium">{dict.pts}</span>
@@ -270,9 +238,9 @@ const fetchData = async () => {
                   <div className="h-3.5 w-full bg-black/10 rounded-full overflow-hidden shadow-inner">
                     <motion.div 
                       initial={{ width: 0 }}
-                      animate={{ width: `${progressPercent}%` }}
+                      animate={{ width: \`\${progressPercent}%\` }}
                       transition={{ duration: 1.2, ease: "easeOut", delay: 0.2 }}
-                      className={`h-full rounded-full ${currentTier.barColor} relative`}
+                      className={\`h-full rounded-full \${currentTier.barColor} relative\`}
                     >
                       {/* Shine effect on bar */}
                       <div className="absolute top-0 right-0 bottom-0 w-8 bg-gradient-to-r from-transparent to-white/30" />
@@ -294,42 +262,12 @@ const fetchData = async () => {
           </div>
         </section>
 
-        {/* 📢 Special Campaigns / Gamification Banners */}
-        <section className="space-y-3">
-          <h3 className="text-[14px] font-medium text-gray-900 px-1">{locale === 'en' ? 'Special Campaigns' : 'แคมเปญพิเศษ'}</h3>
-          
-          <div 
-            className="flex gap-3 overflow-x-auto pb-4 snap-x -mx-5 px-5" 
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-          >
-            {/* Custom style for webkit scrollbar hiding since tailwind plugin isn't active */}
-            <style jsx>{`
-              div::-webkit-scrollbar {
-                display: none;
-              }
-            `}</style>
-
-            {campaigns.map((camp) => (
-              <div key={camp.id} className={`min-w-[240px] snap-center bg-gradient-to-br ${camp.bg_gradient_from} ${camp.bg_gradient_to} rounded-2xl p-4 flex flex-col justify-between shadow-sm relative overflow-hidden`}>
-                <div className="absolute -right-4 -top-4 text-6xl opacity-10">{camp.icon}</div>
-                <div>
-                  <span className={`text-[10px] font-bold uppercase tracking-wider ${camp.tag_color} bg-white/50 px-2 py-1 rounded-md mb-2 inline-block`}>
-                    {camp.type_tag}
-                  </span>
-                  <h4 className={`text-[14px] font-semibold ${camp.text_color} leading-tight mb-1`}>{camp.title}</h4>
-                  <p className={`text-[12px] ${camp.tag_color}`}>{camp.description}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
         {/* 🪄 Minimal Tabs */}
         <section>
           <div className="flex border-b border-gray-100 mb-6">
             <button 
               onClick={() => setActiveTab('rewards')}
-              className={`flex-1 pb-3 text-[14px] font-medium transition-colors relative ${activeTab === 'rewards' ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
+              className={\`flex-1 pb-3 text-[14px] font-medium transition-colors relative \${activeTab === 'rewards' ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'}\`}
             >
               {dict.rewardsCatalog}
               {activeTab === 'rewards' && (
@@ -338,7 +276,7 @@ const fetchData = async () => {
             </button>
             <button 
               onClick={() => setActiveTab('history')}
-              className={`flex-1 pb-3 text-[14px] font-medium transition-colors relative ${activeTab === 'history' ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
+              className={\`flex-1 pb-3 text-[14px] font-medium transition-colors relative \${activeTab === 'history' ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'}\`}
             >
               {dict.pointsHistory}
               {activeTab === 'history' && (
@@ -372,11 +310,11 @@ const fetchData = async () => {
                         
                         <button 
                           disabled={(memberInfo?.points || 0) < reward.points_required}
-                          className={`text-[13px] font-medium px-4 py-1.5 rounded-full transition-colors ${
+                          className={\`text-[13px] font-medium px-4 py-1.5 rounded-full transition-colors \${
                             (memberInfo?.points || 0) >= reward.points_required 
                             ? 'bg-gray-900 text-white hover:bg-gray-800' 
                             : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                          }`}
+                          }\`}
                         >
                           {dict.redeem}
                         </button>
@@ -411,7 +349,7 @@ const fetchData = async () => {
                         </p>
                       </div>
                     </div>
-                    <span className={`text-[14px] font-medium ${item.type === 'earn' ? 'text-gray-900' : 'text-gray-500'}`}>
+                    <span className={\`text-[14px] font-medium \${item.type === 'earn' ? 'text-gray-900' : 'text-gray-500'}\`}>
                       {item.type === 'earn' ? '+' : '-'}{item.points.toLocaleString()}
                     </span>
                   </div>
@@ -457,9 +395,9 @@ const fetchData = async () => {
 
                 {/* Tiers List */}
                 <div className="space-y-6">
-                  {tiers.map((tier) => (
+                  {TIERS.map((tier) => (
                     <div key={tier.name} className="flex gap-4">
-                      <div className={`w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center ${tier.bg} ${tier.text} text-[13px] font-bold uppercase tracking-wider`}>
+                      <div className={\`w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center \${tier.bg} \${tier.text} text-[13px] font-bold uppercase tracking-wider\`}>
                         {tier.name[0]}
                       </div>
                       <div>
@@ -488,3 +426,7 @@ const fetchData = async () => {
     </div>
   );
 }
+`;
+
+fs.writeFileSync(filePath, content);
+console.log('Redesigned LiffMemberPage V6 (Thick Power Bar + Back Button Fix)');

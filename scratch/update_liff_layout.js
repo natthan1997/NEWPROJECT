@@ -1,4 +1,7 @@
-'use client';
+import fs from 'fs';
+
+const filePath = 'app/liff/layout.tsx';
+const content = `'use client';
 
 import { LiffProvider } from '@/components/liff/LiffProvider';
 import { Elements } from '@stripe/react-stripe-js';
@@ -41,3 +44,7 @@ export default function LiffLayout({ children }: { children: React.ReactNode }) 
     </Suspense>
   );
 }
+`;
+
+fs.writeFileSync(filePath, content);
+console.log('Updated app/liff/layout.tsx with LiffPathRedirector');

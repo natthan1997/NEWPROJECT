@@ -1,4 +1,7 @@
-import { redirect } from 'next/navigation'
+import fs from 'fs';
+
+const filePath = 'app/page.tsx';
+const content = `import { redirect } from 'next/navigation'
 
 export default function HomePage({ searchParams }: { searchParams?: { [key: string]: string | string[] | undefined } }) {
   // Handle LIFF path redirection
@@ -11,3 +14,7 @@ export default function HomePage({ searchParams }: { searchParams?: { [key: stri
   
   redirect('/login')
 }
+`;
+
+fs.writeFileSync(filePath, content);
+console.log('Updated app/page.tsx to handle ?path= from LIFF');

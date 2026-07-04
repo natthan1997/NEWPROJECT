@@ -200,11 +200,12 @@ export const LiffProvider = ({ children }: { children: React.ReactNode }) => {
           localStorage.setItem('xylem_line_user_id', profile.userId);
           userId = profile.userId;
 
-          const { data: memberData } = await supabase
-            .from('pos_members')
-            .select('phone, address, full_name, display_name, avatar_url, points, member_tier')
-            .eq('line_user_id', profile.userId)
-            .maybeSingle();
+          const res = await fetch('/api/liff/member/init', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lineUserId: profile.userId, displayName: profile.displayName, avatarUrl: profile.pictureUrl })
+          });
+          const json = await res.json();
+          const memberData = json.member;
 
           if (memberData?.phone) setPhone(memberData.phone);
           if (memberData?.address) {
