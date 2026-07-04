@@ -7,11 +7,12 @@ import {
   TrendingDown, TrendingUp, AlertTriangle, ArrowUpRight,
   Database, Boxes, History, FileText, ClipboardCheck,
   CheckCircle2, AlertCircle, ArrowLeft, Download,
-  ArrowDownCircle, ArrowUpCircle, RefreshCcw, Info, List, Clock, ListChecks, Landmark, ShoppingCart
+  ArrowDownCircle, ArrowUpCircle, RefreshCcw, Info, List, Clock, ListChecks, Landmark, ShoppingCart, Tag
 } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useI18n } from "@/lib/I18nContext";
+import POSInventoryCategoryManager from './POSInventoryCategoryManager';
 
 interface POSInventoryManagerProps {
   profile: any
@@ -66,6 +67,7 @@ export default function POSInventoryManager({
   // --- Shopping List State ---
   // --- Shopping List State ---
   const [isShoppingListOpen, setIsShoppingListOpen] = useState(false)
+  const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false)
   const [isShoppingMode, setIsShoppingMode] = useState(false)
   const [shoppingListCategoryFilter, setShoppingListCategoryFilter] = useState<string>('all')
   const [shoppingListSupplierFilter, setShoppingListSupplierFilter] = useState<string>('all')
@@ -843,6 +845,7 @@ export default function POSInventoryManager({
                             <button onClick={() => window.print()} className="flex items-center gap-2 text-[9px] sm:text-[10px] font-black uppercase text-[#1A1A18] hover:text-sage-700 transition-colors"><Download size={12} className="text-gray-300" /> {locale === 'en' ? 'รายงาน PDF' : locale === 'zh' ? 'รายงาน PDF' : 'รายงาน PDF'}</button>
                             <button onClick={() => setIsSummaryOpen(true)} className="flex items-center gap-2 text-[9px] sm:text-[10px] font-black uppercase text-indigo-600 hover:text-indigo-800 transition-colors"><ListChecks size={12} className="text-indigo-300" /> {locale === 'en' ? 'สรุปสต็อกด่วน' : locale === 'zh' ? 'สรุปสต็อกด่วน' : 'สรุปสต็อกด่วน'}</button>
                             <button onClick={() => setIsShoppingListOpen(true)} className="flex items-center gap-2 text-[9px] sm:text-[10px] font-black uppercase text-amber-600 hover:text-amber-800 transition-colors"><ShoppingCart size={12} className="text-amber-400" /> {locale === 'en' ? 'รายการที่ต้องซื้อ' : locale === 'zh' ? 'รายการที่ต้องซื้อ' : 'รายการที่ต้องซื้อ'}</button>
+                            <button onClick={() => setIsCategoryManagerOpen(true)} className="flex items-center gap-2 text-[9px] sm:text-[10px] font-black uppercase text-teal-600 hover:text-teal-800 transition-colors"><Tag size={12} className="text-teal-400" /> {locale === 'en' ? 'จัดการหมวดหมู่' : 'จัดการหมวดหมู่'}</button>
                         </div>
                     </div>
                 </div>
@@ -1630,6 +1633,31 @@ export default function POSInventoryManager({
       </AnimatePresence>
 
       {/* QUICK RESTOCK MODAL */}
+      {isCategoryManagerOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-[#1A1A18]/60 backdrop-blur-md">
+          <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-[32px] shadow-2xl flex flex-col overflow-hidden relative">
+            <header className="shrink-0 px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-white relative z-10">
+              <div>
+                <h2 className="text-2xl font-black text-gray-900 tracking-tight">จัดการหมวดหมู่คลังสินค้า</h2>
+                <p className="text-sm font-bold text-gray-400 mt-1 uppercase tracking-widest">Inventory Categories</p>
+              </div>
+              <button 
+                onClick={() => {
+                  setIsCategoryManagerOpen(false);
+                  fetchInventory(); // Refresh after closing just in case
+                }}
+                className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-900 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </header>
+            <div className="flex-1 overflow-y-auto relative bg-[#FDFDFB]">
+               <POSInventoryCategoryManager shopSettings={shopSettings} onCategoriesChange={() => {}} />
+            </div>
+          </div>
+        </div>
+      )}
+
       {isRestockOpen && (
           <div className="fixed inset-0 z-[1250] flex items-center justify-center font-bold p-6">
               <div className="absolute inset-0 bg-[#1A1A18]/60 backdrop-blur-sm" onClick={() => setIsRestockOpen(false)}></div>
