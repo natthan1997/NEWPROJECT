@@ -2091,8 +2091,37 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       })
 
       if (selectedCustomer?.id) {
+        // DEDUCT POINTS IF REDEEMED
+        if (redeemPointsAmount && parseInt(redeemPointsAmount) > 0) {
+          const pointsToDeduct = parseInt(redeemPointsAmount)
+          try {
+            await supabase.rpc('increment_member_points', {
+              user_id: selectedCustomer.line_user_id || selectedCustomer.id,
+              points_to_add: -pointsToDeduct,
+            })
+            
+            const deductHistoryObj: any = {
+              member_id: selectedCustomer.id,
+              order_id: finalOrderId,
+              points: -pointsToDeduct,
+              points_change: -pointsToDeduct,
+              type: 'redeem',
+              description: `Redeemed ${pointsToDeduct} pts for POS Order #${editingOrderNumber || (finalOrderId ? (finalOrderId as string).slice(0, 8) : 'NEW')}`,
+            }
+            
+            const { error: dHistErr } = await supabase.from('pos_points_history').insert(deductHistoryObj)
+            if (dHistErr && dHistErr.message.includes('column "description"')) {
+              const { description, ...restObj } = deductHistoryObj;
+              await supabase.from('pos_points_history').insert(restObj)
+            }
+          } catch (dErr) {
+            console.error('Point Deduction Error:', dErr)
+          }
+        }
+
+        // EARN NEW POINTS based on amount to pay (gross total minus discounts)
         const earnRate = shopSettings?.loyalty_earn_rate || 100
-        const pointsToEarn = Math.floor(cartTotal / earnRate)
+        const pointsToEarn = Math.floor(amountToPay / earnRate)
         if (pointsToEarn > 0) {
           try {
             await supabase.rpc('increment_member_points', {
