@@ -21,6 +21,10 @@ export default function LiffMemberPage() {
   const [pointsHistory, setPointsHistory] = useState<any[]>([]);
   const [rewards, setRewards] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'rewards' | 'history'>('rewards');
+  const [showMysteryBox, setShowMysteryBox] = useState(false);
+  const [mysteryBoxState, setMysteryBoxState] = useState<'idle' | 'opening' | 'result'>('idle');
+  const [mysteryBoxResult, setMysteryBoxResult] = useState(0);
+  const [isPlayingBox, setIsPlayingBox] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showBenefits, setShowBenefits] = useState(false);
 
