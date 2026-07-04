@@ -1839,8 +1839,9 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     
     // Automatically apply it (we need to mimic applyBillDiscount, or just set it and let applyBillDiscount run)
     // To be safe, we just set the states and then call applyBillDiscount logic manually:
-    setDiscountTotalValue(discountValue);
-    setDiscountTotalReason('แลกแต้มสมาชิก (' + pointsToUse + ' pts)');
+    setDiscountType('fixed');
+    setDiscountValue(discountValue);
+    setDiscountName('แลกแต้มสมาชิก (' + pointsToUse + ' pts)');
     setShowBillDiscountModal(false);
     
     setShowMemberCheckoutFlow(false);
