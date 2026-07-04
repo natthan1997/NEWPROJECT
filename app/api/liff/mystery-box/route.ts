@@ -55,17 +55,17 @@ export async function POST(req: NextRequest) {
 
     // Insert history for deduction
     await supabase.from('pos_points_history').insert({
-      member_id: member.id,
-      points_change: -COST_TO_PLAY,
-      action: 'redeem',
+      member_id: userId,
+      points: COST_TO_PLAY,
+      type: 'redeem',
       description: 'เล่นกล่องสุ่ม',
     })
 
     // Insert history for earning
     await supabase.from('pos_points_history').insert({
-      member_id: member.id,
-      points_change: wonPoints,
-      action: 'earn',
+      member_id: userId,
+      points: wonPoints,
+      type: 'earn',
       description: 'รางวัลจากกล่องสุ่ม',
     })
 
