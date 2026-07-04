@@ -149,8 +149,14 @@ export default function LiffMemberPage() {
   };
   
   const handleLinkPhone = async () => {
+    if (!nicknameInput.trim()) {
+        alert(dict.locale === 'en' ? 'Please enter your nickname or name' : 'กรุณากรอกชื่อเล่นหรือชื่อเรียก');
+        document.getElementById('nickname-input-modal')?.focus();
+        return;
+    }
     if (phoneInput.length < 9) {
         alert(dict.locale === 'en' ? 'Invalid phone number' : 'กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง');
+        document.getElementById('phone-input-modal')?.focus();
         return;
     }
     const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
@@ -671,13 +677,15 @@ const fetchData = async () => {
               <div className="mb-6 space-y-3">
                 <input 
                   type="text" 
+                  id="nickname-input-modal"
                   value={nicknameInput} 
                   onChange={e => setNicknameInput(e.target.value)} 
-                  placeholder={dict.locale === 'en' ? "Nickname / Name (Optional)" : "ชื่อเล่น / ชื่อเรียก (ไม่บังคับ)"} 
+                  placeholder={dict.locale === 'en' ? "Nickname / Name" : "ชื่อเล่น / ชื่อเรียก"} 
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-[18px] font-bold text-[#1A1A18] text-center focus:ring-2 focus:ring-black outline-none transition-all placeholder:font-medium" 
                 />
                 <input 
                   type="tel" 
+                  id="phone-input-modal"
                   value={phoneInput} 
                   onChange={e => setPhoneInput(e.target.value)} 
                   placeholder="08X-XXX-XXXX" 
@@ -694,7 +702,7 @@ const fetchData = async () => {
                 </button>
                 <button
                   onClick={handleLinkPhone}
-                  disabled={isLinkingPhone || phoneInput.length < 9}
+                  disabled={isLinkingPhone || phoneInput.length < 9 || !nicknameInput.trim()}
                   className="flex-1 py-3 bg-black text-white rounded-xl font-bold text-sm hover:bg-gray-900 transition-colors disabled:opacity-50 flex justify-center items-center"
                 >
                   {isLinkingPhone ? <Loader2 size={18} className="animate-spin" /> : (dict.locale === 'en' ? 'Link' : 'บันทึก')}

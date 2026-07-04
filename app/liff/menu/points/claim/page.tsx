@@ -155,13 +155,15 @@ function ClaimPointsContent() {
                             <div className="w-full space-y-3">
                                 <input 
                                     type="text" 
+                                    id="nickname-input"
                                     value={nickname} 
                                     onChange={(e) => setNickname(e.target.value)}
-                                    placeholder={locale === 'en' ? 'Nickname / Name (Optional)' : 'ชื่อเล่น / ชื่อเรียก (ไม่บังคับ)'}
+                                    placeholder={locale === 'en' ? 'Nickname / Name' : 'ชื่อเล่น / ชื่อเรียก'}
                                     className="w-full h-14 border-2 border-gray-200 focus:border-[#1A1A18] outline-none px-4 text-lg font-bold rounded-none transition-all placeholder:font-medium"
                                 />
                                 <input 
                                     type="tel" 
+                                    id="phone-input"
                                     value={phone} 
                                     onChange={(e) => setPhone(e.target.value)}
                                     placeholder="08x-xxx-xxxx"
@@ -170,13 +172,19 @@ function ClaimPointsContent() {
                             </div>
                             <button 
                                 onClick={() => {
-                                    if (phone.length >= 9) {
-                                        handleClaim(phone);
-                                    } else {
-                                        alert(locale === 'en' ? 'Invalid phone number' : 'กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง');
+                                    if (!nickname.trim()) {
+                                        alert(locale === 'en' ? 'Please enter your nickname or name' : 'กรุณากรอกชื่อเล่นหรือชื่อเรียก');
+                                        document.getElementById('nickname-input')?.focus();
+                                        return;
                                     }
+                                    if (phone.length < 9) {
+                                        alert(locale === 'en' ? 'Invalid phone number' : 'กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง');
+                                        document.getElementById('phone-input')?.focus();
+                                        return;
+                                    }
+                                    handleClaim(phone);
                                 }}
-                                disabled={phone.length < 9}
+                                disabled={phone.length < 9 || !nickname.trim()}
                                 className="w-full h-14 bg-[#1A1A18] text-white flex items-center justify-center gap-2 text-[12px] font-black uppercase tracking-[0.2em] hover:bg-black transition-all shadow-xl disabled:opacity-50"
                             >
                                 {locale === 'en' ? 'Register & Claim' : 'ลงทะเบียนและรับแต้ม'} <ArrowRight size={16} />
