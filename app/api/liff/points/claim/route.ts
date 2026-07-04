@@ -62,7 +62,8 @@ export async function POST(req: NextRequest) {
                 await supabase.from('pos_members').update({
                     line_user_id: lineUserId,
                     display_name: memberByPhone.display_name || displayName,
-                    avatar_url: memberByPhone.avatar_url || avatarUrl
+                    avatar_url: memberByPhone.avatar_url || avatarUrl,
+                    full_name: memberByPhone.full_name || body.fullName || undefined
                 }).eq('id', memberByPhone.id)
                 member = memberByPhone
             }
@@ -82,6 +83,7 @@ export async function POST(req: NextRequest) {
             const { data: newMember } = await supabase.from('pos_members').insert({
                 line_user_id: lineUserId,
                 phone: body.phone,
+                full_name: body.fullName || undefined,
                 display_name: displayName,
                 avatar_url: avatarUrl,
                 points: 0,

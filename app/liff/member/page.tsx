@@ -27,6 +27,7 @@ export default function LiffMemberPage() {
   const [isPlayingBox, setIsPlayingBox] = useState(false);
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [phoneInput, setPhoneInput] = useState('');
+  const [nicknameInput, setNicknameInput] = useState('');
   const [isLinkingPhone, setIsLinkingPhone] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showBenefits, setShowBenefits] = useState(false);
@@ -160,7 +161,7 @@ export default function LiffMemberPage() {
         const res = await fetch('/api/liff/member/link-phone', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ lineUserId: userId, phone: phoneInput })
+            body: JSON.stringify({ lineUserId: userId, phone: phoneInput, fullName: nicknameInput })
         });
         const data = await res.json();
         
@@ -667,7 +668,14 @@ const fetchData = async () => {
                 {dict.locale === 'en' ? 'Link your phone number to receive points from POS orders.' : 'ระบุเบอร์โทรศัพท์ของคุณเพื่อรับแต้มจากการสั่งซื้อหน้าร้าน (รวมคะแนนอัตโนมัติ)'}
               </p>
               
-              <div className="mb-6">
+              <div className="mb-6 space-y-3">
+                <input 
+                  type="text" 
+                  value={nicknameInput} 
+                  onChange={e => setNicknameInput(e.target.value)} 
+                  placeholder={dict.locale === 'en' ? "Nickname / Name (Optional)" : "ชื่อเล่น / ชื่อเรียก (ไม่บังคับ)"} 
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-[18px] font-bold text-[#1A1A18] text-center focus:ring-2 focus:ring-black outline-none transition-all placeholder:font-medium" 
+                />
                 <input 
                   type="tel" 
                   value={phoneInput} 

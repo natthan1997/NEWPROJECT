@@ -15,7 +15,7 @@ const createSupabaseServiceClient = () => {
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json().catch(() => ({}))
-        const { lineUserId, phone } = body
+        const { lineUserId, phone, fullName } = body
 
         if (!lineUserId || !phone) {
             return NextResponse.json({ error: 'Missing lineUserId or phone' }, { status: 400 })
@@ -47,11 +47,12 @@ export async function POST(req: NextRequest) {
             const combinedPoints = (lineMember.points || 0) + (phoneMember.points || 0)
             const combinedTotal = (lineMember.total_accumulated_points || 0) + (phoneMember.total_accumulated_points || 0)
 
-            // Update LINE member with combined points and the phone number
+            // Update LINE member with combined points, phone number, and full_name
             await supabase.from('pos_members').update({
                 phone: phone,
                 points: combinedPoints,
-                total_accumulated_points: combinedTotal
+                total_accumulated_points: combinedTotal,
+                full_name: phoneMember.full_name || fullName || undefined
             }).eq('id', lineMember.id)
 
             // Re-assign history
@@ -64,9 +65,10 @@ export async function POST(req: NextRequest) {
             
             return NextResponse.json({ success: true, merged: true, newPoints: combinedPoints })
         } else {
-            // JUST UPDATE PHONE
+            // JUST UPDATE PHONE AND NAME
             await supabase.from('pos_members').update({
-                phone: phone
+                phone: phone,
+                full_name: fullName || undefined
             }).eq('id', lineMember.id)
             
             return NextResponse.json({ success: true, merged: false, newPoints: lineMember.points })

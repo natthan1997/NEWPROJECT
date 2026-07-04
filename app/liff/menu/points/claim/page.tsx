@@ -21,6 +21,7 @@ function ClaimPointsContent() {
     const [showPopup, setShowPopup] = useState(false)
     const [requirePhone, setRequirePhone] = useState(false)
     const [phone, setPhone] = useState('')
+    const [nickname, setNickname] = useState('')
 
     useEffect(() => {
         const initLiff = async () => {
@@ -67,7 +68,8 @@ function ClaimPointsContent() {
                     lineUserId: lineProfile.userId,
                     displayName: lineProfile.displayName,
                     avatarUrl: lineProfile.pictureUrl,
-                    phone: phoneToSubmit || undefined
+                    phone: phoneToSubmit || undefined,
+                    fullName: nickname || undefined
                 })
             })
 
@@ -150,13 +152,22 @@ function ClaimPointsContent() {
                                     {locale === 'en' ? 'Please enter your phone number to register and claim your points' : 'กรุณากรอกเบอร์โทรศัพท์เพื่อสมัครสมาชิกและรับแต้ม'}
                                 </p>
                             </div>
-                            <input 
-                                type="tel" 
-                                value={phone} 
-                                onChange={(e) => setPhone(e.target.value)}
-                                placeholder="08x-xxx-xxxx"
-                                className="w-full h-14 border-2 border-gray-200 focus:border-[#1A1A18] outline-none text-center text-xl font-black rounded-none transition-all tracking-[0.2em]"
-                            />
+                            <div className="w-full space-y-3">
+                                <input 
+                                    type="text" 
+                                    value={nickname} 
+                                    onChange={(e) => setNickname(e.target.value)}
+                                    placeholder={locale === 'en' ? 'Nickname / Name (Optional)' : 'ชื่อเล่น / ชื่อเรียก (ไม่บังคับ)'}
+                                    className="w-full h-14 border-2 border-gray-200 focus:border-[#1A1A18] outline-none px-4 text-lg font-bold rounded-none transition-all placeholder:font-medium"
+                                />
+                                <input 
+                                    type="tel" 
+                                    value={phone} 
+                                    onChange={(e) => setPhone(e.target.value)}
+                                    placeholder="08x-xxx-xxxx"
+                                    className="w-full h-14 border-2 border-gray-200 focus:border-[#1A1A18] outline-none text-center text-xl font-black rounded-none transition-all tracking-[0.2em]"
+                                />
+                            </div>
                             <button 
                                 onClick={() => {
                                     if (phone.length >= 9) {
