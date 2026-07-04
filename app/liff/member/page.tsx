@@ -191,7 +191,7 @@ export default function LiffMemberPage() {
                                 <motion.div 
                                     className="h-full bg-sage-500 rounded-full"
                                     initial={{ width: 0 }}
-                                    animate={{ width: \`\${progressPercent}%\` }}
+                                    animate={{ width: `${progressPercent}%` }}
                                     transition={{ duration: 1.5, ease: "easeOut" }}
                                 />
                             </div>
@@ -202,10 +202,10 @@ export default function LiffMemberPage() {
                             <button 
                                 disabled={!isReadyToHarvest || isHarvesting}
                                 onClick={handleHarvest}
-                                className={\`w-full py-4 rounded-2xl font-bold text-sm transition-all duration-300 shadow-sm
-                                    \${isReadyToHarvest 
+                                className={`w-full py-4 rounded-2xl font-bold text-sm transition-all duration-300 shadow-sm
+                                    ${isReadyToHarvest 
                                         ? 'bg-sage-600 text-white hover:bg-sage-700 active:scale-95 shadow-sage-600/20' 
-                                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'}\`}
+                                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
                             >
                                 {isHarvesting ? <Loader2 size={18} className="animate-spin mx-auto" /> : (isReadyToHarvest ? 'เก็บเกี่ยวคูปอง' : 'รดน้ำต่อไป')}
                             </button>
@@ -290,13 +290,13 @@ export default function LiffMemberPage() {
                         <div className="space-y-0 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-gray-200 before:to-transparent">
                             {pointsHistory.length > 0 ? pointsHistory.map((h, i) => (
                                 <div key={h.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active pb-6">
-                                    <div className={\`flex items-center justify-center w-10 h-10 rounded-full border-4 border-gray-50 shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 shadow-sm z-10 \${h.type === 'earn' ? 'bg-sage-100 text-sage-600' : 'bg-gray-100 text-gray-500'}\`}>
+                                    <div className={`flex items-center justify-center w-10 h-10 rounded-full border-4 border-gray-50 shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 shadow-sm z-10 ${h.type === 'earn' ? 'bg-sage-100 text-sage-600' : 'bg-gray-100 text-gray-500'}`}>
                                         {h.type === 'earn' ? <Leaf size={14} /> : <Ticket size={14} />}
                                     </div>
                                     <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-white p-4 rounded-2xl shadow-sm border border-gray-100 ml-4">
                                         <div className="flex justify-between items-start mb-1">
                                             <div className="text-sm font-bold text-gray-900">{h.description}</div>
-                                            <div className={\`text-sm font-black \${h.type === 'earn' ? 'text-sage-600' : 'text-gray-900'}\`}>
+                                            <div className={`text-sm font-black ${h.type === 'earn' ? 'text-sage-600' : 'text-gray-900'}`}>
                                                 {h.type === 'earn' ? '+' : '-'}{Math.abs(h.points)}
                                             </div>
                                         </div>
@@ -339,35 +339,35 @@ export default function LiffMemberPage() {
           
           <button 
             onClick={() => setActiveTab('home')}
-            className={\`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors \${activeTab === 'home' ? 'text-sage-600' : 'text-gray-400 hover:text-gray-600'}\`}
+            className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${activeTab === 'home' ? 'text-sage-600' : 'text-gray-400 hover:text-gray-600'}`}
           >
-            <div className={\`p-1.5 rounded-full transition-all \${activeTab === 'home' ? 'bg-sage-50' : 'bg-transparent'}\`}>
+            <div className={`p-1.5 rounded-full transition-all ${activeTab === 'home' ? 'bg-sage-50' : 'bg-transparent'}`}>
                 <Leaf size={22} strokeWidth={activeTab === 'home' ? 2.5 : 1.5} />
             </div>
-            <span className={\`text-[10px] font-medium \${activeTab === 'home' ? 'text-sage-700 font-bold' : ''}\`}>Home</span>
+            <span className={`text-[10px] font-medium ${activeTab === 'home' ? 'text-sage-700 font-bold' : ''}`}>Home</span>
           </button>
 
           <button 
             onClick={() => setActiveTab('rewards')}
-            className={\`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors \${activeTab === 'rewards' ? 'text-sage-600' : 'text-gray-400 hover:text-gray-600'}\`}
+            className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${activeTab === 'rewards' ? 'text-sage-600' : 'text-gray-400 hover:text-gray-600'}`}
           >
-            <div className={\`p-1.5 rounded-full transition-all relative \${activeTab === 'rewards' ? 'bg-sage-50' : 'bg-transparent'}\`}>
+            <div className={`p-1.5 rounded-full transition-all relative ${activeTab === 'rewards' ? 'bg-sage-50' : 'bg-transparent'}`}>
                 <Ticket size={22} strokeWidth={activeTab === 'rewards' ? 2.5 : 1.5} />
                 {coupons.length > 0 && (
                     <span className="absolute top-1 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" />
                 )}
             </div>
-            <span className={\`text-[10px] font-medium \${activeTab === 'rewards' ? 'text-sage-700 font-bold' : ''}\`}>Rewards</span>
+            <span className={`text-[10px] font-medium ${activeTab === 'rewards' ? 'text-sage-700 font-bold' : ''}`}>Rewards</span>
           </button>
 
           <button 
             onClick={() => setActiveTab('history')}
-            className={\`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors \${activeTab === 'history' ? 'text-sage-600' : 'text-gray-400 hover:text-gray-600'}\`}
+            className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${activeTab === 'history' ? 'text-sage-600' : 'text-gray-400 hover:text-gray-600'}`}
           >
-            <div className={\`p-1.5 rounded-full transition-all \${activeTab === 'history' ? 'bg-sage-50' : 'bg-transparent'}\`}>
+            <div className={`p-1.5 rounded-full transition-all ${activeTab === 'history' ? 'bg-sage-50' : 'bg-transparent'}`}>
                 <History size={22} strokeWidth={activeTab === 'history' ? 2.5 : 1.5} />
             </div>
-            <span className={\`text-[10px] font-medium \${activeTab === 'history' ? 'text-sage-700 font-bold' : ''}\`}>Stats</span>
+            <span className={`text-[10px] font-medium ${activeTab === 'history' ? 'text-sage-700 font-bold' : ''}`}>Stats</span>
           </button>
 
         </div>
