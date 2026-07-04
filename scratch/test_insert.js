@@ -1,14 +1,11 @@
 const { createClient } = require('@supabase/supabase-js');
-require('dotenv').config({path: '.env.local'});
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+const fs = require('fs');
 
-async function run() {
-  const { data, error } = await supabase.from('house_collaborators').insert({
-    house_id: '00000000-0000-0000-0000-000000000000',
-    user_id: '00000000-0000-0000-0000-000000000000',
-    role: 'editor',
-    receive_notifications: true
-  });
-  console.log("Error:", error);
-}
-run();
+const envLocal = fs.readFileSync('.env.local', 'utf8');
+let key = '';
+envLocal.split('\n').forEach(line => {
+  if(line.startsWith('SUPABASE_SERVICE_ROLE_KEY=')) key = line.split('=')[1].trim().replace(/['"]/g, '');
+});
+
+// Since NEXT_PUBLIC_SUPABASE_URL isn't in .env.local, let's use the one from NEXT_PUBLIC... wait.
+// I will just read lib/supabaseClient.ts or grep it

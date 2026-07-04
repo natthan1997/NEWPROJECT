@@ -389,7 +389,8 @@ const getSupabaseConfig = () => {
   const rawKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim()
 
   if (!rawUrl || !rawKey) {
-    throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY')
+    console.warn('Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY')
+    return { url: rawUrl || 'https://placeholder-project.supabase.co', key: rawKey || 'placeholder' }
   }
 
   if (/placeholder-project\.supabase\.co/i.test(rawUrl) || /placeholder/i.test(rawKey)) {

@@ -4,7 +4,7 @@ import {
   Users, Search, UserPlus, Phone, Mail, Award, History, 
   ChevronRight, ArrowLeft, Loader2, Save, X, Edit2, 
   TrendingUp, TrendingDown, Star, LayoutGrid, List,
-  Coffee, Sparkles, CheckCircle2, ShieldCheck, UserCheck, Settings
+  Coffee, Sparkles, CheckCircle2, ShieldCheck, UserCheck, Settings, Gift, Tag
 } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import { useI18n } from "@/lib/I18nContext";
@@ -22,6 +22,16 @@ interface Customer {
     total_spent: number
     created_at: string
     line_user_id: string | null
+    title?: string
+}
+
+interface Coupon {
+    id: string
+    member_id: string
+    coupon_type: string
+    coupon_name: string
+    status: 'active' | 'used' | 'expired'
+    created_at: string
 }
 
 interface PointsHistory {
@@ -51,6 +61,7 @@ export default function POSMemberManager({
     const [customers, setCustomers] = useState<Customer[]>([])
     const [selectedMember, setSelectedMember] = useState<Customer | null>(null)
     const [pointsHistory, setPointsHistory] = useState<PointsHistory[]>([])
+    const [activeCoupons, setActiveCoupons] = useState<Coupon[]>([])
     const [isEditing, setIsEditing] = useState(false)
     const [isSaving, setIsSaving] = useState(false)
     const [editData, setEditData] = useState<Partial<Customer>>({})
@@ -70,6 +81,11 @@ export default function POSMemberManager({
             .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_points_history' }, () => {
                 if (selectedMember) {
                     fetchPointsHistory(selectedMember.id)
+                }
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_member_coupons' }, () => {
+                if (selectedMember) {
+                    fetchCoupons(selectedMember.id)
                 }
             })
             .subscribe()
@@ -120,6 +136,28 @@ export default function POSMemberManager({
         }
     }
 
+    const fetchCoupons = async (memberId: string) => {
+        const { data } = await supabase
+            .from('pos_member_coupons')
+            .select('*')
+            .eq('member_id', memberId)
+            .eq('status', 'active')
+            .order('created_at', { ascending: false })
+        
+        if (data) setActiveCoupons(data)
+        else setActiveCoupons([])
+    }
+
+    const handleUseCoupon = async (couponId: string) => {
+        if (!confirm('ยืนยันการใช้คูปองนี้ใช่หรือไม่?')) return;
+        const { error } = await supabase
+            .from('pos_member_coupons')
+            .update({ status: 'used', used_at: new Date().toISOString() })
+            .eq('id', couponId)
+        if (error) alert('Error using coupon: ' + error.message)
+        else fetchCoupons(selectedMember!.id)
+    }
+
     const fetchHistory = async (memberId: string) => {
         const { data } = await supabase
             .from('pos_points_history')
@@ -135,8 +173,10 @@ export default function POSMemberManager({
     const handleSelectMember = (member: Customer) => {
         setSelectedMember(member)
         setEditData(member)
-        setPointsHistory([]) 
+        setPointsHistory([])
+        setActiveCoupons([])
         fetchHistory(member.id)
+        fetchCoupons(member.id)
     }
 
     const handleSave = async () => {
@@ -150,7 +190,8 @@ export default function POSMemberManager({
                 phone: editData.phone,
                 email: editData.email,
                 points: editData.points,
-                tier: editData.tier
+                tier: editData.tier,
+                title: editData.title
             })
             .eq('id', selectedMember.id)
         
@@ -252,7 +293,7 @@ export default function POSMemberManager({
                                             )}
                                         </div>
                                         <div className="font-bold">
-                                            <div className="text-[11px] font-black uppercase tracking-tight text-[#1A1A18]">{member.full_name ? `${member.full_name} ${member.display_name && member.display_name !== member.full_name ? `(${member.display_name})` : ''}` : (member.display_name || 'สมาชิก')}</div>
+                                            <div className="text-[11px] font-black uppercase tracking-tight text-[#1A1A18]">{member.full_name ? `${member.full_name} ${member.display_name && member.display_name !== member.full_name ? `(${member.display_name})` : ''}` : (member.display_name || 'สมาชิก')} {member.title && <span className="text-[9px] text-sage-600 bg-sage-50 px-1 py-0.5 ml-1">👑 {member.title}</span>}</div>
                                             <div className="text-[8px] text-[#8C8A81] font-black uppercase tracking-widest mt-0.5 flex items-center gap-1.5 opacity-60">
                                                 <Phone size={8} /> {member.phone || 'ไม่ระบุเบอร์'}
                                             </div>
@@ -301,6 +342,7 @@ export default function POSMemberManager({
                                             <div className="flex flex-col sm:flex-row items-center gap-4 font-bold">
                                                 <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tighter text-[#1A1A18] leading-none">{selectedMember.full_name ? `${selectedMember.full_name} ${selectedMember.display_name && selectedMember.display_name !== selectedMember.full_name ? `(${selectedMember.display_name})` : ''}` : (selectedMember.display_name || 'สมาชิก')}</h2>
                                                 {getTierBadge(selectedMember.tier)}
+                                                {selectedMember.title && <span className="px-3 py-1 bg-sage-50 text-sage-600 text-[10px] font-black tracking-widest uppercase border border-sage-200">👑 {selectedMember.title}</span>}
                                             </div>
                                             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-5 font-bold">
                                                  <div className="flex items-center gap-2 text-[9px] font-black uppercase text-[#8C8A81] tracking-widest"><Phone size={12} className="text-sage-400" /> {selectedMember.phone || 'ไม่ระบุเบอร์'}</div>
@@ -335,6 +377,15 @@ export default function POSMemberManager({
                                                         className="w-full h-14 bg-white border border-[#F0F0E8] px-6 text-sm font-bold uppercase outline-none focus:ring-1 focus:ring-[#1A1A18]"
                                                         value={editData.display_name || ''}
                                                         onChange={e => setEditData({...editData, display_name: e.target.value})}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2 font-bold">
+                                                    <label className="text-[8px] font-black uppercase text-[#8C8A81] tracking-widest ml-1 font-bold">ฉายา / Title</label>
+                                                    <input 
+                                                        className="w-full h-14 bg-white border border-[#F0F0E8] px-6 text-sm font-bold uppercase outline-none focus:ring-1 focus:ring-[#1A1A18] text-sage-600"
+                                                        value={editData.title || ''}
+                                                        placeholder="เช่น ผู้พิทักษ์ป่า"
+                                                        onChange={e => setEditData({...editData, title: e.target.value})}
                                                     />
                                                 </div>
                                                 <div className="space-y-2 font-bold">
@@ -442,6 +493,45 @@ export default function POSMemberManager({
                                                         <div className="text-lg font-black text-sage-600 font-bold tabular-nums">{(Math.floor((selectedMember.points ?? 0) / 100) + 1) * 100} {locale === 'en' ? ' คะแนน' : locale === 'zh' ? ' คะแนน' : ' คะแนน'}</div>
                                                     </div>
                                                 </div>
+                                            </div>
+                                         </div>
+                                     )}
+
+
+                                     {/* Active Coupons View */}
+                                     {activeCoupons.length > 0 && !isEditing && (
+                                         <div className="bg-sage-50/50 border border-sage-200 flex flex-col font-bold shadow-sm lg:col-span-2">
+                                            <header className="p-6 border-b border-sage-200 flex justify-between items-center font-bold bg-white">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 bg-sage-100 text-sage-600 flex items-center justify-center">
+                                                        <Gift size={16} />
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="text-[11px] font-black uppercase tracking-[0.2em] font-bold text-sage-800">คูปองที่สามารถใช้งานได้</h3>
+                                                        <p className="text-[8px] text-sage-500 uppercase tracking-widest">{activeCoupons.length} สิทธิ์ที่ยังไม่ได้ใช้</p>
+                                                    </div>
+                                                </div>
+                                            </header>
+                                            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {activeCoupons.map(coupon => (
+                                                    <div key={coupon.id} className="bg-white border border-sage-200 p-4 flex items-center justify-between shadow-sm hover:shadow-md transition-all group">
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="w-10 h-10 bg-sage-50 flex items-center justify-center text-sage-600">
+                                                                <Tag size={18} />
+                                                            </div>
+                                                            <div>
+                                                                <div className="text-xs font-black text-sage-800">{coupon.coupon_name}</div>
+                                                                <div className="text-[9px] text-sage-400 font-black uppercase tracking-widest mt-1">ได้รับเมื่อ: {new Date(coupon.created_at).toLocaleDateString('th-TH')}</div>
+                                                            </div>
+                                                        </div>
+                                                        <button 
+                                                            onClick={() => handleUseCoupon(coupon.id)}
+                                                            className="px-4 py-2 bg-sage-600 text-white text-[9px] font-black uppercase tracking-[0.2em] opacity-0 group-hover:opacity-100 transition-all hover:bg-sage-700"
+                                                        >
+                                                            ใช้งานสิทธิ์
+                                                        </button>
+                                                    </div>
+                                                ))}
                                             </div>
                                          </div>
                                      )}

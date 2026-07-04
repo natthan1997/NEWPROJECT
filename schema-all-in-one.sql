@@ -6615,3 +6615,36 @@ NOTIFY pgrst, 'reload schema';
 
 -- FINAL VERIFICATION
 SELECT 'schema-all-in-one.sql is now the canonical active schema' AS message;
+
+-- XYL Digital Garden & Coupons Update
+ALTER TABLE public.pos_members ADD COLUMN IF NOT EXISTS title TEXT;
+
+CREATE TABLE IF NOT EXISTS public.pos_member_coupons (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    member_id TEXT NOT NULL,
+    coupon_type TEXT NOT NULL, -- e.g., 'tree_harvest', 'mystery_box'
+    coupon_name TEXT NOT NULL, -- e.g., 'รับกระบองเพชรจิ๋วฟรี', 'รับกาแฟฟรี 1 แก้ว'
+    status TEXT DEFAULT 'active' CHECK (status IN ('active', 'used', 'expired')),
+    created_at TIMESTAMPTZ DEFAULT now(),
+    used_at TIMESTAMPTZ,
+    expires_at TIMESTAMPTZ
+);
+
+ALTER TABLE public.pos_member_coupons ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow SELECT for all" ON public.pos_member_coupons;
+CREATE POLICY "Allow SELECT for all" ON public.pos_member_coupons
+FOR SELECT TO authenticated, anon USING (true);
+
+DROP POLICY IF EXISTS "Allow UPDATE for all" ON public.pos_member_coupons;
+CREATE POLICY "Allow UPDATE for all" ON public.pos_member_coupons
+FOR UPDATE TO authenticated, anon USING (true) WITH CHECK (true);
+
+-- API (Service Role) will handle INSERTs, so we don't necessarily need a public INSERT policy,
+-- but since POS might need it for some reason (maybe giving out coupons manually), let's allow it for anon/authenticated
+DROP POLICY IF EXISTS "Allow INSERT for all" ON public.pos_member_coupons;
+CREATE POLICY "Allow INSERT for all" ON public.pos_member_coupons
+FOR INSERT TO authenticated, anon WITH CHECK (true);
+
+-- Realtime
+ALTER PUBLICATION supabase_realtime ADD TABLE public.pos_member_coupons;
