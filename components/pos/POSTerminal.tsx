@@ -805,15 +805,10 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
               
               <button
                 onClick={() => setShowPointModal(true)}
-                className={`relative flex h-9 w-9 sm:h-10 sm:w-10 rounded-full items-center justify-center border font-bold transition-all ${selectedCustomer ? 'border-black bg-[#1A1A18] text-white shadow-lg' : 'border-[#F0F0E8] bg-white text-[#1A1A18] hover:border-black'}`}
-                title={locale === 'en' ? 'สะสมแต้ม' : locale === 'zh' ? 'สะสมแต้ม' : 'สะสมแต้ม'}
+                className="relative flex h-9 w-9 sm:h-10 sm:w-10 rounded-full items-center justify-center border border-[#F0F0E8] bg-white text-[#1A1A18] hover:border-black font-bold transition-all"
+                title={locale === 'en' ? 'สะสมแต้ม' : locale === 'zh' ? 'สะสมแต้ม' : 'ให้แต้ม'}
               >
                 <QrCode size={16} />
-                {selectedCustomer && (
-                  <span className="absolute -right-0 -top-0 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-emerald-500 text-[7px] font-black text-white ring-1 ring-white">
-                    ✓
-                  </span>
-                )}
               </button>
 
               <button
@@ -1829,10 +1824,11 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       return;
     }
     
-    const valPerPoint = (shopSettings?.opening_hours?.loyalty_points_per_thb) || 10;
+    const valPerPoint = Number(shopSettings?.opening_hours?.loyalty_points_per_thb) || 10;
     const discountValue = pointsToUse * valPerPoint;
+    const grossTotal = cartSubTotal + vatAmount + serviceChargeAmount;
     
-    if (discountValue > cartTotal) {
+    if (discountValue > grossTotal) {
        alert(locale === 'en' ? 'Discount exceeds cart total' : 'ส่วนลดเกินยอดบิล');
        return;
     }
