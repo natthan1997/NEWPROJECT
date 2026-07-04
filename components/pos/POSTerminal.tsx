@@ -2120,7 +2120,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         }
 
         // EARN NEW POINTS based on amount to pay (gross total minus discounts)
-        const earnRate = shopSettings?.loyalty_earn_rate || 100
+        const earnRate = shopSettings?.opening_hours?.loyalty_earn_rate || 100
         const pointsToEarn = Math.floor(amountToPay / earnRate)
         if (pointsToEarn > 0) {
           try {
