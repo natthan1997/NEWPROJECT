@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react'
-import { Receipt, Trash2, RefreshCw, Printer, PencilLine } from 'lucide-react'
+import { Receipt, Trash2, RefreshCw, Printer, PencilLine, User } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import POSPinModal from './POSPinModal'
 import { useI18n } from "@/lib/I18nContext";
@@ -31,7 +31,7 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
       
       const { data, error } = await supabase
         .from('pos_orders')
-        .select('*, pos_order_items(*, item:pos_menu_items!item_id(*)), pos_order_payments(amount, payment_method, status)')
+        .select('*, pos_order_items(*, item:pos_menu_items!item_id(*)), pos_order_payments(amount, payment_method, status), customer:pos_members!customer_id(display_name, full_name, phone)')
         .in('status', ['paid', 'completed', 'cancelled'])
         .gte('updated_at', startOfDay.toISOString())
         .lt('updated_at', endOfDay.toISOString())
@@ -346,11 +346,16 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
                     <div className="text-xs font-black uppercase tracking-widest text-[#1A1A18]">
                       {order.order_number}
                     </div>
-                    {order.queue_number && (
+                    {order.customer ? (
+                      <span className="bg-sage-100 px-1.5 py-0.5 text-[10px] font-black tracking-widest text-sage-800 uppercase flex items-center gap-1">
+                        <User size={10} />
+                        {order.customer.full_name || order.customer.display_name || order.customer.phone || 'สมาชิก'}
+                      </span>
+                    ) : order.queue_number ? (
                       <span className="bg-gray-100 px-1.5 py-0.5 text-[10px] font-black tracking-widest text-gray-700">
                         คิว #{String(order.queue_number).padStart(3, '0')}
                       </span>
-                    )}
+                    ) : null}
                     {order.order_type === 'dine_in' && order.table_number && (
                       <span className="bg-amber-100 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-tighter text-amber-700">
                         Table {order.table_number}
