@@ -2095,10 +2095,10 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         if (redeemPointsAmount && parseInt(redeemPointsAmount) > 0) {
           const pointsToDeduct = parseInt(redeemPointsAmount)
           try {
-            await supabase.rpc('increment_member_points', {
-              user_id: selectedCustomer.line_user_id || selectedCustomer.id,
-              points_to_add: -pointsToDeduct,
-            })
+            const currentPoints = selectedCustomer.points || 0;
+            await supabase.from('pos_members').update({
+              points: currentPoints - pointsToDeduct
+            }).eq('id', selectedCustomer.id)
             
             const deductHistoryObj: any = {
               member_id: selectedCustomer.id,
@@ -2124,10 +2124,14 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         const pointsToEarn = Math.floor(amountToPay / earnRate)
         if (pointsToEarn > 0) {
           try {
-            await supabase.rpc('increment_member_points', {
-              user_id: selectedCustomer.line_user_id || selectedCustomer.id,
-              points_to_add: pointsToEarn,
-            })
+            // First re-fetch current points in case they were just deducted above
+            const { data: memberData } = await supabase.from('pos_members').select('points').eq('id', selectedCustomer.id).single();
+            const currentPoints = memberData?.points || 0;
+            
+            await supabase.from('pos_members').update({
+              points: currentPoints + pointsToEarn,
+              total_accumulated_points: (selectedCustomer.total_accumulated_points || 0) + pointsToEarn
+            }).eq('id', selectedCustomer.id)
             const historyObj: any = {
               member_id: selectedCustomer.id,
               order_id: finalOrderId,

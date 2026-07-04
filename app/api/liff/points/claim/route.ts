@@ -110,6 +110,10 @@ export async function POST(req: NextRequest) {
                 updates.avatar_url = avatarUrl;
                 needsUpdate = true;
             }
+            if (!member.full_name && body.fullName) {
+                updates.full_name = body.fullName;
+                needsUpdate = true;
+            }
             
             if (needsUpdate) {
                 updates.updated_at = new Date().toISOString();
