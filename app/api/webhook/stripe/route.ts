@@ -40,6 +40,7 @@ async function awardLoyaltyPointsOnce(supabase: ReturnType<typeof createSupabase
       member_id: order.line_user_id,
       order_id: order.id,
       points: pointsToEarn,
+      points_change: pointsToEarn,
       type: 'earn',
       description: `Earned from Order #${order.order_number}`,
     }

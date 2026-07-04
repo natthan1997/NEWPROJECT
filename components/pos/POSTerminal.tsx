@@ -2100,9 +2100,10 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
               points_to_add: pointsToEarn,
             })
             const historyObj: any = {
-              member_id: selectedCustomer.line_user_id || selectedCustomer.id,
+              member_id: selectedCustomer.id,
               order_id: finalOrderId,
               points: pointsToEarn,
+              points_change: pointsToEarn,
               type: 'earn',
             }
 

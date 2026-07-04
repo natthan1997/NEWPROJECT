@@ -195,6 +195,7 @@ export default function DeliveryManager({ unlockAudio, isAudioEnabled, variant =
               member_id: memberId,
               order_id: finishModalOrder.id,
               points: pointsToEarn,
+              points_change: pointsToEarn,
               type: 'earn',
               description: `Earned from Delivery #${finishModalOrder.order_number}`,
             }).catch(() => {})

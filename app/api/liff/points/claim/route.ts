@@ -156,8 +156,9 @@ export async function POST(req: NextRequest) {
         // 5. Record in history (Safely attempt to include description)
         try {
             const historyObj: any = {
-                member_id: lineUserId,
+                member_id: member?.id || lineUserId,
                 points: tokenInfo.points,
+                points_change: tokenInfo.points,
                 type: 'earn',
                 created_at: new Date().toISOString()
             }

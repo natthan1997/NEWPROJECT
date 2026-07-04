@@ -152,7 +152,7 @@ const fetchData = async () => {
       const { data: member } = await supabase.from('pos_members').select('*').eq('line_user_id', userId).maybeSingle();
       if (member) {
         setMemberInfo(member);
-        const { data: history } = await supabase.from('pos_points_history').select('*').eq('member_id', member.id).order('created_at', { ascending: false });
+        const { data: history } = await supabase.from('pos_points_history').select('*').in('member_id', [member.id, userId]).order('created_at', { ascending: false });
         if (history) setPointsHistory(history);
       }
       const { data: rewardsData } = await supabase.from('pos_rewards').select('*').eq('is_active', true).order('points_required', { ascending: true });
