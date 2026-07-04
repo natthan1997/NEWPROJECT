@@ -11,7 +11,6 @@ interface Category {
   color?: string
   icon?: string
   order_index?: number
-  branch_id?: string | null
   item_count?: number
 }
 
@@ -49,11 +48,7 @@ export default function POSInventoryCategoryManager({ shopSettings, onCategories
         .select('*')
         .order('order_index')
 
-      if (branchId) {
-        query = query.eq('branch_id', branchId)
-      } else {
-        query = query.is('branch_id', null)
-      }
+
 
       const { data, error } = await query
       if (error) throw error
@@ -96,7 +91,7 @@ export default function POSInventoryCategoryManager({ shopSettings, onCategories
 
   useEffect(() => {
     fetchCategories()
-  }, [shopSettings?.branch_id])
+  }, [])
 
   const openAdd = () => {
     setFormName('')
@@ -116,7 +111,6 @@ export default function POSInventoryCategoryManager({ shopSettings, onCategories
     try {
       const payload: any = {
         name: formName.trim(),
-        branch_id: branchId,
       }
 
       if (editingCat) {
