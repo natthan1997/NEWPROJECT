@@ -1,7 +1,8 @@
+
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, X, Loader2, Leaf, Ticket, Clock, History, CircleUserRound } from 'lucide-react';
+import { ChevronLeft, X, Loader2, Leaf, Ticket, BarChart2, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
 import { useLiff } from '@/components/liff/LiffProvider';
@@ -20,7 +21,10 @@ export default function LiffMemberPage() {
   const [coupons, setCoupons] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
   
-  const [activeTab, setActiveTab] = useState<'home' | 'rewards' | 'history'>('home');
+  // Tabs
+  const [activeTab, setActiveTab] = useState<'garden' | 'rewards' | 'stats' | 'history'>('garden');
+
+  // Modals
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [phoneInput, setPhoneInput] = useState('');
   const [nicknameInput, setNicknameInput] = useState('');
@@ -39,7 +43,7 @@ export default function LiffMemberPage() {
       const { data: member } = await supabase.from('pos_members').select('*').eq('line_user_id', userId).maybeSingle();
       if (member) {
         setMemberInfo(member);
-        const { data: history } = await supabase.from('pos_points_history').select('*').in('member_id', [member.id, userId]).order('created_at', { ascending: false }).limit(20);
+        const { data: history } = await supabase.from('pos_points_history').select('*').in('member_id', [member.id, userId]).order('created_at', { ascending: false }).limit(10);
         if (history) setPointsHistory(history);
         
         const { data: cps } = await supabase.from('pos_member_coupons').select('*').eq('member_id', member.id).eq('status', 'active');
@@ -64,17 +68,22 @@ export default function LiffMemberPage() {
   
   useEffect(() => {
     if (!liffLoading) fetchData();
+    
     const channel = supabase.channel('member_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_members' }, () => fetchData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_points_history' }, () => fetchData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_member_coupons' }, () => fetchData())
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [lineProfile, liffLoading]);
 
   const handleLinkPhone = async () => {
     if (!nicknameInput.trim() || phoneInput.length < 9) return;
     const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
+    if (!userId) return;
     setIsLinkingPhone(true);
     try {
         const res = await fetch('/api/liff/member/link-phone', {
@@ -87,11 +96,15 @@ export default function LiffMemberPage() {
             setShowPhoneModal(false);
             fetchData();
         }
-    } catch (e) { console.error(e); } finally { setIsLinkingPhone(false); }
+    } catch (e) {
+        console.error(e);
+    } finally {
+        setIsLinkingPhone(false);
+    }
   };
 
   const handleHarvest = async () => {
-    if (!confirm('ยืนยันการเก็บเกี่ยวต้นไม้และรับคูปอง?')) return;
+    if (!confirm('เก็บเกี่ยวต้นไม้และรับคูปอง?')) return;
     const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
     setIsHarvesting(true);
     try {
@@ -102,112 +115,75 @@ export default function LiffMemberPage() {
         });
         const data = await res.json();
         if (data.success) {
-            alert('เก็บเกี่ยวสำเร็จ! คูปองอยู่ในบัญชีของคุณแล้ว');
+            alert('เก็บเกี่ยวสำเร็จ คูปองอยู่ในบัญชีของคุณแล้ว');
             fetchData();
         } else {
             alert('Error: ' + data.error);
         }
-    } catch (e) { alert('Error harvesting'); } finally { setIsHarvesting(false); }
+    } catch (e) {
+        alert('Error harvesting');
+    } finally {
+        setIsHarvesting(false);
+    }
   }
 
   if (liffLoading && !hasSeenLoader) return <XYLLoader tagline="Loading..." />;
 
   const points = memberInfo?.points || 0;
   const progressPercent = Math.min(100, (points / POINTS_REQUIRED) * 100);
-  const isReadyToHarvest = points >= POINTS_REQUIRED;
 
   const renderTabContent = () => {
     switch(activeTab) {
-        case 'home':
+        case 'garden':
             return (
-                <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="pb-32">
-                    
-                    {/* Header Profile */}
-                    <div className="flex items-center gap-4 mb-6 mt-2">
-                        {lineProfile?.pictureUrl ? (
-                            <img src={lineProfile.pictureUrl} className="w-12 h-12 rounded-full border-2 border-white shadow-sm" />
-                        ) : (
-                            <div className="w-12 h-12 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-400">
-                                <CircleUserRound size={24} />
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="pb-24">
+                    {/* Profile */}
+                    <div className="text-center mb-12 mt-4">
+                        <div className="text-[10px] uppercase tracking-[0.2em] text-[#888888] mb-2">Welcome</div>
+                        <h2 className="text-2xl font-light tracking-wide">{memberInfo?.full_name || lineProfile?.displayName || 'Guest'}</h2>
+                        
+                        {memberInfo?.title ? (
+                            <div className="mt-3 text-[9px] uppercase tracking-widest text-[#111111] border border-[#E5E5E5] px-4 py-1.5 rounded-full inline-block">
+                            {memberInfo.title}
+                            </div>
+                        ) : null}
+
+                        {!memberInfo?.phone && (
+                            <div className="mt-6">
+                                <button onClick={() => setShowPhoneModal(true)} className="text-[10px] uppercase tracking-[0.2em] border-b border-[#111111] pb-1">
+                                Connect Phone
+                                </button>
                             </div>
                         )}
-                        <div>
-                            <p className="text-xs text-gray-500 font-medium">สวัสดี,</p>
-                            <h2 className="text-xl font-bold text-gray-900 tracking-tight">
-                                {memberInfo?.full_name || lineProfile?.displayName || 'คุณลูกค้า'}
-                            </h2>
-                        </div>
                     </div>
 
-                    {!memberInfo?.phone && (
-                        <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 mb-6 flex justify-between items-center shadow-sm">
-                            <div>
-                                <h4 className="text-sm font-bold text-amber-900">รับสิทธิพิเศษเต็มรูปแบบ</h4>
-                                <p className="text-xs text-amber-700 mt-0.5">เชื่อมต่อเบอร์โทรศัพท์เพื่อสะสมหยดน้ำ</p>
-                            </div>
-                            <button onClick={() => setShowPhoneModal(true)} className="bg-amber-900 text-white text-xs font-bold px-4 py-2 rounded-xl active:scale-95 transition-transform">
-                                เชื่อมต่อ
-                            </button>
-                        </div>
-                    )}
-
-                    {/* The Digital Garden Hero Card */}
-                    <div className="bg-white/80 backdrop-blur-xl rounded-[2rem] p-6 shadow-sm border border-white relative overflow-hidden mb-8">
-                        {/* Soft Glow Background */}
-                        <div className="absolute inset-0 bg-gradient-to-b from-sage-50/50 to-transparent -z-10" />
-                        
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                                <Leaf size={16} className="text-sage-600" /> Digital Garden
-                            </h3>
-                            {memberInfo?.title && (
-                                <span className="bg-sage-100 text-sage-800 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                                    {memberInfo.title}
-                                </span>
-                            )}
-                        </div>
-
-                        {/* Plant Animation Area */}
-                        <div className="h-[220px] w-full relative mb-6 rounded-2xl bg-gradient-to-t from-gray-50 to-white/50 border border-gray-100/50 shadow-inner">
+                    {/* Minimal Tree Area */}
+                    <div>
+                        <div className="h-[250px] w-full relative mb-12">
                             <AnimatedMinimalTree progress={progressPercent} />
                         </div>
 
-                        {/* Progress Bar & Drops */}
-                        <div className="space-y-3">
-                            <div className="flex justify-between items-end">
-                                <div>
-                                    <div className="text-3xl font-black text-sage-700 tracking-tighter leading-none">
-                                        {points.toLocaleString()}
-                                    </div>
-                                    <div className="text-xs text-gray-500 font-medium mt-1">หยดน้ำที่สะสมได้</div>
-                                </div>
-                                <div className="text-right">
-                                    <div className="text-sm font-bold text-gray-900">{POINTS_REQUIRED.toLocaleString()}</div>
-                                    <div className="text-[10px] text-gray-400 font-medium uppercase tracking-widest">เป้าหมาย</div>
-                                </div>
+                        <div className="text-center">
+                            <div className="text-4xl font-light tracking-tighter mb-2">
+                                {points.toLocaleString()} <span className="text-[14px] text-[#888888]">/ {POINTS_REQUIRED.toLocaleString()}</span>
                             </div>
-
-                            <div className="h-3 w-full bg-gray-100 rounded-full overflow-hidden shadow-inner">
+                            <div className="text-[10px] uppercase tracking-[0.2em] text-[#888888] mb-8">Drops Collected</div>
+                            
+                            <div className="w-full h-[1px] bg-[#F5F5F5] relative mb-8">
                                 <motion.div 
-                                    className="h-full bg-sage-500 rounded-full"
+                                    className="absolute left-0 top-0 h-full bg-[#111111]"
                                     initial={{ width: 0 }}
                                     animate={{ width: `${progressPercent}%` }}
                                     transition={{ duration: 1.5, ease: "easeOut" }}
                                 />
                             </div>
-                        </div>
 
-                        {/* Harvest Button */}
-                        <div className="mt-6">
                             <button 
-                                disabled={!isReadyToHarvest || isHarvesting}
+                                disabled={points < POINTS_REQUIRED || isHarvesting}
                                 onClick={handleHarvest}
-                                className={`w-full py-4 rounded-2xl font-bold text-sm transition-all duration-300 shadow-sm
-                                    ${isReadyToHarvest 
-                                        ? 'bg-sage-600 text-white hover:bg-sage-700 active:scale-95 shadow-sage-600/20' 
-                                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+                                className={`w-full py-4 text-[10px] uppercase tracking-[0.2em] transition-all ${points >= POINTS_REQUIRED ? 'bg-[#111111] text-white' : 'bg-white text-[#888888] border border-[#E5E5E5]'}`}
                             >
-                                {isHarvesting ? <Loader2 size={18} className="animate-spin mx-auto" /> : (isReadyToHarvest ? 'เก็บเกี่ยวคูปอง' : 'รดน้ำต่อไป')}
+                                {isHarvesting ? 'Harvesting...' : (points >= POINTS_REQUIRED ? 'Harvest' : 'Keep Growing')}
                             </button>
                         </div>
                     </div>
@@ -215,102 +191,67 @@ export default function LiffMemberPage() {
             );
         case 'rewards':
             return (
-                <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="pb-32 pt-2">
-                    <div className="mb-6 flex justify-between items-end">
-                        <div>
-                            <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Rewards</h2>
-                            <p className="text-sm text-gray-500 mt-1">คูปองส่วนลดของคุณ</p>
-                        </div>
-                        <span className="bg-sage-100 text-sage-800 text-xs font-bold px-3 py-1 rounded-full">
-                            {coupons.length} ใบ
-                        </span>
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="pb-24 pt-4">
+                    <div className="flex justify-between items-baseline mb-8">
+                        <h3 className="text-[10px] uppercase tracking-[0.2em]">Rewards</h3>
+                        <span className="text-[10px] text-[#888888]">{coupons.length} Available</span>
                     </div>
                     
                     {coupons.length > 0 ? (
                         <div className="space-y-4">
                             {coupons.map(c => (
-                                <div key={c.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 flex overflow-hidden relative">
-                                    {/* Ticket left decor */}
-                                    <div className="w-4 bg-sage-500 flex flex-col justify-between py-2 border-r border-dashed border-white/50">
-                                        {/* Perforations */}
-                                        {[...Array(6)].map((_, i) => (
-                                            <div key={i} className="w-1.5 h-3 bg-white rounded-r-full -ml-1 opacity-50" />
-                                        ))}
+                                <div key={c.id} className="border border-[#E5E5E5] p-6 flex justify-between items-center group cursor-pointer hover:border-[#111111] transition-colors">
+                                    <div>
+                                        <div className="text-[9px] uppercase tracking-[0.2em] text-[#888888] mb-2">Coupon</div>
+                                        <div className="text-sm font-medium">{c.coupon_name}</div>
                                     </div>
-                                    <div className="p-5 flex-1">
-                                        <div className="text-[10px] uppercase tracking-widest text-sage-600 font-bold mb-1">Coupon</div>
-                                        <h4 className="text-base font-bold text-gray-900">{c.coupon_name}</h4>
-                                        <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
-                                            <History size={12} /> ใช้สิทธิ์ได้ที่หน้าเคาน์เตอร์
-                                        </p>
+                                    <div className="text-[10px] uppercase tracking-[0.2em] text-[#111111]">
+                                        Active
                                     </div>
-                                    {/* Circle Cutouts to look like a ticket */}
-                                    <div className="absolute top-1/2 -left-2 -translate-y-1/2 w-4 h-4 bg-gray-50 rounded-full border-r border-gray-100" />
-                                    <div className="absolute top-1/2 -right-2 -translate-y-1/2 w-4 h-4 bg-gray-50 rounded-full border-l border-gray-100" />
                                 </div>
                             ))}
                         </div>
                     ) : (
-                        <div className="text-center py-16 bg-white rounded-3xl border border-gray-100 shadow-sm mt-4">
-                            <Ticket size={48} strokeWidth={1} className="mx-auto mb-4 text-gray-300" />
-                            <h3 className="text-sm font-bold text-gray-900 mb-1">ยังไม่มีคูปอง</h3>
-                            <p className="text-xs text-gray-500">ปลูกต้นไม้ให้ครบ 1,000 หยดเพื่อรับคูปอง</p>
+                        <div className="text-center py-12 border border-[#E5E5E5] border-dashed">
+                            <div className="text-[10px] uppercase tracking-[0.2em] text-[#888888]">No Rewards Yet</div>
                         </div>
                     )}
                 </motion.div>
             );
+        case 'stats':
+            return (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="pb-24 pt-4">
+                    <h3 className="text-[10px] uppercase tracking-[0.2em] mb-8">Journey</h3>
+                    <div className="grid grid-cols-2 gap-px bg-[#E5E5E5] border border-[#E5E5E5]">
+                        <div className="bg-white p-6">
+                            <div className="text-[9px] uppercase tracking-[0.2em] text-[#888888] mb-3">Favorite</div>
+                            <div className="text-sm font-medium">{stats?.favoriteMenu || '-'}</div>
+                        </div>
+                        <div className="bg-white p-6">
+                            <div className="text-[9px] uppercase tracking-[0.2em] text-[#888888] mb-3">Total Cups</div>
+                            <div className="text-sm font-medium">{stats?.totalCups || 0}</div>
+                        </div>
+                    </div>
+                </motion.div>
+            );
         case 'history':
             return (
-                <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="pb-32 pt-2">
-                    
-                    <div className="mb-8">
-                        <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Stats & History</h2>
-                        <p className="text-sm text-gray-500 mt-1">สถิติและประวัติการใช้งานของคุณ</p>
-                    </div>
-
-                    {/* Stats Cards */}
-                    <div className="grid grid-cols-2 gap-4 mb-10">
-                        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                            <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">เมนูโปรด</div>
-                            <div className="text-base font-bold text-sage-700 line-clamp-2 leading-tight h-10">{stats?.favoriteMenu || '-'}</div>
-                        </div>
-                        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                            <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">ดื่มไปแล้ว</div>
-                            <div className="text-2xl font-black text-sage-700 tracking-tighter">
-                                {stats?.totalCups || 0} <span className="text-sm font-bold text-gray-500 tracking-normal">แก้ว</span>
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="pb-24 pt-4">
+                    <h3 className="text-[10px] uppercase tracking-[0.2em] mb-8">History</h3>
+                    <div className="space-y-6">
+                        {pointsHistory.length > 0 ? pointsHistory.slice(0, 10).map(h => (
+                            <div key={h.id} className="flex items-center justify-between">
+                                <div>
+                                    <div className="text-xs">{h.description}</div>
+                                    <div className="text-[9px] uppercase tracking-[0.2em] text-[#888888] mt-1">{new Date(h.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+                                </div>
+                                <div className="text-xs">
+                                    {h.type === 'earn' ? '+' : '-'}{Math.abs(h.points)}
+                                </div>
                             </div>
-                        </div>
-                    </div>
-
-                    {/* History Timeline */}
-                    <div>
-                        <h3 className="text-sm font-bold text-gray-900 mb-6 flex items-center gap-2">
-                            <Clock size={16} className="text-sage-600" /> ประวัติสะสมหยดน้ำ
-                        </h3>
-                        <div className="space-y-0 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-gray-200 before:to-transparent">
-                            {pointsHistory.length > 0 ? pointsHistory.map((h, i) => (
-                                <div key={h.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active pb-6">
-                                    <div className={`flex items-center justify-center w-10 h-10 rounded-full border-4 border-gray-50 shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 shadow-sm z-10 ${h.type === 'earn' ? 'bg-sage-100 text-sage-600' : 'bg-gray-100 text-gray-500'}`}>
-                                        {h.type === 'earn' ? <Leaf size={14} /> : <Ticket size={14} />}
-                                    </div>
-                                    <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-white p-4 rounded-2xl shadow-sm border border-gray-100 ml-4">
-                                        <div className="flex justify-between items-start mb-1">
-                                            <div className="text-sm font-bold text-gray-900">{h.description}</div>
-                                            <div className={`text-sm font-black ${h.type === 'earn' ? 'text-sage-600' : 'text-gray-900'}`}>
-                                                {h.type === 'earn' ? '+' : '-'}{Math.abs(h.points)}
-                                            </div>
-                                        </div>
-                                        <div className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">
-                                            {new Date(h.created_at).toLocaleDateString('th-TH', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute:'2-digit' })}
-                                        </div>
-                                    </div>
-                                </div>
-                            )) : (
-                                <div className="text-center py-8 text-sm text-gray-400 bg-white rounded-2xl border border-gray-100 shadow-sm relative z-10">
-                                    ยังไม่มีประวัติการใช้งาน
-                                </div>
-                            )}
-                        </div>
+                        )) : (
+                            <div className="text-[10px] uppercase tracking-[0.2em] text-[#888888]">No Activity</div>
+                        )}
                     </div>
                 </motion.div>
             );
@@ -318,91 +259,74 @@ export default function LiffMemberPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 font-sans selection:bg-sage-200">
-      
-      {/* Top Nav (Optional, maybe just back button) */}
-      <header className="px-5 pt-8 pb-4 flex items-center justify-between sticky top-0 bg-gray-50/80 backdrop-blur-md z-40">
-        <button onClick={() => router.back()} className="text-gray-900 p-2 -ml-2 bg-white rounded-full shadow-sm border border-gray-100 active:scale-95 transition-transform">
-          <ChevronLeft size={20} strokeWidth={2} />
+    <div className="min-h-screen bg-white text-[#111111] font-sans overflow-x-hidden">
+      <header className="px-6 pt-12 pb-6 flex items-center justify-between bg-white z-40 sticky top-0">
+        <button onClick={() => router.back()} className="text-[#111111] -ml-2 p-2">
+          <ChevronLeft size={24} strokeWidth={1} />
         </button>
+        <h1 className="text-[10px] uppercase tracking-[0.3em] font-medium">Member</h1>
+        <div className="w-8" />
       </header>
 
-      <main className="px-5 max-w-md mx-auto">
+      <main className="px-6 max-w-lg mx-auto min-h-[calc(100vh-200px)]">
         <AnimatePresence mode="wait">
             {renderTabContent()}
         </AnimatePresence>
       </main>
 
-      {/* Standard iOS-style Bottom Tab Bar */}
-      <nav className="fixed bottom-0 w-full bg-white/90 backdrop-blur-xl border-t border-gray-100 pb-safe pt-2 px-2 z-50">
-        <div className="flex justify-around items-center h-16 max-w-md mx-auto relative">
-          
+      {/* Ultra Minimal Bottom Navigation */}
+      <nav className="fixed bottom-0 w-full bg-white border-t border-[#F5F5F5] pb-safe z-50">
+        <div className="flex justify-around items-center h-16 max-w-lg mx-auto">
           <button 
-            onClick={() => setActiveTab('home')}
-            className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${activeTab === 'home' ? 'text-sage-600' : 'text-gray-400 hover:text-gray-600'}`}
+            onClick={() => setActiveTab('garden')}
+            className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${activeTab === 'garden' ? 'text-[#111111]' : 'text-[#CCCCCC]'}`}
           >
-            <div className={`p-1.5 rounded-full transition-all ${activeTab === 'home' ? 'bg-sage-50' : 'bg-transparent'}`}>
-                <Leaf size={22} strokeWidth={activeTab === 'home' ? 2.5 : 1.5} />
-            </div>
-            <span className={`text-[10px] font-medium ${activeTab === 'home' ? 'text-sage-700 font-bold' : ''}`}>Home</span>
+            <Leaf size={18} strokeWidth={1.5} />
+            <span className="text-[8px] uppercase tracking-widest">Garden</span>
           </button>
-
           <button 
             onClick={() => setActiveTab('rewards')}
-            className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${activeTab === 'rewards' ? 'text-sage-600' : 'text-gray-400 hover:text-gray-600'}`}
+            className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${activeTab === 'rewards' ? 'text-[#111111]' : 'text-[#CCCCCC]'}`}
           >
-            <div className={`p-1.5 rounded-full transition-all relative ${activeTab === 'rewards' ? 'bg-sage-50' : 'bg-transparent'}`}>
-                <Ticket size={22} strokeWidth={activeTab === 'rewards' ? 2.5 : 1.5} />
-                {coupons.length > 0 && (
-                    <span className="absolute top-1 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" />
-                )}
-            </div>
-            <span className={`text-[10px] font-medium ${activeTab === 'rewards' ? 'text-sage-700 font-bold' : ''}`}>Rewards</span>
+            <Ticket size={18} strokeWidth={1.5} />
+            <span className="text-[8px] uppercase tracking-widest">Rewards</span>
           </button>
-
+          <button 
+            onClick={() => setActiveTab('stats')}
+            className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${activeTab === 'stats' ? 'text-[#111111]' : 'text-[#CCCCCC]'}`}
+          >
+            <BarChart2 size={18} strokeWidth={1.5} />
+            <span className="text-[8px] uppercase tracking-widest">Journey</span>
+          </button>
           <button 
             onClick={() => setActiveTab('history')}
-            className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${activeTab === 'history' ? 'text-sage-600' : 'text-gray-400 hover:text-gray-600'}`}
+            className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${activeTab === 'history' ? 'text-[#111111]' : 'text-[#CCCCCC]'}`}
           >
-            <div className={`p-1.5 rounded-full transition-all ${activeTab === 'history' ? 'bg-sage-50' : 'bg-transparent'}`}>
-                <History size={22} strokeWidth={activeTab === 'history' ? 2.5 : 1.5} />
-            </div>
-            <span className={`text-[10px] font-medium ${activeTab === 'history' ? 'text-sage-700 font-bold' : ''}`}>Stats</span>
+            <Clock size={18} strokeWidth={1.5} />
+            <span className="text-[8px] uppercase tracking-widest">History</span>
           </button>
-
         </div>
       </nav>
 
-      {/* Phone Modal (Glassmorphism) */}
+      {/* Phone Modal */}
       <AnimatePresence>
         {showPhoneModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" onClick={() => setShowPhoneModal(false)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative bg-white w-full max-w-sm rounded-[2rem] p-8 shadow-2xl z-10">
-              <button onClick={() => setShowPhoneModal(false)} className="absolute top-6 right-6 text-gray-400 hover:text-gray-900 transition-colors bg-gray-50 rounded-full p-2">
-                <X size={16} strokeWidth={2} />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowPhoneModal(false)} className="absolute inset-0 bg-white/90 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="relative bg-white w-full max-w-sm border border-[#E5E5E5] p-8 z-10 shadow-2xl">
+              <button onClick={() => setShowPhoneModal(false)} className="absolute top-6 right-6 text-[#111111]">
+                <X size={16} strokeWidth={1} />
               </button>
-              
-              <div className="w-12 h-12 bg-sage-50 text-sage-600 rounded-full flex items-center justify-center mb-6">
-                  <CircleUserRound size={24} />
-              </div>
-
-              <h3 className="text-xl font-bold text-gray-900 mb-2">เชื่อมต่อบัญชี</h3>
-              <p className="text-sm text-gray-500 mb-8 leading-relaxed">กรุณากรอกข้อมูลเพื่อสะสมหยดน้ำอัตโนมัติเมื่อสั่งซื้อที่หน้าร้าน</p>
+              <h3 className="text-sm font-medium mb-2">Link Account</h3>
+              <p className="text-[10px] uppercase tracking-[0.1em] text-[#888888] mb-8 leading-relaxed">Enter your details to collect drops in-store.</p>
               
               <div className="space-y-4 mb-8">
-                  <div className="relative">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest absolute top-2 left-4">ชื่อเล่น / ชื่อเรียก</label>
-                      <input value={nicknameInput} onChange={e => setNicknameInput(e.target.value)} className="w-full bg-gray-50 border border-gray-100 rounded-2xl pt-7 pb-3 px-4 text-sm font-medium outline-none focus:bg-white focus:border-sage-400 focus:ring-4 focus:ring-sage-50 transition-all" />
-                  </div>
-                  <div className="relative">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest absolute top-2 left-4">เบอร์โทรศัพท์</label>
-                      <input type="tel" value={phoneInput} onChange={e => setPhoneInput(e.target.value)} className="w-full bg-gray-50 border border-gray-100 rounded-2xl pt-7 pb-3 px-4 text-sm font-medium outline-none focus:bg-white focus:border-sage-400 focus:ring-4 focus:ring-sage-50 transition-all tracking-wider" />
-                  </div>
+                  <input value={nicknameInput} onChange={e => setNicknameInput(e.target.value)} placeholder="Name" className="w-full border-b border-[#E5E5E5] pb-2 text-sm outline-none focus:border-[#111111] transition-colors bg-transparent rounded-none" />
+                  <input type="tel" value={phoneInput} onChange={e => setPhoneInput(e.target.value)} placeholder="Phone Number" className="w-full border-b border-[#E5E5E5] pb-2 text-sm outline-none focus:border-[#111111] transition-colors bg-transparent rounded-none" />
               </div>
               
-              <button onClick={handleLinkPhone} disabled={isLinkingPhone} className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold text-sm transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-gray-900/20">
-                {isLinkingPhone ? <Loader2 size={18} className="animate-spin" /> : 'บันทึกข้อมูล'}
+              <button onClick={handleLinkPhone} disabled={isLinkingPhone} className="w-full py-4 bg-[#111111] text-white text-[10px] uppercase tracking-[0.2em] transition-transform active:scale-[0.98] flex items-center justify-center gap-2">
+                {isLinkingPhone ? 'Saving...' : 'Save Details'}
               </button>
             </motion.div>
           </div>

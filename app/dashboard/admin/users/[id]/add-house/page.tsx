@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { ArrowLeft, Save, MapPin, Search } from 'lucide-react'
-import { createHouse, findBranchByZipCode, supabase } from '@/lib/supabaseClient'
+import { createHouse, findBranchByZipCode, getProfileByUserId } from '@/lib/supabaseClient'
 import { useToastContext } from '@/components/Toast'
 import dynamic from 'next/dynamic'
 import { useI18n } from "@/lib/I18nContext";
@@ -32,9 +32,6 @@ export default function AdminAddHousePage() {
     contactPhone: '',
     serviceTime: '09:00 - 18:00',
     availableDays: [] as string[],
-    googleMapsUrl: '',
-    lat: '',
-    lng: ''
   })
 
   const [latitude, setLatitude] = useState<number | null>(null)
@@ -44,14 +41,14 @@ export default function AdminAddHousePage() {
   const [branchError, setBranchError] = useState('')
 
   useEffect(() => {
-    async function loadUser() {
-      if (!userId) return
-      const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single()
+    if (!userId) return
+    const fetchUser = async () => {
+      const { data, error } = await getProfileByUserId(userId)
       if (data) {
         setCustomerName(data.display_name || data.email || 'ไม่ทราบชื่อ')
       }
     }
-    loadUser()
+    fetchUser()
   }, [userId])
 
   const handleZipCodeChange = async (zip: string) => {
