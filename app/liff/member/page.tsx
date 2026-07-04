@@ -110,10 +110,11 @@ export default function LiffMemberPage() {
     setMysteryBoxState('opening');
     
     try {
+      const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
       const res = await fetch('/api/liff/mystery-box', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: profile?.userId })
+        body: JSON.stringify({ userId: userId })
       });
       const data = await res.json();
       
