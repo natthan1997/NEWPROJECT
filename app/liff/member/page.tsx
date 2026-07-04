@@ -263,6 +263,24 @@ const fetchData = async () => {
     }
   };
 
+  const translateHistoryDescription = (desc: string | undefined | null, locale: string) => {
+    if (!desc) return locale === 'en' ? 'General Transaction' : locale === 'zh' ? '一般交易' : 'รายการทั่วไป';
+    if (desc.includes('Earned from POS Order #')) {
+        const orderNum = desc.split('#')[1] || '';
+        return locale === 'en' ? `Earned from Order #${orderNum}` : locale === 'zh' ? `从订单获得积分 #${orderNum}` : `ได้รับจากออเดอร์ #${orderNum}`;
+    }
+    if (desc.includes('Redeemed') && desc.includes('pts for POS Order #')) {
+        const match = desc.match(/Redeemed (\d+) pts for POS Order #(.+)/);
+        if (match) {
+            return locale === 'en' ? `Redeemed ${match[1]} pts for Order #${match[2]}` : locale === 'zh' ? `兑换 ${match[1]} 积分于订单 #${match[2]}` : `ใช้ ${match[1]} แต้มกับออเดอร์ #${match[2]}`;
+        }
+    }
+    if (desc === 'Claimed via QR Code') {
+        return locale === 'en' ? 'Claimed via QR Code' : locale === 'zh' ? '通过二维码领取' : 'สแกนรับแต้มจาก QR Code';
+    }
+    return desc;
+  }
+
   return (
     <div className="min-h-screen bg-white text-[#111111] font-sans overflow-x-hidden pb-24 selection:bg-gray-200">
       
@@ -478,7 +496,7 @@ const fetchData = async () => {
                       </div>
                       <div>
                         <p className="text-[14px] font-medium text-gray-900">
-                          {item.description || (item.type === 'earn' ? dict.earnedPoints : dict.redeemedReward)}
+                          {translateHistoryDescription(item.description, locale as string)}
                         </p>
                         <p className="text-[12px] text-gray-400 mt-0.5">
                           {new Date(item.created_at).toLocaleDateString(locale === 'en' ? 'en-US' : locale === 'zh' ? 'zh-CN' : 'th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}

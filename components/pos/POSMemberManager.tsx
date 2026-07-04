@@ -164,6 +164,24 @@ export default function POSMemberManager({
         setIsSaving(false)
     }
 
+    const translateHistoryDescription = (desc: string | undefined | null, locale: string) => {
+        if (!desc) return locale === 'en' ? 'General Transaction' : locale === 'zh' ? '一般交易' : 'รายการทั่วไป';
+        if (desc.includes('Earned from POS Order #')) {
+            const orderNum = desc.split('#')[1] || '';
+            return locale === 'en' ? `Earned from Order #${orderNum}` : locale === 'zh' ? `从订单获得积分 #${orderNum}` : `ได้รับจากออเดอร์ #${orderNum}`;
+        }
+        if (desc.includes('Redeemed') && desc.includes('pts for POS Order #')) {
+            const match = desc.match(/Redeemed (\d+) pts for POS Order #(.+)/);
+            if (match) {
+                return locale === 'en' ? `Redeemed ${match[1]} pts for Order #${match[2]}` : locale === 'zh' ? `兑换 ${match[1]} 积分于订单 #${match[2]}` : `ใช้ ${match[1]} แต้มกับออเดอร์ #${match[2]}`;
+            }
+        }
+        if (desc === 'Claimed via QR Code') {
+            return locale === 'en' ? 'Claimed via QR Code' : locale === 'zh' ? '通过二维码领取' : 'สแกนรับแต้มจาก QR Code';
+        }
+        return desc;
+    }
+
     const getTierBadge = (tier: string | undefined | null) => {
         const safeTier = (tier || 'general').toLowerCase();
         const colors: any = {
@@ -442,7 +460,7 @@ export default function POSMemberManager({
                                                             {log.type === 'earn' ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
                                                         </div>
                                                         <div className="font-bold">
-                                                            <div className="text-[10px] font-black uppercase tracking-tight text-[#1A1A18] leading-tight">{log.description || 'รายการทั่วไป'}</div>
+                                                            <div className="text-[10px] font-black uppercase tracking-tight text-[#1A1A18] leading-tight">{translateHistoryDescription(log.description, locale as string)}</div>
                                                             <div className="text-[7px] font-black text-gray-300 uppercase mt-0.5 tracking-[0.2em]">
                                                                 {log.created_at ? new Date(log.created_at).toLocaleDateString('th-TH') : 'ไม่ระบุวัน'} • {log.type === 'earn' ? 'ได้รับเพิ่ม' : 'แลกใช้คะแนน'}
                                                             </div>
