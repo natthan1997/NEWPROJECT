@@ -46,7 +46,7 @@ export default function POSInventoryCategoryManager({ shopSettings, onCategories
     try {
       let query = supabase
         .from('inventory_categories')
-        .select('*, inventory_items(count)')
+        .select('*')
         .order('order_index')
 
       if (branchId) {
@@ -61,7 +61,7 @@ export default function POSInventoryCategoryManager({ shopSettings, onCategories
       // Get item counts per category
       const cats = (data || []).map((c: any) => ({
         ...c,
-        item_count: c.inventory_items?.[0]?.count || 0
+        item_count: 0
       }))
 
       // Also fetch actual item counts
