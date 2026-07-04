@@ -1,12 +1,14 @@
+
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, X, Loader2, Leaf, Ticket, Clock, History, CircleUserRound } from 'lucide-react';
+import { 
+  ChevronLeft, History, Gift, TrendingUp, User, Info, X, Check, Loader2
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
 import { useLiff } from '@/components/liff/LiffProvider';
 import XYLLoader from '@/components/loaders/XYLLoader';
-import AnimatedMinimalTree from '@/components/AnimatedMinimalTree';
 import { useI18n } from "@/lib/I18nContext";
 
 export default function LiffMemberPage() {
@@ -17,21 +19,173 @@ export default function LiffMemberPage() {
   
   const [memberInfo, setMemberInfo] = useState<any>(null);
   const [pointsHistory, setPointsHistory] = useState<any[]>([]);
-  const [coupons, setCoupons] = useState<any[]>([]);
-  const [stats, setStats] = useState<any>(null);
-  
-  const [activeTab, setActiveTab] = useState<'home' | 'rewards' | 'history'>('home');
+  const [rewards, setRewards] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'rewards' | 'history'>('rewards');
+  const [showMysteryBox, setShowMysteryBox] = useState(false);
+  const [mysteryBoxState, setMysteryBoxState] = useState<'idle' | 'opening' | 'result'>('idle');
+  const [mysteryBoxResult, setMysteryBoxResult] = useState(0);
+  const [isPlayingBox, setIsPlayingBox] = useState(false);
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [phoneInput, setPhoneInput] = useState('');
   const [nicknameInput, setNicknameInput] = useState('');
   const [isLinkingPhone, setIsLinkingPhone] = useState(false);
-  const [isHarvesting, setIsHarvesting] = useState(false);
-  
   const [loading, setLoading] = useState(true);
-  
-  const POINTS_REQUIRED = 1000;
+  const [showBenefits, setShowBenefits] = useState(false);
 
-  const fetchData = async () => {
+  const t = {
+    th: {
+      loading: 'กำลังโหลดข้อมูล...',
+      title: 'XYL Member',
+      points: 'คะแนนของคุณ',
+      rewardsCatalog: 'ของรางวัล',
+      pointsHistory: 'ประวัติ',
+      pointsToNextTier: 'คะแนนเพื่อเลื่อนระดับ',
+      maxTier: 'คุณคือสมาชิกระดับสูงสุด',
+      redeem: 'แลกรางวัล',
+      noRewards: 'ยังไม่มีของรางวัลในขณะนี้',
+      checkBackLater: 'โปรดกลับมาตรวจสอบใหม่ในภายหลัง',
+      earnedPoints: 'ได้รับคะแนน',
+      redeemedReward: 'แลกของรางวัล',
+      noHistory: 'ยังไม่มีประวัติการใช้งาน',
+      historyEmpty: 'ประวัติคะแนนของคุณจะแสดงที่นี่',
+      pts: 'pts',
+      benefitsTitle: 'สิทธิประโยชน์',
+      close: 'ปิด',
+      howToEarn: 'วิธีสะสมคะแนน',
+      earnRule: 'ทุก 100 บาท = 1 คะแนน'
+    },
+    en: {
+      loading: 'Loading data...',
+      title: 'XYL Member',
+      points: 'Your Points',
+      rewardsCatalog: 'Rewards',
+      pointsHistory: 'History',
+      pointsToNextTier: 'points to',
+      maxTier: 'Top Tier Achieved',
+      redeem: 'Redeem',
+      noRewards: 'No rewards available',
+      checkBackLater: 'Please check back later.',
+      earnedPoints: 'Earned Points',
+      redeemedReward: 'Redeemed Reward',
+      noHistory: 'No History',
+      historyEmpty: 'Your points history will appear here.',
+      pts: 'pts',
+      benefitsTitle: 'Benefits',
+      close: 'Close',
+      howToEarn: 'How to earn',
+      earnRule: '100 THB = 1 Point'
+    },
+    zh: {
+      loading: '正在加载...',
+      title: 'XYL 会员',
+      points: '您的积分',
+      rewardsCatalog: '奖励',
+      pointsHistory: '历史',
+      pointsToNextTier: '分升级至',
+      maxTier: '最高等级',
+      redeem: '兑换',
+      noRewards: '暂无奖励',
+      checkBackLater: '请稍后回来查看。',
+      earnedPoints: '获得积分',
+      redeemedReward: '兑换奖励',
+      noHistory: '无历史记录',
+      historyEmpty: '您的积分历史将显示在此处。',
+      pts: '分',
+      benefitsTitle: '会员权益',
+      close: '关闭',
+      howToEarn: '如何赚取',
+      earnRule: '100 泰铢 = 1 积分'
+    }
+  };
+  const dict = t[(locale as keyof typeof t) || 'th'];
+
+  const [tiers, setTiers] = useState([
+    { name: 'Bronze', minPoints: 0, bg: 'bg-[#F2ECE4]', text: 'text-[#8C6D53]', barColor: 'bg-[#C19A6B]', benefits: ['อัตราสะสมคะแนน 100 บาท = 1 คะแนน', 'รับสิทธิ์ลุ้นกล่องสุ่มเมื่อครบ 50 คะแนน'] },
+    { name: 'Silver', minPoints: 500, bg: 'bg-[#F0F2F5]', text: 'text-[#64748B]', barColor: 'bg-[#94A3B8]', benefits: ['อัตราสะสมคะแนน x1.2', 'เครื่องดื่มพิเศษในเดือนเกิด', 'สิทธิ์สั่งซื้อต้นไม้คอลเลกชันใหม่ล่วงหน้า 12 ชม.'] },
+    { name: 'Gold', minPoints: 2000, bg: 'bg-[#FCF7E8]', text: 'text-[#B48529]', barColor: 'bg-[#D4AF37]', benefits: ['อัตราสะสมคะแนน x1.5', 'ส่วนลด 5% ทุกออเดอร์', 'สิทธิ์ Fast Track ลัดคิวเข้ารับบริการ', 'สิทธิ์สั่งซื้อต้นไม้ Rare Item ล่วงหน้า 24 ชม.'] },
+    { name: 'Platinum', minPoints: 5000, bg: 'bg-[#EBF1F5]', text: 'text-[#3E6578]', barColor: 'bg-[#6495ED]', benefits: ['อัตราสะสมคะแนน x2.0', 'ส่วนลด 10% ทุกออเดอร์', 'สิทธิ์ Fast Track ขั้นสูงสุด', 'เบอร์ติดต่อสายตรง (Direct Line) ปรึกษาผู้เชี่ยวชาญ 24 ชม.'] }
+  ]);
+  const [campaigns, setCampaigns] = useState<any[]>([]);
+
+  
+  const handlePlayMysteryBox = async () => {
+    if ((memberInfo?.points || 0) < 50) {
+      alert(locale === 'en' ? 'Not enough points (Requires 50 Pts)' : 'แต้มไม่พอ (ต้องใช้ 50 แต้ม)');
+      return;
+    }
+    
+    setIsPlayingBox(true);
+    setMysteryBoxState('opening');
+    
+    try {
+      const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
+      const res = await fetch('/api/liff/mystery-box', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: userId })
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        // Wait for animation
+        setTimeout(() => {
+          setMysteryBoxResult(data.wonPoints);
+          setMysteryBoxState('result');
+          fetchData(); // Refresh points
+          setIsPlayingBox(false);
+        }, 1500);
+      } else {
+        alert(data.error || 'Failed to play');
+        setMysteryBoxState('idle');
+        setShowMysteryBox(false);
+        setIsPlayingBox(false);
+      }
+    } catch (e) {
+      alert('Error connecting to server');
+      setMysteryBoxState('idle');
+      setShowMysteryBox(false);
+      setIsPlayingBox(false);
+    }
+  };
+  
+  const handleLinkPhone = async () => {
+    if (!nicknameInput.trim()) {
+        alert(dict.locale === 'en' ? 'Please enter your nickname or name' : 'กรุณากรอกชื่อเล่นหรือชื่อเรียก');
+        document.getElementById('nickname-input-modal')?.focus();
+        return;
+    }
+    if (phoneInput.length < 9) {
+        alert(dict.locale === 'en' ? 'Invalid phone number' : 'กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง');
+        document.getElementById('phone-input-modal')?.focus();
+        return;
+    }
+    const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
+    if (!userId) return;
+
+    setIsLinkingPhone(true);
+    try {
+        const res = await fetch('/api/liff/member/link-phone', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lineUserId: userId, phone: phoneInput, fullName: nicknameInput })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            alert(dict.locale === 'en' ? 'Phone number linked successfully!' : 'เชื่อมต่อเบอร์โทรศัพท์สำเร็จ!');
+            setShowPhoneModal(false);
+            fetchData();
+        } else {
+            alert(data.error || 'Failed to link phone');
+        }
+    } catch (e) {
+        alert('Error linking phone');
+    } finally {
+        setIsLinkingPhone(false);
+    }
+  };
+  
+const fetchData = async () => {
     const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
     if (!userId) return;
     try {
@@ -39,21 +193,29 @@ export default function LiffMemberPage() {
       const { data: member } = await supabase.from('pos_members').select('*').eq('line_user_id', userId).maybeSingle();
       if (member) {
         setMemberInfo(member);
-        const { data: history } = await supabase.from('pos_points_history').select('*').in('member_id', [member.id, userId]).order('created_at', { ascending: false }).limit(20);
+        const { data: history } = await supabase.from('pos_points_history').select('*').in('member_id', [member.id, userId]).order('created_at', { ascending: false });
         if (history) setPointsHistory(history);
-        
-        const { data: cps } = await supabase.from('pos_member_coupons').select('*').eq('member_id', member.id).eq('status', 'active');
-        if (cps) setCoupons(cps);
+      }
+      const { data: rewardsData } = await supabase.from('pos_rewards').select('*').eq('is_active', true).order('points_required', { ascending: true });
+      if (rewardsData) setRewards(rewardsData);
+      
+      const { data: tiersData, error: tiersError } = await supabase.from('pos_loyalty_tiers').select('*').eq('is_active', true).order('min_points', { ascending: true });
+      if (tiersData && !tiersError) {
+        setTiers(tiersData.map(t => ({
+          name: t.name, minPoints: t.min_points, bg: t.bg_color, text: t.text_color, barColor: t.bar_color, benefits: t.benefits
+        })));
       }
       
-      const res = await fetch('/api/liff/member/stats', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lineUserId: userId })
-      });
-      const statsData = await res.json();
-      if (statsData.success) {
-          setStats(statsData);
+      const { data: campData, error: campError } = await supabase.from('pos_campaigns').select('*').eq('is_active', true).order('sort_order', { ascending: true });
+      if (campData && !campError) {
+        setCampaigns(campData);
+      } else {
+        // Fallback default campaigns if table not ready
+        setCampaigns([
+          { id: '1', title: 'ฝนตกรับคะแนน x2', description: 'รับคะแนนสองเท่าทุกออเดอร์ในวันฝนตก!', icon: '🌧️', type_tag: 'Flash Event', bg_gradient_from: 'from-[#EBF1F5]', bg_gradient_to: 'to-[#D6E4EE]', text_color: 'text-[#1F333C]', tag_color: 'text-[#3E6578]' },
+          { id: '2', title: 'ลุ้นกล่องสุ่มทุก 50 Pts', description: 'สะสมครบทุก 50 คะแนน รับสิทธิ์เปิดกล่องสุ่มส่วนลด!', icon: '🎁', type_tag: 'Milestone', bg_gradient_from: 'from-[#FCF7E8]', bg_gradient_to: 'to-[#F5E6C4]', text_color: 'text-[#8B651B]', tag_color: 'text-[#B48529]' },
+          { id: '3', title: 'รักษาสถานะของคุณ', description: 'อย่าลืมซื้อสินค้า 1 ชิ้นภายใน 30 วันเพื่อคงระดับ', icon: '⚠️', type_tag: 'Expiring Soon', bg_gradient_from: 'from-[#FFF0F0]', bg_gradient_to: 'to-[#FFE0E0]', text_color: 'text-[#B33535]', tag_color: 'text-[#D94C4C]' }
+        ]);
       }
     } catch (err) {
       console.error(err);
@@ -64,350 +226,511 @@ export default function LiffMemberPage() {
   
   useEffect(() => {
     if (!liffLoading) fetchData();
+    
     const channel = supabase.channel('member_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_members' }, () => fetchData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_points_history' }, () => fetchData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_member_coupons' }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_members' }, () => {
+        fetchData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_points_history' }, () => {
+        fetchData();
+      })
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [lineProfile, liffLoading]);
 
-  const handleLinkPhone = async () => {
-    if (!nicknameInput.trim() || phoneInput.length < 9) return;
-    const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
-    setIsLinkingPhone(true);
-    try {
-        const res = await fetch('/api/liff/member/link-phone', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ lineUserId: userId, phone: phoneInput, fullName: nicknameInput })
-        });
-        const data = await res.json();
-        if (data.success) {
-            setShowPhoneModal(false);
-            fetchData();
-        }
-    } catch (e) { console.error(e); } finally { setIsLinkingPhone(false); }
-  };
+  if (liffLoading && !hasSeenLoader) return <XYLLoader tagline={dict.loading} />;
 
-  const handleHarvest = async () => {
-    if (!confirm('ยืนยันการเก็บเกี่ยวต้นไม้และรับคูปอง?')) return;
-    const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
-    setIsHarvesting(true);
-    try {
-        const res = await fetch('/api/liff/member/harvest', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ lineUserId: userId })
-        });
-        const data = await res.json();
-        if (data.success) {
-            alert('เก็บเกี่ยวสำเร็จ! คูปองอยู่ในบัญชีของคุณแล้ว');
-            fetchData();
-        } else {
-            alert('Error: ' + data.error);
-        }
-    } catch (e) { alert('Error harvesting'); } finally { setIsHarvesting(false); }
+  const totalAccumulated = memberInfo?.total_accumulated_points || memberInfo?.points || 0;
+  let currentTierIndex = 0;
+  for (let i = tiers.length - 1; i >= 0; i--) {
+    if (totalAccumulated >= tiers[i].minPoints) {
+      currentTierIndex = i;
+      break;
+    }
   }
+  const currentTier = tiers[currentTierIndex];
+  const nextTier = currentTierIndex < tiers.length - 1 ? tiers[currentTierIndex + 1] : null;
+  const progressPercent = nextTier ? Math.min(100, Math.max(0, ((totalAccumulated - currentTier.minPoints) / (nextTier.minPoints - currentTier.minPoints)) * 100)) : 100;
 
-  if (liffLoading && !hasSeenLoader) return <XYLLoader tagline="Loading..." />;
-
-  const points = memberInfo?.points || 0;
-  const progressPercent = Math.min(100, (points / POINTS_REQUIRED) * 100);
-  const isReadyToHarvest = points >= POINTS_REQUIRED;
-
-  const renderTabContent = () => {
-    switch(activeTab) {
-        case 'home':
-            return (
-                <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="pb-32">
-                    
-                    {/* Header Profile */}
-                    <div className="flex items-center gap-4 mb-6 mt-2">
-                        {lineProfile?.pictureUrl ? (
-                            <img src={lineProfile.pictureUrl} className="w-12 h-12 rounded-full border-2 border-white shadow-sm" />
-                        ) : (
-                            <div className="w-12 h-12 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-400">
-                                <CircleUserRound size={24} />
-                            </div>
-                        )}
-                        <div>
-                            <p className="text-xs text-gray-500 font-medium">สวัสดี,</p>
-                            <h2 className="text-xl font-bold text-gray-900 tracking-tight">
-                                {memberInfo?.full_name || lineProfile?.displayName || 'คุณลูกค้า'}
-                            </h2>
-                        </div>
-                    </div>
-
-                    {!memberInfo?.phone && (
-                        <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 mb-6 flex justify-between items-center shadow-sm">
-                            <div>
-                                <h4 className="text-sm font-bold text-amber-900">รับสิทธิพิเศษเต็มรูปแบบ</h4>
-                                <p className="text-xs text-amber-700 mt-0.5">เชื่อมต่อเบอร์โทรศัพท์เพื่อสะสมหยดน้ำ</p>
-                            </div>
-                            <button onClick={() => setShowPhoneModal(true)} className="bg-amber-900 text-white text-xs font-bold px-4 py-2 rounded-xl active:scale-95 transition-transform">
-                                เชื่อมต่อ
-                            </button>
-                        </div>
-                    )}
-
-                    {/* The Digital Garden Hero Card */}
-                    <div className="bg-white/80 backdrop-blur-xl rounded-[2rem] p-6 shadow-sm border border-white relative overflow-hidden mb-8">
-                        {/* Soft Glow Background */}
-                        <div className="absolute inset-0 bg-gradient-to-b from-sage-50/50 to-transparent -z-10" />
-                        
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                                <Leaf size={16} className="text-sage-600" /> Digital Garden
-                            </h3>
-                            {memberInfo?.title && (
-                                <span className="bg-sage-100 text-sage-800 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                                    {memberInfo.title}
-                                </span>
-                            )}
-                        </div>
-
-                        {/* Plant Animation Area */}
-                        <div className="h-[220px] w-full relative mb-6 rounded-2xl bg-gradient-to-t from-gray-50 to-white/50 border border-gray-100/50 shadow-inner">
-                            <AnimatedMinimalTree progress={progressPercent} />
-                        </div>
-
-                        {/* Progress Bar & Drops */}
-                        <div className="space-y-3">
-                            <div className="flex justify-between items-end">
-                                <div>
-                                    <div className="text-3xl font-black text-sage-700 tracking-tighter leading-none">
-                                        {points.toLocaleString()}
-                                    </div>
-                                    <div className="text-xs text-gray-500 font-medium mt-1">หยดน้ำที่สะสมได้</div>
-                                </div>
-                                <div className="text-right">
-                                    <div className="text-sm font-bold text-gray-900">{POINTS_REQUIRED.toLocaleString()}</div>
-                                    <div className="text-[10px] text-gray-400 font-medium uppercase tracking-widest">เป้าหมาย</div>
-                                </div>
-                            </div>
-
-                            <div className="h-3 w-full bg-gray-100 rounded-full overflow-hidden shadow-inner">
-                                <motion.div 
-                                    className="h-full bg-sage-500 rounded-full"
-                                    initial={{ width: 0 }}
-                                    animate={{ width: `${progressPercent}%` }}
-                                    transition={{ duration: 1.5, ease: "easeOut" }}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Harvest Button */}
-                        <div className="mt-6">
-                            <button 
-                                disabled={!isReadyToHarvest || isHarvesting}
-                                onClick={handleHarvest}
-                                className={`w-full py-4 rounded-2xl font-bold text-sm transition-all duration-300 shadow-sm
-                                    ${isReadyToHarvest 
-                                        ? 'bg-sage-600 text-white hover:bg-sage-700 active:scale-95 shadow-sage-600/20' 
-                                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
-                            >
-                                {isHarvesting ? <Loader2 size={18} className="animate-spin mx-auto" /> : (isReadyToHarvest ? 'เก็บเกี่ยวคูปอง' : 'รดน้ำต่อไป')}
-                            </button>
-                        </div>
-                    </div>
-                </motion.div>
-            );
-        case 'rewards':
-            return (
-                <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="pb-32 pt-2">
-                    <div className="mb-6 flex justify-between items-end">
-                        <div>
-                            <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Rewards</h2>
-                            <p className="text-sm text-gray-500 mt-1">คูปองส่วนลดของคุณ</p>
-                        </div>
-                        <span className="bg-sage-100 text-sage-800 text-xs font-bold px-3 py-1 rounded-full">
-                            {coupons.length} ใบ
-                        </span>
-                    </div>
-                    
-                    {coupons.length > 0 ? (
-                        <div className="space-y-4">
-                            {coupons.map(c => (
-                                <div key={c.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 flex overflow-hidden relative">
-                                    {/* Ticket left decor */}
-                                    <div className="w-4 bg-sage-500 flex flex-col justify-between py-2 border-r border-dashed border-white/50">
-                                        {/* Perforations */}
-                                        {[...Array(6)].map((_, i) => (
-                                            <div key={i} className="w-1.5 h-3 bg-white rounded-r-full -ml-1 opacity-50" />
-                                        ))}
-                                    </div>
-                                    <div className="p-5 flex-1">
-                                        <div className="text-[10px] uppercase tracking-widest text-sage-600 font-bold mb-1">Coupon</div>
-                                        <h4 className="text-base font-bold text-gray-900">{c.coupon_name}</h4>
-                                        <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
-                                            <History size={12} /> ใช้สิทธิ์ได้ที่หน้าเคาน์เตอร์
-                                        </p>
-                                    </div>
-                                    {/* Circle Cutouts to look like a ticket */}
-                                    <div className="absolute top-1/2 -left-2 -translate-y-1/2 w-4 h-4 bg-gray-50 rounded-full border-r border-gray-100" />
-                                    <div className="absolute top-1/2 -right-2 -translate-y-1/2 w-4 h-4 bg-gray-50 rounded-full border-l border-gray-100" />
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="text-center py-16 bg-white rounded-3xl border border-gray-100 shadow-sm mt-4">
-                            <Ticket size={48} strokeWidth={1} className="mx-auto mb-4 text-gray-300" />
-                            <h3 className="text-sm font-bold text-gray-900 mb-1">ยังไม่มีคูปอง</h3>
-                            <p className="text-xs text-gray-500">ปลูกต้นไม้ให้ครบ 1,000 หยดเพื่อรับคูปอง</p>
-                        </div>
-                    )}
-                </motion.div>
-            );
-        case 'history':
-            return (
-                <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="pb-32 pt-2">
-                    
-                    <div className="mb-8">
-                        <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Stats & History</h2>
-                        <p className="text-sm text-gray-500 mt-1">สถิติและประวัติการใช้งานของคุณ</p>
-                    </div>
-
-                    {/* Stats Cards */}
-                    <div className="grid grid-cols-2 gap-4 mb-10">
-                        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                            <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">เมนูโปรด</div>
-                            <div className="text-base font-bold text-sage-700 line-clamp-2 leading-tight h-10">{stats?.favoriteMenu || '-'}</div>
-                        </div>
-                        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                            <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">ดื่มไปแล้ว</div>
-                            <div className="text-2xl font-black text-sage-700 tracking-tighter">
-                                {stats?.totalCups || 0} <span className="text-sm font-bold text-gray-500 tracking-normal">แก้ว</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* History Timeline */}
-                    <div>
-                        <h3 className="text-sm font-bold text-gray-900 mb-6 flex items-center gap-2">
-                            <Clock size={16} className="text-sage-600" /> ประวัติสะสมหยดน้ำ
-                        </h3>
-                        <div className="space-y-0 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-gray-200 before:to-transparent">
-                            {pointsHistory.length > 0 ? pointsHistory.map((h, i) => (
-                                <div key={h.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active pb-6">
-                                    <div className={`flex items-center justify-center w-10 h-10 rounded-full border-4 border-gray-50 shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 shadow-sm z-10 ${h.type === 'earn' ? 'bg-sage-100 text-sage-600' : 'bg-gray-100 text-gray-500'}`}>
-                                        {h.type === 'earn' ? <Leaf size={14} /> : <Ticket size={14} />}
-                                    </div>
-                                    <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-white p-4 rounded-2xl shadow-sm border border-gray-100 ml-4">
-                                        <div className="flex justify-between items-start mb-1">
-                                            <div className="text-sm font-bold text-gray-900">{h.description}</div>
-                                            <div className={`text-sm font-black ${h.type === 'earn' ? 'text-sage-600' : 'text-gray-900'}`}>
-                                                {h.type === 'earn' ? '+' : '-'}{Math.abs(h.points)}
-                                            </div>
-                                        </div>
-                                        <div className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">
-                                            {new Date(h.created_at).toLocaleDateString('th-TH', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute:'2-digit' })}
-                                        </div>
-                                    </div>
-                                </div>
-                            )) : (
-                                <div className="text-center py-8 text-sm text-gray-400 bg-white rounded-2xl border border-gray-100 shadow-sm relative z-10">
-                                    ยังไม่มีประวัติการใช้งาน
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </motion.div>
-            );
+  const handleBack = () => {
+    if (window.history.length > 2) {
+      router.back();
+    } else {
+      router.push('/liff/menu');
     }
   };
 
+  const translateHistoryDescription = (desc: string | undefined | null, locale: string) => {
+    if (!desc) return locale === 'en' ? 'General Transaction' : locale === 'zh' ? '一般交易' : 'รายการทั่วไป';
+    if (desc.includes('Earned from POS Order #')) {
+        const orderNum = desc.split('#')[1] || '';
+        return locale === 'en' ? `Earned from Order #${orderNum}` : locale === 'zh' ? `从订单获得积分 #${orderNum}` : `ได้รับจากออเดอร์ #${orderNum}`;
+    }
+    if (desc.includes('Redeemed') && desc.includes('pts for POS Order #')) {
+        const match = desc.match(/Redeemed (\d+) pts for POS Order #(.+)/);
+        if (match) {
+            return locale === 'en' ? `Redeemed ${match[1]} pts for Order #${match[2]}` : locale === 'zh' ? `兑换 ${match[1]} 积分于订单 #${match[2]}` : `ใช้ ${match[1]} แต้มกับออเดอร์ #${match[2]}`;
+        }
+    }
+    if (desc === 'Claimed via QR Code') {
+        return locale === 'en' ? 'Claimed via QR Code' : locale === 'zh' ? '通过二维码领取' : 'สแกนรับแต้มจาก QR Code';
+    }
+    return desc;
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 font-sans selection:bg-sage-200">
+    <div className="min-h-screen bg-white text-[#111111] font-sans overflow-x-hidden pb-24 selection:bg-gray-200">
       
-      {/* Top Nav (Optional, maybe just back button) */}
-      <header className="px-5 pt-8 pb-4 flex items-center justify-between sticky top-0 bg-gray-50/80 backdrop-blur-md z-40">
-        <button onClick={() => router.back()} className="text-gray-900 p-2 -ml-2 bg-white rounded-full shadow-sm border border-gray-100 active:scale-95 transition-transform">
-          <ChevronLeft size={20} strokeWidth={2} />
+      {/* 📱 Minimal Header */}
+      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md px-4 py-4 flex items-center justify-between border-b border-gray-100">
+        <button onClick={handleBack} className="p-2 -ml-2 text-gray-400 hover:text-gray-900 transition-colors">
+          <ChevronLeft size={24} strokeWidth={2} />
+        </button>
+        <h1 className="text-[15px] font-medium tracking-wide">{dict.title}</h1>
+        <button onClick={() => setShowBenefits(true)} className="p-2 -mr-2 text-gray-400 hover:text-gray-900 transition-colors">
+          <Info size={20} strokeWidth={2} />
         </button>
       </header>
 
-      <main className="px-5 max-w-md mx-auto">
-        <AnimatePresence mode="wait">
-            {renderTabContent()}
-        </AnimatePresence>
+      <main className="px-5 py-6 space-y-8">
+        
+        {/* 💳 Clean Tier Card with Power Bar */}
+        <section>
+          <div className={`w-full rounded-2xl p-6 ${currentTier.bg} transition-colors duration-500`}>
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-12 h-12 rounded-full bg-white/60 overflow-hidden flex items-center justify-center flex-shrink-0">
+                {lineProfile?.pictureUrl ? (
+                  <img src={lineProfile.pictureUrl} alt={lineProfile.displayName} className="w-full h-full object-cover" />
+                ) : (
+                  <User size={20} className={currentTier.text} />
+                )}
+              </div>
+              <div>
+                <h2 className="text-[16px] font-semibold text-gray-900 leading-tight">
+                  {lineProfile?.displayName || 'Member'}
+                </h2>
+                {memberInfo?.phone ? (
+                  <p className="text-[13px] text-gray-500 mt-0.5">
+                    ID: {memberInfo.phone}
+                  </p>
+                ) : (
+                  <button 
+                    onClick={() => setShowPhoneModal(true)}
+                    className="text-[11px] bg-black text-white px-2 py-0.5 rounded-full mt-1 flex items-center gap-1 active:scale-95 transition-transform"
+                  >
+                    + เพิ่มเบอร์รับแต้มจากหน้าร้าน
+                  </button>
+                )}
+              </div>
+              <div className="ml-auto text-right">
+                <span className={`text-[13px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-white/50 ${currentTier.text}`}>
+                  {currentTier.name}
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[12px] text-gray-500 mb-1">{dict.points}</p>
+              <div className="flex items-baseline gap-1.5">
+                <span className={`text-4xl font-medium tracking-tight text-gray-900`}>
+                  {(memberInfo?.points || 0).toLocaleString()}
+                </span>
+                <span className="text-[14px] text-gray-500 font-medium">{dict.pts}</span>
+              </div>
+            </div>
+            
+            {/* THICK PROGRESS BAR (Power Bar) */}
+            <div className="mt-8 bg-white/40 p-4 rounded-xl">
+              {nextTier ? (
+                <div>
+                  <div className="flex justify-between items-end mb-2">
+                    <span className="text-[12px] font-medium text-gray-600">{currentTier.name}</span>
+                    <div className="text-right">
+                      <span className="text-[10px] text-gray-500 uppercase tracking-wider block">{dict.pointsToNextTier} {nextTier.name}</span>
+                      <span className="text-[14px] font-bold text-gray-900">{(nextTier.minPoints - totalAccumulated).toLocaleString()} {dict.pts}</span>
+                    </div>
+                  </div>
+                  
+                  {/* The actual Bar */}
+                  <div className="h-3.5 w-full bg-black/10 rounded-full overflow-hidden shadow-inner">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${progressPercent}%` }}
+                      transition={{ duration: 1.2, ease: "easeOut", delay: 0.2 }}
+                      className={`h-full rounded-full ${currentTier.barColor} relative`}
+                    >
+                      {/* Shine effect on bar */}
+                      <div className="absolute top-0 right-0 bottom-0 w-8 bg-gradient-to-r from-transparent to-white/30" />
+                    </motion.div>
+                  </div>
+                  
+                  <div className="flex justify-between items-center text-[11px] text-gray-500 mt-2 font-medium">
+                    <span>{currentTier.minPoints.toLocaleString()}</span>
+                    <span>{nextTier.minPoints.toLocaleString()}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-[13px] font-medium text-gray-700 text-center py-2 flex items-center justify-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  {dict.maxTier}
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* 📢 Special Campaigns / Gamification Banners */}
+        <section className="space-y-3">
+          <h3 className="text-[14px] font-medium text-gray-900 px-1">{locale === 'en' ? 'Special Campaigns' : 'แคมเปญพิเศษ'}</h3>
+          
+          <div 
+            className="flex gap-3 overflow-x-auto pb-4 snap-x -mx-5 px-5" 
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            {/* Custom style for webkit scrollbar hiding since tailwind plugin isn't active */}
+            <style jsx>{`
+              div::-webkit-scrollbar {
+                display: none;
+              }
+            `}</style>
+
+            {campaigns.map((camp) => (
+              <div 
+                key={camp.id} 
+                onClick={() => { if (camp.title.includes('กล่องสุ่ม')) setShowMysteryBox(true); }}
+                className={`min-w-[240px] snap-center bg-gradient-to-br ${camp.bg_gradient_from} ${camp.bg_gradient_to} rounded-2xl p-4 flex flex-col justify-between shadow-sm relative overflow-hidden cursor-pointer active:scale-[0.98] transition-transform`}
+              >
+                <div className="absolute -right-4 -top-4 text-6xl opacity-10">{camp.icon}</div>
+                <div>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${camp.tag_color} bg-white/50 px-2 py-1 rounded-md mb-2 inline-block`}>
+                    {camp.type_tag}
+                  </span>
+                  <h4 className={`text-[14px] font-semibold ${camp.text_color} leading-tight mb-1`}>{camp.title}</h4>
+                  <p className={`text-[12px] ${camp.tag_color}`}>{camp.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* 🪄 Minimal Tabs */}
+        <section>
+          <div className="flex border-b border-gray-100 mb-6">
+            <button 
+              onClick={() => setActiveTab('rewards')}
+              className={`flex-1 pb-3 text-[14px] font-medium transition-colors relative ${activeTab === 'rewards' ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              {dict.rewardsCatalog}
+              {activeTab === 'rewards' && (
+                <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-gray-900" />
+              )}
+            </button>
+            <button 
+              onClick={() => setActiveTab('history')}
+              className={`flex-1 pb-3 text-[14px] font-medium transition-colors relative ${activeTab === 'history' ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              {dict.pointsHistory}
+              {activeTab === 'history' && (
+                <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-gray-900" />
+              )}
+            </button>
+          </div>
+
+          <AnimatePresence mode="wait">
+            {activeTab === 'rewards' ? (
+              <motion.div 
+                key="rewards"
+                initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} transition={{ duration: 0.2 }}
+                className="space-y-4"
+              >
+                {rewards.length > 0 ? rewards.map((reward) => (
+                  <div key={reward.id} className="flex gap-4 p-4 rounded-xl border border-gray-100 hover:border-gray-200 transition-colors">
+                    <div className="w-20 h-20 bg-gray-50 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center">
+                      {reward.image_url ? (
+                        <img src={reward.image_url} alt={reward.title} className="w-full h-full object-cover" />
+                      ) : (
+                        <Gift size={24} className="text-gray-300" />
+                      )}
+                    </div>
+                    <div className="flex-1 flex flex-col">
+                      <h4 className="text-[14px] font-medium text-gray-900 leading-tight mb-1">{reward.title || reward.name}</h4>
+                      <p className="text-[12px] text-gray-500 line-clamp-2 leading-relaxed">{reward.description}</p>
+                      
+                      <div className="mt-auto flex items-center justify-between pt-2">
+                        <span className="text-[13px] font-medium text-gray-900">{reward.points_required.toLocaleString()} {dict.pts}</span>
+                        
+                        <button 
+                          disabled={(memberInfo?.points || 0) < reward.points_required}
+                          className={`text-[13px] font-medium px-4 py-1.5 rounded-full transition-colors ${
+                            (memberInfo?.points || 0) >= reward.points_required 
+                            ? 'bg-gray-900 text-white hover:bg-gray-800' 
+                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          }`}
+                        >
+                          {dict.redeem}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )) : (
+                  <div className="py-16 text-center">
+                    <p className="text-[14px] text-gray-400 mb-1">{dict.noRewards}</p>
+                    <p className="text-[13px] text-gray-300">{dict.checkBackLater}</p>
+                  </div>
+                )}
+              </motion.div>
+            ) : (
+              <motion.div 
+                key="history"
+                initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} transition={{ duration: 0.2 }}
+                className="space-y-4"
+              >
+                {pointsHistory.length > 0 ? pointsHistory.map((item) => (
+                  <div key={item.id} className="flex justify-between items-center py-3 border-b border-gray-50 last:border-0">
+                    <div className="flex gap-3 items-center">
+                      <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400">
+                        {item.type === 'earn' ? <TrendingUp size={18} /> : <Gift size={18} />}
+                      </div>
+                      <div>
+                        <p className="text-[14px] font-medium text-gray-900">
+                          {translateHistoryDescription(item.description, locale as string)}
+                        </p>
+                        <p className="text-[12px] text-gray-400 mt-0.5">
+                          {new Date(item.created_at).toLocaleDateString(locale === 'en' ? 'en-US' : locale === 'zh' ? 'zh-CN' : 'th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </p>
+                      </div>
+                    </div>
+                    <span className={`text-[14px] font-medium ${item.type === 'earn' ? 'text-gray-900' : 'text-gray-500'}`}>
+                      {item.type === 'earn' ? '+' : '-'}{item.points.toLocaleString()}
+                    </span>
+                  </div>
+                )) : (
+                  <div className="py-16 text-center">
+                    <p className="text-[14px] text-gray-400 mb-1">{dict.noHistory}</p>
+                    <p className="text-[13px] text-gray-300">{dict.historyEmpty}</p>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </section>
       </main>
 
-      {/* Standard iOS-style Bottom Tab Bar */}
-      <nav className="fixed bottom-0 w-full bg-white/90 backdrop-blur-xl border-t border-gray-100 pb-safe pt-2 px-2 z-50">
-        <div className="flex justify-around items-center h-16 max-w-md mx-auto relative">
-          
-          <button 
-            onClick={() => setActiveTab('home')}
-            className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${activeTab === 'home' ? 'text-sage-600' : 'text-gray-400 hover:text-gray-600'}`}
-          >
-            <div className={`p-1.5 rounded-full transition-all ${activeTab === 'home' ? 'bg-sage-50' : 'bg-transparent'}`}>
-                <Leaf size={22} strokeWidth={activeTab === 'home' ? 2.5 : 1.5} />
-            </div>
-            <span className={`text-[10px] font-medium ${activeTab === 'home' ? 'text-sage-700 font-bold' : ''}`}>Home</span>
-          </button>
-
-          <button 
-            onClick={() => setActiveTab('rewards')}
-            className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${activeTab === 'rewards' ? 'text-sage-600' : 'text-gray-400 hover:text-gray-600'}`}
-          >
-            <div className={`p-1.5 rounded-full transition-all relative ${activeTab === 'rewards' ? 'bg-sage-50' : 'bg-transparent'}`}>
-                <Ticket size={22} strokeWidth={activeTab === 'rewards' ? 2.5 : 1.5} />
-                {coupons.length > 0 && (
-                    <span className="absolute top-1 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" />
-                )}
-            </div>
-            <span className={`text-[10px] font-medium ${activeTab === 'rewards' ? 'text-sage-700 font-bold' : ''}`}>Rewards</span>
-          </button>
-
-          <button 
-            onClick={() => setActiveTab('history')}
-            className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${activeTab === 'history' ? 'text-sage-600' : 'text-gray-400 hover:text-gray-600'}`}
-          >
-            <div className={`p-1.5 rounded-full transition-all ${activeTab === 'history' ? 'bg-sage-50' : 'bg-transparent'}`}>
-                <History size={22} strokeWidth={activeTab === 'history' ? 2.5 : 1.5} />
-            </div>
-            <span className={`text-[10px] font-medium ${activeTab === 'history' ? 'text-sage-700 font-bold' : ''}`}>Stats</span>
-          </button>
-
-        </div>
-      </nav>
-
-      {/* Phone Modal (Glassmorphism) */}
+      {/* 👑 Minimal Benefits Bottom Sheet */}
       <AnimatePresence>
-        {showPhoneModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" onClick={() => setShowPhoneModal(false)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative bg-white w-full max-w-sm rounded-[2rem] p-8 shadow-2xl z-10">
-              <button onClick={() => setShowPhoneModal(false)} className="absolute top-6 right-6 text-gray-400 hover:text-gray-900 transition-colors bg-gray-50 rounded-full p-2">
-                <X size={16} strokeWidth={2} />
-              </button>
-              
-              <div className="w-12 h-12 bg-sage-50 text-sage-600 rounded-full flex items-center justify-center mb-6">
-                  <CircleUserRound size={24} />
+        {showBenefits && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setShowBenefits(false)}
+              className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.08)] max-h-[90vh] overflow-y-auto pb-safe"
+            >
+              <div className="sticky top-0 bg-white/90 backdrop-blur-md z-10 px-6 py-5 flex items-center justify-between border-b border-gray-50">
+                <h3 className="text-[16px] font-medium text-gray-900">{dict.benefitsTitle}</h3>
+                <button onClick={() => setShowBenefits(false)} className="p-2 -mr-2 text-gray-400 hover:text-gray-900 transition-colors">
+                  <X size={20} />
+                </button>
               </div>
 
-              <h3 className="text-xl font-bold text-gray-900 mb-2">เชื่อมต่อบัญชี</h3>
-              <p className="text-sm text-gray-500 mb-8 leading-relaxed">กรุณากรอกข้อมูลเพื่อสะสมหยดน้ำอัตโนมัติเมื่อสั่งซื้อที่หน้าร้าน</p>
-              
-              <div className="space-y-4 mb-8">
-                  <div className="relative">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest absolute top-2 left-4">ชื่อเล่น / ชื่อเรียก</label>
-                      <input value={nicknameInput} onChange={e => setNicknameInput(e.target.value)} className="w-full bg-gray-50 border border-gray-100 rounded-2xl pt-7 pb-3 px-4 text-sm font-medium outline-none focus:bg-white focus:border-sage-400 focus:ring-4 focus:ring-sage-50 transition-all" />
-                  </div>
-                  <div className="relative">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest absolute top-2 left-4">เบอร์โทรศัพท์</label>
-                      <input type="tel" value={phoneInput} onChange={e => setPhoneInput(e.target.value)} className="w-full bg-gray-50 border border-gray-100 rounded-2xl pt-7 pb-3 px-4 text-sm font-medium outline-none focus:bg-white focus:border-sage-400 focus:ring-4 focus:ring-sage-50 transition-all tracking-wider" />
-                  </div>
+              <div className="p-6 space-y-8">
+                
+                {/* How to earn */}
+                <div>
+                  <h4 className="text-[13px] text-gray-500 mb-2">{dict.howToEarn}</h4>
+                  <p className="text-[16px] font-medium text-gray-900">{dict.earnRule}</p>
+                </div>
+
+                {/* Tiers List */}
+                <div className="space-y-6">
+                  {tiers.map((tier) => (
+                    <div key={tier.name} className="flex gap-4">
+                      <div className={`w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center ${tier.bg} ${tier.text} text-[13px] font-bold uppercase tracking-wider`}>
+                        {tier.name[0]}
+                      </div>
+                      <div>
+                        <div className="flex items-baseline gap-2 mb-2">
+                          <h4 className="text-[15px] font-medium text-gray-900">{tier.name}</h4>
+                          <span className="text-[12px] text-gray-400">{tier.minPoints.toLocaleString()} {dict.pts}</span>
+                        </div>
+                        <ul className="space-y-2">
+                          {tier.benefits.map((b, i) => (
+                            <li key={i} className="flex items-start gap-2 text-[13px] text-gray-600">
+                              <Check size={16} strokeWidth={2} className="text-gray-300 flex-shrink-0 mt-0.5" />
+                              <span>{b}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
               </div>
-              
-              <button onClick={handleLinkPhone} disabled={isLinkingPhone} className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold text-sm transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-gray-900/20">
-                {isLinkingPhone ? <Loader2 size={18} className="animate-spin" /> : 'บันทึกข้อมูล'}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* 🎁 MYSTERY BOX MODAL */}
+      <AnimatePresence>
+        {showMysteryBox && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+            <div className="absolute inset-0 bg-[#1A1A18]/80 backdrop-blur-md" onClick={() => !isPlayingBox && mysteryBoxState !== 'opening' && setShowMysteryBox(false)}></div>
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="relative w-full max-w-sm bg-white rounded-[2.5rem] p-8 overflow-hidden text-center shadow-2xl"
+            >
+              <button 
+                onClick={() => setShowMysteryBox(false)} 
+                disabled={mysteryBoxState === 'opening'}
+                className="absolute top-6 right-6 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 disabled:opacity-30"
+              >
+                <X size={16} />
               </button>
+              
+              {mysteryBoxState === 'idle' && (
+                <>
+                  <div className="w-24 h-24 mx-auto bg-gradient-to-br from-[#FCF7E8] to-[#F5E6C4] rounded-3xl flex items-center justify-center text-5xl mb-6 shadow-inner relative overflow-hidden">
+                    <span className="relative z-10">🎁</span>
+                  </div>
+                  <h3 className="text-2xl font-black text-[#1A1A18] tracking-tight mb-2">
+                    {locale === 'en' ? 'Mystery Box' : 'กล่องสุ่มหรรษา'}
+                  </h3>
+                  <p className="text-gray-500 text-sm mb-6 leading-relaxed">
+                    {locale === 'en' ? 'Spend 50 points to open a box and win random points back! (Up to 500 Pts)' : 'ใช้ 50 แต้ม เพื่อเปิดกล่องสุ่ม ลุ้นรับแต้มคืนสูงสุด 500 แต้ม!'}
+                  </p>
+                  <button
+                    onClick={handlePlayMysteryBox}
+                    disabled={(memberInfo?.points || 0) < 50}
+                    className="w-full py-4 bg-[#1A1A18] text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-black transition-all disabled:opacity-50 disabled:bg-gray-300 shadow-xl"
+                  >
+                    {(memberInfo?.points || 0) < 50 ? (locale === 'en' ? 'Not enough points' : 'แต้มไม่เพียงพอ') : (locale === 'en' ? 'Open Box (50 Pts)' : 'เปิดกล่อง (50 แต้ม)')}
+                  </button>
+                </>
+              )}
+              
+              {mysteryBoxState === 'opening' && (
+                <div className="py-8">
+                  <motion.div 
+                    animate={{ rotate: [-5, 5, -5, 5, 0], scale: [1, 1.1, 1] }}
+                    transition={{ repeat: Infinity, duration: 0.5 }}
+                    className="w-32 h-32 mx-auto bg-gradient-to-br from-[#FCF7E8] to-[#F5E6C4] rounded-full flex items-center justify-center text-6xl shadow-xl"
+                  >
+                    🎁
+                  </motion.div>
+                  <h3 className="text-xl font-black text-[#1A1A18] tracking-tight mt-8 animate-pulse">
+                    {locale === 'en' ? 'Opening...' : 'กำลังเปิดกล่อง...'}
+                  </h3>
+                </div>
+              )}
+              
+              {mysteryBoxState === 'result' && (
+                <>
+                  <motion.div 
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="w-28 h-28 mx-auto bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mb-6 relative"
+                  >
+                    <motion.div 
+                      animate={{ y: [0, -10, 0] }} 
+                      transition={{ repeat: Infinity, duration: 2 }}
+                      className="text-6xl font-black"
+                    >
+                      {mysteryBoxResult > 50 ? '🎉' : mysteryBoxResult === 50 ? '🎁' : '😅'}
+                    </motion.div>
+                  </motion.div>
+                  <h3 className="text-2xl font-black text-[#1A1A18] tracking-tight mb-2">
+                    {mysteryBoxResult > 50 ? (locale === 'en' ? 'JACKPOT!' : 'แจ็คพอตแตก!') : mysteryBoxResult === 50 ? (locale === 'en' ? 'Nice!' : 'ดีเลย!') : (locale === 'en' ? 'Ouch!' : 'ได้เกลือออ!')}
+                  </h3>
+                  <div className="text-emerald-500 font-black text-4xl mb-6 tracking-tighter">
+                    +{mysteryBoxResult} <span className="text-xl">PTS</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setMysteryBoxState('idle');
+                      setShowMysteryBox(false);
+                    }}
+                    className="w-full py-4 bg-gray-100 text-[#1A1A18] rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-gray-200 transition-all"
+                  >
+                    {locale === 'en' ? 'Close' : 'ปิดหน้าต่าง'}
+                  </button>
+                </>
+              )}
             </motion.div>
           </div>
         )}
       </AnimatePresence>
+      
+      {/* 📱 Phone Link Modal */}
+      <AnimatePresence>
+        {showPhoneModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-5">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setShowPhoneModal(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl z-10"
+            >
+              <h3 className="text-xl font-black text-[#1A1A18] mb-2">
+                {dict.locale === 'en' ? 'Link Phone Number' : 'เชื่อมต่อเบอร์โทรศัพท์'}
+              </h3>
+              <p className="text-sm text-gray-500 mb-6">
+                {dict.locale === 'en' ? 'Link your phone number to receive points from POS orders.' : 'ระบุเบอร์โทรศัพท์ของคุณเพื่อรับแต้มจากการสั่งซื้อหน้าร้าน (รวมคะแนนอัตโนมัติ)'}
+              </p>
+              
+              <div className="mb-6 space-y-3">
+                <input 
+                  type="text" 
+                  id="nickname-input-modal"
+                  value={nicknameInput} 
+                  onChange={e => setNicknameInput(e.target.value)} 
+                  placeholder={dict.locale === 'en' ? "Nickname / Name" : "ชื่อเล่น / ชื่อเรียก"} 
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-[18px] font-bold text-[#1A1A18] text-center focus:ring-2 focus:ring-black outline-none transition-all placeholder:font-medium" 
+                />
+                <input 
+                  type="tel" 
+                  id="phone-input-modal"
+                  value={phoneInput} 
+                  onChange={e => setPhoneInput(e.target.value)} 
+                  placeholder="08X-XXX-XXXX" 
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-[18px] font-black text-[#1A1A18] text-center focus:ring-2 focus:ring-black outline-none transition-all" 
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowPhoneModal(false)}
+                  className="flex-1 py-3 bg-gray-100 text-[#1A1A18] rounded-xl font-bold text-sm hover:bg-gray-200 transition-colors"
+                >
+                  {dict.locale === 'en' ? 'Cancel' : 'ยกเลิก'}
+                </button>
+                <button
+                  onClick={handleLinkPhone}
+                  disabled={isLinkingPhone || phoneInput.length < 9 || !nicknameInput.trim()}
+                  className="flex-1 py-3 bg-black text-white rounded-xl font-bold text-sm hover:bg-gray-900 transition-colors disabled:opacity-50 flex justify-center items-center"
+                >
+                  {isLinkingPhone ? <Loader2 size={18} className="animate-spin" /> : (dict.locale === 'en' ? 'Link' : 'บันทึก')}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }
