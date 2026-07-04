@@ -2104,7 +2104,6 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
               member_id: selectedCustomer.id,
               order_id: finalOrderId,
               points: -pointsToDeduct,
-              points_change: -pointsToDeduct,
               type: 'redeem',
               description: `Redeemed ${pointsToDeduct} pts for POS Order #${editingOrderNumber || (finalOrderId ? (finalOrderId as string).slice(0, 8) : 'NEW')}`,
             }
@@ -2135,7 +2134,6 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
               member_id: selectedCustomer.id,
               order_id: finalOrderId,
               points: pointsToEarn,
-              points_change: pointsToEarn,
               type: 'earn',
             }
 
