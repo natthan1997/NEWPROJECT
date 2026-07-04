@@ -69,12 +69,14 @@ export async function POST(req: NextRequest) {
             }
         }
         
-        if (!member || !member.phone) {
-            if (!body.phone) {
+        if (!member || !member.phone || !member.full_name) {
+            if (!body.phone || !body.fullName) {
                 return NextResponse.json({ 
                     success: false, 
                     requirePhone: true, 
-                    message: 'Please enter your phone number to proceed' 
+                    message: 'Please enter your phone number and nickname to proceed',
+                    currentPhone: member?.phone || '',
+                    currentFullName: member?.full_name || ''
                 })
             }
         }

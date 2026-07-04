@@ -87,6 +87,8 @@ function ClaimPointsContent() {
                 }, 3500)
             } else if (data.requirePhone) {
                 setRequirePhone(true)
+                if (data.currentPhone) setPhone(data.currentPhone);
+                if (data.currentFullName) setNickname(data.currentFullName);
                 setStatus('success') // Just to hide error overlay
             } else {
                 setStatus('error')
