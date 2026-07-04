@@ -216,7 +216,7 @@ export default function POSMemberManager({
                                             )}
                                         </div>
                                         <div className="font-bold">
-                                            <div className="text-[11px] font-black uppercase tracking-tight text-[#1A1A18]">{member.display_name || member.full_name}</div>
+                                            <div className="text-[11px] font-black uppercase tracking-tight text-[#1A1A18]">{member.full_name ? `${member.full_name} ${member.display_name && member.display_name !== member.full_name ? `(${member.display_name})` : ''}` : (member.display_name || 'สมาชิก')}</div>
                                             <div className="text-[8px] text-[#8C8A81] font-black uppercase tracking-widest mt-0.5 flex items-center gap-1.5 opacity-60">
                                                 <Phone size={8} /> {member.phone || 'ไม่ระบุเบอร์'}
                                             </div>
@@ -263,7 +263,7 @@ export default function POSMemberManager({
                                         </div>
                                         <div className="space-y-3 font-bold text-center sm:text-left">
                                             <div className="flex flex-col sm:flex-row items-center gap-4 font-bold">
-                                                <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tighter text-[#1A1A18] leading-none">{selectedMember.display_name || selectedMember.full_name}</h2>
+                                                <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tighter text-[#1A1A18] leading-none">{selectedMember.full_name ? `${selectedMember.full_name} ${selectedMember.display_name && selectedMember.display_name !== selectedMember.full_name ? `(${selectedMember.display_name})` : ''}` : (selectedMember.display_name || 'สมาชิก')}</h2>
                                                 {getTierBadge(selectedMember.tier)}
                                             </div>
                                             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-5 font-bold">
@@ -299,6 +299,14 @@ export default function POSMemberManager({
                                                         className="w-full h-14 bg-white border border-[#F0F0E8] px-6 text-sm font-bold uppercase outline-none focus:ring-1 focus:ring-[#1A1A18]"
                                                         value={editData.display_name || ''}
                                                         onChange={e => setEditData({...editData, display_name: e.target.value})}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2 font-bold">
+                                                    <label className="text-[8px] font-black uppercase text-[#8C8A81] tracking-widest ml-1 font-bold">{locale === 'en' ? 'ชื่อเรียก/ชื่อเล่น (Nickname)' : locale === 'zh' ? 'ชื่อเรียก/ชื่อเล่น (Nickname)' : 'ชื่อเรียก/ชื่อเล่น (Nickname)'}</label>
+                                                    <input 
+                                                        className="w-full h-14 bg-white border border-[#F0F0E8] px-6 text-sm font-bold uppercase outline-none focus:ring-1 focus:ring-[#1A1A18]"
+                                                        value={editData.full_name || ''}
+                                                        onChange={e => setEditData({...editData, full_name: e.target.value})}
                                                     />
                                                 </div>
                                                 <div className="space-y-2 font-bold">
