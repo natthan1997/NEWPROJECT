@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-  ChevronLeft, History, Gift, TrendingUp, User, Info, X, Check
+  ChevronLeft, History, Gift, TrendingUp, User, Info, X, Check, Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
@@ -25,6 +25,9 @@ export default function LiffMemberPage() {
   const [mysteryBoxState, setMysteryBoxState] = useState<'idle' | 'opening' | 'result'>('idle');
   const [mysteryBoxResult, setMysteryBoxResult] = useState(0);
   const [isPlayingBox, setIsPlayingBox] = useState(false);
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
+  const [phoneInput, setPhoneInput] = useState('');
+  const [isLinkingPhone, setIsLinkingPhone] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showBenefits, setShowBenefits] = useState(false);
 
@@ -144,6 +147,37 @@ export default function LiffMemberPage() {
     }
   };
   
+  const handleLinkPhone = async () => {
+    if (phoneInput.length < 9) {
+        alert(dict.locale === 'en' ? 'Invalid phone number' : 'กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง');
+        return;
+    }
+    const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
+    if (!userId) return;
+
+    setIsLinkingPhone(true);
+    try {
+        const res = await fetch('/api/liff/member/link-phone', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lineUserId: userId, phone: phoneInput })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            alert(dict.locale === 'en' ? 'Phone number linked successfully!' : 'เชื่อมต่อเบอร์โทรศัพท์สำเร็จ!');
+            setShowPhoneModal(false);
+            fetchData();
+        } else {
+            alert(data.error || 'Failed to link phone');
+        }
+    } catch (e) {
+        alert('Error linking phone');
+    } finally {
+        setIsLinkingPhone(false);
+    }
+  };
+  
 const fetchData = async () => {
     const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
     if (!userId) return;
@@ -185,6 +219,19 @@ const fetchData = async () => {
   
   useEffect(() => {
     if (!liffLoading) fetchData();
+    
+    const channel = supabase.channel('member_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_members' }, () => {
+        fetchData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_points_history' }, () => {
+        fetchData();
+      })
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [lineProfile, liffLoading]);
 
   if (liffLoading && !hasSeenLoader) return <XYLLoader tagline={dict.loading} />;
@@ -240,9 +287,18 @@ const fetchData = async () => {
                 <h2 className="text-[16px] font-semibold text-gray-900 leading-tight">
                   {lineProfile?.displayName || 'Member'}
                 </h2>
-                <p className="text-[13px] text-gray-500 mt-0.5">
-                  ID: {memberInfo?.phone || lineProfile?.userId?.substring(0, 8)}
-                </p>
+                {memberInfo?.phone ? (
+                  <p className="text-[13px] text-gray-500 mt-0.5">
+                    ID: {memberInfo.phone}
+                  </p>
+                ) : (
+                  <button 
+                    onClick={() => setShowPhoneModal(true)}
+                    className="text-[11px] bg-black text-white px-2 py-0.5 rounded-full mt-1 flex items-center gap-1 active:scale-95 transition-transform"
+                  >
+                    + เพิ่มเบอร์รับแต้มจากหน้าร้าน
+                  </button>
+                )}
               </div>
               <div className="ml-auto text-right">
                 <span className={`text-[13px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-white/50 ${currentTier.text}`}>
@@ -584,6 +640,58 @@ const fetchData = async () => {
                   </button>
                 </>
               )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      
+      {/* 📱 Phone Link Modal */}
+      <AnimatePresence>
+        {showPhoneModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-5">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setShowPhoneModal(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl z-10"
+            >
+              <h3 className="text-xl font-black text-[#1A1A18] mb-2">
+                {dict.locale === 'en' ? 'Link Phone Number' : 'เชื่อมต่อเบอร์โทรศัพท์'}
+              </h3>
+              <p className="text-sm text-gray-500 mb-6">
+                {dict.locale === 'en' ? 'Link your phone number to receive points from POS orders.' : 'ระบุเบอร์โทรศัพท์ของคุณเพื่อรับแต้มจากการสั่งซื้อหน้าร้าน (รวมคะแนนอัตโนมัติ)'}
+              </p>
+              
+              <div className="mb-6">
+                <input 
+                  type="tel" 
+                  value={phoneInput} 
+                  onChange={e => setPhoneInput(e.target.value)} 
+                  placeholder="08X-XXX-XXXX" 
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-[18px] font-black text-[#1A1A18] text-center focus:ring-2 focus:ring-black outline-none transition-all" 
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowPhoneModal(false)}
+                  className="flex-1 py-3 bg-gray-100 text-[#1A1A18] rounded-xl font-bold text-sm hover:bg-gray-200 transition-colors"
+                >
+                  {dict.locale === 'en' ? 'Cancel' : 'ยกเลิก'}
+                </button>
+                <button
+                  onClick={handleLinkPhone}
+                  disabled={isLinkingPhone || phoneInput.length < 9}
+                  className="flex-1 py-3 bg-black text-white rounded-xl font-bold text-sm hover:bg-gray-900 transition-colors disabled:opacity-50 flex justify-center items-center"
+                >
+                  {isLinkingPhone ? <Loader2 size={18} className="animate-spin" /> : (dict.locale === 'en' ? 'Link' : 'บันทึก')}
+                </button>
+              </div>
             </motion.div>
           </div>
         )}
