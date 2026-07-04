@@ -310,7 +310,11 @@ const fetchData = async () => {
             `}</style>
 
             {campaigns.map((camp) => (
-              <div key={camp.id} className={`min-w-[240px] snap-center bg-gradient-to-br ${camp.bg_gradient_from} ${camp.bg_gradient_to} rounded-2xl p-4 flex flex-col justify-between shadow-sm relative overflow-hidden`}>
+              <div 
+                key={camp.id} 
+                onClick={() => { if (camp.title.includes('กล่องสุ่ม')) setShowMysteryBox(true); }}
+                className={`min-w-[240px] snap-center bg-gradient-to-br ${camp.bg_gradient_from} ${camp.bg_gradient_to} rounded-2xl p-4 flex flex-col justify-between shadow-sm relative overflow-hidden cursor-pointer active:scale-[0.98] transition-transform`}
+              >
                 <div className="absolute -right-4 -top-4 text-6xl opacity-10">{camp.icon}</div>
                 <div>
                   <span className={`text-[10px] font-bold uppercase tracking-wider ${camp.tag_color} bg-white/50 px-2 py-1 rounded-md mb-2 inline-block`}>
