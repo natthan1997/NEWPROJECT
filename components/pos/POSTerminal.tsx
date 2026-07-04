@@ -2129,8 +2129,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             const currentPoints = memberData?.points || 0;
             
             await supabase.from('pos_members').update({
-              points: currentPoints + pointsToEarn,
-              total_accumulated_points: (selectedCustomer.total_accumulated_points || 0) + pointsToEarn
+              points: currentPoints + pointsToEarn
             }).eq('id', selectedCustomer.id)
             const historyObj: any = {
               member_id: selectedCustomer.id,

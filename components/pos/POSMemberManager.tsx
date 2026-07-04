@@ -59,8 +59,26 @@ export default function POSMemberManager({
 
     useEffect(() => {
         fetchMembers()
+        
+        const channel = supabase.channel('pos_members_manager_realtime')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_members' }, () => {
+                fetchMembers()
+                if (selectedMember) {
+                    fetchPointsHistory(selectedMember.id)
+                }
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_points_history' }, () => {
+                if (selectedMember) {
+                    fetchPointsHistory(selectedMember.id)
+                }
+            })
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(channel)
+        }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [syncPulse, shopSettings?.branch_id, shopSettings?.shared_member_branch_id])
+    }, [syncPulse, shopSettings?.branch_id, shopSettings?.shared_member_branch_id, selectedMember?.id])
 
     useEffect(() => {
         const delaySearch = setTimeout(() => {
