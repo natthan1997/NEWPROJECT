@@ -10,18 +10,7 @@ const withPWA = require('@ducanh2912/next-pwa').default({
     runtimeCaching: [
       {
         urlPattern: /^https:\/\/pub-[a-zA-Z0-9-]+\.r2\.dev\/.*/i,
-        handler: 'NetworkFirst',
-        options: {
-          cacheName: 'r2-images-v2', // Bumped version to force cache bust on mobile
-          networkTimeoutSeconds: 10,
-          expiration: {
-            maxEntries: 200,
-            maxAgeSeconds: 30 * 24 * 60 * 60,
-          },
-          cacheableResponse: {
-            statuses: [200], // FIXED: Removed 0 to prevent caching opaque/broken responses
-          },
-        },
+        handler: 'NetworkOnly',
       },
     ],
   },
