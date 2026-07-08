@@ -1404,14 +1404,14 @@ export default function CustomerMenuPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {catItems.map(item => (
                     <div key={item.id} className={`group bg-white border border-gray-100 p-4 transition-all hover:border-emerald-100 flex gap-5 ${item.in_stock === false ? 'opacity-60 grayscale' : ''}`}>
-                       <div className={`relative w-24 h-24 flex-shrink-0 bg-gray-50 overflow-hidden ${item.in_stock !== false ? 'cursor-pointer' : 'cursor-not-allowed'}`} onClick={() => item.in_stock !== false && handleItemClick(item)}>
-                         {item.image_url ? (
-                             <img src={item.image_url} alt={getPrimaryMenuName(item)} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                         ) : (
-                             <div className="absolute inset-0 flex items-center justify-center text-gray-300">
-                                <Utensils size={24} strokeWidth={1} />
-                             </div>
-                         )}
+                        <div className={`relative w-24 h-24 flex-shrink-0 bg-gray-50 overflow-hidden ${item.in_stock !== false ? 'cursor-pointer' : 'cursor-not-allowed'}`} onClick={() => item.in_stock !== false && handleItemClick(item)}>
+                          {item.image_url ? (
+                              <img src={item.image_url + (item.image_url.includes('?') ? '&' : '?') + 'v=' + Date.now()} alt={getPrimaryMenuName(item)} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                          ) : (
+                              <div className="absolute inset-0 flex items-center justify-center text-gray-300">
+                                 <Utensils size={24} strokeWidth={1} />
+                              </div>
+                          )}
                          {item.in_stock === false && (
                             <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/40 backdrop-blur-[1px]">
                                <span className="bg-[#1A1A18] text-white px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.2em] shadow-lg">สินค้าหมด</span>

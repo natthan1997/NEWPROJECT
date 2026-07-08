@@ -1,14 +1,10 @@
-const { createClient } = require('@supabase/supabase-js');
-const fs = require('fs');
-const env = fs.readFileSync('.env.local', 'utf8');
-const urlMatch = env.match(/NEXT_PUBLIC_SUPABASE_URL=["']?(https?:\/\/[^\s"']+)["']?/);
-const keyMatch = env.match(/NEXT_PUBLIC_SUPABASE_ANON_KEY=["']?([^\s"']+)["']?/);
-const supabase = createClient(urlMatch[1], keyMatch[1]);
+const { createClient } = require('@supabase/supabase-js')
+const supabaseUrl = 'https://cdjbzyrflzckjgxbqjqb.supabase.co'
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNkamJ6eXJmbHpja2pneGJxanFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NTk3OTgsImV4cCI6MjA4NzIzNTc5OH0.kBFsmHTZuhWheVnX1rXL26BL0kIBka-DE__648Aue18'
+const supabase = createClient(supabaseUrl, supabaseKey)
 
 async function run() {
-  const { data: tables } = await supabase.from('pos_tables').select('*');
-  console.log('Tables:', tables);
-  const { data: members } = await supabase.from('pos_members').select('*');
-  console.log('Members:', members ? members.length : 0);
+  const { data, error } = await supabase.from('pos_menu_items').select('name, image_url').limit(5)
+  console.log(data, error)
 }
-run();
+run()
