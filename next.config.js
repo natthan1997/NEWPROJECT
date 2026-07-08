@@ -7,19 +7,7 @@ const withPWA = require('@ducanh2912/next-pwa').default({
   disable: process.env.NODE_ENV === 'development',
   workboxOptions: {
     disableDevLogs: true,
-    runtimeCaching: [
-      {
-        urlPattern: /^https:\/\/pub-[a-zA-Z0-9-]+\.r2\.dev\/.*/i,
-        handler: 'NetworkFirst',
-        options: {
-          cacheName: 'r2-images',
-          networkTimeoutSeconds: 10,
-          cacheableResponse: {
-            statuses: [0, 200],
-          },
-        },
-      },
-    ],
+    runtimeCaching: [],
   },
 })
 
