@@ -698,7 +698,7 @@ export default function AddHousePage() {
                     <div>
                       {formData.imagePreview ? (
                         <div className="relative h-48 w-full overflow-hidden border border-[#E5E5DF]">
-                          <img crossOrigin="anonymous" src={formData.imagePreview} alt="House Preview" className="h-full w-full object-cover" />
+                          <img  src={formData.imagePreview} alt="House Preview" className="h-full w-full object-cover" />
                           <button
                             onClick={() => setFormData({ ...formData, imageFile: null, imagePreview: '' })}
                             className="absolute right-2 top-2 rounded-full bg-white p-1.5 text-black shadow-md"

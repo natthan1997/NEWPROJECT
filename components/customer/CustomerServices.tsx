@@ -165,7 +165,7 @@ const CustomerServices: React.FC<CustomerServicesProps> = ({
                             className="group w-full aspect-[4/5] md:aspect-[2.2/1] !p-0 overflow-hidden flex flex-col transition-all duration-300 shadow-[0_20px_40px_rgba(0,0,0,0.2)] relative border border-[#1D2D24]/10 rounded-none bg-white"
                           >
                             <div className="relative h-full w-full overflow-hidden">
-                              <img crossOrigin="anonymous" src={serviceImg} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" alt={s.service_name} />
+                              <img  src={serviceImg} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" alt={s.service_name} />
                               <div className="absolute inset-0 bg-gradient-to-t from-[var(--customer-ink)] via-[var(--customer-ink)]/20 to-transparent opacity-90" />
                               <div className="absolute top-8 left-8 flex items-center gap-2 z-20">
                                 <div className="px-3 py-1 bg-white text-[#1D2D24] text-[7px] font-black uppercase tracking-[0.3em]">{copy.featured || 'Premium Selection'}</div>

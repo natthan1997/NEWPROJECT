@@ -321,7 +321,7 @@ export default function EditHousePage() {
               <label className="flex flex-col items-center justify-center border-2 border-dashed border-[#E5E5E5] p-8 cursor-pointer hover:border-[#111111] transition-colors bg-white">
                 {formData.image_url ? (
                   <div className="relative w-full h-64 group">
-                    <img crossOrigin="anonymous" src={formData.image_url} alt="Preview" className="w-full h-full object-cover transition-opacity group-hover:opacity-50" />
+                    <img  src={formData.image_url ? `${formData.image_url}?cb=2` : ''} alt="Preview" className="w-full h-full object-cover transition-opacity group-hover:opacity-50" />
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                       <div className="bg-black text-white text-[10px] font-bold tracking-[0.2em] uppercase px-4 py-2 flex items-center gap-2">
                         {uploadingImage ? <Loader2 size={14} className="animate-spin" /> : <ImageIcon size={14} />}

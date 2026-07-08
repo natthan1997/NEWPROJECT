@@ -48,8 +48,8 @@ export default function ServiceCard({
     <div className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
       {imageUrl && (
         <div className="h-48 bg-gray-200">
-          <img crossOrigin="anonymous" 
-            src={imageUrl} 
+          <img  
+            src={imageUrl ? `${imageUrl}?cb=2` : ''} 
             alt={service.service_name}
             className="w-full h-full object-cover"
           />

@@ -2077,7 +2077,7 @@ export default function CustomerDashboardPage() {
   const renderPlantDetailSheet = (plant: MarketplacePlant) => (
     <div className="flex flex-col h-full bg-white">
       <div className="aspect-square w-full relative bg-[#FAFAFA] overflow-hidden border-b border-[#EFEFEF]">
-        <img crossOrigin="anonymous" src={getSafePlantImage(plant)} className="w-full h-full object-cover" />
+        <img  src={getSafePlantImage(plant)} className="w-full h-full object-cover" />
         <div className="absolute top-8 right-8 bg-[#111111] text-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em]">
           {copy.stockAvailable}
         </div>
@@ -2339,7 +2339,7 @@ export default function CustomerDashboardPage() {
                   <div className="px-10 py-12">
                     <div className="mb-16 flex items-start gap-12">
                       <div className="w-32 h-32 rounded-[40px] overflow-hidden grayscale shadow-2xl border-4 border-white">
-                        <img crossOrigin="anonymous" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80" className="w-full h-full object-cover" alt="Manager" />
+                        <img  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80" className="w-full h-full object-cover" alt="Manager" />
                       </div>
                       <div className="pt-4 flex-1">
                         <h4 className="font-serif-thai text-4xl font-light text-[#111111] mb-2 uppercase tracking-tighter">Boutique Management.</h4>

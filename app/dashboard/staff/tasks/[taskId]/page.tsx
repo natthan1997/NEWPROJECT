@@ -697,7 +697,7 @@ export default function TaskDetails({ params }: { params: { taskId: string } }) 
                              <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2 -mx-2 px-2">
                                 {((zone as any).beforePhotos || []).map((url: string, pIdx: number) => (
                                   <div key={pIdx} className="relative flex-none w-20 aspect-square rounded-xl overflow-hidden border border-[#F0EFEB] group shadow-sm">
-                                    <img crossOrigin="anonymous" src={url} className="w-full h-full object-cover" />
+                                    <img  src={url} className="w-full h-full object-cover" />
                                     <button 
                                       type="button" 
                                       onClick={() => handleRemoveZonePhoto(zone.id, url, 'before')} 
@@ -711,7 +711,7 @@ export default function TaskDetails({ params }: { params: { taskId: string } }) 
                                 {/* Zone Uploading Progress */}
                                 {(activeUploads[`zone_${zone.id}_before`] || []).filter(u => u.status === 'uploading').map((u) => (
                                   <div key={u.id} className="relative flex-none w-20 aspect-square rounded-xl overflow-hidden border border-[#F0EFEB] bg-gray-50 flex flex-col items-center justify-center p-2">
-                                     {u.previewUrl && <img crossOrigin="anonymous" src={u.previewUrl} className="absolute inset-0 w-full h-full object-cover opacity-20 blur-sm" />}
+                                     {u.previewUrl && <img  src={u.previewUrl} className="absolute inset-0 w-full h-full object-cover opacity-20 blur-sm" />}
                                      <div className="relative z-10 w-full bg-white/50 h-0.5 rounded-full overflow-hidden">
                                         <motion.div 
                                           className="h-full bg-[#1A3626]" 
@@ -739,7 +739,7 @@ export default function TaskDetails({ params }: { params: { taskId: string } }) 
                              <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2 -mx-2 px-2">
                                 {((zone as any).afterPhotos || []).map((url: string, pIdx: number) => (
                                   <div key={pIdx} className="relative flex-none w-20 aspect-square rounded-xl overflow-hidden border border-[#F0EFEB] group shadow-sm">
-                                    <img crossOrigin="anonymous" src={url} className="w-full h-full object-cover" />
+                                    <img  src={url} className="w-full h-full object-cover" />
                                     <button 
                                       type="button" 
                                       onClick={() => handleRemoveZonePhoto(zone.id, url, 'after')} 
@@ -753,7 +753,7 @@ export default function TaskDetails({ params }: { params: { taskId: string } }) 
                                 {/* Zone Uploading Progress */}
                                 {(activeUploads[`zone_${zone.id}_after`] || []).filter(u => u.status === 'uploading').map((u) => (
                                   <div key={u.id} className="relative flex-none w-20 aspect-square rounded-xl overflow-hidden border border-[#F0EFEB] bg-gray-50 flex flex-col items-center justify-center p-2">
-                                     {u.previewUrl && <img crossOrigin="anonymous" src={u.previewUrl} className="absolute inset-0 w-full h-full object-cover opacity-20 blur-sm" />}
+                                     {u.previewUrl && <img  src={u.previewUrl} className="absolute inset-0 w-full h-full object-cover opacity-20 blur-sm" />}
                                      <div className="relative z-10 w-full bg-white/50 h-0.5 rounded-full overflow-hidden">
                                         <motion.div 
                                           className="h-full bg-[#1A3626]" 

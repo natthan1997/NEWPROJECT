@@ -967,7 +967,7 @@ export default function AdminEditReportPage({ params }: { params: { assignmentId
                                   key={pIdx}
                                   className="relative flex-none w-20 aspect-square rounded-xl overflow-hidden border border-gray-200 group"
                                 >
-                                  <img crossOrigin="anonymous" src={url} className="w-full h-full object-cover" />
+                                  <img  src={url} className="w-full h-full object-cover" />
                                   <button
                                     type="button"
                                     onClick={() => handleRemoveZonePhoto(zone.id, url, 'before')}
@@ -1027,7 +1027,7 @@ export default function AdminEditReportPage({ params }: { params: { assignmentId
                                   key={pIdx}
                                   className="relative flex-none w-20 aspect-square rounded-xl overflow-hidden border border-gray-200 group"
                                 >
-                                  <img crossOrigin="anonymous" src={url} className="w-full h-full object-cover" />
+                                  <img  src={url} className="w-full h-full object-cover" />
                                   <button
                                     type="button"
                                     onClick={() => handleRemoveZonePhoto(zone.id, url, 'after')}

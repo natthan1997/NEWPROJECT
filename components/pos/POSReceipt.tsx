@@ -179,7 +179,7 @@ export const POSReceipt = forwardRef<HTMLDivElement, ReceiptProps>(({
           <div className="mt-4 pt-3 border-t border-dashed border-black text-center">
             <p className="text-[16px] font-black mb-3">สแกน QR ชำระเงิน</p>
             <div className="flex justify-center">
-              <img crossOrigin="anonymous" src={receiptPaymentQrImage} alt="Payment QR" className="w-[180px] h-auto object-contain" />
+              <img  src={receiptPaymentQrImage} alt="Payment QR" className="w-[180px] h-auto object-contain" />
             </div>
           </div>
         )}

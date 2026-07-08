@@ -135,7 +135,7 @@ export default function AdminStaffVerificationPage() {
               <div key={staff.id} className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex flex-col lg:flex-row gap-8">
                 {/* ID Photo Preview */}
                 <div className="w-full lg:w-72 aspect-video lg:aspect-square bg-gray-50 rounded-2xl overflow-hidden relative group">
-                  <img crossOrigin="anonymous" src={staff.id_card_photo_url} alt="ID Card" className="w-full h-full object-cover" />
+                  <img  src={staff.id_card_photo_url} alt="ID Card" className="w-full h-full object-cover" />
                   <a 
                     href={staff.id_card_photo_url} 
                     target="_blank" 

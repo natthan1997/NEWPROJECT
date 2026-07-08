@@ -84,7 +84,7 @@ const CustomerMarketplace: React.FC<CustomerMarketplaceProps> = ({
                 className="customer-editorial-card !p-6 text-left group transition-all hover:scale-[1.02] active:scale-95"
               >
                 <div className="aspect-[4/5] bg-[#FAFAFA] mb-8 overflow-hidden rounded-none border border-black/[0.03]">
-                  <img crossOrigin="anonymous" 
+                  <img  
                     src={getSafePlantImage(plant)} 
                     alt={plant.name} 
                     className="h-full w-full object-cover transition-all duration-1000" 

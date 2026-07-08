@@ -537,7 +537,7 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
                          return (
                          <div key={item.id} className={`group bg-white border flex flex-col transition-all overflow-hidden rounded-2xl ${!currentStatus ? 'border-red-200 bg-red-50/30 opacity-80' : 'border-[#E5E5DF] hover:shadow-2xl hover:-translate-y-1'}`}>
                              <div className="aspect-[4/3] bg-gray-50 overflow-hidden relative">
-                                 {item.image_url ? <img crossOrigin="anonymous" src={item.image_url} className={`w-full h-full object-cover transition-transform duration-700 ${!currentStatus ? 'grayscale' : 'group-hover:scale-105'}`} /> : <div className="w-full h-full flex items-center justify-center"><ImageIcon size={32} className="text-gray-200" /></div>}
+                                 {item.image_url ? <img  src={item.image_url ? `${item.image_url}?cb=2` : ''} className={`w-full h-full object-cover transition-transform duration-700 ${!currentStatus ? 'grayscale' : 'group-hover:scale-105'}`} /> : <div className="w-full h-full flex items-center justify-center"><ImageIcon size={32} className="text-gray-200" /></div>}
                                  {!currentStatus && (
                                      <div className="absolute inset-0 bg-red-900/20 flex items-center justify-center backdrop-blur-[2px]">
                                          <div className="bg-red-600 text-white px-5 py-2 font-black tracking-[0.2em] uppercase text-sm -rotate-12 shadow-2xl border-2 border-red-400/50">SOLD OUT</div>
@@ -614,7 +614,7 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
                        <div key={item.id} className="group relative flex flex-col bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer" onClick={() => { setEditingItem(item); fetchItemLinks(item.id); setIsEditorOpen(true); }}>
                            <div className="aspect-square relative overflow-hidden bg-gray-50">
                                {item.image_url ? (
-                                   <img crossOrigin="anonymous" src={item.image_url} alt={item.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                   <img  src={item.image_url ? `${item.image_url}?cb=2` : ''} alt={item.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                                ) : (
                                    <div className="w-full h-full flex items-center justify-center text-gray-300 bg-gray-50/50 group-hover:bg-gray-100 transition-colors">
                                        <ImageIcon size={32} />
@@ -723,7 +723,7 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
                                 <MenuIcon size={14} />
                               </div>
                               <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border border-[#F0F0E8] bg-gray-50">
-                                {item.image_url ? <img crossOrigin="anonymous" src={item.image_url} className="h-full w-full object-cover" /> : <ImageIcon size={16} className="text-gray-300" />}
+                                {item.image_url ? <img  src={item.image_url ? `${item.image_url}?cb=2` : ''} className="h-full w-full object-cover" /> : <ImageIcon size={16} className="text-gray-300" />}
                               </div>
                               <div className="min-w-0 flex-1">
                                 <div className="truncate text-sm font-black text-[#1A1A18]">{getPrimaryMenuName(item)}</div>
@@ -820,7 +820,7 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
                                                     <td className="p-4 text-center">
                                                         <div className="relative w-12 h-12 rounded-xl bg-gray-100 overflow-hidden mx-auto shadow-sm group-hover:shadow transition-all">
                                                             {item.image_url ? (
-                                                                <img crossOrigin="anonymous" src={item.image_url} className="w-full h-full object-cover" />
+                                                                <img  src={item.image_url ? `${item.image_url}?cb=2` : ''} className="w-full h-full object-cover" />
                                                             ) : (
                                                                 <div className="w-full h-full flex items-center justify-center text-gray-300"><ImageIcon size={14} /></div>
                                                             )}
@@ -1183,7 +1183,7 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
                               <div className="aspect-video bg-gray-50 border border-dashed border-gray-200 flex items-center justify-center relative overflow-hidden group">
                                   {editingItem.image_url ? (
                                       <>
-                                          <img crossOrigin="anonymous" src={editingItem.image_url} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                                          <img  src={editingItem.image_url ? `${editingItem.image_url}?cb=2` : ''} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                                           <button 
                                               onClick={() => setEditingItem({...editingItem, image_url: null})}
                                               className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-md shadow-xl text-red-500 hover:bg-white transition-all"

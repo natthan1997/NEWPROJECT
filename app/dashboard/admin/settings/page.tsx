@@ -601,7 +601,7 @@ export default function AdminSettingsPage() {
                                                                                         onClick={() => handleSelectBankIcon(option.code)}
                                                                                         className={`flex items-center gap-3 border p-3 text-left transition-colors ${selected ? 'border-[#111111] bg-[#F5F5F5]' : 'border-[#E5E5E5] bg-white hover:border-[#BDBDBD]'}`}
                                                                                     >
-                                                                                        <img crossOrigin="anonymous" src={option.icon} alt={option.label} className="w-10 h-10 rounded-full object-cover border border-[#E5E5E5]" />
+                                                                                        <img  src={option.icon} alt={option.label} className="w-10 h-10 rounded-full object-cover border border-[#E5E5E5]" />
                                                                                         <div>
                                                                                             <p className="text-sm font-semibold text-[#111111]">{option.label}</p>
                                                                                             <p className="text-xs text-[#666666]">{locale === 'en' ? 'ใช้เป็นไอคอนในใบเสนอราคา/ใบแจ้งหนี้' : locale === 'zh' ? 'ใช้เป็นไอคอนในใบเสนอราคา/ใบแจ้งหนี้' : 'ใช้เป็นไอคอนในใบเสนอราคา/ใบแจ้งหนี้'}</p>
@@ -657,7 +657,7 @@ export default function AdminSettingsPage() {
                                         <p className="font-bold text-xs uppercase tracking-wider mb-2 text-green-800">Payment Details</p>
                                         <div className="flex flex-col gap-1">
                                             <div className="flex items-center gap-2">
-                                                {financialInfo.bank_icon ? <img crossOrigin="anonymous" src={financialInfo.bank_icon} alt={financialInfo.bank_name} className="w-6 h-6 rounded-full object-cover border border-green-200" /> : null}
+                                                {financialInfo.bank_icon ? <img  src={financialInfo.bank_icon} alt={financialInfo.bank_name} className="w-6 h-6 rounded-full object-cover border border-green-200" /> : null}
                                                 <p><span className="font-semibold">{financialInfo.bank_name}</span></p>
                                             </div>
                                             <p>{locale === 'en' ? 'เลขที่บัญชี: ' : locale === 'zh' ? 'เลขที่บัญชี: ' : 'เลขที่บัญชี: '}<span className="font-mono font-bold">{financialInfo.account_no}</span></p>

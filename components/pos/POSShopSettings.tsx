@@ -579,7 +579,7 @@ export default function POSShopSettings({
                                                 {settings.receipt_payment_qr_image && (
                                                     <div className="bg-white rounded-2xl border border-gray-200 p-4 flex items-center gap-4">
                                                         <div className="w-20 h-20 rounded-xl border border-gray-200 bg-white overflow-hidden flex items-center justify-center shrink-0">
-                                                            <img crossOrigin="anonymous" src={settings.receipt_payment_qr_image} alt="QR preview" className="max-w-full max-h-full object-contain" />
+                                                            <img  src={settings.receipt_payment_qr_image} alt="QR preview" className="max-w-full max-h-full object-contain" />
                                                         </div>
                                                         <div className="min-w-0">
                                                             <div className="text-[12px] font-black text-gray-900 mb-1">ตัวอย่าง QR</div>

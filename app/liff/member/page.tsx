@@ -376,7 +376,7 @@ const fetchData = async () => {
             <div className="flex items-center gap-4 mb-8">
               <div className="w-12 h-12 rounded-full bg-white/60 overflow-hidden flex items-center justify-center flex-shrink-0">
                 {lineProfile?.pictureUrl ? (
-                  <img crossOrigin="anonymous" src={lineProfile.pictureUrl} alt={lineProfile.displayName} className="w-full h-full object-cover" />
+                  <img  src={lineProfile.pictureUrl} alt={lineProfile.displayName} className="w-full h-full object-cover" />
                 ) : (
                   <User size={20} className={currentTier.text} />
                 )}

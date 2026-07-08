@@ -128,7 +128,7 @@ export default function StaffVerificationPage() {
               <div className="relative aspect-video rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 flex flex-col items-center justify-center overflow-hidden group hover:border-black transition-all">
                 {idCardPhotoUrl ? (
                   <>
-                    <img crossOrigin="anonymous" src={idCardPhotoUrl} alt="ID Card" className="w-full h-full object-cover" />
+                    <img  src={idCardPhotoUrl} alt="ID Card" className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
                        <label className="cursor-pointer bg-white text-black px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest">{locale === 'en' ? 'change shape' : locale === 'zh' ? '改变形状' : 'เปลี่ยนรูป'}</label>
                     </div>

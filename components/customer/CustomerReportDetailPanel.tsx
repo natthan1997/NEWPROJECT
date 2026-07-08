@@ -142,13 +142,13 @@ export default function CustomerReportDetailPanel({ report, actions, onRate, onI
                      <div className="grid grid-cols-3 gap-2">
                         {(zone as any).beforePhotos?.map((p: string, i: number) => (
                            <div key={i} onClick={() => setSelectedImage(getSafeImageUrl(p))} className="relative aspect-square bg-white border border-[#F0F0F0] p-1 rounded-none cursor-pointer">
-                              <img crossOrigin="anonymous" src={getSafeImageUrl(p)} alt="B" className="w-full h-full object-cover grayscale-[0.2]" />
+                              <img  src={getSafeImageUrl(p)} alt="B" className="w-full h-full object-cover grayscale-[0.2]" />
                               <div className="absolute top-2 left-2 bg-black/40 text-white text-[5px] font-black uppercase px-1 py-0.5 pointer-events-none">{locale === 'en' ? 'ก่อนทำ' : locale === 'zh' ? 'ก่อนทำ' : 'ก่อนทำ'}</div>
                            </div>
                         ))}
                         {(zone as any).afterPhotos?.map((p: string, i: number) => (
                            <div key={i} onClick={() => setSelectedImage(getSafeImageUrl(p))} className="relative aspect-square bg-white border border-[#EAEAEA] p-1 rounded-none shadow-sm cursor-pointer">
-                              <img crossOrigin="anonymous" src={getSafeImageUrl(p)} alt="A" className="w-full h-full object-cover" />
+                              <img  src={getSafeImageUrl(p)} alt="A" className="w-full h-full object-cover" />
                               <div className="absolute top-2 left-2 bg-[#AF907A] text-white text-[5px] font-black uppercase px-1 py-0.5 pointer-events-none">{locale === 'en' ? 'หลังทำ' : locale === 'zh' ? 'หลังทำ' : 'หลังทำ'}</div>
                            </div>
                         ))}
@@ -163,12 +163,12 @@ export default function CustomerReportDetailPanel({ report, actions, onRate, onI
                   <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
                      {report.beforePhotos.map((p, i) => (
                         <div key={i} onClick={() => setSelectedImage(getSafeImageUrl(p))} className="relative aspect-square bg-white border border-[#F0F0F0] p-1 rounded-none opacity-80 cursor-pointer">
-                           <img crossOrigin="anonymous" src={getSafeImageUrl(p)} alt="B" className="w-full h-full object-cover" />
+                           <img  src={getSafeImageUrl(p)} alt="B" className="w-full h-full object-cover" />
                         </div>
                      ))}
                      {report.afterPhotos.map((p, i) => (
                         <div key={i} onClick={() => setSelectedImage(getSafeImageUrl(p))} className="relative aspect-square bg-white border border-[#EAEAEA] p-1 rounded-none shadow-sm cursor-pointer">
-                           <img crossOrigin="anonymous" src={getSafeImageUrl(p)} alt="A" className="w-full h-full object-cover" />
+                           <img  src={getSafeImageUrl(p)} alt="A" className="w-full h-full object-cover" />
                         </div>
                      ))}
                   </div>

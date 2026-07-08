@@ -472,7 +472,7 @@ export default function AddHouseQuickPage() {
               <label className="flex flex-col items-center justify-center border-2 border-dashed border-[#E5E5E5] p-8 cursor-pointer hover:border-[#111111] transition-colors bg-[var(--customer-paper)]">
                 {formData.imagePreview ? (
                   <div className="relative w-full h-48">
-                    <img crossOrigin="anonymous" src={formData.imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                    <img  src={formData.imagePreview} alt="Preview" className="w-full h-full object-cover" />
                     <button 
                       type="button"
                       onClick={(e) => {
