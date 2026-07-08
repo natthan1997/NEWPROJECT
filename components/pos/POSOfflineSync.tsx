@@ -154,42 +154,45 @@ export default function POSOfflineSync({ isDark = false, className = '' }: { isD
   }, [isOnline]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-[10px] font-black tracking-widest uppercase transition-colors ${isDark ? 'bg-white/10 text-white border border-white/20' : 'bg-[#E5E5DF]/30 text-black border border-[#E5E5DF]'} ${className}`}>
+    <div className={`flex items-center justify-center gap-2.5 px-2.5 py-1.5 rounded-md transition-all ${isDark ? 'bg-white/5 border border-white/10' : 'bg-[#E5E5DF]/30 border border-[#E5E5DF]'} ${className}`}>
       {isOnline ? (
-        <div className="flex items-center gap-1.5 text-green-400">
+        <div className="text-green-500 flex items-center justify-center" title="Online">
           <Wifi className="w-3.5 h-3.5" />
-          <span>Online</span>
         </div>
       ) : (
-        <div className="flex items-center gap-1.5 text-red-400">
+        <div className="text-red-500 flex items-center justify-center" title="Offline">
           <WifiOff className="w-3.5 h-3.5" />
-          <span>Offline</span>
         </div>
       )}
       
-      <div className={`w-px h-3 mx-1 ${isDark ? 'bg-white/20' : 'bg-[#E5E5DF]'}`} />
+      <div className={`w-px h-3 ${isDark ? 'bg-white/20' : 'bg-black/10'}`} />
 
       {pendingCount > 0 ? (
-        <div className="flex items-center gap-1.5 text-yellow-400">
+        <div className="relative text-yellow-500 flex items-center justify-center" title={`${pendingCount} รอซิงค์`}>
           <AlertCircle className="w-3.5 h-3.5" />
-          <span>{pendingCount} รอซิงค์</span>
+          <span className="absolute -top-1 -right-1 flex h-1.5 w-1.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-yellow-500"></span>
+          </span>
         </div>
       ) : (
-        <div className="flex items-center gap-1.5 text-green-400">
+        <div className="text-green-500 flex items-center justify-center" title={`ซิงค์ล่าสุด ${lastSync ? lastSync.toLocaleTimeString('th-TH') : 'เพิ่งซิงค์'}`}>
           <CheckCircle2 className="w-3.5 h-3.5" />
-          <span>ซิงค์ล่าสุด {lastSync ? lastSync.toLocaleTimeString('th-TH') : 'เพิ่งซิงค์'}</span>
         </div>
       )}
       
       {isOnline && (
-        <button
-          onClick={handleSync}
-          disabled={isSyncing}
-          className={`ml-1 p-1 rounded hover:bg-white/10 transition-colors ${isSyncing ? 'animate-spin opacity-50' : ''}`}
-          title="บังคับซิงค์ข้อมูล"
-        >
-          <RefreshCcw className="w-3.5 h-3.5" />
-        </button>
+        <>
+          <div className={`w-px h-3 ${isDark ? 'bg-white/20' : 'bg-black/10'}`} />
+          <button
+            onClick={handleSync}
+            disabled={isSyncing}
+            className={`p-1 -m-1 rounded-sm transition-colors flex items-center justify-center ${isDark ? 'hover:bg-white/20 text-white/60 hover:text-white' : 'hover:bg-black/10 text-black/50 hover:text-black'} ${isSyncing ? 'animate-spin opacity-50' : ''}`}
+            title="บังคับซิงค์ข้อมูล"
+          >
+            <RefreshCcw className="w-3.5 h-3.5" />
+          </button>
+        </>
       )}
     </div>
   )
