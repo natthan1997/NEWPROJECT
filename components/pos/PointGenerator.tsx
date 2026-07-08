@@ -248,7 +248,7 @@ export default function PointGenerator({ onClose }: { onClose?: () => void }) {
               {/* QR Code */}
               {token && (
                 <div className={`bg-white p-6 rounded-[24px] shadow-xl border-4 transition-all duration-500 mb-8 w-[240px] h-[240px] relative ${isClaimed ? 'border-emerald-500 scale-105' : 'border-transparent'}`}>
-                   <img src={qrUrl!} alt="QR Code" className={`w-full h-full object-contain transition-opacity duration-500 ${isClaimed ? 'opacity-20' : 'opacity-100'}`} />
+                   <img crossOrigin="anonymous" src={qrUrl!} alt="QR Code" className={`w-full h-full object-contain transition-opacity duration-500 ${isClaimed ? 'opacity-20' : 'opacity-100'}`} />
                    {isClaimed && (
                      <div className="absolute inset-0 flex items-center justify-center">
                        <CheckCircle2 size={80} className="text-emerald-500 animate-in zoom-in duration-500 delay-150" />

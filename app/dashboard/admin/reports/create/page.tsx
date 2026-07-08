@@ -671,7 +671,7 @@ export default function AdminBatchReportPage() {
                           <div className="flex flex-wrap gap-2">
                             {data.beforePhotos.map((url, i) => (
                               <div key={i} className="group relative h-20 w-20 overflow-hidden rounded-xl border border-gray-100 shadow-sm">
-                                <img src={url} className="h-full w-full object-cover" />
+                                <img crossOrigin="anonymous" src={url} className="h-full w-full object-cover" />
                                 <button onClick={() => removePhoto(orderId, 'before', i)} className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity text-white">
                                   <Trash2 size={16} />
                                 </button>
@@ -688,7 +688,7 @@ export default function AdminBatchReportPage() {
                           <div className="flex flex-wrap gap-2">
                             {data.afterPhotos.map((url, i) => (
                               <div key={i} className="group relative h-20 w-20 overflow-hidden rounded-xl border border-gray-100 shadow-sm">
-                                <img src={url} className="h-full w-full object-cover" />
+                                <img crossOrigin="anonymous" src={url} className="h-full w-full object-cover" />
                                 <button onClick={() => removePhoto(orderId, 'after', i)} className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity text-white">
                                   <Trash2 size={16} />
                                 </button>
@@ -753,7 +753,7 @@ export default function AdminBatchReportPage() {
                                   <div className="flex flex-wrap gap-2">
                                     {zone.beforePhotos?.map((url, pIdx) => (
                                       <div key={pIdx} className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200 relative group shadow-sm">
-                                        <img src={url} className="w-full h-full object-cover" />
+                                        <img crossOrigin="anonymous" src={url} className="w-full h-full object-cover" />
                                         <button onClick={() => handleUpdateZone(orderId, zone.id, { beforePhotos: (zone.beforePhotos || []).filter((_, i) => i !== pIdx) })} className="absolute inset-0 bg-black/40 items-center justify-center hidden group-hover:flex text-white">
                                           <X size={12} />
                                         </button>
@@ -770,7 +770,7 @@ export default function AdminBatchReportPage() {
                                   <div className="flex flex-wrap gap-2">
                                     {zone.afterPhotos?.map((url, pIdx) => (
                                       <div key={pIdx} className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200 relative group shadow-sm">
-                                        <img src={url} className="w-full h-full object-cover" />
+                                        <img crossOrigin="anonymous" src={url} className="w-full h-full object-cover" />
                                         <button onClick={() => handleUpdateZone(orderId, zone.id, { afterPhotos: (zone.afterPhotos || []).filter((_, i) => i !== pIdx) })} className="absolute inset-0 bg-black/40 items-center justify-center hidden group-hover:flex text-white">
                                           <X size={12} />
                                         </button>

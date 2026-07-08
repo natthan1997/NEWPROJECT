@@ -726,7 +726,7 @@ export default function HouseDetailPage() {
              transition={{ duration: 1.5, ease: [0.19, 1, 0.22, 1] }}
              className="absolute inset-0 bg-[#FAFAFA]"
            >
-              <img 
+              <img crossOrigin="anonymous" 
                         src={house.image_url || "/assets/default-house.png"}
                 className="w-full h-full object-cover grayscale-[0.2] brightness-90"
                 alt="House Hero"
@@ -1150,7 +1150,7 @@ const ShareModal = ({
                  <div className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-[#FAFAFA] border border-[#EAEAEA] rounded-none gap-4 hover:shadow-sm transition-all duration-300">
                     <div className="flex items-center gap-4">
                        {(myRole === 'owner' && (currentUserProfile as any)?.avatar_url) ? (
-                          <img src={(currentUserProfile as any).avatar_url} alt="avatar" className="h-10 w-10 shrink-0 rounded-none object-cover" />
+                          <img crossOrigin="anonymous" src={(currentUserProfile as any).avatar_url} alt="avatar" className="h-10 w-10 shrink-0 rounded-none object-cover" />
                        ) : (
                           <div className="h-10 w-10 shrink-0 rounded-none bg-[#1A3626] flex items-center justify-center text-white text-[12px] font-bold">
                              {(house?.customer_name || (myRole === 'owner' ? currentUserProfile?.display_name : '') || 'Owner').substring(0, 1).toUpperCase()}
@@ -1173,7 +1173,7 @@ const ShareModal = ({
                     <div key={c.id} className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-white border border-[#EAEAEA] rounded-none gap-4 hover:shadow-sm transition-all duration-300">
                        <div className="flex items-center gap-4">
                           {c.profiles?.avatar_url ? (
-                             <img src={c.profiles.avatar_url} alt="avatar" className="h-10 w-10 shrink-0 rounded-none object-cover" />
+                             <img crossOrigin="anonymous" src={c.profiles.avatar_url} alt="avatar" className="h-10 w-10 shrink-0 rounded-none object-cover" />
                           ) : (
                              <div className="h-10 w-10 shrink-0 rounded-none bg-[#F5F5F5] flex items-center justify-center text-[#A3A3A3] text-[12px] font-bold uppercase">
                                 {displayName.substring(0, 1).toUpperCase()}

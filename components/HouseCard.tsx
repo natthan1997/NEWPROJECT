@@ -24,7 +24,7 @@ export default function HouseCard({
     <div className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
       {imageUrl && (
         <div className="h-48 bg-gray-200">
-          <img 
+          <img crossOrigin="anonymous" 
             src={imageUrl} 
             alt={house.name}
             className="w-full h-full object-cover"

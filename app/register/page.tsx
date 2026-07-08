@@ -339,7 +339,7 @@ export default function Register() {
           </div>
 
           <div className="relative hidden w-[55%] lg:block overflow-hidden bg-[#FAFAFA]">
-             <img src="https://images.unsplash.com/photo-1597055181300-e3633a207519?q=80&w=2000&auto=format&fit=crop" className="h-full w-full object-cover grayscale-[0.2] transition-transform duration-[60s] hover:scale-110" />
+             <img crossOrigin="anonymous" src="https://images.unsplash.com/photo-1597055181300-e3633a207519?q=80&w=2000&auto=format&fit=crop" className="h-full w-full object-cover grayscale-[0.2] transition-transform duration-[60s] hover:scale-110" />
              <div className="absolute inset-0 bg-gradient-to-r from-black/10 via-transparent to-transparent" />
              <div className="absolute top-20 right-20 fade-in delay-200">
                 <div className="bg-white p-12 border border-black shadow-2xl max-w-[300px]">

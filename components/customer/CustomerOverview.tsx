@@ -606,7 +606,7 @@ const CustomerOverview: React.FC<CustomerOverviewProps> = ({
                 <div className="flex items-center gap-3 flex-shrink-0">
                   {thumbnail && (
                     <div className="w-10 h-10 overflow-hidden grayscale-[20%] border border-[#E5E5E5]">
-                      <img src={thumbnail} alt="" className="w-full h-full object-cover" />
+                      <img crossOrigin="anonymous" src={thumbnail} alt="" className="w-full h-full object-cover" />
                     </div>
                   )}
                   <span className="text-[10px] font-bold tracking-widest text-[#1A1A1A] uppercase hidden sm:block">
@@ -666,7 +666,7 @@ const CustomerOverview: React.FC<CustomerOverviewProps> = ({
                     >
                       {loc.image && (
                         <div className="w-20 h-20 bg-[#E5E5E5] overflow-hidden flex-shrink-0 grayscale-[30%]">
-                          <img src={loc.image} alt={loc.name} className="w-full h-full object-cover" />
+                          <img crossOrigin="anonymous" src={loc.image} alt={loc.name} className="w-full h-full object-cover" />
                         </div>
                       )}
                       <div className="flex-1 py-1 flex flex-col min-w-0">
@@ -727,7 +727,7 @@ const CustomerOverview: React.FC<CustomerOverviewProps> = ({
                   >
                     <div className="w-20 h-20 overflow-hidden flex-shrink-0 bg-[#F5F5F5]">
                       {srv.image
-                        ? <img src={srv.image} alt={srv.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                        ? <img crossOrigin="anonymous" src={srv.image} alt={srv.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                         : <srv.icon size={28} strokeWidth={1.5} className="m-auto mt-6 text-[#737373]" />
                       }
                     </div>
@@ -749,7 +749,7 @@ const CustomerOverview: React.FC<CustomerOverviewProps> = ({
             <div className="flex flex-col bg-[#FAFAFA] pb-12">
               <div className="relative w-full aspect-[4/3] bg-[#E5E5E5] overflow-hidden">
                 {selectedService.image
-                  ? <img src={selectedService.image} alt={selectedService.title} className="absolute inset-0 w-full h-full object-cover grayscale-[15%]" />
+                  ? <img crossOrigin="anonymous" src={selectedService.image} alt={selectedService.title} className="absolute inset-0 w-full h-full object-cover grayscale-[15%]" />
                   : (
                     <div className="absolute inset-0 bg-[#2E3526] flex items-center justify-center">
                       <selectedService.icon size={48} strokeWidth={1} className="text-white/40" />

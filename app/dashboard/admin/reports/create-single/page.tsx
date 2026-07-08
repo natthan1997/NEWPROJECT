@@ -480,7 +480,7 @@ export default function AdminCreateSingleReportPage() {
                         <div className="flex flex-wrap gap-2">
                           {zone.beforePhotos?.map((url: string, pIdx: number) => (
                             <div key={pIdx} className="w-16 h-16 rounded-xl border border-gray-200 overflow-hidden relative group shadow-sm">
-                              <img src={url} className="w-full h-full object-cover" />
+                              <img crossOrigin="anonymous" src={url} className="w-full h-full object-cover" />
                               <button 
                                 onClick={() => handleUpdateZone(zone.id, { beforePhotos: zone.beforePhotos.filter((_: any, i: number) => i !== pIdx) })}
                                 className="absolute inset-0 bg-black/40 items-center justify-center hidden group-hover:flex text-white"
@@ -500,7 +500,7 @@ export default function AdminCreateSingleReportPage() {
                         <div className="flex flex-wrap gap-2">
                           {zone.afterPhotos?.map((url: string, pIdx: number) => (
                             <div key={pIdx} className="w-16 h-16 rounded-xl border border-gray-200 overflow-hidden relative group shadow-sm">
-                              <img src={url} className="w-full h-full object-cover" />
+                              <img crossOrigin="anonymous" src={url} className="w-full h-full object-cover" />
                               <button 
                                 onClick={() => handleUpdateZone(zone.id, { afterPhotos: zone.afterPhotos.filter((_: any, i: number) => i !== pIdx) })}
                                 className="absolute inset-0 bg-black/40 items-center justify-center hidden group-hover:flex text-white"

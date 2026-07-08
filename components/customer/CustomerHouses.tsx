@@ -96,7 +96,7 @@ const CustomerHouses: React.FC<CustomerHousesProps> = ({
                 <div className="flex items-center gap-4 md:gap-5 min-w-0 flex-1">
                   <div className="relative w-20 h-20 md:w-24 md:h-24 rounded-2xl overflow-hidden bg-[#FAFAFA] border border-[#EFEFEF] flex-shrink-0">
                     {h.image_url ? (
-                      <img src={h.image_url} alt={h.name} className="w-full h-full object-cover" />
+                      <img crossOrigin="anonymous" src={h.image_url} alt={h.name} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-[#111111]/20 bg-[#F9F9F9]">
                         <Home size={28} strokeWidth={1} />

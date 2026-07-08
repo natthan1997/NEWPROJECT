@@ -285,7 +285,7 @@ export default function POSMemberManager({
                                     <div className="flex items-center gap-4 font-bold">
                                         <div className={`w-10 h-10 rounded-none flex items-center justify-center text-xs font-black transition-all overflow-hidden ${selectedMember?.id === member.id ? 'bg-[#1A1A18] text-white' : 'bg-white border border-[#F0F0E8] text-gray-400'}`}>
                                             {member.avatar_url ? (
-                                                <img src={member.avatar_url} alt={member.display_name || 'Member'} className="w-full h-full object-cover" />
+                                                <img crossOrigin="anonymous" src={member.avatar_url} alt={member.display_name || 'Member'} className="w-full h-full object-cover" />
                                             ) : (
                                                 (member.display_name || member.full_name || 'M').slice(0, 1)
                                             )}
@@ -331,7 +331,7 @@ export default function POSMemberManager({
                                     <div className="flex flex-col sm:flex-row items-center gap-8 font-bold w-full lg:w-auto">
                                         <div className="w-24 h-24 sm:w-28 sm:h-28 bg-white border-2 border-white shadow-2xl flex items-center justify-center text-3xl font-black overflow-hidden shrink-0">
                                             {selectedMember.avatar_url ? (
-                                                <img src={selectedMember.avatar_url} alt={selectedMember.display_name || 'Member'} className="w-full h-full object-cover" />
+                                                <img crossOrigin="anonymous" src={selectedMember.avatar_url} alt={selectedMember.display_name || 'Member'} className="w-full h-full object-cover" />
                                             ) : (
                                                 (selectedMember.display_name || selectedMember.full_name || 'M').slice(0, 1)
                                             )}

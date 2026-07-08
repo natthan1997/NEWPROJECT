@@ -706,7 +706,7 @@ export default function AdminOrderDetailPage({ params }: { params: { orderId: st
                             <div className="grid grid-cols-2 gap-1">
                               {before.slice(0, 6).map((url: string) => (
                                 <a key={url} href={url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg border border-gray-200">
-                                  <img src={url} alt="before" className="h-16 w-full object-cover" />
+                                  <img crossOrigin="anonymous" src={url} alt="before" className="h-16 w-full object-cover" />
                                 </a>
                               ))}
                             </div>
@@ -716,7 +716,7 @@ export default function AdminOrderDetailPage({ params }: { params: { orderId: st
                             <div className="grid grid-cols-2 gap-1">
                               {after.slice(0, 6).map((url: string) => (
                                 <a key={url} href={url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg border border-gray-200">
-                                  <img src={url} alt="after" className="h-16 w-full object-cover" />
+                                  <img crossOrigin="anonymous" src={url} alt="after" className="h-16 w-full object-cover" />
                                 </a>
                               ))}
                             </div>

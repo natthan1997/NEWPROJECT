@@ -220,7 +220,7 @@ export default function Login() {
               className="w-full py-4 bg-white border border-zinc-900 text-zinc-900 text-[10px] font-bold tracking-[0.4em] uppercase flex justify-center items-center gap-4 hover:bg-zinc-50 transition-all mb-2 shadow-sm active:scale-[0.98]"
             >
               {lineLoading ? <Loader2 className="w-4 h-4 animate-spin text-zinc-400" /> : (
-                <img src="https://upload.wikimedia.org/wikipedia/commons/4/41/LINE_logo.svg" alt="LINE" className="w-[18px] h-[18px]" />
+                <img crossOrigin="anonymous" src="https://upload.wikimedia.org/wikipedia/commons/4/41/LINE_logo.svg" alt="LINE" className="w-[18px] h-[18px]" />
               )}
               {locale === 'en' ? '               เข้าสู่ระบบด้วย LINE             ' : locale === 'zh' ? '               เข้าสู่ระบบด้วย LINE             ' : '               เข้าสู่ระบบด้วย LINE             '}</button>
           </div>

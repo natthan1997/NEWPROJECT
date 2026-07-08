@@ -609,7 +609,7 @@ export default function StaffProfile() {
                                 <div className="relative aspect-video rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 flex flex-col items-center justify-center overflow-hidden group hover:border-black transition-all">
                                     {verificationData.id_card_photo_url ? (
                                         <>
-                                            <img src={verificationData.id_card_photo_url} alt="ID Card" className="w-full h-full object-cover" />
+                                            <img crossOrigin="anonymous" src={verificationData.id_card_photo_url} alt="ID Card" className="w-full h-full object-cover" />
                                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
                                                 <label className="cursor-pointer bg-white text-black px-4 py-2 rounded-lg text-[10px] font-black uppercase">{locale === 'en' ? 'change shape' : locale === 'zh' ? '改变形状' : 'เปลี่ยนรูป'}</label>
                                             </div>

@@ -783,7 +783,7 @@ export default function AdminMarketplacePage() {
                         <div className="flex items-center gap-4">
                           <div className="h-16 w-12 overflow-hidden bg-[#F0EFEA]">
                             {plant.image_url ? (
-                              <img src={plant.image_url} alt={plant.name} className="h-full w-full object-cover" />
+                              <img crossOrigin="anonymous" src={plant.image_url} alt={plant.name} className="h-full w-full object-cover" />
                             ) : (
                               <div className="flex h-full w-full items-center justify-center text-[10px] text-[#A5A39E]">{pickLocalizedText(locale, copy.noImage)}</div>
                             )}
@@ -1030,7 +1030,7 @@ export default function AdminMarketplacePage() {
                         </div>
                         <div className="h-28 w-28 overflow-hidden border border-[#E8E6E1] bg-[#F0EFEA]">
                           {form.image_url ? (
-                            <img src={form.image_url} alt="preview" className="h-full w-full object-cover" />
+                            <img crossOrigin="anonymous" src={form.image_url} alt="preview" className="h-full w-full object-cover" />
                           ) : (
                             <div className="flex h-full w-full items-center justify-center text-[10px] text-[#A5A39E]">{pickLocalizedText(locale, copy.noImage)}</div>
                           )}
@@ -1057,7 +1057,7 @@ export default function AdminMarketplacePage() {
                 <section className="overflow-hidden border border-[#E8E6E1] bg-white">
                   <div className="aspect-[4/3] bg-[#F0EFEA]">
                     {form.image_url ? (
-                      <img src={form.image_url} alt={form.name || 'preview'} className="h-full w-full object-cover" />
+                      <img crossOrigin="anonymous" src={form.image_url} alt={form.name || 'preview'} className="h-full w-full object-cover" />
                     ) : (
                       <div className="flex h-full items-center justify-center text-xs uppercase tracking-[0.2em] text-[#9C9B95]">{pickLocalizedText(locale, copy.noImage)}</div>
                     )}
