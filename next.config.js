@@ -9,8 +9,19 @@ const withPWA = require('@ducanh2912/next-pwa').default({
     disableDevLogs: true,
     runtimeCaching: [
       {
-        urlPattern: /pub-[a-zA-Z0-9-]+\.r2\.dev/i,
-        handler: 'NetworkOnly',
+        urlPattern: /^https:\/\/pub-[a-zA-Z0-9-]+\.r2\.dev\/.*/i,
+        handler: 'NetworkFirst',
+        options: {
+          cacheName: 'r2-images',
+          networkTimeoutSeconds: 10,
+          expiration: {
+            maxEntries: 200,
+            maxAgeSeconds: 30 * 24 * 60 * 60,
+          },
+          cacheableResponse: {
+            statuses: [200], // FIXED: Removed 0 to prevent caching opaque/broken responses
+          },
+        },
       },
     ],
   },
@@ -18,18 +29,6 @@ const withPWA = require('@ducanh2912/next-pwa').default({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: '*.r2.dev',
-      },
-      {
-        protocol: 'https',
-        hostname: '*.cloudflare.com',
-      }
-    ],
-  },
   // App Router is stable in Next.js 13.4+, no need for experimental.appDir
   eslint: {
     // Ignore ESLint during builds for rapid iteration
