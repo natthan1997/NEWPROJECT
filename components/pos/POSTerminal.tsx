@@ -3082,35 +3082,51 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                   className="flex h-16 flex-1 items-center justify-center gap-3 border border-[#1A1A18] text-[10px] font-black uppercase tracking-[0.3em] transition-all hover:bg-black hover:text-white disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400"
                 >
                   <Printer size={16} /> {isHeldOrderBaselineLoading ? 'กำลังเช็กบิลพัก' : !!editingOrderId && !hasUnsavedOrderChanges ? 'พักแล้ว เพิ่มรายการใหม่' : locale === 'en' ? 'พักบิล' : locale === 'zh' ? 'พักบิล' : 'พักบิล'}</button>
-                <button
-                  onClick={() => {
-                    if (orderType === 'dine_in' && !selectedTable) {
-                      fetchTables()
-                      refreshPendingOrders()
-                      setShowTableModal(true)
-                      return
-                    }
-                    if (orderType === 'delivery') {
-                      setShowDeliveryCheckoutModal(true)
-                      return
-                    }
-                    if (!selectedCustomer) {
-                      setMemberCheckoutStep('lookup')
-                      setMemberSearchQuery('')
-                      setShowMemberCheckoutFlow(true)
-                    } else {
-                      setMemberCheckoutStep('points')
-                      setRedeemPointsAmount('')
-                      setShowMemberCheckoutFlow(true)
-                    }
-                  }}
-                  className={`flex h-16 flex-[2] items-center justify-center gap-4 text-[11px] font-black uppercase tracking-[0.4em] text-white shadow-xl transition-all ${
-                    orderType === 'delivery' ? 'bg-orange-500 hover:bg-orange-600' : 'bg-[#1A1A18] hover:bg-black'
-                  }`}
-                >
-                  <span>{orderType === 'delivery' ? 'ยืนยันส่งออเดอร์' : locale === 'en' ? 'Checkout' : locale === 'zh' ? '结账' : 'ชำระเงิน'}</span>
-                  <ArrowRight size={18} />
-                </button>
+                {!!editingOrderId && cart.length === 0 ? (
+                  <button
+                    onClick={() => {
+                      handleDeleteOrder(editingOrderId)
+                      setCart([])
+                      setEditingOrderId(null)
+                      setSelectedTable(null)
+                      setOrderType('takeaway')
+                    }}
+                    className="flex h-16 flex-[2] items-center justify-center gap-4 text-[11px] font-black uppercase tracking-[0.4em] text-white shadow-xl transition-all bg-red-600 hover:bg-red-700"
+                  >
+                    <span>เคลียร์โต๊ะ (ยกเลิกบิล)</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      if (orderType === 'dine_in' && !selectedTable) {
+                        fetchTables()
+                        refreshPendingOrders()
+                        setShowTableModal(true)
+                        return
+                      }
+                      if (orderType === 'delivery') {
+                        setShowDeliveryCheckoutModal(true)
+                        return
+                      }
+                      if (!selectedCustomer) {
+                        setMemberCheckoutStep('lookup')
+                        setMemberSearchQuery('')
+                        setShowMemberCheckoutFlow(true)
+                      } else {
+                        setMemberCheckoutStep('points')
+                        setRedeemPointsAmount('')
+                        setShowMemberCheckoutFlow(true)
+                      }
+                    }}
+                    disabled={cart.length === 0}
+                    className={`flex h-16 flex-[2] items-center justify-center gap-4 text-[11px] font-black uppercase tracking-[0.4em] text-white shadow-xl transition-all ${
+                      cart.length === 0 ? 'bg-gray-400 cursor-not-allowed' : orderType === 'delivery' ? 'bg-orange-500 hover:bg-orange-600' : 'bg-[#1A1A18] hover:bg-black'
+                    }`}
+                  >
+                    <span>{orderType === 'delivery' ? 'ยืนยันส่งออเดอร์' : locale === 'en' ? 'Checkout' : locale === 'zh' ? '结账' : 'ชำระเงิน'}</span>
+                    <ArrowRight size={18} />
+                  </button>
+                )}
               </div>
             </footer>
         </div>
