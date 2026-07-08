@@ -1020,6 +1020,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         .from('pos_order_items')
         .select(`*, item:pos_menu_items!item_id(*)`)
         .eq('order_id', order.id)
+        .neq('status', 'cancelled')
 
       if (itemsError) throw itemsError
 
@@ -1154,6 +1155,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         .from('pos_order_items')
         .select(`*, item:pos_menu_items!item_id(*)`)
         .eq('order_id', editingOrderId)
+        .neq('status', 'cancelled')
       if (cancelled || !data) return
       const existingItems = data.map((row: any) => ({
         id: row.item_id,
@@ -1497,8 +1499,30 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             await supabase.from('pos_order_items').update({ status: 'cancelled' }).eq('id', existingItems[0].id);
           }
           
+          const newCart = cart.filter((i: any) => !(i.id === id && JSON.stringify(i.selected_modifiers) === JSON.stringify(modifiers)));
+          const newRawCartSubTotal = newCart.reduce((acc: number, item: any) => {
+            const modsPrice = item.selected_modifiers?.reduce((ma: number, m: any) => ma + ((m.price_adjustment || 0) * (m.qty || 1)), 0) || 0;
+            const basePrice = Number(orderType === 'delivery' && deliveryPlatform ? (item.platform_price || item.sale_price || item.price || 0) : (item.sale_price || item.price || 0));
+            return acc + ((basePrice + modsPrice) * item.quantity);
+          }, 0);
+          const newItemDiscountTotal = newCart.reduce((acc: number, item: any) => acc + (item.discount_amount || 0), 0);
+          const newCartSubTotal = newRawCartSubTotal - newItemDiscountTotal;
+          const newDiscountTotalValue = discountType === 'percent' ? newCartSubTotal * (discountRate / 100) : discountValue;
+          const newVatAmount = hasVat ? (newCartSubTotal - newDiscountTotalValue) * (vatRate / 100) : 0;
+          const newServiceChargeAmount = hasServiceCharge ? (newCartSubTotal - newDiscountTotalValue) * 0.1 : 0;
+          const newCartTotal = Math.max(0, Math.round(newCartSubTotal - newDiscountTotalValue + newVatAmount + newServiceChargeAmount));
+
+          const orderUpdatePayload = {
+            total_amount: newRawCartSubTotal,
+            net_total: newCartTotal,
+            tax_amount: newVatAmount,
+            service_charge_amount: newServiceChargeAmount,
+            discount_amount: newDiscountTotalValue + newItemDiscountTotal,
+            updated_at: new Date().toISOString()
+          };
+          
           // Trigger a realtime update by modifying pos_orders
-          await supabase.from('pos_orders').update({ updated_at: new Date().toISOString() }).eq('id', editingOrderId);
+          await supabase.from('pos_orders').update(orderUpdatePayload).eq('id', editingOrderId);
           playAppSound('notification'); // Optional sound confirmation
         }
       } catch (err) {
