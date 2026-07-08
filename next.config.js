@@ -1,29 +1,8 @@
 const withPWA = require('@ducanh2912/next-pwa').default({
   dest: 'public',
-  cacheOnFrontEndNav: true,
-  aggressiveFrontEndNavCaching: true,
-  reloadOnOnline: true,
-  swcMinify: true,
-  disable: process.env.NODE_ENV === 'development',
+  disable: true, // 🛑 ปิดระบบ PWA ถาวร เพื่อลบ Service Worker ที่มีปัญหาออกจากเครื่องลูกค้าทุกคน
   workboxOptions: {
     disableDevLogs: true,
-    runtimeCaching: [
-      {
-        urlPattern: /^https:\/\/pub-[a-zA-Z0-9-]+\.r2\.dev\/.*/i,
-        handler: 'NetworkFirst',
-        options: {
-          cacheName: 'r2-images',
-          networkTimeoutSeconds: 10,
-          expiration: {
-            maxEntries: 200,
-            maxAgeSeconds: 30 * 24 * 60 * 60,
-          },
-          cacheableResponse: {
-            statuses: [0, 200],
-          },
-        },
-      },
-    ],
   },
 })
 
