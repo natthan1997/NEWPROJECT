@@ -5,7 +5,7 @@ import { Wifi, WifiOff, RefreshCcw, CheckCircle2, AlertCircle } from 'lucide-rea
 import { supabase } from '@/lib/supabaseClient'
 import { db } from '@/lib/offlineDatabase'
 
-export default function POSOfflineSync() {
+export default function POSOfflineSync({ isDark = false, className = '' }: { isDark?: boolean, className?: string }) {
   const [isOnline, setIsOnline] = useState(true)
   const [isSyncing, setIsSyncing] = useState(false)
   const [pendingCount, setPendingCount] = useState(0)
@@ -154,7 +154,7 @@ export default function POSOfflineSync() {
   }, [isOnline]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-white/10 text-white border border-white/20">
+    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-[10px] font-black tracking-widest uppercase transition-colors ${isDark ? 'bg-white/10 text-white border border-white/20' : 'bg-[#E5E5DF]/30 text-black border border-[#E5E5DF]'} ${className}`}>
       {isOnline ? (
         <div className="flex items-center gap-1.5 text-green-400">
           <Wifi className="w-3.5 h-3.5" />
@@ -167,7 +167,7 @@ export default function POSOfflineSync() {
         </div>
       )}
       
-      <div className="w-px h-3 bg-white/20 mx-1" />
+      <div className={`w-px h-3 mx-1 ${isDark ? 'bg-white/20' : 'bg-[#E5E5DF]'}`} />
 
       {pendingCount > 0 ? (
         <div className="flex items-center gap-1.5 text-yellow-400">

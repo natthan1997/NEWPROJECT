@@ -60,6 +60,9 @@ export default function POSLayout({
                     <div className="flex flex-col font-bold overflow-hidden">
                         <span className={`text-[11px] sm:text-[13px] font-black uppercase tracking-tight truncate ${isDark ? 'text-white' : 'text-black'}`}>{profile?.full_name}</span>
                         <span className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mt-0.5">{locale === 'en' ? 'สาขา: ' : locale === 'zh' ? 'สาขา: ' : 'สาขา: '}{branchName || profile?.branch_code || 'MAIN'}</span>
+                        <div className="mt-2 -ml-1">
+                            <POSOfflineSync isDark={isDark} />
+                        </div>
                     </div>
                 </div>
             </header>
@@ -205,7 +208,6 @@ export default function POSLayout({
 
                 {/* HEADER SLOT FOR VIEW-SPECIFIC ACTIONS */}
                 <div className="flex items-center gap-4 sm:gap-6 font-bold">
-                    <POSOfflineSync />
                     {headerExtra}
                 </div>
             </header>
