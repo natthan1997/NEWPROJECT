@@ -7,6 +7,7 @@ import {
 import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
 import PointGenerator from './PointGenerator'
+import POSOfflineSync from './POSOfflineSync'
 import { useI18n } from "@/lib/I18nContext";
 
 interface POSLayoutProps {
@@ -204,6 +205,7 @@ export default function POSLayout({
 
                 {/* HEADER SLOT FOR VIEW-SPECIFIC ACTIONS */}
                 <div className="flex items-center gap-4 sm:gap-6 font-bold">
+                    <POSOfflineSync />
                     {headerExtra}
                 </div>
             </header>

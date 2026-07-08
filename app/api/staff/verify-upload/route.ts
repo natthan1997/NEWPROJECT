@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { uploadToR2 } from '@/lib/r2'
 
 // Initialize Supabase with Service Role Key
 const supabaseAdmin = createClient(
@@ -48,18 +49,15 @@ export async function POST(req: Request) {
       if (!file) return NextResponse.json({ error: 'Missing file' }, { status: 400 })
 
       const fileExt = file.name.split('.').pop()
-      const fileName = `verification/${profileId}_${Date.now()}.${fileExt}`
+      const fileName = `marketplace-images/verification/${profileId}_${Date.now()}.${fileExt}`
       const buffer = Buffer.from(await file.arrayBuffer())
 
-      const { data, error: uploadError } = await supabaseAdmin.storage
-        .from('marketplace-images')
-        .upload(fileName, buffer, { contentType: file.type, upsert: true })
-
-      if (uploadError) return NextResponse.json({ error: uploadError.message }, { status: 500 })
-
-      const { data: { publicUrl } } = supabaseAdmin.storage
-        .from('marketplace-images')
-        .getPublicUrl(fileName)
+      let publicUrl = ''
+      try {
+        publicUrl = await uploadToR2(buffer, fileName, file.type)
+      } catch (uploadError: any) {
+        return NextResponse.json({ error: uploadError?.message || 'Upload failed' }, { status: 500 })
+      }
 
       return NextResponse.json({ success: true, publicUrl })
     }
@@ -110,3 +108,4 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
+

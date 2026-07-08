@@ -31,6 +31,9 @@ export default function LiffMemberPage() {
   const [isLinkingPhone, setIsLinkingPhone] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showBenefits, setShowBenefits] = useState(false);
+  const [earnRate, setEarnRate] = useState(100);
+  const [showCatalog, setShowCatalog] = useState(false);
+  const [selectedBadge, setSelectedBadge] = useState<any>(null);
 
   const t = {
     th: {
@@ -52,7 +55,7 @@ export default function LiffMemberPage() {
       benefitsTitle: 'สิทธิประโยชน์',
       close: 'ปิด',
       howToEarn: 'วิธีสะสมคะแนน',
-      earnRule: 'ทุก 100 บาท = 1 คะแนน'
+      earnRule: `ทุก ${earnRate} บาท = 1 คะแนน`
     },
     en: {
       loading: 'Loading data...',
@@ -73,7 +76,7 @@ export default function LiffMemberPage() {
       benefitsTitle: 'Benefits',
       close: 'Close',
       howToEarn: 'How to earn',
-      earnRule: '100 THB = 1 Point'
+      earnRule: `${earnRate} THB = 1 Point`
     },
     zh: {
       loading: '正在加载...',
@@ -94,16 +97,17 @@ export default function LiffMemberPage() {
       benefitsTitle: '会员权益',
       close: '关闭',
       howToEarn: '如何赚取',
-      earnRule: '100 泰铢 = 1 积分'
+      earnRule: `${earnRate} 泰铢 = 1 积分`
     }
   };
   const dict = t[(locale as keyof typeof t) || 'th'];
 
-  const [tiers, setTiers] = useState([
-    { name: 'Bronze', minPoints: 0, bg: 'bg-[#F2ECE4]', text: 'text-[#8C6D53]', barColor: 'bg-[#C19A6B]', benefits: ['อัตราสะสมคะแนน 100 บาท = 1 คะแนน', 'รับสิทธิ์ลุ้นกล่องสุ่มเมื่อครบ 50 คะแนน'] },
-    { name: 'Silver', minPoints: 500, bg: 'bg-[#F0F2F5]', text: 'text-[#64748B]', barColor: 'bg-[#94A3B8]', benefits: ['อัตราสะสมคะแนน x1.2', 'เครื่องดื่มพิเศษในเดือนเกิด', 'สิทธิ์สั่งซื้อต้นไม้คอลเลกชันใหม่ล่วงหน้า 12 ชม.'] },
-    { name: 'Gold', minPoints: 2000, bg: 'bg-[#FCF7E8]', text: 'text-[#B48529]', barColor: 'bg-[#D4AF37]', benefits: ['อัตราสะสมคะแนน x1.5', 'ส่วนลด 5% ทุกออเดอร์', 'สิทธิ์ Fast Track ลัดคิวเข้ารับบริการ', 'สิทธิ์สั่งซื้อต้นไม้ Rare Item ล่วงหน้า 24 ชม.'] },
-    { name: 'Platinum', minPoints: 5000, bg: 'bg-[#EBF1F5]', text: 'text-[#3E6578]', barColor: 'bg-[#6495ED]', benefits: ['อัตราสะสมคะแนน x2.0', 'ส่วนลด 10% ทุกออเดอร์', 'สิทธิ์ Fast Track ขั้นสูงสุด', 'เบอร์ติดต่อสายตรง (Direct Line) ปรึกษาผู้เชี่ยวชาญ 24 ชม.'] }
+  const [titles, setTitles] = useState<any[]>([]);
+  const tiers = React.useMemo(() => [
+    { name: 'Bronze', minPoints: 0, bg: 'bg-[#F2ECE4]', text: 'text-[#8C6D53]', barColor: 'bg-[#C19A6B]', bgHex: '#F2ECE4', textHex: '#8C6D53', benefits: [`อัตราสะสมคะแนน ${earnRate} บาท = 1 คะแนน`, 'รับสิทธิ์ลุ้นกล่องสุ่มเมื่อครบ 50 คะแนน'] },
+    { name: 'Silver', minPoints: 500, bg: 'bg-[#F0F2F5]', text: 'text-[#64748B]', barColor: 'bg-[#94A3B8]', bgHex: '#F0F2F5', textHex: '#64748B', benefits: ['อัตราสะสมคะแนน x1.2', 'เครื่องดื่มพิเศษในเดือนเกิด', 'สิทธิ์สั่งซื้อต้นไม้คอลเลกชันใหม่ล่วงหน้า 12 ชม.'] },
+    { name: 'Gold', minPoints: 2000, bg: 'bg-[#FCF7E8]', text: 'text-[#B48529]', barColor: 'bg-[#D4AF37]', bgHex: '#FCF7E8', textHex: '#B48529', benefits: ['อัตราสะสมคะแนน x1.5', 'ส่วนลด 5% ทุกออเดอร์', 'สิทธิ์ Fast Track ลัดคิวเข้ารับบริการ', 'สิทธิ์สั่งซื้อต้นไม้ Rare Item ล่วงหน้า 24 ชม.'] },
+    { name: 'Platinum', minPoints: 5000, bg: 'bg-[#EBF1F5]', text: 'text-[#3E6578]', barColor: 'bg-[#6495ED]', bgHex: '#EBF1F5', textHex: '#3E6578', benefits: ['อัตราสะสมคะแนน x2.0', 'ส่วนลด 10% ทุกออเดอร์', 'สิทธิ์ Fast Track ขั้นสูงสุด', 'เบอร์ติดต่อสายตรง (Direct Line) ปรึกษาผู้เชี่ยวชาญ 24 ชม.'] }
   ]);
   const [campaigns, setCampaigns] = useState<any[]>([]);
 
@@ -191,24 +195,69 @@ const fetchData = async () => {
     try {
       setLoading(true);
       const { data: member } = await supabase.from('pos_members').select('*').eq('line_user_id', userId).maybeSingle();
+      const { data: shopSettings } = await supabase.from('pos_shop_settings').select('opening_hours').order('updated_at', { ascending: false }).limit(1).maybeSingle();
+      if (shopSettings && shopSettings.opening_hours && shopSettings.opening_hours.loyalty_earn_rate) {
+        setEarnRate(shopSettings.opening_hours.loyalty_earn_rate);
+      }
       if (member) {
         setMemberInfo(member);
         const { data: history } = await supabase.from('pos_points_history').select('*').in('member_id', [member.id, userId]).order('created_at', { ascending: false });
         if (history) setPointsHistory(history);
       }
-      const { data: rewardsData } = await supabase.from('pos_rewards').select('*').eq('is_active', true).order('points_required', { ascending: true });
+      const { data: rewardsData } = await supabase.from('pos_loyalty_coupons').select('*').eq('is_active', true).order('cost_points', { ascending: true });
       if (rewardsData) setRewards(rewardsData);
       
-      const { data: tiersData, error: tiersError } = await supabase.from('pos_loyalty_tiers').select('*').eq('is_active', true).order('min_points', { ascending: true });
-      if (tiersData && !tiersError) {
-        setTiers(tiersData.map(t => ({
-          name: t.name, minPoints: t.min_points, bg: t.bg_color, text: t.text_color, barColor: t.bar_color, benefits: t.benefits
-        })));
+      // Fetch smart badges from our new API
+      const lineUserId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
+      try {
+        const titlesRes = await fetch('/api/liff/member/titles', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lineUserId, memberId: member?.id || userId })
+        });
+        const titlesData = await titlesRes.json();
+        if (titlesData.success) {
+          setActiveTitle(titlesData.activeTitle);
+          setTitles(titlesData.titles.map((t: any) => ({
+            name: t.name,
+            minPoints: t.rule_threshold, // used for progress threshold
+            bgHex: t.badge_color || '#F2ECE4',
+            textHex: '#1A1A18',
+            barHex: '#1A1A18',
+            description: t.description || '',
+            benefits: t.benefits || '',
+            isUnlocked: t.isUnlocked,
+            progress: t.progress,
+            currentValue: t.currentValue
+          })));
+        }
+      } catch (err) {
+        console.error('Failed to load smart badges', err);
       }
       
-      const { data: campData, error: campError } = await supabase.from('pos_campaigns').select('*').eq('is_active', true).order('sort_order', { ascending: true });
-      if (campData && !campError) {
-        setCampaigns(campData);
+      const { data: campData, error: campError } = await supabase.from('pos_loyalty_campaigns').select('*').eq('is_active', true);
+      if (campData && !campError && campData.length > 0) {
+        const defaultGradients = [
+          { from: 'from-orange-100', to: 'to-amber-50', text: 'text-orange-900', tag: 'text-orange-800' },
+          { from: 'from-blue-100', to: 'to-cyan-50', text: 'text-blue-900', tag: 'text-blue-800' },
+          { from: 'from-purple-100', to: 'to-pink-50', text: 'text-purple-900', tag: 'text-purple-800' },
+          { from: 'from-emerald-100', to: 'to-teal-50', text: 'text-emerald-900', tag: 'text-emerald-800' },
+        ];
+        
+        setCampaigns(campData.map((c, i) => {
+          const style = defaultGradients[i % defaultGradients.length];
+          return {
+            ...c,
+            title: c.name,
+            description: c.applicable_categories && c.applicable_categories.length > 0 ? `เฉพาะหมวด: ${c.applicable_categories.join(', ')}` : 'ทุกหมวดหมู่',
+            bg_gradient_from: style.from,
+            bg_gradient_to: style.to,
+            text_color: style.text,
+            tag_color: style.tag,
+            icon: '✨',
+            type_tag: `แต้ม x${c.multiplier}`
+          };
+        }));
       } else {
         // Fallback default campaigns if table not ready
         setCampaigns([
@@ -223,7 +272,31 @@ const fetchData = async () => {
       setLoading(false);
     }
   };
-  
+
+  const handleRedeem = async (couponId: string) => {
+    if (!confirm(locale === 'en' ? 'Confirm redemption?' : 'ยืนยันการแลกคูปองนี้ใช่หรือไม่?')) return;
+    try {
+      setLoading(true);
+      const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
+      const res = await fetch('/api/liff/member/redeem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lineUserId: userId, couponId })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(locale === 'en' ? 'Redeemed successfully! Coupon added to your account.' : 'แลกคูปองสำเร็จ! คูปองถูกเก็บไว้ในบัญชีของคุณแล้ว');
+        fetchData();
+      } else {
+        alert(data.error || 'Failed to redeem');
+      }
+    } catch (e) {
+      alert('Error connecting to server');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!liffLoading) fetchData();
     
@@ -299,7 +372,7 @@ const fetchData = async () => {
         
         {/* 💳 Clean Tier Card with Power Bar */}
         <section>
-          <div className={`w-full rounded-2xl p-6 ${currentTier.bg} transition-colors duration-500`}>
+          <div className="w-full rounded-2xl p-6 transition-colors duration-500" style={{ backgroundColor: currentTier.bgHex || '#F2ECE4' }}>
             <div className="flex items-center gap-4 mb-8">
               <div className="w-12 h-12 rounded-full bg-white/60 overflow-hidden flex items-center justify-center flex-shrink-0">
                 {lineProfile?.pictureUrl ? (
@@ -405,7 +478,7 @@ const fetchData = async () => {
               >
                 <div className="absolute -right-4 -top-4 text-6xl opacity-10">{camp.icon}</div>
                 <div>
-                  <span className={`text-[10px] font-bold uppercase tracking-wider ${camp.tag_color} bg-white/50 px-2 py-1 rounded-md mb-2 inline-block`}>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${camp.tag_color} bg-white/60 px-2 py-1 rounded-md mb-2 inline-block`}>
                     {camp.type_tag}
                   </span>
                   <h4 className={`text-[14px] font-semibold ${camp.text_color} leading-tight mb-1`}>{camp.title}</h4>
@@ -449,23 +522,22 @@ const fetchData = async () => {
                 {rewards.length > 0 ? rewards.map((reward) => (
                   <div key={reward.id} className="flex gap-4 p-4 rounded-xl border border-gray-100 hover:border-gray-200 transition-colors">
                     <div className="w-20 h-20 bg-gray-50 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center">
-                      {reward.image_url ? (
-                        <img src={reward.image_url} alt={reward.title} className="w-full h-full object-cover" />
-                      ) : (
-                        <Gift size={24} className="text-gray-300" />
-                      )}
+                      <Gift size={24} className="text-gray-300" />
                     </div>
                     <div className="flex-1 flex flex-col">
-                      <h4 className="text-[14px] font-medium text-gray-900 leading-tight mb-1">{reward.title || reward.name}</h4>
-                      <p className="text-[12px] text-gray-500 line-clamp-2 leading-relaxed">{reward.description}</p>
+                      <h4 className="text-[14px] font-medium text-gray-900 leading-tight mb-1">{reward.name}</h4>
+                      <p className="text-[12px] text-gray-500 line-clamp-2 leading-relaxed">
+                        {reward.discount_type === 'free_item' ? 'ฟรี 1 รายการ' : reward.discount_type === 'percent' ? `ลด ${reward.discount_value}%` : `ลด ${reward.discount_value} บาท`}
+                      </p>
                       
                       <div className="mt-auto flex items-center justify-between pt-2">
-                        <span className="text-[13px] font-medium text-gray-900">{reward.points_required.toLocaleString()} {dict.pts}</span>
+                        <span className="text-[13px] font-medium text-gray-900">{reward.cost_points.toLocaleString()} {dict.pts}</span>
                         
                         <button 
-                          disabled={(memberInfo?.points || 0) < reward.points_required}
+                          onClick={() => handleRedeem(reward.id)}
+                          disabled={(memberInfo?.points || 0) < reward.cost_points}
                           className={`text-[13px] font-medium px-4 py-1.5 rounded-full transition-colors ${
-                            (memberInfo?.points || 0) >= reward.points_required 
+                            (memberInfo?.points || 0) >= reward.cost_points 
                             ? 'bg-gray-900 text-white hover:bg-gray-800' 
                             : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                           }`}
@@ -520,8 +592,9 @@ const fetchData = async () => {
       </main>
 
       {/* 👑 Minimal Benefits Bottom Sheet */}
-      <AnimatePresence>
-        {showBenefits && (
+      
+<AnimatePresence>
+{showBenefits && (
           <>
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -541,35 +614,69 @@ const fetchData = async () => {
 
               <div className="p-6 space-y-8">
                 
-                {/* How to earn */}
+                {/* Benefits Section */}
                 <div>
-                  <h4 className="text-[13px] text-gray-500 mb-2">{dict.howToEarn}</h4>
-                  <p className="text-[16px] font-medium text-gray-900">{dict.earnRule}</p>
-                </div>
-
-                {/* Tiers List */}
-                <div className="space-y-6">
-                  {tiers.map((tier) => (
-                    <div key={tier.name} className="flex gap-4">
-                      <div className={`w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center ${tier.bg} ${tier.text} text-[13px] font-bold uppercase tracking-wider`}>
-                        {tier.name[0]}
+                  <h4 className="text-[13px] text-gray-500 mb-3 uppercase tracking-wider font-semibold">สิทธิประโยชน์สมาชิก</h4>
+                  <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                    <div className="flex items-start gap-3">
+                      <div className="bg-white p-2 rounded-full shadow-sm">
+                        <Gift size={16} className="text-amber-500" />
                       </div>
                       <div>
-                        <div className="flex items-baseline gap-2 mb-2">
-                          <h4 className="text-[15px] font-medium text-gray-900">{tier.name}</h4>
-                          <span className="text-[12px] text-gray-400">{tier.minPoints.toLocaleString()} {dict.pts}</span>
-                        </div>
-                        <ul className="space-y-2">
-                          {tier.benefits.map((b, i) => (
-                            <li key={i} className="flex items-start gap-2 text-[13px] text-gray-600">
-                              <Check size={16} strokeWidth={2} className="text-gray-300 flex-shrink-0 mt-0.5" />
-                              <span>{b}</span>
-                            </li>
-                          ))}
-                        </ul>
+                        <p className="text-[14px] font-medium text-gray-900">{dict.howToEarn}</p>
+                        <p className="text-[13px] text-gray-500">{dict.earnRule}</p>
                       </div>
                     </div>
-                  ))}
+                    <div className="flex items-start gap-3">
+                      <div className="bg-white p-2 rounded-full shadow-sm">
+                        <User size={16} className="text-blue-500" />
+                      </div>
+                      <div>
+                        <p className="text-[14px] font-medium text-gray-900">สะสมฉายาสุดเท่</p>
+                        <p className="text-[13px] text-gray-500">ทำภารกิจลับเพื่อปลดล็อกฉายาพิเศษ</p>
+                      </div>
+                    </div>
+                    
+                    <button 
+                      onClick={() => {
+                        setShowBenefits(false);
+                        setShowCatalog(true);
+                      }}
+                      className="w-full mt-4 py-3 bg-gray-900 text-white rounded-xl text-[14px] font-medium"
+                    >
+                      ดูแคตตาล็อคฉายาทั้งหมด
+                    </button>
+                  </div>
+                </div>
+
+                <hr className="border-gray-100" />
+
+                {/* Tiers List */}
+                <div>
+                  <h4 className="text-[13px] text-gray-500 mb-4 uppercase tracking-wider font-semibold">สิทธิประโยชน์ตามระดับ</h4>
+                  <div className="space-y-6">
+                    {tiers.map((tier) => (
+                      <div key={tier.name} className="flex gap-4">
+                        <div className="w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center text-[13px] font-bold uppercase tracking-wider shadow-sm" style={{ backgroundColor: tier.bgHex || '#F2ECE4', color: tier.textHex || '#1A1A18' }}>
+                          {tier.name[0]}
+                        </div>
+                        <div>
+                          <div className="flex items-baseline gap-2 mb-2">
+                            <h4 className="text-[15px] font-bold text-gray-900">{tier.name}</h4>
+                            <span className="text-[12px] text-gray-400 font-medium">{tier.minPoints.toLocaleString()} {dict.pts}</span>
+                          </div>
+                          <ul className="space-y-2">
+                            {tier.benefits && tier.benefits.map((b, i) => (
+                              <li key={i} className="flex items-start gap-2 text-[13px] text-gray-600">
+                                <Check size={16} strokeWidth={2} className="text-green-500 flex-shrink-0 mt-0.5" />
+                                <span>{b}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
               </div>
@@ -577,6 +684,132 @@ const fetchData = async () => {
           </>
         )}
       </AnimatePresence>
+
+      {/* 👑 CATALOG MODAL */}
+      <AnimatePresence>
+        {showCatalog && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setShowCatalog(false)}
+              className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.08)] max-h-[90vh] overflow-y-auto pb-safe flex flex-col"
+            >
+              <div className="sticky top-0 bg-white/90 backdrop-blur-md z-10 px-6 py-5 flex items-center justify-between border-b border-gray-50 shrink-0">
+                <h3 className="text-[16px] font-medium text-gray-900">แคตตาล็อคฉายา</h3>
+                <button onClick={() => setShowCatalog(false)} className="p-2 -mr-2 text-gray-400 hover:text-gray-900 transition-colors">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="p-6 overflow-y-auto flex-1">
+                <div className="grid grid-cols-2 gap-3">
+                  {titles.map((tier, idx) => (
+                    <div 
+                      key={idx} 
+                      onClick={() => setSelectedBadge(tier)}
+                      className={`relative flex flex-col items-center justify-center p-4 rounded-2xl border cursor-pointer hover:shadow-md transition-shadow ${tier.isUnlocked ? 'bg-white border-gray-200' : 'bg-gray-50 border-transparent grayscale opacity-80'}`}
+                    >
+                      <div className="w-14 h-14 rounded-full flex items-center justify-center text-[20px] font-bold shadow-sm mb-3" style={{ backgroundColor: tier.bgHex, color: tier.textHex }}>
+                        {tier.name[0]}
+                      </div>
+                      <h4 className="text-[13px] font-medium text-center text-gray-900 leading-tight mb-1">{tier.name}</h4>
+                      
+                      {/* Mini Progress */}
+                      {!tier.isUnlocked && (
+                        <div className="w-full mt-2">
+                          <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                            <div className="h-full bg-blue-500 rounded-full" style={{ width: `${tier.progress}%` }}></div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* 🏆 BADGE DETAIL MODAL */}
+      <AnimatePresence>
+        {selectedBadge && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setSelectedBadge(null)}
+              className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }} 
+              animate={{ scale: 1, opacity: 1, y: 0 }} 
+              exit={{ scale: 0.9, opacity: 0, y: 20 }} 
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[60] w-[90%] max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden"
+            >
+              {/* Header colored banner */}
+              <div className="h-24 w-full flex items-center justify-center relative" style={{ backgroundColor: selectedBadge.bgHex }}>
+                <button onClick={() => setSelectedBadge(null)} className="absolute top-3 right-3 p-2 bg-black/10 hover:bg-black/20 rounded-full text-black/50 transition-colors">
+                  <X size={18} />
+                </button>
+              </div>
+              
+              {/* Avatar floating */}
+              <div className="relative flex justify-center -mt-10">
+                <div className="w-20 h-20 rounded-full flex items-center justify-center text-[28px] font-bold shadow-lg bg-white border-4 border-white" style={{ backgroundColor: selectedBadge.bgHex, color: selectedBadge.textHex }}>
+                  {selectedBadge.name[0]}
+                </div>
+              </div>
+
+              <div className="px-6 pb-6 pt-4 text-center">
+                <h3 className="text-[20px] font-bold text-gray-900 mb-1">{selectedBadge.name}</h3>
+                
+                {selectedBadge.isUnlocked ? (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-700 text-[12px] font-medium rounded-full mb-6">
+                    <Check size={14} /> ปลดล็อกแล้ว
+                  </div>
+                ) : (
+                  <div className="text-[12px] text-gray-500 mb-6">
+                    ยังไม่ปลดล็อก
+                  </div>
+                )}
+
+                <div className="text-left space-y-5">
+                  {/* How to get */}
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <h4 className="text-[12px] font-bold text-gray-400 uppercase tracking-wider mb-2">🎯 ภารกิจรับฉายา</h4>
+                    <p className="text-[14px] text-gray-800 leading-relaxed">{selectedBadge.description || `สะสม ${selectedBadge.minPoints} เป้าหมาย`}</p>
+                    
+                    {!selectedBadge.isUnlocked && (
+                      <div className="mt-4">
+                        <div className="flex justify-between text-[12px] mb-1">
+                          <span className="text-gray-500">ความคืบหน้า</span>
+                          <span className="font-medium">{selectedBadge.currentValue} / {selectedBadge.minPoints}</span>
+                        </div>
+                        <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                          <div className="h-full bg-blue-500 rounded-full transition-all duration-1000" style={{ width: `${selectedBadge.progress}%` }}></div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Benefits */}
+                  {selectedBadge.benefits && (
+                    <div className="bg-amber-50 rounded-xl p-4 border border-amber-100/50">
+                      <h4 className="text-[12px] font-bold text-amber-600 uppercase tracking-wider mb-2">🎁 สิทธิพิเศษ</h4>
+                      <p className="text-[14px] text-gray-800 leading-relaxed whitespace-pre-line">{selectedBadge.benefits}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+</AnimatePresence>
+
 
       {/* 🎁 MYSTERY BOX MODAL */}
       <AnimatePresence>

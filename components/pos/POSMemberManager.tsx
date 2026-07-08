@@ -148,14 +148,12 @@ export default function POSMemberManager({
         else setActiveCoupons([])
     }
 
-    const handleUseCoupon = async (couponId: string) => {
-        if (!confirm('ยืนยันการใช้คูปองนี้ใช่หรือไม่?')) return;
-        const { error } = await supabase
-            .from('pos_member_coupons')
-            .update({ status: 'used', used_at: new Date().toISOString() })
-            .eq('id', couponId)
-        if (error) alert('Error using coupon: ' + error.message)
-        else fetchCoupons(selectedMember!.id)
+    const handleUseCoupon = async (coupon: any) => {
+        if (!confirm('ยืนยันการใช้คูปองนี้ใช่หรือไม่? คูปองจะถูกนำไปเป็นส่วนลดในบิลหน้าขายทันที (กดยืนยันแล้วให้กลับไปหน้าขาย)')) return;
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('applyPOSCoupon', { detail: coupon }));
+        }
+        alert('นำคูปองไปประยุกต์ใช้เป็นส่วนลดสำเร็จ! กรุณากลับไปที่หน้า "Terminal" เพื่อดูส่วนลดในบิลปัจจุบัน');
     }
 
     const fetchHistory = async (memberId: string) => {
@@ -525,7 +523,7 @@ export default function POSMemberManager({
                                                             </div>
                                                         </div>
                                                         <button 
-                                                            onClick={() => handleUseCoupon(coupon.id)}
+                                                            onClick={() => handleUseCoupon(coupon)}
                                                             className="px-4 py-2 bg-sage-600 text-white text-[9px] font-black uppercase tracking-[0.2em] opacity-0 group-hover:opacity-100 transition-all hover:bg-sage-700"
                                                         >
                                                             ใช้งานสิทธิ์

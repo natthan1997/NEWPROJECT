@@ -90,7 +90,7 @@ export default function LiffHistoryPage() {
     if (!items || items.length === 0) return;
     
     // 🛡️ CHECK SHOP STATUS FIRST
-    const { data: settings } = await supabase.from('pos_shop_settings').select('*').maybeSingle();
+    const { data: settings } = await supabase.from('pos_shop_settings').select('*').order('updated_at', { ascending: false }).limit(1).maybeSingle();
     const { data: activeShifts } = await supabase.from('pos_shifts').select('id').eq('status', 'open').limit(1);
     
     let isOpen = true;

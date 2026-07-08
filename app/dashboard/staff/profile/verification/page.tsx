@@ -22,23 +22,24 @@ export default function StaffVerificationPage() {
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file) return
+    if (!file || !profile?.id) return
 
     setUploading(true)
     try {
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${profile?.id}/id_card_${Math.random()}.${fileExt}`
-      const { data, error } = await supabase.storage
-        .from('staff-documents')
-        .upload(fileName, file)
+      const formData = new FormData()
+      formData.append('action', 'upload')
+      formData.append('profileId', profile.id)
+      formData.append('file', file)
 
-      if (error) throw error
+      const response = await fetch('/api/staff/verify-upload', {
+        method: 'POST',
+        body: formData,
+      })
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('staff-documents')
-        .getPublicUrl(fileName)
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error || 'Failed to upload')
 
-      setIdCardPhotoUrl(publicUrl)
+      setIdCardPhotoUrl(result.publicUrl)
     } catch (err: any) {
       console.error('Upload error:', err)
       setStatus({ type: 'error', message: 'อัปโหลดรูปภาพไม่สำเร็จ: ' + err.message })

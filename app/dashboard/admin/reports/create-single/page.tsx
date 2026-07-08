@@ -72,14 +72,33 @@ export default function AdminCreateSingleReportPage() {
     setUploading(true)
     try {
       const newUrls: string[] = []
+      const { data: { session } } = await supabase.auth.getSession()
+
       for (let i = 0; i < files.length; i++) {
         const file = files[i]
         const ext = file.name.split('.').pop()
         const path = `reports/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-        const { error: uploadError } = await supabase.storage.from('images').upload(path, file)
-        if (uploadError) throw uploadError
-        const { data: { publicUrl } } = supabase.storage.from('images').getPublicUrl(path)
-        newUrls.push(publicUrl)
+
+        const signRes = await fetch('/api/admin/storage/sign-upload', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
+          },
+          body: JSON.stringify({ path, bucket: 'images' })
+        })
+        const signResult = await signRes.json()
+        if (!signRes.ok) throw new Error(signResult.error || 'Failed to get upload permission')
+
+        const uploadRes = await fetch(signResult.signedUrl, {
+          method: 'PUT',
+          body: file,
+          headers: { 'Content-Type': file.type }
+        })
+
+        if (!uploadRes.ok) throw new Error('Failed to upload file')
+
+        newUrls.push(signResult.publicUrl)
       }
       setZones(prev => prev.map(z => {
         if (z.id !== zoneId) return z

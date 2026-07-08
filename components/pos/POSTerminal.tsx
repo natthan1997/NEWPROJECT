@@ -61,6 +61,7 @@ import {
 } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import { supabase, type Profile } from '@/lib/supabaseClient'
+import { db } from '@/lib/offlineDatabase'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Capacitor } from '@capacitor/core'
@@ -273,6 +274,7 @@ export default function POSTerminal({
   const router = useRouter()
   const [items, setItems] = useState<MenuItem[]>([])
   const [categories, setCategories] = useState<any[]>([])
+  const [activeCampaigns, setActiveCampaigns] = useState<any[]>([])
   const [tables, setTables] = useState<POSTable[]>([])
   const [successAudio, setSuccessAudio] = useState<HTMLAudioElement | null>(null)
 
@@ -291,6 +293,7 @@ export default function POSTerminal({
   const [discountRate, setDiscountRate] = useState(0) // For UI input
   const [discountType, setDiscountType] = useState<'fixed' | 'percent'>('percent')
   const [discountName, setDiscountName] = useState('')
+  const [appliedCouponId, setAppliedCouponId] = useState<string>('')
 
   // --- BILL DISCOUNT MODAL STATE ---
   const [showBillDiscountModal, setShowBillDiscountModal] = useState(false)
@@ -410,6 +413,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     setDiscountRate(0)
     setDiscountType('percent')
     setDiscountName('')
+    setAppliedCouponId('')
     
     if (typeof window !== 'undefined') {
       localStorage.removeItem('pos_saved_cart')
@@ -1203,6 +1207,30 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 
   // --- INITIALIZATION ---
   useEffect(() => {
+    const handleApplyCoupon = (e: any) => {
+      const coupon = e.detail;
+      setDiscountType(coupon.discount_type === 'percent' ? 'percent' : 'fixed');
+      if (coupon.discount_type === 'free_item') {
+        // Find the lowest priced item in cart
+        if (cart.length > 0) {
+          const sorted = [...cart].sort((a, b) => (a.price || 0) - (b.price || 0));
+          setDiscountValue(sorted[0].price || 0);
+        } else {
+          setDiscountValue(0);
+        }
+      } else {
+        setDiscountValue(coupon.discount_value || 0);
+        if (coupon.discount_type === 'percent') setDiscountRate(coupon.discount_value || 0);
+      }
+      setDiscountName(coupon.coupon_name);
+      setAppliedCouponId(coupon.id);
+    };
+
+    window.addEventListener('applyPOSCoupon', handleApplyCoupon);
+    return () => window.removeEventListener('applyPOSCoupon', handleApplyCoupon);
+  }, [cart]);
+
+  useEffect(() => {
     initData()
   }, [profile?.id, activeShift?.id])
 
@@ -1224,7 +1252,16 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   }, [syncPulse])
 
   const initData = async () => {
-    await Promise.all([fetchItems(), fetchTables(), refreshPendingOrders()])
+    await Promise.all([fetchItems(), fetchTables(), refreshPendingOrders(), fetchCampaigns()])
+  }
+
+  const fetchCampaigns = async () => {
+    try {
+      const { data } = await supabase.from('pos_loyalty_campaigns').select('*').eq('is_active', true);
+      if (data) setActiveCampaigns(data);
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   // Sync totalPaid when editingOrderId changes
@@ -1274,30 +1311,38 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 
   const fetchItems = async () => {
     try {
-      const branchId = shopSettings?.branch_id
-      let catQuery = supabase.from('pos_menu_categories').select('*').order('order_index')
-      if (branchId) {
-        catQuery = catQuery.eq('branch_id', branchId)
-      } else {
-        catQuery = catQuery.is('branch_id', null)
+      if (typeof window !== 'undefined' && !navigator.onLine) {
+        console.log('Fetching menu from local DB (Offline Mode)')
+        const localCats = await db.menu_categories.toArray()
+        setCategories(localCats.sort((a, b) => a.order_index - b.order_index))
+        
+        const localItems = await db.menu_items.toArray()
+        const localLinks = await db.item_modifier_links.toArray()
+        
+        const mappedItems = localItems.map(item => {
+           const cat = localCats.find(c => c.id === item.category_id)
+           const links = localLinks.filter(l => l.item_id === item.id)
+           return {
+              ...item,
+              category: cat ? { name: cat.name } : undefined,
+              modifiers: links.map(l => ({ group_id: l.group_id }))
+           }
+        })
+        setItems(sortMenuItemsByOrder(mappedItems as any[]))
+        return
       }
-      const { data: catData, error: catError } = await catQuery
-      if (catError) throw catError
-      if (catData) setCategories(catData)
 
-      let itemQuery = supabase
-        .from('pos_menu_items')
-        .select(`*, platform_prices, category:pos_menu_categories(name), modifiers:pos_item_modifier_links(group_id)`)
-        .eq('is_active', true)
-        .order('name', { ascending: true })
-      if (branchId) {
-        itemQuery = itemQuery.eq('branch_id', branchId)
-      } else {
-        itemQuery = itemQuery.is('branch_id', null)
+      const branchId = shopSettings?.branch_id
+      const url = branchId ? `/api/cache/menu?branchId=${branchId}` : '/api/cache/menu';
+
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Failed to fetch menu cache');
+      const json = await response.json();
+
+      if (json.data) {
+        if (json.data.categories) setCategories(json.data.categories);
+        if (json.data.items) setItems(sortMenuItemsByOrder(json.data.items as any[]));
       }
-      const { data, error } = await itemQuery
-      if (error) throw error
-      if (data) setItems(sortMenuItemsByOrder(data as any[]))
     } catch (e) {
       console.error('XYL STUDIO POS Data Error:', e)
     }
@@ -1428,7 +1473,41 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     )
   }
 
-  const removeFromCart = (id: string, modifiers: any[] = []) => {
+  const removeFromCart = async (id: string, modifiers: any[] = []) => {
+    // If we are editing an existing order, confirm and delete from DB immediately
+    if (editingOrderId) {
+      const confirmDelete = window.confirm(locale === 'en' ? 'Are you sure you want to cancel this item? It will be removed from the order immediately.' : 'คุณแน่ใจหรือไม่ที่จะยกเลิกรายการนี้? (ระบบจะลบออกจากออเดอร์และหน้าครัวทันที)');
+      if (!confirmDelete) return;
+
+      try {
+        // Find existing items in the order
+        const { data: existingItems } = await supabase
+          .from('pos_order_items')
+          .select('id, selected_modifiers')
+          .eq('order_id', editingOrderId)
+          .eq('item_id', id);
+
+        if (existingItems && existingItems.length > 0) {
+          // Try to match exact modifiers if possible
+          const itemToCancel = existingItems.find((dbItem: any) => JSON.stringify(dbItem.selected_modifiers || []) === JSON.stringify(modifiers));
+          if (itemToCancel) {
+            await supabase.from('pos_order_items').update({ status: 'cancelled' }).eq('id', itemToCancel.id);
+          } else {
+            // Fallback: cancel the first one that matches item_id
+            await supabase.from('pos_order_items').update({ status: 'cancelled' }).eq('id', existingItems[0].id);
+          }
+          
+          // Trigger a realtime update by modifying pos_orders
+          await supabase.from('pos_orders').update({ updated_at: new Date().toISOString() }).eq('id', editingOrderId);
+          playAppSound('notification'); // Optional sound confirmation
+        }
+      } catch (err) {
+        console.error('Failed to cancel item from DB:', err);
+        alert(locale === 'en' ? 'Failed to cancel item' : 'ไม่สามารถยกเลิกรายการได้');
+        return;
+      }
+    }
+
     setCart(prev =>
       prev.filter(
         i => !(i.id === id && JSON.stringify(i.selected_modifiers) === JSON.stringify(modifiers))
@@ -1656,7 +1735,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             throw updateError
           }
         }
-        await supabase.from('pos_order_items').delete().eq('order_id', editingOrderId)
+        await supabase.from('pos_order_items').delete().eq('order_id', editingOrderId).neq('status', 'cancelled')
 		      } else {
 		        const identity = await requestOrderIdentity()
 		        finalOrderNumber = identity.orderNumber
@@ -1859,6 +1938,85 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 
     setIsProcessing(true)
 	    try {
+      if (typeof window !== 'undefined' && !navigator.onLine) {
+        console.log('Processing payment offline');
+        playAppSound('pay');
+        const offlineId = `OFF-${Date.now()}`;
+        const finalOrderNumber = `OFF-${Math.floor(Date.now() / 1000).toString().slice(-6)}`;
+        const amountToPay = amount !== undefined ? amount : remainingTotal;
+        
+        const payload = {
+          order: {
+            order_number: finalOrderNumber,
+            staff_id: profile?.id,
+            shift_id: activeShift?.id,
+            branch_id: activeShift?.branch_id || shopSettings?.branch_id || null,
+            status: 'completed',
+            total_amount: rawCartSubTotal,
+            net_total: cartTotal,
+            tax_amount: vatAmount,
+            service_charge_amount: serviceChargeAmount,
+            discount_amount: discountTotalValue + itemDiscountTotal,
+            customer_id: selectedCustomer?.id,
+            order_type: orderType,
+            table_id: selectedTable?.id,
+            table_number: selectedTable?.table_number,
+            payment_method: method,
+            order_source: 'pos',
+            paid_at: new Date().toISOString(),
+          },
+          items: cart.map(item => ({
+            item_id: item.id,
+            quantity: item.quantity,
+            unit_price: getEffectiveItemUnitPrice(item),
+            cost_price: item.cost_price || 0,
+            subtotal: ((getEffectiveItemUnitPrice(item) + (item.selected_modifiers?.reduce((a: number, m: any) => a + ((m.price_adjustment || 0) * (m.qty || 1)), 0) || 0)) * item.quantity) - (item.discount_amount || 0),
+            selected_modifiers: item.selected_modifiers,
+            customer_name: item.customer_name || 'ลูกค้า',
+            discount_amount: item.discount_amount || 0,
+            discount_reason: item.discount_reason || null,
+          })),
+          payments: [{
+            payment_method: method,
+            amount: amountToPay,
+            status: 'paid'
+          }]
+        };
+
+        await db.offline_orders.add({
+          id: offlineId,
+          payload,
+          createdAt: new Date().toISOString(),
+          syncStatus: 'pending'
+        });
+
+        const successData = {
+          received: method === 'cash' ? Number(cashReceived) || amountToPay : amountToPay,
+          change: method === 'cash' ? Math.max(0, (Number(cashReceived) || amountToPay) - cartTotal) : 0,
+          orderId: offlineId,
+          orderNumber: finalOrderNumber,
+          queueNumber: "99",
+          items: cart,
+          subtotal: cartSubTotal,
+          discount: discountTotalValue + itemDiscountTotal,
+          tax: vatAmount,
+          serviceCharge: serviceChargeAmount,
+          total: cartTotal,
+          paymentMethod: method,
+          timestamp: new Date().toISOString(),
+          deliveryPlatform: orderType === 'delivery' ? deliveryPlatform : '',
+          referenceName: orderType === 'delivery' && platformOrderId ? platformOrderId.trim() : '',
+          tableNumber: selectedTable?.table_number,
+          customerName: selectedCustomer?.full_name,
+          orderType: orderType,
+          orderSource: 'pos'
+        };
+        
+        setPaymentSuccessData(successData as any);
+        resetOrderComposer();
+        return;
+      }
+
 	      playAppSound('pay');
 	      let finalOrderId = editingOrderId
 	      let finalOrderNumber = editingOrderNumber || ''
@@ -1948,7 +2106,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             throw updateError
           }
         }
-	        await supabase.from('pos_order_items').delete().eq('order_id', editingOrderId)
+	        await supabase.from('pos_order_items').delete().eq('order_id', editingOrderId).neq('status', 'cancelled')
 	      } else {
 	        finalOrderNumber = identity.orderNumber
 	        finalQueueNumber = identity.queueNumber
@@ -2118,10 +2276,58 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             console.error('Point Deduction Error:', dErr)
           }
         }
+        
+        // MARK COUPON AS USED
+        if (appliedCouponId) {
+          try {
+            await supabase.from('pos_member_coupons').update({
+              status: 'used',
+              used_at: new Date().toISOString()
+            }).eq('id', appliedCouponId)
+          } catch (err) {
+            console.error('Coupon Use Error:', err)
+          }
+        }
 
         // EARN NEW POINTS based on amount to pay (gross total minus discounts)
+        // With Campaigns Multiplier Logic
         const earnRate = shopSettings?.opening_hours?.loyalty_earn_rate || 100
-        const pointsToEarn = Math.floor(amountToPay / earnRate)
+        
+        let pointableAmount = amountToPay;
+        let pointsToEarn = 0;
+        
+        if (pointableAmount > 0) {
+          // If there are campaigns, we calculate effective amount based on items
+          if (activeCampaigns.length > 0 && cart.length > 0) {
+            let totalMultiplierEffectiveAmount = 0;
+            // Distribute discount proportionally to find effective price of each item
+            const ratio = amountToPay / (cartTotal || 1); // cartTotal is net_total before bill discount
+            
+            cart.forEach((item: any) => {
+              const itemEffectivePrice = ((item.price || 0) * (item.quantity || 1)) * ratio;
+              let multiplier = 1.0;
+              const catName = item.category?.name || '';
+              
+              // Find matching campaign
+              activeCampaigns.forEach(camp => {
+                if (camp.applicable_categories && camp.applicable_categories.length > 0) {
+                  const match = camp.applicable_categories.find((c: string) => c.toLowerCase() === catName.toLowerCase());
+                  if (match) {
+                    multiplier = Math.max(multiplier, camp.multiplier);
+                  }
+                } else {
+                   // Applies to all
+                   multiplier = Math.max(multiplier, camp.multiplier);
+                }
+              });
+              totalMultiplierEffectiveAmount += (itemEffectivePrice * multiplier);
+            });
+            pointsToEarn = Math.floor(totalMultiplierEffectiveAmount / earnRate);
+          } else {
+            pointsToEarn = Math.floor(amountToPay / earnRate);
+          }
+        }
+        
         if (pointsToEarn > 0) {
           try {
             // First re-fetch current points in case they were just deducted above

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { uploadToR2 } from '@/lib/r2'
 
 export const dynamic = 'force-dynamic'
 
@@ -8,18 +9,17 @@ const BUCKET = 'marketplace-images'
 function getEnv() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-  if (!supabaseUrl || !supabaseAnonKey || !serviceRoleKey) {
+  if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error('Missing Supabase environment variables')
   }
 
-  return { supabaseUrl, supabaseAnonKey, serviceRoleKey }
+  return { supabaseUrl, supabaseAnonKey }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const { supabaseUrl, supabaseAnonKey, serviceRoleKey } = getEnv()
+    const { supabaseUrl, supabaseAnonKey } = getEnv()
 
     const authHeader = request.headers.get('authorization') || ''
     const token = authHeader.replace('Bearer ', '').trim()
@@ -67,47 +67,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'ไฟล์ต้องเป็นรูปภาพเท่านั้น' }, { status: 400 })
     }
 
-    const adminClient = createClient(supabaseUrl, serviceRoleKey)
-
-    const bucketCheck = await adminClient.storage.getBucket(BUCKET)
-    if (bucketCheck.error) {
-      const createBucketResult = await adminClient.storage.createBucket(BUCKET, {
-        public: true,
-      })
-
-      if (createBucketResult.error) {
-        return NextResponse.json(
-          { error: `สร้าง bucket ไม่สำเร็จ: ${createBucketResult.error.message}` },
-          { status: 500 }
-        )
-      }
-    }
-
     const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_')
     const random = Math.random().toString(36).slice(2, 10)
-    const objectPath = `plants/${Date.now()}_${random}_${safeName}`
+    const objectPath = `${BUCKET}/plants/${Date.now()}_${random}_${safeName}`
 
     const arrayBuffer = await file.arrayBuffer()
     const fileBuffer = Buffer.from(arrayBuffer)
 
-    const { error: uploadError } = await adminClient.storage
-      .from(BUCKET)
-      .upload(objectPath, fileBuffer, {
-        contentType: file.type,
-        upsert: false,
-      })
-
-    if (uploadError) {
-      return NextResponse.json({ error: `อัปโหลดรูปไม่สำเร็จ: ${uploadError.message}` }, { status: 500 })
+    let publicUrl = ''
+    try {
+      publicUrl = await uploadToR2(fileBuffer, objectPath, file.type)
+    } catch (uploadError: any) {
+      console.error('R2 Upload Error:', uploadError)
+      return NextResponse.json({ error: `อัปโหลดรูปไม่สำเร็จ: ${uploadError?.message}` }, { status: 500 })
     }
 
-    const { data: publicData } = adminClient.storage.from(BUCKET).getPublicUrl(objectPath)
-
     return NextResponse.json({
-      publicUrl: publicData.publicUrl,
+      publicUrl,
       path: objectPath,
     })
   } catch (error: any) {
+    console.error('POST /api/marketplace/upload-image error', error)
     return NextResponse.json(
       {
         error: 'ไม่สามารถอัปโหลดรูปได้',
@@ -117,3 +97,4 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+

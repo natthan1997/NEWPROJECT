@@ -370,6 +370,125 @@ ALTER TABLE pos_menu_items ADD COLUMN IF NOT EXISTS in_stock BOOLEAN DEFAULT tru
             </p>
           </div>
 
+          {/* Feature: Loyalty Rules Engine */}
+          <div className="border border-yellow-200 rounded-lg p-4 bg-yellow-50 mt-4">
+            <h2 className="text-lg font-semibold text-yellow-800 mb-3">
+              🌟 ระบบสมาชิกอัจฉริยะ (Loyalty Rules Engine)
+            </h2>
+            <p className="text-yellow-700 text-sm mb-3">
+              รันคำสั่งนี้เพื่อสร้างตารางสำหรับตั้งค่าฉายา คูปอง และโปรโมชันแต้มคูณ:
+            </p>
+            <div className="bg-gray-900 text-yellow-400 p-3 rounded text-sm font-mono overflow-x-auto whitespace-pre-wrap">
+{`-- Create pos_loyalty_titles table
+CREATE TABLE IF NOT EXISTS pos_loyalty_titles (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    name TEXT NOT NULL,
+    rule_type TEXT NOT NULL,
+    rule_target TEXT,
+    rule_threshold INTEGER NOT NULL,
+    badge_color TEXT DEFAULT '#111111',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create pos_loyalty_coupons table
+CREATE TABLE IF NOT EXISTS pos_loyalty_coupons (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    name TEXT NOT NULL,
+    cost_points INTEGER NOT NULL,
+    discount_type TEXT DEFAULT 'free_item',
+    discount_value DECIMAL(12,2),
+    applicable_categories JSONB DEFAULT '[]'::jsonb,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create pos_loyalty_campaigns table
+CREATE TABLE IF NOT EXISTS pos_loyalty_campaigns (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    name TEXT NOT NULL,
+    multiplier DECIMAL(4,2) DEFAULT 1.0,
+    applicable_categories JSONB DEFAULT '[]'::jsonb,
+    start_date TIMESTAMP WITH TIME ZONE,
+    end_date TIMESTAMP WITH TIME ZONE,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Modify pos_members
+ALTER TABLE pos_members ADD COLUMN IF NOT EXISTS title TEXT;
+ALTER TABLE pos_members ADD COLUMN IF NOT EXISTS total_visits INTEGER DEFAULT 0;
+ALTER TABLE pos_members ADD COLUMN IF NOT EXISTS lifetime_spend DECIMAL(12,2) DEFAULT 0;
+
+-- Create pos_member_coupons
+CREATE TABLE IF NOT EXISTS pos_member_coupons (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    member_id UUID REFERENCES pos_members(id) ON DELETE CASCADE,
+    coupon_id UUID REFERENCES pos_loyalty_coupons(id) ON DELETE SET NULL,
+    coupon_name TEXT,
+    discount_type TEXT,
+    discount_value DECIMAL(12,2),
+    applicable_categories JSONB DEFAULT '[]'::jsonb,
+    status TEXT DEFAULT 'active',
+    used_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable RLS
+ALTER TABLE pos_loyalty_titles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pos_loyalty_coupons ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pos_loyalty_campaigns ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pos_member_coupons ENABLE ROW LEVEL SECURITY;
+
+-- Policies
+DROP POLICY IF EXISTS "Allow all for pos_loyalty_titles" ON pos_loyalty_titles;
+DROP POLICY IF EXISTS "Allow all for pos_loyalty_coupons" ON pos_loyalty_coupons;
+DROP POLICY IF EXISTS "Allow all for pos_loyalty_campaigns" ON pos_loyalty_campaigns;
+DROP POLICY IF EXISTS "Allow all for pos_member_coupons" ON pos_member_coupons;
+
+CREATE POLICY "Allow all for pos_loyalty_titles" ON pos_loyalty_titles FOR ALL TO public USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all for pos_loyalty_coupons" ON pos_loyalty_coupons FOR ALL TO public USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all for pos_loyalty_campaigns" ON pos_loyalty_campaigns FOR ALL TO public USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all for pos_member_coupons" ON pos_member_coupons FOR ALL TO public USING (true) WITH CHECK (true);
+
+-- Add description column if missing
+ALTER TABLE pos_loyalty_titles ADD COLUMN IF NOT EXISTS description TEXT;
+      ALTER TABLE pos_loyalty_titles ADD COLUMN IF NOT EXISTS benefits TEXT;
+
+-- Clean up old weird titles
+DELETE FROM pos_loyalty_titles;
+
+-- Insert Smart Titles Seed Data
+INSERT INTO pos_loyalty_titles (name, rule_type, rule_threshold, badge_color, description) 
+VALUES ('ขาจรแวะทักทาย', 'total_visits', 1, '#9ca3af', 'สั่งซื้อออเดอร์แรกกับทางร้าน');
+
+INSERT INTO pos_loyalty_titles (name, rule_type, rule_threshold, badge_color, description) 
+VALUES ('คอกาแฟมือใหม่', 'total_visits', 5, '#8b5cf6', 'มาใช้บริการครบ 5 ครั้ง');
+
+INSERT INTO pos_loyalty_titles (name, rule_type, rule_threshold, badge_color, description) 
+VALUES ('นกตื่นเช้า', 'morning_visits', 3, '#f59e0b', 'มาใช้บริการช่วง 06:00-09:00 ครบ 3 ครั้ง');
+
+INSERT INTO pos_loyalty_titles (name, rule_type, rule_threshold, badge_color, description) 
+VALUES ('สายเหมาปาร์ตี้', 'party_buyer', 5, '#ec4899', 'สั่งซื้อ 5 แก้วขึ้นไปในบิลเดียว');
+
+INSERT INTO pos_loyalty_titles (name, rule_type, rule_threshold, badge_color, description) 
+VALUES ('เจ้าสัวคาเฟ่', 'single_receipt_spend', 1000, '#10b981', 'มียอดซื้อเกิน 1,000 บาทในบิลเดียว');
+
+INSERT INTO pos_loyalty_titles (name, rule_type, rule_threshold, badge_color, description) 
+VALUES ('แฟนพันธุ์แท้', 'same_menu_streak', 5, '#3b82f6', 'สั่งซื้อเมนูเดิมครบ 5 แก้ว');
+
+INSERT INTO pos_loyalty_titles (name, rule_type, rule_threshold, badge_color, description) 
+VALUES ('VVIP สายแข็ง', 'total_visits', 50, '#eab308', 'มาใช้บริการครบ 50 ครั้ง');
+
+INSERT INTO pos_loyalty_coupons (name, cost_points, discount_type, discount_value, applicable_categories)
+VALUES ('ฟรีเครื่องดื่ม 1 แก้ว', 1000, 'free_item', NULL, '[]'::jsonb);
+
+NOTIFY pgrst, 'reload schema';`}
+            </div>
+            <p className="text-yellow-600 text-xs mt-2">
+              ✅ เมื่อรันเสร็จ ระบบสมาชิกจะรองรับการตั้งฉายาและคูปองได้ทันที
+            </p>
+          </div>
+
           {/* Feature: POS Other Expenses Prorated */}
           <div className="border border-pink-200 rounded-lg p-4 bg-pink-50 mt-4">
             <h2 className="text-lg font-semibold text-pink-800 mb-3">

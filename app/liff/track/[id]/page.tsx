@@ -423,15 +423,20 @@ export default function LiffTrackPage() {
               <span className="text-[8px] font-black uppercase tracking-widest text-gray-300">{locale === 'en' ? 'Total: ฿' : locale === 'zh' ? '总计：฿' : 'ยอดรวม: ฿'}{order.total_amount?.toLocaleString()}</span>
            </div>
            <div className="space-y-2">
-              {items.map((item, idx) => (
-                <div key={idx} className="p-4 bg-white border border-gray-100 rounded-none flex justify-between items-center transition-all hover:bg-gray-50">
+              {items.map((item, idx) => {
+                const isItemCancelled = item.status === 'cancelled';
+                return (
+                <div key={idx} className={`p-4 bg-white border border-gray-100 rounded-none flex justify-between items-center transition-all hover:bg-gray-50 ${isItemCancelled ? 'opacity-50 grayscale' : ''}`}>
                    <div className="flex items-center gap-4">
-                      <span className="text-[10px] font-black text-emerald-500">{item.quantity}x</span>
+                      <span className={`text-[10px] font-black ${isItemCancelled ? 'text-gray-400' : 'text-emerald-500'}`}>{item.quantity}x</span>
                       <div>
-                        <h4 className="text-[11px] font-bold uppercase tracking-tighter text-black">{item.pos_menu_items?.name || 'เมนูพิเศษ'}</h4>
+                        <h4 className={`text-[11px] font-bold uppercase tracking-tighter ${isItemCancelled ? 'text-gray-400 line-through' : 'text-black'}`}>
+                          {item.pos_menu_items?.name || 'เมนูพิเศษ'}
+                          {isItemCancelled && <span className="ml-2 text-[8px] text-red-500 font-black tracking-widest bg-red-50 px-1 py-0.5 rounded-sm">CANCELLED</span>}
+                        </h4>
                         <div className="flex flex-col gap-1 mt-1">
                           {item.selected_modifiers && item.selected_modifiers.length > 0 && (
-                            <p className="text-[7px] font-black uppercase text-emerald-500 tracking-widest">
+                            <p className={`text-[7px] font-black uppercase tracking-widest ${isItemCancelled ? 'text-gray-400' : 'text-emerald-500'}`}>
                               {item.selected_modifiers.map((m: any) => formatModifierLabel(m)).join(', ')}
                             </p>
                           )}
@@ -440,11 +445,11 @@ export default function LiffTrackPage() {
                       </div>
                    </div>
                    <div className="text-right">
-                     <span className="text-[11px] font-black text-gray-900 leading-none block">{locale === 'en' ? '฿' : locale === 'zh' ? '฿' : '฿'}{item.subtotal?.toLocaleString()}</span>
+                     <span className={`text-[11px] font-black leading-none block ${isItemCancelled ? 'line-through text-gray-400' : 'text-gray-900'}`}>{locale === 'en' ? '฿' : locale === 'zh' ? '฿' : '฿'}{item.subtotal?.toLocaleString()}</span>
                      {item.quantity > 1 && <span className="text-[7px] font-bold text-gray-400 uppercase tracking-tighter">{locale === 'en' ? '(฿' : locale === 'zh' ? '（฿' : '(฿'}{(item.unit_price).toLocaleString()} {locale === 'en' ? '/item)' : locale === 'zh' ? '/物品）' : ' /ชิ้น)'}</span>}
                    </div>
                 </div>
-              ))}
+              )})}
            </div>
         </div>
 

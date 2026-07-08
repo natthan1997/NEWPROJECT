@@ -100,7 +100,7 @@ export const LiffProvider = ({ children }: { children: React.ReactNode }) => {
           .or('is_popular.eq.true,is_recommended.eq.true')
           .order('name', { ascending: true })
           .limit(6),
-        supabase.from('pos_shop_settings').select('*').maybeSingle(),
+        supabase.from('pos_shop_settings').select('*').order('updated_at', { ascending: false }).limit(1).maybeSingle(),
       ]);
 
       if (catRes.data) setCategories(catRes.data);
@@ -138,7 +138,7 @@ export const LiffProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const refreshShopStatus = useCallback(async () => {
-    const { data } = await supabase.from('pos_shop_settings').select('*').maybeSingle();
+    const { data } = await supabase.from('pos_shop_settings').select('*').order('updated_at', { ascending: false }).limit(1).maybeSingle();
     if (data) setShopStatus(data);
   }, []);
 

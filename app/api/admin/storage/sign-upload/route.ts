@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { resolveRequestUser } from '@/lib/server/requestAuth'
+import { getPresignedUploadUrl, getR2PublicUrl } from '@/lib/r2'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,24 +33,20 @@ export async function POST(req: NextRequest) {
     const { path, bucket = 'work-reports' } = await req.json()
     if (!path) return NextResponse.json({ error: 'Missing path' }, { status: 400 })
 
-    // Create a signed upload URL using the service role (bypasses RLS)
-    const { data, error } = await supabase.storage
-      .from(bucket)
-      .createSignedUploadUrl(path)
-
-    if (error) {
-      console.error('Failed to create signed upload URL:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
+    // Simulate Supabase buckets using R2 folder prefixes
+    const fullPath = `${bucket}/${path}`
+    const signedUrl = await getPresignedUploadUrl(fullPath)
+    const publicUrl = getR2PublicUrl(fullPath)
 
     return NextResponse.json({
       success: true,
-      signedUrl: data.signedUrl,
-      token: data.token,
-      path: data.path,
+      signedUrl,
+      path: fullPath,
+      publicUrl,
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('POST /api/admin/storage/sign-upload error', error)
-    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+    return NextResponse.json({ error: error?.message || 'Server error' }, { status: 500 })
   }
 }
+

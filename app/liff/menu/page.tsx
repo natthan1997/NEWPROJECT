@@ -574,26 +574,23 @@ export default function LiffMenuPage() {
 
   useEffect(() => {
     const fetchCategories = async (branchId?: string) => {
-      let catQuery = supabase.from('pos_menu_categories').select('*').order('order_index');
-      let itemQuery = supabase.from('pos_menu_items').select('*, modifiers:pos_item_modifier_links(group_id)').eq('is_active', true).order('name', { ascending: true });
-      
       const targetBranchId = branchId || shopSettings?.branch_id;
-      if (targetBranchId) {
-        catQuery = catQuery.or(`branch_id.eq.${targetBranchId},branch_id.is.null`);
-        itemQuery = itemQuery.or(`branch_id.eq.${targetBranchId},branch_id.is.null`);
-      } else {
-        catQuery = catQuery.is('branch_id', null);
-        itemQuery = itemQuery.is('branch_id', null);
-      }
-      
-      const { data: catData, error: catError } = await catQuery;
-      if (catError) console.error('Fetch Categories Error:', catError);
-      if (catData) setCategories(catData);
+      const url = targetBranchId ? `/api/cache/menu?branchId=${targetBranchId}` : '/api/cache/menu';
 
-      const { data: itemData, error: itemError } = await itemQuery;
-      if (itemError) console.error('Fetch Items Error:', itemError);
-      if (itemData) setItems(sortMenuItemsByOrder(itemData));
-      setIsFetchingItems(false);
+      try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Network error fetching menu cache');
+        const json = await response.json();
+        
+        if (json.data) {
+          if (json.data.categories) setCategories(json.data.categories);
+          if (json.data.items) setItems(sortMenuItemsByOrder(json.data.items));
+        }
+      } catch (error) {
+        console.error('Fetch Menu Cache Error:', error);
+      } finally {
+        setIsFetchingItems(false);
+      }
     };
 
     const fetchActiveOrders = async () => {

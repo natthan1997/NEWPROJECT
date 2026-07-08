@@ -6,7 +6,7 @@ const env = {};
 envFile.split('\n').forEach(line => {
   const match = line.match(/^([^=]+)=(.*)$/);
   if (match) {
-    let val = match[2];
+    let val = match[2].trim();
     if (val.startsWith('"') && val.endsWith('"')) val = val.slice(1, -1);
     if (val.startsWith("'") && val.endsWith("'")) val = val.slice(1, -1);
     env[match[1]] = val;
@@ -19,13 +19,13 @@ const supabase = createClient(
 );
 
 async function run() {
-  const { data, error } = await supabase.from('pos_members').select('*').limit(1);
-  if (error) {
-    console.log('Error:', error.message);
-  } else if (data && data.length > 0) {
-    console.log('Columns:', Object.keys(data[0]));
-  } else {
-    console.log('No rows to determine schema, trying to insert dummy');
-  }
+  const { data: o, error: e1 } = await supabase.from('pos_orders').select('*').limit(1);
+  console.log('pos_orders columns:', o && o.length ? Object.keys(o[0]) : e1);
+  const { data: i, error: e2 } = await supabase.from('pos_order_items').select('*').limit(1);
+  console.log('pos_order_items columns:', i && i.length ? Object.keys(i[0]) : e2);
+  const { data: m, error: e3 } = await supabase.from('pos_members').select('*').limit(1);
+  console.log('pos_members columns:', m && m.length ? Object.keys(m[0]) : e3);
+  const { data: t, error: e4 } = await supabase.from('pos_loyalty_titles').select('*').limit(1);
+  console.log('pos_loyalty_titles columns:', t && t.length ? Object.keys(t[0]) : e4);
 }
 run();

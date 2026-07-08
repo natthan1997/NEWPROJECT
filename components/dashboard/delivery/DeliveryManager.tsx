@@ -168,7 +168,7 @@ export default function DeliveryManager({ unlockAudio, isAudioEnabled, variant =
 
       // 🎁 Award Loyalty Points
       try {
-        const { data: shopSettingsData } = await supabase.from('pos_shop_settings').select('loyalty_earn_rate').limit(1).maybeSingle()
+        const { data: shopSettingsData } = await supabase.from('pos_shop_settings').select('loyalty_earn_rate').order('updated_at', { ascending: false }).limit(1).maybeSingle()
         const earnRate = shopSettingsData?.loyalty_earn_rate || 100
         const totalAmount = finishModalOrder.net_total || finishModalOrder.total_amount || 0
         const pointsToEarn = Math.floor(totalAmount / earnRate)

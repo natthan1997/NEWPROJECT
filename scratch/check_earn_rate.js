@@ -1,37 +1,17 @@
 const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
 
-const envFile = fs.readFileSync('.env', 'utf8');
-const env = {};
-envFile.split('\n').forEach(line => {
-  const match = line.match(/^([^=]+)=(.*)$/);
-  if (match) {
-    let val = match[2].trim();
-    if (val.startsWith('"') && val.endsWith('"')) val = val.slice(1, -1);
-    if (val.startsWith("'") && val.endsWith("'")) val = val.slice(1, -1);
-    env[match[1]] = val;
-  }
+const env = fs.readFileSync('.env.development.local', 'utf8').split('\n');
+let supabaseUrl = 'https://cdjbzyrflzckjgxbqjqb.supabase.co';
+let supabaseKey = '';
+env.forEach(line => {
+  if (line.startsWith('SUPABASE_SERVICE_ROLE_KEY=')) supabaseKey = line.split('=')[1].replace(/["\s\\]/g, '').replace('rn', '');
 });
 
-const envFileLocal = fs.readFileSync('.env.local', 'utf8');
-envFileLocal.split('\n').forEach(line => {
-  const match = line.match(/^([^=]+)=(.*)$/);
-  if (match) {
-    let val = match[2].trim();
-    if (val.startsWith('"') && val.endsWith('"')) val = val.slice(1, -1);
-    if (val.startsWith("'") && val.endsWith("'")) val = val.slice(1, -1);
-    env[match[1]] = val;
-  }
-});
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-const supabase = createClient(
-  env['NEXT_PUBLIC_SUPABASE_URL'],
-  env['SUPABASE_SERVICE_ROLE_KEY']
-);
-
-async function check() {
-  const { data, error } = await supabase.from('pos_shop_settings').select('opening_hours');
-  console.log(data ? JSON.stringify(data, null, 2) : error);
+async function test() {
+    const { data: shopSettings } = await supabase.from('pos_shop_settings').select('opening_hours').limit(1).maybeSingle();
+    console.log(shopSettings.opening_hours);
 }
-
-check();
+test();

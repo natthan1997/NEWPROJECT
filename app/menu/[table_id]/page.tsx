@@ -1728,18 +1728,21 @@ export default function CustomerMenuPage() {
                                                        <p className="text-[14px] text-gray-500">{t.noItems}</p>
                                                      )}
                                                      <div className="space-y-4">
-                                                         {tableBillItems.map((item, idx) => (
-                                                             <div key={idx} className="flex justify-between items-start border-b border-gray-100 pb-3 last:border-0 last:pb-0">
+                                                         {tableBillItems.map((item, idx) => {
+                                                             const isCancelled = item.status === 'cancelled';
+                                                             return (
+                                                             <div key={idx} className={`flex justify-between items-start border-b border-gray-100 pb-3 last:border-0 last:pb-0 ${isCancelled ? 'opacity-50 grayscale' : ''}`}>
                                                                  <div className="flex flex-col pr-4">
                                                                      <div className="flex items-center gap-2">
-                                                                         <span className="font-bold text-[15px] text-black leading-tight">{item.item?.name || '{t.menuItem}'} <span className="text-gray-500 font-medium ml-0.5">x{item.quantity}</span></span>
+                                                                         <span className={`font-bold text-[15px] leading-tight ${isCancelled ? 'text-gray-400 line-through' : 'text-black'}`}>{item.item?.name || '{t.menuItem}'} <span className="text-gray-500 font-medium ml-0.5">x{item.quantity}</span></span>
                                                                          {item.status === 'paid' && <span className="text-[10px] font-bold bg-[#00B14F]/10 text-[#00B14F] px-2 py-0.5 rounded-full">{t.itemPaid}</span>}
+                                                                         {isCancelled && <span className="text-[10px] font-bold bg-red-100 text-red-500 px-2 py-0.5 rounded-full">CANCELLED</span>}
                                                                      </div>
                                                                      <span className="text-[13px] text-gray-500 mt-1">{t.orderedBy}: {item.customer_name || t.customer}</span>
                                                                  </div>
-                                                                 <span className="font-bold text-[15px] text-black">฿{(item.subtotal || (item.unit_price * item.quantity)).toLocaleString()}</span>
+                                                                 <span className={`font-bold text-[15px] ${isCancelled ? 'text-gray-400 line-through' : 'text-black'}`}>฿{(item.subtotal || (item.unit_price * item.quantity)).toLocaleString()}</span>
                                                              </div>
-                                                         ))}
+                                                         )})}
                                                      </div>
                                                  </div>
                                                  {!allowQrPayment ? (
@@ -1813,7 +1816,7 @@ export default function CustomerMenuPage() {
                                                         <h3 className="font-bold text-[16px] text-black tracking-tight">{locale === 'en' ? 'Select Items to Pay' : locale === 'zh' ? 'Select Items to Pay' : 'เลือกรายการที่ต้องการจ่าย'}</h3>
                                                         <button 
                                                             onClick={() => {
-                                                                const unpaidItems = tableBillItems.filter(i => i.status !== 'paid')
+                                                                const unpaidItems = tableBillItems.filter(i => i.status !== 'paid' && i.status !== 'cancelled')
                                                                 if (Object.keys(selectedBillItems).length === unpaidItems.length) {
                                                                     setSelectedBillItems({})
                                                                 } else {
@@ -1823,7 +1826,7 @@ export default function CustomerMenuPage() {
                                                             }}
                                                             className="text-[13px] font-bold text-black hover:opacity-70 transition-opacity"
                                                         >
-                                                            {Object.keys(selectedBillItems).length === tableBillItems.filter(i => i.status !== 'paid').length && tableBillItems.length > 0 ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด'}
+                                                            {Object.keys(selectedBillItems).length === tableBillItems.filter(i => i.status !== 'paid' && i.status !== 'cancelled').length && tableBillItems.length > 0 ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด'}
                                                         </button>
                                                     </div>
                                                     <div className="space-y-3">
@@ -1839,8 +1842,8 @@ export default function CustomerMenuPage() {
                                                             return (
                                                                 <div 
                                                                     key={idx} 
-                                                                    onClick={() => !isPaid && handleToggleItemSelect(item.id, item.quantity)}
-                                                                    className={`p-4 rounded-xl border-2 transition-all flex gap-4 items-start ${isPaid ? 'border-gray-100 bg-gray-50 opacity-60' : isSelected ? 'border-black bg-gray-50 cursor-pointer shadow-sm' : 'border-gray-100 hover:border-gray-300 cursor-pointer'}`}
+                                                                    onClick={() => !isPaid && item.status != 'cancelled' && handleToggleItemSelect(item.id, item.quantity)}
+                                                                    className={`p-4 rounded-xl border-2 transition-all flex gap-4 items-start ${item.status === 'cancelled' ? 'border-gray-100 bg-gray-50 opacity-50 grayscale cursor-not-allowed' : isPaid ? 'border-gray-100 bg-gray-50 opacity-60' : isSelected ? 'border-black bg-gray-50 cursor-pointer shadow-sm' : 'border-gray-100 hover:border-gray-300 cursor-pointer'}`}
                                                                 >
                                                                     <div className="pt-0.5">
                                                                         <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${isSelected ? 'border-black bg-black text-white' : 'border-gray-300 bg-white'}`}>
@@ -1849,11 +1852,11 @@ export default function CustomerMenuPage() {
                                                                     </div>
                                                                     <div className="flex-1 min-w-0">
                                                                         <div className="flex justify-between items-start">
-                                                                            <h4 className="font-bold text-[15px] text-black leading-tight truncate pr-2">
+                                                                            <h4 className={`font-bold text-[15px] leading-tight truncate pr-2 ${item.status === 'cancelled' ? 'text-gray-400 line-through' : 'text-black'}`}>
                                                                                 {item.item?.name || '{t.menuItem}'}
                                                                                 {isPaid && <span className="ml-2 text-[10px] font-bold text-[#00B14F] bg-[#00B14F]/10 px-2 py-0.5 rounded-full align-middle">{t.itemPaid}</span>}
                                                                             </h4>
-                                                                            <span className="font-bold text-[15px] text-black">{locale === 'en' ? '฿' : locale === 'zh' ? '฿' : '฿'}{item.unit_price.toLocaleString()}</span>
+                                                                            <span className={`font-bold text-[15px] ${item.status === 'cancelled' ? 'text-gray-400 line-through' : 'text-black'}`}>{locale === 'en' ? '฿' : locale === 'zh' ? '฿' : '฿'}{item.unit_price.toLocaleString()}</span>
                                                                         </div>
                                                                         <div className="flex items-center justify-between mt-2" onClick={e => e.stopPropagation()}>
                                                                             <span className="text-[13px] text-gray-500">

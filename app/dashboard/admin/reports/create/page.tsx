@@ -251,14 +251,33 @@ export default function AdminBatchReportPage() {
     setReportsData(prev => ({ ...prev, [orderId]: { ...prev[orderId], uploading: true } }))
     try {
       const newUrls: string[] = []
+      const { data: { session } } = await supabase.auth.getSession()
+
       for (let i = 0; i < files.length; i++) {
         const file = files[i]
         const ext = file.name.split('.').pop()
         const path = `manual-reports/${customerId}/${orderId}/zones/${zoneId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-        const { error: uploadError } = await supabase.storage.from('work-reports').upload(path, file)
-        if (uploadError) throw uploadError
-        const { data: { publicUrl } } = supabase.storage.from('work-reports').getPublicUrl(path)
-        newUrls.push(publicUrl)
+        
+        const signRes = await fetch('/api/admin/storage/sign-upload', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
+          },
+          body: JSON.stringify({ path, bucket: 'work-reports' })
+        })
+        const signResult = await signRes.json()
+        if (!signRes.ok) throw new Error(signResult.error || 'Failed to get upload permission')
+
+        const uploadRes = await fetch(signResult.signedUrl, {
+          method: 'PUT',
+          body: file,
+          headers: { 'Content-Type': file.type }
+        })
+
+        if (!uploadRes.ok) throw new Error('Failed to upload file')
+
+        newUrls.push(signResult.publicUrl)
       }
       setReportsData(prev => ({
         ...prev,
@@ -315,12 +334,8 @@ export default function AdminBatchReportPage() {
         
         if (!uploadRes.ok) throw new Error('Failed to upload file to storage')
         
-        // 3. Get Public URL
-        const { data: { publicUrl } } = supabase.storage
-          .from('work-reports')
-          .getPublicUrl(path)
-          
-        newPhotos.push(publicUrl)
+        // 3. Get Public URL from backend response
+        newPhotos.push(signResult.publicUrl)
       }
       
       setReportsData(prev => ({

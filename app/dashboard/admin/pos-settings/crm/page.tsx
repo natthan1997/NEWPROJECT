@@ -1,411 +1,420 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { useI18n } from '@/lib/I18nContext';
-import { 
-  Users, Gift, Award, Plus, Trash2, Edit2, CheckCircle2, AlertCircle, Loader2, Save 
-} from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Save, Plus, Trash2, Tag, Gift, Zap, Edit2, CheckCircle2 } from 'lucide-react';
 
-export default function CrmSettingsPage() {
-  const { locale } = useI18n();
-  const [activeTab, setActiveTab] = useState<'tiers' | 'campaigns' | 'rewards'>('tiers');
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-
-  // Data
-  const [tiers, setTiers] = useState<any[]>([]);
+export default function LoyaltySettingsPage() {
+  const [activeTab, setActiveTab] = useState<'titles' | 'coupons' | 'campaigns'>('titles');
+  const [titles, setTitles] = useState<any[]>([]);
+  const [coupons, setCoupons] = useState<any[]>([]);
   const [campaigns, setCampaigns] = useState<any[]>([]);
-  const [rewards, setRewards] = useState<any[]>([]);
-
-  // Editing state
-  const [editingItem, setEditingItem] = useState<any | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [menuItems, setMenuItems] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
 
   useEffect(() => {
-    fetchData();
+    loadData();
   }, []);
 
-  const fetchData = async () => {
+  const loadData = async () => {
     setLoading(true);
-    setError(null);
-    try {
-      // Check if tables exist by querying them
-      const { data: tData, error: tError } = await supabase.from('pos_loyalty_tiers').select('*').order('min_points', { ascending: true });
-      if (tError) {
-        if (tError.message.includes('relation "pos_loyalty_tiers" does not exist')) {
-          setError('Migration Required: Please run the SQL migration script to create CRM tables.');
-          setLoading(false);
-          return;
-        }
-        throw tError;
-      }
-      setTiers(tData || []);
-
-      const { data: cData, error: cError } = await supabase.from('pos_campaigns').select('*').order('sort_order', { ascending: true });
-      if (cError) throw cError;
-      setCampaigns(cData || []);
-
-      const { data: rData, error: rError } = await supabase.from('pos_rewards').select('*').order('points_required', { ascending: true });
-      if (rError && !rError.message.includes('does not exist')) throw rError;
-      setRewards(rData || []);
-
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+    const [t, c, camp, m, cat] = await Promise.all([
+      supabase.from('pos_loyalty_titles').select('*').order('rule_threshold', { ascending: true }),
+      supabase.from('pos_loyalty_coupons').select('*').order('cost_points', { ascending: true }),
+      supabase.from('pos_loyalty_campaigns').select('*').order('created_at', { ascending: false }),
+      supabase.from('pos_menu_items').select('id, name').eq('is_active', true).order('name'),
+      supabase.from('pos_menu_categories').select('id, name').order('name')
+    ]);
+    if (t.data) setTitles(t.data);
+    if (c.data) setCoupons(c.data);
+    if (camp.data) setCampaigns(camp.data);
+    if (m.data) setMenuItems(m.data);
+    if (cat.data) setCategories(cat.data);
+    setLoading(false);
   };
 
-  const handleDelete = async (table: string, id: string) => {
-    if (!confirm('Are you sure you want to delete this?')) return;
-    try {
-      setSaving(true);
-      const { error } = await supabase.from(table).delete().eq('id', id);
-      if (error) throw error;
-      setSuccess('Deleted successfully');
+  const handleSaveTitle = async (title: any) => { console.log('Saving title:', title);
+    const { id, ...data } = title;
+    if (id.startsWith('new-')) {
+      const { error } = await supabase.from('pos_loyalty_titles').insert([data]);
+      if(error) alert('Insert Error: ' + error.message);
+    } else {
+      const { error } = await supabase.from('pos_loyalty_titles').update(data).eq('id', id);
+      if(error) alert('Update Error: ' + error.message);
+    }
+    loadData();
+  };
+
+  const handleDeleteTitle = async (id: string) => {
+    if (!id.startsWith('new-')) {
+      await supabase.from('pos_loyalty_titles').delete().eq('id', id);
+    }
+    setTitles(titles.filter(t => t.id !== id));
+  };
+
+  const handleSaveCoupon = async (coupon: any) => {
+    const { id, ...data } = coupon;
+    if (id.startsWith('new-')) {
+      await supabase.from('pos_loyalty_coupons').insert([data]);
+    } else {
+      await supabase.from('pos_loyalty_coupons').update(data).eq('id', id);
+    }
+    loadData();
+  };
+
+  const handleDeleteCoupon = async (id: string) => {
+    if (!id.startsWith('new-')) {
+      await supabase.from('pos_loyalty_coupons').delete().eq('id', id);
+    }
+    setCoupons(coupons.filter(c => c.id !== id));
+  };
+
+  
+  const handleSaveCampaign = async (campaign: any) => {
+    if (!campaign.name) return alert('กรุณากรอกชื่อแคมเปญ');
+    
+    // Ensure applicable_categories is parsed as array if it's string
+    let parsedCategories = campaign.applicable_categories;
+    if (typeof parsedCategories === 'string') {
+      parsedCategories = parsedCategories.split(',').map(s => s.trim()).filter(s => s);
+    }
+    
+    const { error } = campaign.id.startsWith('new-')
+      ? await supabase.from('pos_loyalty_campaigns').insert([{ 
+          name: campaign.name, 
+          multiplier: campaign.multiplier, 
+          applicable_categories: parsedCategories, 
+          is_active: campaign.is_active 
+        }])
+      : await supabase.from('pos_loyalty_campaigns').update({ 
+          name: campaign.name, 
+          multiplier: campaign.multiplier, 
+          applicable_categories: parsedCategories, 
+          is_active: campaign.is_active 
+        }).eq('id', campaign.id);
+        
+    if (error) alert('Error: ' + error.message);
+    else {
+      alert('บันทึกสำเร็จ');
       fetchData();
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setSaving(false);
-      setTimeout(() => setSuccess(null), 3000);
     }
   };
 
-  const handleSave = async (table: string, data: any) => {
-    try {
-      setSaving(true);
-      if (data.id) {
-        const { error } = await supabase.from(table).update(data).eq('id', data.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from(table).insert([data]);
-        if (error) throw error;
-      }
-      setSuccess('Saved successfully');
-      setIsModalOpen(false);
-      setEditingItem(null);
-      fetchData();
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setSaving(false);
-      setTimeout(() => setSuccess(null), 3000);
+  const handleDeleteCampaign = async (id: string) => {
+    if (!confirm('ยืนยันการลบ?')) return;
+    if (!id.startsWith('new-')) {
+      const { error } = await supabase.from('pos_loyalty_campaigns').delete().eq('id', id);
+      if (error) return alert('Error: ' + error.message);
     }
+    fetchData();
   };
 
-  const openEditModal = (item: any) => {
-    setEditingItem(item);
-    setIsModalOpen(true);
-  };
+  const renderTitles = () => (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">ฉายาลูกค้า (Dynamic Titles)</h2>
+          <p className="text-sm text-gray-500">ระบบจะมอบฉายาให้ลูกค้าอัตโนมัติตามเงื่อนไขที่กำหนด</p>
+        </div>
+        <button 
+          onClick={() => setTitles([...titles, { id: 'new-' + Date.now(), name: '', rule_type: 'total_visits', rule_threshold: 10, badge_color: '#4b5563' }])}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          <Plus className="w-4 h-4" /> เพิ่มฉายา
+        </button>
+      </div>
 
-  const openAddModal = (type: string) => {
-    let newItem = {};
-    if (type === 'tiers') {
-      newItem = { name: '', min_points: 0, bg_color: 'bg-[#F2ECE4]', text_color: 'text-[#8C6D53]', bar_color: 'bg-[#C19A6B]', benefits: [], is_active: true };
-    } else if (type === 'campaigns') {
-      newItem = { title: '', description: '', icon: '🎁', type_tag: 'Campaign', bg_gradient_from: 'from-[#EBF1F5]', bg_gradient_to: 'to-[#D6E4EE]', text_color: 'text-[#1F333C]', tag_color: 'text-[#3E6578]', is_active: true, sort_order: 0 };
-    } else if (type === 'rewards') {
-      newItem = { name: '', title: '', description: '', points_required: 100, is_active: true, image_url: '' };
-    }
-    setEditingItem(newItem);
-    setIsModalOpen(true);
-  };
+      {titles.map(title => (
+        <div key={title.id} className="p-4 bg-white border border-gray-200 rounded-xl flex items-center gap-4">
+          <input 
+            type="color" 
+            value={title.badge_color} 
+            onChange={e => setTitles(titles.map(t => t.id === title.id ? { ...t, badge_color: e.target.value } : t))}
+            className="w-10 h-10 rounded cursor-pointer" 
+          />
+          <div className="flex-1 grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">ชื่อฉายา</label>
+              <input 
+                type="text" 
+                value={title.name} 
+                onChange={e => setTitles(titles.map(t => t.id === title.id ? { ...t, name: e.target.value } : t))}
+                placeholder="เช่น อัศวินรัตติกาล" 
+                className="w-full border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">ประเภทเงื่อนไข</label>
+              <select 
+                value={title.rule_type} 
+                onChange={e => setTitles(titles.map(t => t.id === title.id ? { ...t, rule_type: e.target.value } : t))}
+                className="w-full border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+              >
+                <option value="total_visits">จำนวนครั้งที่มาร้าน (รวม)</option>
+                <option value="lifetime_spend">ยอดใช้จ่ายสะสมรวม</option>
+                <option value="single_receipt_spend">ยอดเปย์หนักบิลเดียว (บาท)</option>
+                <option value="party_buyer">สายเหมา (จำนวนแก้วต่อบิล)</option>
+                <option value="same_menu_streak">แฟนพันธุ์แท้ (สุ่มสั่งเมนูเดิมซ้ำครบ X ครั้ง)</option>
+                <option value="category_purchase">ซื้อหมวดหมู่เฉพาะ (ระบุหมวด)</option>
+                <option value="specific_menu_purchase">ซื้อเมนูเฉพาะ (ระบุเมนู)</option>
+                <option value="morning_visits">นกตื่นเช้า (มาก่อน 9 โมงครบ X ครั้ง)</option>
+                <option value="evening_visits">สายดึก (มาหลัง 6 โมงเย็นครบ X ครั้ง)</option>
+              </select>
+            </div>
+            
+            {(title.rule_type === 'category_purchase' || title.rule_type === 'specific_menu_purchase') && (
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">เป้าหมาย ({title.rule_type === 'category_purchase' ? 'เลือกหมวดหมู่' : 'เลือกเมนู'})</label>
+                <select 
+                  value={title.rule_target || ''} 
+                  onChange={e => setTitles(titles.map(t => t.id === title.id ? { ...t, rule_target: e.target.value } : t))}
+                  className="w-full border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                >
+                  <option value="">-- เลือก --</option>
+                  {title.rule_type === 'category_purchase' && categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                  {title.rule_type === 'specific_menu_purchase' && menuItems.map(m => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">คำอธิบาย (How to get)</label>
+              <input 
+                type="text" 
+                value={title.description || ''} 
+                onChange={e => setTitles(titles.map(t => t.id === title.id ? { ...t, description: e.target.value } : t))}
+                placeholder="เช่น มาซื้อตอนเช้าครบ 10 ครั้ง" 
+                className="w-full border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">จำนวนที่ต้องถึง (Threshold)</label>
+              <input 
+                type="number" 
+                value={title.rule_threshold} 
+                onChange={e => setTitles(titles.map(t => t.id === title.id ? { ...t, rule_threshold: parseInt(e.target.value) } : t))}
+                className="w-full border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+              />
+            </div>
+          </div>
+          <button onClick={() => handleSaveTitle(title)} className="p-2 text-green-600 hover:bg-green-50 rounded-lg" title="Save">
+            <Save className="w-5 h-5" />
+          </button>
+          <button onClick={() => handleDeleteTitle(title.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg" title="Delete">
+            <Trash2 className="w-5 h-5" />
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+
+  const renderCoupons = () => (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">แม่แบบคูปอง (Redeemable Coupons)</h2>
+          <p className="text-sm text-gray-500">คูปองที่ลูกค้าสามารถใช้แต้มแลกเพื่อเก็บไว้ใช้หน้าร้าน</p>
+        </div>
+        <button 
+          onClick={() => setCoupons([...coupons, { id: 'new-' + Date.now(), name: '', cost_points: 500, discount_type: 'free_item', discount_value: 0, is_active: true }])}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          <Plus className="w-4 h-4" /> เพิ่มคูปอง
+        </button>
+      </div>
+
+      {coupons.map(coupon => (
+        <div key={coupon.id} className="p-4 bg-white border border-gray-200 rounded-xl space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Gift className="w-5 h-5 text-purple-600" />
+              <input 
+                type="text" 
+                value={coupon.name} 
+                onChange={e => setCoupons(coupons.map(c => c.id === coupon.id ? { ...c, name: e.target.value } : c))}
+                placeholder="ชื่อคูปอง (เช่น ฟรีเครื่องดื่ม 1 แก้ว)" 
+                className="font-medium text-lg border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input 
+                  type="checkbox" 
+                  checked={coupon.is_active} 
+                  onChange={e => setCoupons(coupons.map(c => c.id === coupon.id ? { ...c, is_active: e.target.checked } : c))}
+                  className="rounded text-blue-600" 
+                /> เปิดใช้งาน
+              </label>
+              <button onClick={() => handleSaveCoupon(coupon)} className="p-2 text-green-600 hover:bg-green-50 rounded-lg">
+                <Save className="w-5 h-5" />
+              </button>
+              <button onClick={() => handleDeleteCoupon(coupon.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg">
+                <Trash2 className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">ใช้แต้มแลก (Points required)</label>
+              <input 
+                type="number" 
+                value={coupon.cost_points} 
+                onChange={e => setCoupons(coupons.map(c => c.id === coupon.id ? { ...c, cost_points: parseInt(e.target.value) } : c))}
+                className="w-full border-gray-300 rounded-md text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">ประเภทส่วนลด</label>
+              <select 
+                value={coupon.discount_type} 
+                onChange={e => setCoupons(coupons.map(c => c.id === coupon.id ? { ...c, discount_type: e.target.value } : c))}
+                className="w-full border-gray-300 rounded-md text-sm"
+              >
+                <option value="free_item">ฟรี 1 รายการ (ลดของที่ถูกสุด)</option>
+                <option value="percent">ส่วนลด %</option>
+                <option value="fixed">ส่วนลดบาท</option>
+              </select>
+            </div>
+            {coupon.discount_type !== 'free_item' && (
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">มูลค่า (Value)</label>
+                <input 
+                  type="number" 
+                  value={coupon.discount_value || 0} 
+                  onChange={e => setCoupons(coupons.map(c => c.id === coupon.id ? { ...c, discount_value: parseFloat(e.target.value) } : c))}
+                  className="w-full border-gray-300 rounded-md text-sm"
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+
+  const renderCampaigns = () => (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center bg-blue-50 p-4 rounded-xl border border-blue-100">
+        <div>
+          <h2 className="text-lg font-bold text-blue-900">แคมเปญแต้มคูณ (Point Multipliers)</h2>
+          <p className="text-sm text-blue-700">ตั้งค่าการคูณแต้มพิเศษตามหมวดหมู่สินค้า</p>
+        </div>
+        <button 
+          onClick={() => setCampaigns([{ id: 'new-' + Date.now(), name: '', multiplier: 2.0, applicable_categories: [], is_active: true }, ...campaigns])}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          <Plus className="w-4 h-4" /> เพิ่มแคมเปญ
+        </button>
+      </div>
+
+      {campaigns.map(campaign => (
+        <div key={campaign.id} className="p-4 bg-white border border-gray-200 rounded-xl space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Zap className="w-5 h-5 text-orange-500" />
+              <input 
+                type="text" 
+                value={campaign.name} 
+                onChange={e => setCampaigns(campaigns.map(c => c.id === campaign.id ? { ...c, name: e.target.value } : c))}
+                placeholder="ชื่อแคมเปญ (เช่น วันพุธแต้มคูณ 2)" 
+                className="font-medium text-lg border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input 
+                  type="checkbox" 
+                  checked={campaign.is_active} 
+                  onChange={e => setCampaigns(campaigns.map(c => c.id === campaign.id ? { ...c, is_active: e.target.checked } : c))}
+                  className="rounded text-blue-600" 
+                /> เปิดใช้งาน
+              </label>
+              <button onClick={() => handleSaveCampaign(campaign)} className="p-2 text-green-600 hover:bg-green-50 rounded-lg">
+                <Save className="w-5 h-5" />
+              </button>
+              <button onClick={() => handleDeleteCampaign(campaign.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg">
+                <Trash2 className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">ตัวคูณแต้ม (Point Multiplier)</label>
+              <input 
+                type="number" 
+                step="0.1"
+                value={campaign.multiplier} 
+                onChange={e => setCampaigns(campaigns.map(c => c.id === campaign.id ? { ...c, multiplier: parseFloat(e.target.value) } : c))}
+                className="w-full border-gray-300 rounded-md text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">หมวดหมู่ที่ได้รับแต้มคูณ (คั่นด้วยลูกน้ำ, ว่างไว้=ทุกหมวดหมู่)</label>
+              <input 
+                type="text" 
+                value={Array.isArray(campaign.applicable_categories) ? campaign.applicable_categories.join(', ') : campaign.applicable_categories} 
+                onChange={e => setCampaigns(campaigns.map(c => c.id === campaign.id ? { ...c, applicable_categories: e.target.value } : c))}
+                placeholder="เช่น ขนม, เครื่องดื่ม (เว้นว่างคือทุกหมวดหมู่)"
+                className="w-full border-gray-300 rounded-md text-sm"
+              />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
+    <div className="max-w-5xl mx-auto p-6 space-y-6">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl flex items-center justify-center text-white shadow-lg">
+          <Zap className="w-5 h-5" />
+        </div>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">CRM & Loyalty</h1>
-          <p className="text-gray-500">Manage member tiers, special campaigns, and point rewards.</p>
+          <h1 className="text-2xl font-bold text-gray-900">Loyalty Rules Engine</h1>
+          <p className="text-gray-500 text-sm">ตั้งค่ากฎเกณฑ์ของระบบสมาชิก ฉายา คูปอง และแคมเปญแจกแต้ม</p>
         </div>
       </div>
 
-      {error && (
-        <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-          <p>{error}</p>
-        </div>
-      )}
-
-      {success && (
-        <div className="mb-6 p-4 bg-emerald-50 text-emerald-700 rounded-lg flex items-center gap-3">
-          <CheckCircle2 className="w-5 h-5" />
-          <p>{success}</p>
-        </div>
-      )}
-
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        {/* Tabs */}
-        <div className="flex border-b border-gray-100">
-          <button
-            onClick={() => setActiveTab('tiers')}
-            className={`flex-1 py-4 px-6 text-sm font-medium flex items-center justify-center gap-2 transition-colors ${
-              activeTab === 'tiers' ? 'bg-gray-50 text-gray-900 border-b-2 border-gray-900' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50/50'
-            }`}
-          >
-            <Users className="w-4 h-4" /> Tiers (ระดับสมาชิก)
-          </button>
-          <button
-            onClick={() => setActiveTab('campaigns')}
-            className={`flex-1 py-4 px-6 text-sm font-medium flex items-center justify-center gap-2 transition-colors ${
-              activeTab === 'campaigns' ? 'bg-gray-50 text-gray-900 border-b-2 border-gray-900' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50/50'
-            }`}
-          >
-            <Award className="w-4 h-4" /> Campaigns (แคมเปญกระตุ้น)
-          </button>
-          <button
-            onClick={() => setActiveTab('rewards')}
-            className={`flex-1 py-4 px-6 text-sm font-medium flex items-center justify-center gap-2 transition-colors ${
-              activeTab === 'rewards' ? 'bg-gray-50 text-gray-900 border-b-2 border-gray-900' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50/50'
-            }`}
-          >
-            <Gift className="w-4 h-4" /> Rewards (ของรางวัล)
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="p-6">
-          {loading ? (
-            <div className="flex justify-center items-center py-20">
-              <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
-            </div>
-          ) : (
-            <div className="space-y-6">
-              <div className="flex justify-end">
-                <button 
-                  onClick={() => openAddModal(activeTab)}
-                  className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-gray-800 transition-colors"
-                >
-                  <Plus className="w-4 h-4" /> Add New {activeTab === 'tiers' ? 'Tier' : activeTab === 'campaigns' ? 'Campaign' : 'Reward'}
-                </button>
-              </div>
-
-              {activeTab === 'tiers' && (
-                <div className="grid md:grid-cols-2 gap-4">
-                  {tiers.map((tier) => (
-                    <div key={tier.id} className={`p-5 rounded-xl border border-gray-100 ${tier.bg_color || 'bg-gray-50'} relative group`}>
-                      <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
-                        <button onClick={() => openEditModal(tier)} className="p-1.5 bg-white/80 rounded-md text-gray-600 hover:text-gray-900"><Edit2 className="w-4 h-4" /></button>
-                        <button onClick={() => handleDelete('pos_loyalty_tiers', tier.id)} className="p-1.5 bg-white/80 rounded-md text-red-600 hover:text-red-900"><Trash2 className="w-4 h-4" /></button>
-                      </div>
-                      <div className="flex items-baseline gap-2 mb-3">
-                        <h3 className={`text-lg font-bold ${tier.text_color}`}>{tier.name}</h3>
-                        <span className="text-sm text-gray-500">{tier.min_points.toLocaleString()} Points</span>
-                      </div>
-                      <ul className="space-y-1.5 text-sm text-gray-600">
-                        {(tier.benefits || []).map((b: string, i: number) => (
-                          <li key={i} className="flex gap-2 items-start">
-                            <span className="mt-0.5 text-gray-400">•</span>
-                            <span>{b}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                  {tiers.length === 0 && <p className="text-gray-500 italic col-span-2 text-center py-10">No tiers configured.</p>}
-                </div>
-              )}
-
-              {activeTab === 'campaigns' && (
-                <div className="grid md:grid-cols-3 gap-4">
-                  {campaigns.map((camp) => (
-                    <div key={camp.id} className={`p-4 rounded-xl border border-gray-100 relative group bg-gradient-to-br ${camp.bg_gradient_from} ${camp.bg_gradient_to}`}>
-                      <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 z-10">
-                        <button onClick={() => openEditModal(camp)} className="p-1.5 bg-white/80 rounded-md text-gray-600 hover:text-gray-900"><Edit2 className="w-4 h-4" /></button>
-                        <button onClick={() => handleDelete('pos_campaigns', camp.id)} className="p-1.5 bg-white/80 rounded-md text-red-600 hover:text-red-900"><Trash2 className="w-4 h-4" /></button>
-                      </div>
-                      <div className="absolute -right-4 -top-4 text-6xl opacity-10">{camp.icon}</div>
-                      
-                      <span className={`text-[10px] font-bold uppercase tracking-wider ${camp.tag_color} bg-white/50 px-2 py-1 rounded-md mb-2 inline-block relative z-10`}>
-                        {camp.type_tag}
-                      </span>
-                      <h4 className={`text-[14px] font-semibold ${camp.text_color} leading-tight mb-1 relative z-10`}>{camp.title}</h4>
-                      <p className={`text-[12px] ${camp.tag_color} relative z-10`}>{camp.description}</p>
-                      
-                      {!camp.is_active && (
-                        <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex items-center justify-center rounded-xl z-20">
-                          <span className="bg-gray-800 text-white text-xs px-2 py-1 rounded font-medium">Inactive</span>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                  {campaigns.length === 0 && <p className="text-gray-500 italic col-span-3 text-center py-10">No campaigns configured.</p>}
-                </div>
-              )}
-
-              {activeTab === 'rewards' && (
-                <div className="space-y-4">
-                  {rewards.map((reward) => (
-                    <div key={reward.id} className="flex gap-4 p-4 rounded-xl border border-gray-100 bg-white relative group">
-                      <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
-                        <button onClick={() => openEditModal(reward)} className="p-1.5 bg-gray-100 rounded-md text-gray-600 hover:text-gray-900"><Edit2 className="w-4 h-4" /></button>
-                        <button onClick={() => handleDelete('pos_rewards', reward.id)} className="p-1.5 bg-red-50 rounded-md text-red-600 hover:text-red-900"><Trash2 className="w-4 h-4" /></button>
-                      </div>
-                      <div className="w-20 h-20 bg-gray-50 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center">
-                        {reward.image_url ? (
-                          <img src={reward.image_url} alt={reward.title} className="w-full h-full object-cover" />
-                        ) : (
-                          <Gift size={24} className="text-gray-300" />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="text-[14px] font-medium text-gray-900">{reward.title || reward.name} {!reward.is_active && <span className="text-xs text-red-500 font-normal ml-2">(Inactive)</span>}</h4>
-                        <p className="text-[12px] text-gray-500 mt-1">{reward.description}</p>
-                        <p className="text-[13px] font-bold text-gray-900 mt-2">{reward.points_required?.toLocaleString()} Pts</p>
-                      </div>
-                    </div>
-                  ))}
-                  {rewards.length === 0 && <p className="text-gray-500 italic text-center py-10">No rewards configured.</p>}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+      <div className="flex space-x-1 border-b border-gray-200">
+        <button
+          onClick={() => setActiveTab('titles')}
+          className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-colors \${activeTab === 'titles' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+        >
+          <Tag className="w-4 h-4" /> ฉายาลูกค้า (Titles)
+        </button>
+        <button
+          onClick={() => setActiveTab('coupons')}
+          className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-colors \${activeTab === 'coupons' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+        >
+          <Gift className="w-4 h-4" /> คูปองส่วนลด (Coupons)
+        </button>
+        <button
+          onClick={() => setActiveTab('campaigns')}
+          className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-colors \${activeTab === 'campaigns' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+        >
+          <Zap className="w-4 h-4" /> แคมเปญแต้มคูณ (Campaigns)
+        </button>
       </div>
 
-      {/* Editor Modal */}
-      <AnimatePresence>
-        {isModalOpen && editingItem && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => !saving && setIsModalOpen(false)} />
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 relative z-10 max-h-[90vh] overflow-y-auto">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">
-                {editingItem.id ? 'Edit' : 'Add'} {activeTab === 'tiers' ? 'Tier' : activeTab === 'campaigns' ? 'Campaign' : 'Reward'}
-              </h2>
-              
-              <div className="space-y-4">
-                {activeTab === 'tiers' && (
-                  <>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Tier Name</label>
-                      <input type="text" className="w-full border border-gray-200 rounded-lg p-2.5 text-sm" value={editingItem.name || ''} onChange={e => setEditingItem({...editingItem, name: e.target.value})} placeholder="e.g. Bronze" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Min Points</label>
-                      <input type="number" className="w-full border border-gray-200 rounded-lg p-2.5 text-sm" value={editingItem.min_points || 0} onChange={e => setEditingItem({...editingItem, min_points: parseInt(e.target.value) || 0})} />
-                    </div>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">BG Class</label>
-                        <input type="text" className="w-full border border-gray-200 rounded-lg p-2 text-xs" value={editingItem.bg_color || ''} onChange={e => setEditingItem({...editingItem, bg_color: e.target.value})} placeholder="bg-[#F2ECE4]" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Text Class</label>
-                        <input type="text" className="w-full border border-gray-200 rounded-lg p-2 text-xs" value={editingItem.text_color || ''} onChange={e => setEditingItem({...editingItem, text_color: e.target.value})} placeholder="text-[#8C6D53]" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Bar Class</label>
-                        <input type="text" className="w-full border border-gray-200 rounded-lg p-2 text-xs" value={editingItem.bar_color || ''} onChange={e => setEditingItem({...editingItem, bar_color: e.target.value})} placeholder="bg-[#C19A6B]" />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Benefits (One per line)</label>
-                      <textarea 
-                        className="w-full border border-gray-200 rounded-lg p-2.5 text-sm h-32" 
-                        value={(editingItem.benefits || []).join('\n')} 
-                        onChange={e => setEditingItem({...editingItem, benefits: e.target.value.split('\n').filter(b => b.trim())})} 
-                        placeholder="Benefit 1&#10;Benefit 2" 
-                      />
-                    </div>
-                  </>
-                )}
-
-                {activeTab === 'campaigns' && (
-                  <>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                      <input type="text" className="w-full border border-gray-200 rounded-lg p-2.5 text-sm" value={editingItem.title || ''} onChange={e => setEditingItem({...editingItem, title: e.target.value})} />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                      <input type="text" className="w-full border border-gray-200 rounded-lg p-2.5 text-sm" value={editingItem.description || ''} onChange={e => setEditingItem({...editingItem, description: e.target.value})} />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Icon (Emoji)</label>
-                        <input type="text" className="w-full border border-gray-200 rounded-lg p-2.5 text-sm" value={editingItem.icon || ''} onChange={e => setEditingItem({...editingItem, icon: e.target.value})} />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Tag (e.g. Flash Event)</label>
-                        <input type="text" className="w-full border border-gray-200 rounded-lg p-2.5 text-sm" value={editingItem.type_tag || ''} onChange={e => setEditingItem({...editingItem, type_tag: e.target.value})} />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Gradient From Class</label>
-                        <input type="text" className="w-full border border-gray-200 rounded-lg p-2.5 text-sm" value={editingItem.bg_gradient_from || ''} onChange={e => setEditingItem({...editingItem, bg_gradient_from: e.target.value})} />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Gradient To Class</label>
-                        <input type="text" className="w-full border border-gray-200 rounded-lg p-2.5 text-sm" value={editingItem.bg_gradient_to || ''} onChange={e => setEditingItem({...editingItem, bg_gradient_to: e.target.value})} />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="flex items-center gap-2 mt-4 cursor-pointer">
-                        <input type="checkbox" checked={editingItem.is_active !== false} onChange={e => setEditingItem({...editingItem, is_active: e.target.checked})} className="rounded border-gray-300 text-gray-900 focus:ring-gray-900" />
-                        <span className="text-sm font-medium text-gray-700">Campaign Active</span>
-                      </label>
-                    </div>
-                  </>
-                )}
-
-                {activeTab === 'rewards' && (
-                  <>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Reward Name</label>
-                      <input type="text" className="w-full border border-gray-200 rounded-lg p-2.5 text-sm" value={editingItem.title || editingItem.name || ''} onChange={e => setEditingItem({...editingItem, title: e.target.value, name: e.target.value})} />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                      <textarea className="w-full border border-gray-200 rounded-lg p-2.5 text-sm" rows={3} value={editingItem.description || ''} onChange={e => setEditingItem({...editingItem, description: e.target.value})} />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Points Required</label>
-                      <input type="number" className="w-full border border-gray-200 rounded-lg p-2.5 text-sm" value={editingItem.points_required || 0} onChange={e => setEditingItem({...editingItem, points_required: parseInt(e.target.value) || 0})} />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
-                      <input type="text" className="w-full border border-gray-200 rounded-lg p-2.5 text-sm" value={editingItem.image_url || ''} onChange={e => setEditingItem({...editingItem, image_url: e.target.value})} placeholder="https://..." />
-                    </div>
-                    <div>
-                      <label className="flex items-center gap-2 mt-4 cursor-pointer">
-                        <input type="checkbox" checked={editingItem.is_active !== false} onChange={e => setEditingItem({...editingItem, is_active: e.target.checked})} className="rounded border-gray-300 text-gray-900 focus:ring-gray-900" />
-                        <span className="text-sm font-medium text-gray-700">Reward Active</span>
-                      </label>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              <div className="mt-8 flex justify-end gap-3">
-                <button 
-                  onClick={() => setIsModalOpen(false)}
-                  disabled={saving}
-                  className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                >
-                  Cancel
-                </button>
-                <button 
-                  onClick={() => handleSave(
-                    activeTab === 'tiers' ? 'pos_loyalty_tiers' : activeTab === 'campaigns' ? 'pos_campaigns' : 'pos_rewards',
-                    editingItem
-                  )}
-                  disabled={saving}
-                  className="px-4 py-2 text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 rounded-lg transition-colors flex items-center gap-2"
-                >
-                  {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                  Save Changes
-                </button>
-              </div>
-            </motion.div>
-          </div>
+      <div className="pt-4">
+        {loading ? (
+          <div className="flex justify-center p-12"><CheckCircle2 className="w-8 h-8 text-gray-300 animate-pulse" /></div>
+        ) : (
+          <>
+            {activeTab === 'titles' && renderTitles()}
+            {activeTab === 'coupons' && renderCoupons()}
+            {activeTab === 'campaigns' && renderCampaigns()}
+          </>
         )}
-      </AnimatePresence>
+      </div>
     </div>
   );
 }

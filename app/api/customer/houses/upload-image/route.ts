@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { resolveRequestUser } from '@/lib/server/requestAuth'
+import { uploadToR2 } from '@/lib/r2'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -60,43 +61,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'คุณไม่มีสิทธิ์แก้ไขบ้านหลังนี้' }, { status: 403 })
     }
 
-    const { error: bucketCheckError } = await supabase.storage.getBucket(BUCKET)
-    if (bucketCheckError) {
-      await supabase.storage.createBucket(BUCKET, {
-        public: true,
-        fileSizeLimit: 20 * 1024 * 1024,
-        allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif'],
-      })
-    }
-
     const safeName = sanitizeFileName(file.name || 'house-image.jpg')
     const rand = Math.random().toString(36).slice(2, 10)
-    const objectPath = `${user.id}/${houseId}/${Date.now()}_${rand}_${safeName}`
+    const objectPath = `${BUCKET}/${user.id}/${houseId}/${Date.now()}_${rand}_${safeName}`
 
     const arrayBuffer = await file.arrayBuffer()
-    const buffer = new Uint8Array(arrayBuffer)
+    const buffer = Buffer.from(arrayBuffer)
 
-    const { error: uploadError } = await supabase.storage
-      .from(BUCKET)
-      .upload(objectPath, buffer, { upsert: false, contentType: file.type })
-
-    if (uploadError) {
-      return NextResponse.json({ error: `อัปโหลดรูปไม่สำเร็จ: ${uploadError.message}` }, { status: 500 })
+    let publicUrl = ''
+    try {
+      publicUrl = await uploadToR2(buffer, objectPath, file.type)
+    } catch (uploadError: any) {
+      console.error('R2 Upload Error:', uploadError)
+      return NextResponse.json({ error: `อัปโหลดรูปไม่สำเร็จ: ${uploadError?.message}` }, { status: 500 })
     }
-
-    const { data: publicData } = supabase.storage.from(BUCKET).getPublicUrl(objectPath)
 
     const { error: updateError } = await supabase
       .from('houses')
-      .update({ image_url: publicData.publicUrl })
+      .update({ image_url: publicUrl })
       .eq('id', houseId)
 
     if (updateError) {
       console.error('Failed to update house image_url:', updateError)
     }
 
-    return NextResponse.json({ success: true, imageUrl: publicData.publicUrl, path: objectPath })
+    return NextResponse.json({ success: true, imageUrl: publicUrl, path: objectPath })
   } catch (error: any) {
+    console.error('POST /api/customer/houses/upload-image error', error)
     return NextResponse.json(
       {
         error: 'ไม่สามารถอัปโหลดรูปบ้านได้',
@@ -105,4 +96,4 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     )
   }
-}
+}

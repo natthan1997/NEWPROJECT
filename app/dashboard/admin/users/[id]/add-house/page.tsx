@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { ArrowLeft, Save, MapPin, Search } from 'lucide-react'
-import { createHouse, findBranchByZipCode, getProfileByUserId } from '@/lib/supabaseClient'
+import { createHouse, findBranchByZipCode, supabase } from '@/lib/supabaseClient'
 import { useToastContext } from '@/components/Toast'
 import dynamic from 'next/dynamic'
 import { useI18n } from "@/lib/I18nContext";
@@ -43,7 +43,7 @@ export default function AdminAddHousePage() {
   useEffect(() => {
     if (!userId) return
     const fetchUser = async () => {
-      const { data, error } = await getProfileByUserId(userId)
+      const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single()
       if (data) {
         setCustomerName(data.display_name || data.email || 'ไม่ทราบชื่อ')
       }
@@ -103,15 +103,31 @@ export default function AdminAddHousePage() {
         const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`
         const filePath = `${userId}/new/${fileName}`
         
-        const { supabase } = await import('@/lib/supabaseClient')
-        const { error: uploadError } = await supabase.storage
-          .from('house-images')
-          .upload(filePath, imageFile)
-          
-        if (!uploadError) {
-          const { data: publicData } = supabase.storage.from('house-images').getPublicUrl(filePath)
-          uploadedImageUrl = publicData.publicUrl
-        } else {
+        try {
+          const { supabase } = await import('@/lib/supabaseClient')
+          const { data: { session } } = await supabase.auth.getSession()
+
+          const signRes = await fetch('/api/admin/storage/sign-upload', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
+            },
+            body: JSON.stringify({ path: filePath, bucket: 'house-images' })
+          })
+
+          const signResult = await signRes.json()
+          if (!signRes.ok) throw new Error(signResult.error || 'Failed to get upload permission')
+
+          const uploadRes = await fetch(signResult.signedUrl, {
+            method: 'PUT',
+            body: imageFile,
+            headers: { 'Content-Type': imageFile.type }
+          })
+
+          if (!uploadRes.ok) throw new Error('Failed to upload file')
+          uploadedImageUrl = signResult.publicUrl
+        } catch (uploadError) {
           console.error("Image upload failed:", uploadError)
         }
       }

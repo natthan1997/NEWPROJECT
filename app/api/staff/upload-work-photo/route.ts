@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { resolveRequestUser } from '@/lib/server/requestAuth'
+import { uploadToR2 } from '@/lib/r2'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -138,35 +139,23 @@ export async function POST(req: NextRequest) {
 
     const safeName = sanitizeFileName(file.name || 'photo.jpg')
     const rand = Math.random().toString(36).slice(2, 10)
-    const path = `${orderId}/${assignmentId}/${kind}/${Date.now()}_${rand}_${safeName}`
+    const path = `work-reports/${orderId}/${assignmentId}/${kind}/${Date.now()}_${rand}_${safeName}`
 
     const arrayBuffer = await file.arrayBuffer()
-    const buffer = new Uint8Array(arrayBuffer)
+    const buffer = Buffer.from(arrayBuffer)
 
-    // Auto-create bucket if it doesn't exist (safety net)
-    const { error: bucketCheckErr } = await supabase.storage.getBucket('work-reports')
-    if (bucketCheckErr) {
-      await supabase.storage.createBucket('work-reports', {
-        public: true,
-        fileSizeLimit: 25 * 1024 * 1024,
-        allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif'],
-      })
+    let publicUrl = ''
+    try {
+      publicUrl = await uploadToR2(buffer, path, file.type)
+    } catch (uploadError: any) {
+      console.error('R2 Storage upload error:', uploadError)
+      return NextResponse.json({ error: uploadError?.message || 'Upload failed' }, { status: 500 })
     }
 
-    const { error: uploadError } = await supabase.storage
-      .from('work-reports')
-      .upload(path, buffer, { upsert: false, contentType: file.type })
-
-    if (uploadError) {
-      console.error('Storage upload error:', uploadError)
-      return NextResponse.json({ error: uploadError.message }, { status: 500 })
-    }
-
-    const { data: publicData } = supabase.storage.from('work-reports').getPublicUrl(path)
-
-    return NextResponse.json({ success: true, url: publicData.publicUrl })
+    return NextResponse.json({ success: true, url: publicUrl })
   } catch (err) {
     console.error('POST /api/staff/upload-work-photo error:', err)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }
+

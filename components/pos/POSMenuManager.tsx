@@ -408,19 +408,30 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
     try {
       const fileExt = file.name.split('.').pop()
       const fileName = `${Math.random()}.${fileExt}`
-      const filePath = `${fileName}`
+      const filePath = `pos-menus/${fileName}`
 
-      const { error: uploadError } = await supabase.storage
-        .from('marketplace-images')
-        .upload(filePath, file)
+      const { data: { session } } = await supabase.auth.getSession()
+      const signRes = await fetch('/api/admin/storage/sign-upload', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
+        },
+        body: JSON.stringify({ path: filePath, bucket: 'marketplace-images' })
+      })
 
-      if (uploadError) throw uploadError
+      const signResult = await signRes.json()
+      if (!signRes.ok) throw new Error(signResult.error || 'Failed to get upload permission')
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('marketplace-images')
-        .getPublicUrl(filePath)
+      const uploadRes = await fetch(signResult.signedUrl, {
+        method: 'PUT',
+        body: file,
+        headers: { 'Content-Type': file.type }
+      })
 
-      await handleBulkUpdate(itemId, 'image_url', publicUrl)
+      if (!uploadRes.ok) throw new Error('Failed to upload file')
+
+      await handleBulkUpdate(itemId, 'image_url', signResult.publicUrl)
     } catch (error: any) {
       alert('Error uploading image: ' + error.message)
     } finally {
@@ -436,22 +447,32 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
       try {
           const fileExt = file.name.split('.').pop()
           const fileName = `${Math.random()}.${fileExt}`
-          const filePath = `${fileName}`
+          const filePath = `pos-menus/${fileName}`
           
-          // ⚠️ We use 'marketplace-images' as a fallback as it's a common public bucket in this project
-          const { error: uploadError, data } = await supabase.storage
-              .from('marketplace-images')
-              .upload(filePath, file)
+          const { data: { session } } = await supabase.auth.getSession()
+          const signRes = await fetch('/api/admin/storage/sign-upload', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
+            },
+            body: JSON.stringify({ path: filePath, bucket: 'marketplace-images' })
+          })
+
+          const signResult = await signRes.json()
+          if (!signRes.ok) throw new Error(signResult.error || 'Failed to get upload permission')
+
+          const uploadRes = await fetch(signResult.signedUrl, {
+            method: 'PUT',
+            body: file,
+            headers: { 'Content-Type': file.type }
+          })
+
+          if (!uploadRes.ok) throw new Error('Failed to upload file')
               
-          if (uploadError) throw uploadError
-          
-          const { data: { publicUrl } } = supabase.storage
-              .from('marketplace-images')
-              .getPublicUrl(filePath)
-              
-          setEditingItem({ ...editingItem, image_url: publicUrl })
+          setEditingItem({ ...editingItem, image_url: signResult.publicUrl })
       } catch (error: any) {
-          alert('Error uploading image: ' + error.message + '\n(Please ensure the "marketplace-images" bucket exists in Supabase Storage)')
+          alert('Error uploading image: ' + error.message)
       } finally {
           setIsSaving(false)
       }

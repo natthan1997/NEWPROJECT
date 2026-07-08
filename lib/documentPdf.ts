@@ -2640,10 +2640,10 @@ export async function generateDocumentPdfUrl(doc: AnyDoc, options?: { isCopy?: b
         }
         for (let i = 0; i < pageHtmls.length; i++) {
             const stage = document.createElement('div');
-            stage.style.position = 'fixed';
-            stage.style.left = '0';
+            stage.style.position = 'absolute';
+            stage.style.left = '-9999px';
             stage.style.top = '0';
-            stage.style.zIndex = '-1';
+            stage.style.zIndex = '9999';
             stage.style.pointerEvents = 'none';
             stage.style.width = '794px';
             stage.style.background = '#fff';
@@ -2655,7 +2655,7 @@ export async function generateDocumentPdfUrl(doc: AnyDoc, options?: { isCopy?: b
             const canvas = await html2canvas(target, {
                 scale: renderScale,
                 backgroundColor: '#ffffff',
-                foreignObjectRendering: true,
+                foreignObjectRendering: false,
                 useCORS: true,
                 imageTimeout: 0,
                 windowWidth: 794,
