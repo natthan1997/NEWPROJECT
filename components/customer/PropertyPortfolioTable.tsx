@@ -95,7 +95,7 @@ export default function PropertyPortfolioTable({ houses, reports, viewDate, loca
                     </div>
                     <div className={`w-10 h-10 border flex items-center justify-center shrink-0 ${isActive ? 'border-white/10 bg-white/5' : 'border-[#F0EFEB] bg-[#F9F8F4]'}`}>
                        {house.image_url ? (
-                         <img crossOrigin="anonymous"  src={house.image_url ? `${house.image_url}?cb=2` : ''} className="w-full h-full object-cover grayscale opacity-50" />
+                         <img crossOrigin="anonymous"  src={house.image_url ? `${house.image_url}?v=7` : ''} className="w-full h-full object-cover grayscale opacity-50" />
                        ) : (
                          <ShieldCheck size={16} className={isActive ? 'text-[#AF907A]' : 'text-[#A3A3A3]'} />
                        )}

@@ -49,7 +49,7 @@ export default function ServiceCard({
       {imageUrl && (
         <div className="h-48 bg-gray-200">
           <img crossOrigin="anonymous"  
-            src={imageUrl ? `${imageUrl}?cb=2` : ''} 
+            src={imageUrl ? `${imageUrl}?v=7` : ''} 
             alt={service.service_name}
             className="w-full h-full object-cover"
           />

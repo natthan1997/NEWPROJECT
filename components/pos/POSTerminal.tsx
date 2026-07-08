@@ -2652,7 +2652,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                         >
                           {item.image_url ? (
                             <img crossOrigin="anonymous" 
-                              src={item.image_url ? `${item.image_url}?v=6` : ''}
+                              src={item.image_url ? `${item.image_url}?v=7` : ''}
                               className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
                             />
                           ) : (
@@ -2814,7 +2814,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                     <div className="relative h-24 w-20 overflow-hidden border border-gray-100 bg-gray-50 transition-all group-hover:shadow-lg">
                       {item.image_url ? (
                         <img crossOrigin="anonymous" 
-                          src={item.image_url ? `${item.image_url}?v=6` : ''}
+                          src={item.image_url ? `${item.image_url}?v=7` : ''}
                           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                         />
                       ) : (
@@ -3645,7 +3645,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
               <div className="flex items-center gap-5">
                 <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-gray-50 shadow-sm border border-gray-100">
                   {modifierModalItem.image_url ? (
-                    <img crossOrigin="anonymous"  src={modifierModalItem.image_url ? `${modifierModalItem.image_url}?v=6` : ''} className="h-full w-full object-cover" />
+                    <img crossOrigin="anonymous"  src={modifierModalItem.image_url ? `${modifierModalItem.image_url}?v=7` : ''} className="h-full w-full object-cover" />
                   ) : (
                     <ShoppingCart size={28} className="text-gray-300" />
                   )}
@@ -5061,7 +5061,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
               }}
             >
               {fi.imageUrl ? (
-                <img crossOrigin="anonymous"  src={fi.imageUrl ? `${fi.imageUrl}?v=6` : ''} className="w-full h-full object-cover rounded-full" />
+                <img crossOrigin="anonymous"  src={fi.imageUrl ? `${fi.imageUrl}?v=7` : ''} className="w-full h-full object-cover rounded-full" />
               ) : (
                 <div className="w-4 h-4 bg-black rounded-full" />
               )}

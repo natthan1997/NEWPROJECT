@@ -25,7 +25,7 @@ export default function HouseCard({
       {imageUrl && (
         <div className="h-48 bg-gray-200">
           <img crossOrigin="anonymous"  
-            src={imageUrl ? `${imageUrl}?cb=2` : ''} 
+            src={imageUrl ? `${imageUrl}?v=7` : ''} 
             alt={house.name}
             className="w-full h-full object-cover"
           />

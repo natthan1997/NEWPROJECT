@@ -1845,7 +1845,7 @@ export default function LiffMenuPage() {
               {items.filter(i => i.is_recommended).slice(0, 4).map(item => (
                 <div key={item.id} className={`bg-white border border-gray-100 flex flex-col group overflow-hidden shadow-sm relative ${item.in_stock === false ? 'opacity-60 grayscale' : ''}`}>
                    <div className={`relative aspect-square bg-gray-50 overflow-hidden ${item.in_stock !== false ? 'cursor-pointer' : 'cursor-not-allowed'}`} onClick={() => item.in_stock !== false && addToCart(item)}>
-                     {item.image_url && <img crossOrigin="anonymous"  src={item.image_url ? `${item.image_url}?cb=2` : ''} alt={getPrimaryMenuName(item)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />}
+                     {item.image_url && <img crossOrigin="anonymous"  src={item.image_url ? `${item.image_url}?v=7` : ''} alt={getPrimaryMenuName(item)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />}
                      {item.in_stock === false && (
                         <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/35 backdrop-blur-[2px] pointer-events-none">
                            <div className="flex flex-col items-center gap-2">
@@ -1884,7 +1884,7 @@ export default function LiffMenuPage() {
               {items.filter(i => bestSellingIds.includes(i.id)).slice(0, 4).map(item => (
                 <div key={item.id} className={`bg-white border border-gray-100 flex flex-col group overflow-hidden relative ${item.in_stock === false ? 'opacity-60 grayscale' : ''}`}>
                    <div className={`relative aspect-[4/3] bg-gray-50 overflow-hidden ${item.in_stock !== false ? 'cursor-pointer' : 'cursor-not-allowed'}`} onClick={() => item.in_stock !== false && addToCart(item)}>
-                     {item.image_url && <img crossOrigin="anonymous"  src={item.image_url ? `${item.image_url}?cb=2` : ''} alt={getPrimaryMenuName(item)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />}
+                     {item.image_url && <img crossOrigin="anonymous"  src={item.image_url ? `${item.image_url}?v=7` : ''} alt={getPrimaryMenuName(item)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />}
                      {item.in_stock === false && (
                         <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/35 backdrop-blur-[2px] pointer-events-none">
                            <div className="flex flex-col items-center gap-2">
@@ -1967,7 +1967,7 @@ export default function LiffMenuPage() {
                          className={`relative w-24 h-24 flex-shrink-0 bg-gray-50 overflow-hidden ${item.in_stock !== false ? 'cursor-pointer' : 'cursor-not-allowed'}`}
                          onClick={() => item.in_stock !== false && addToCart(item)}
                        >
-                         {item.image_url && <img crossOrigin="anonymous"  src={item.image_url ? `${item.image_url}?cb=2` : ''} alt={getPrimaryMenuName(item)} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />}
+                         {item.image_url && <img crossOrigin="anonymous"  src={item.image_url ? `${item.image_url}?v=7` : ''} alt={getPrimaryMenuName(item)} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />}
                          {item.in_stock === false && (
                             <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/35 backdrop-blur-[2px] pointer-events-none">
                                <div className="flex flex-col items-center gap-2">
@@ -2066,7 +2066,7 @@ export default function LiffMenuPage() {
                     >
                       <div className="w-16 h-16 bg-gray-50 flex-shrink-0 relative overflow-hidden">
                         {item.image_url ? (
-                          <img crossOrigin="anonymous"  src={item.image_url ? `${item.image_url}?cb=2` : ''} alt={getPrimaryMenuName(item)} className="w-full h-full object-cover" />
+                          <img crossOrigin="anonymous"  src={item.image_url ? `${item.image_url}?v=7` : ''} alt={getPrimaryMenuName(item)} className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-gray-200"><ShoppingCart size={24} /></div>
                         )}
@@ -2260,7 +2260,7 @@ export default function LiffMenuPage() {
                   <div className="mt-8 bg-[#f6f7f1] border-2 border-black p-6 flex items-center justify-between group transition-all">
                     <div className="flex gap-4 items-center">
                        <div className="w-12 h-12 bg-white flex-shrink-0 overflow-hidden border border-black">
-                         <img crossOrigin="anonymous"  src={upsellItem.image_url ? `${upsellItem.image_url}?cb=2` : ''} alt={getPrimaryMenuName(upsellItem)} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                         <img crossOrigin="anonymous"  src={upsellItem.image_url ? `${upsellItem.image_url}?v=7` : ''} alt={getPrimaryMenuName(upsellItem)} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
                        </div>
                        <div>
                          <p className="text-[7px] font-black text-black uppercase tracking-[0.3em] mb-1">Recommended for you</p>
