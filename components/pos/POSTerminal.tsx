@@ -1024,81 +1024,83 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 
       if (itemsError) throw itemsError
 
-	      if (directItems && directItems.length > 0) {
-	        const fetchedItems = directItems.map((i: any) => ({
-            id: i.item_id,
-            name: i.item?.name || 'Unknown Item',
-            image_url: i.item?.image_url || '',
-            sale_price: i.unit_price,
-            cost_price: i.cost_price || 0,
-            quantity: i.quantity,
-            selected_modifiers: i.selected_modifiers || [],
-            category_id: i.item?.category_id || 'uncategorized',
-            customer_name: i.customer_name || null,
-            discount_amount: i.discount_amount || 0,
-            discount_reason: i.discount_reason || null,
-	        }));
-	        const existingFingerprint = buildCartFingerprint(fetchedItems)
-	        
-	        if (mergeWithCurrentCart) {
-	            const combinedCart = [...fetchedItems, ...cart];
-	            setCart(combinedCart);
-	            setHeldCartFingerprint(existingFingerprint)
-	        } else {
-	            setCart(fetchedItems);
-	            setHeldCartFingerprint(existingFingerprint)
-	        }
-
-        setEditingOrderId(order.id)
-        setEditingOrderNumber(order.order_number)
-
-        // Customer Logic
-        let customerToSet = null
-        if (order.customer_id) {
-            const { data } = await supabase.from('pos_members').select('*').eq('id', order.customer_id).maybeSingle()
-            if (data) customerToSet = data
-        } else if (order.line_user_id) {
-            const { data } = await supabase.from('pos_members').select('*').eq('line_user_id', order.line_user_id).maybeSingle()
-            if (data) customerToSet = data
-        }
-        setSelectedCustomer(customerToSet)
-        
-        // Fetch existing payments
-        const { data: payments } = await supabase
-          .from('pos_order_payments')
-          .select('amount')
-          .eq('order_id', order.id)
-          .eq('status', 'paid')
-        
-        if (payments && payments.length > 0) {
-          const sumPaid = payments.reduce((sum, p) => sum + Number(p.amount), 0)
-          setTotalPaid(sumPaid)
-        } else {
-          setTotalPaid(0)
-        }
-        const fetchedItemDiscountTotal = fetchedItems.reduce((acc: number, item: any) => acc + (item.discount_amount || 0), 0)
-        const orderDiscountAmount = Number(order.discount_amount || 0)
-        const billDiscount = orderDiscountAmount - fetchedItemDiscountTotal
-
-        if (billDiscount > 0) {
-          setDiscountType('fixed')
-          setDiscountValue(billDiscount)
-          setDiscountName('ส่วนลด/โปรโมชั่นเดิม')
-        } else {
-          setDiscountType('percent')
-          setDiscountValue(0)
-          setDiscountName('')
-        }
-
-        setOrderType(order.order_type)
-        setDeliveryPlatform(order.delivery_platform || '')
-        setPlatformOrderId(order.reference_name || '')
-        setSelectedTable(tables.find(t => t.id === order.table_id) || (order.table_id ? ({ id: order.table_id, table_number: order.table_number } as any) : null))
-        setShowPendingModal(false)
-        setShowTableModal(false)
-        setIsCartExpanded(true)
+      // Always map fetched items, even if empty
+      const fetchedItems = directItems && directItems.length > 0 ? directItems.map((i: any) => ({
+        id: i.item_id,
+        name: i.item?.name || 'Unknown Item',
+        image_url: i.item?.image_url || '',
+        sale_price: i.unit_price,
+        cost_price: i.cost_price || 0,
+        quantity: i.quantity,
+        selected_modifiers: i.selected_modifiers || [],
+        category_id: i.item?.category_id || 'uncategorized',
+        customer_name: i.customer_name || null,
+        discount_amount: i.discount_amount || 0,
+        discount_reason: i.discount_reason || null,
+      })) : [];
+      
+      const existingFingerprint = buildCartFingerprint(fetchedItems)
+      
+      if (mergeWithCurrentCart) {
+          const combinedCart = [...fetchedItems, ...cart];
+          setCart(combinedCart);
+          setHeldCartFingerprint(existingFingerprint)
       } else {
-        alert('ไม่พบรายการสินค้าในบิลนี้ในระบบ')
+          setCart(fetchedItems);
+          setHeldCartFingerprint(existingFingerprint)
+      }
+
+      setEditingOrderId(order.id)
+      setEditingOrderNumber(order.order_number)
+
+      // Customer Logic
+      let customerToSet = null
+      if (order.customer_id) {
+          const { data } = await supabase.from('pos_members').select('*').eq('id', order.customer_id).maybeSingle()
+          if (data) customerToSet = data
+      } else if (order.line_user_id) {
+          const { data } = await supabase.from('pos_members').select('*').eq('line_user_id', order.line_user_id).maybeSingle()
+          if (data) customerToSet = data
+      }
+      setSelectedCustomer(customerToSet)
+      
+      // Fetch existing payments
+      const { data: payments } = await supabase
+        .from('pos_order_payments')
+        .select('amount')
+        .eq('order_id', order.id)
+        .eq('status', 'paid')
+      
+      if (payments && payments.length > 0) {
+        const sumPaid = payments.reduce((sum, p) => sum + Number(p.amount), 0)
+        setTotalPaid(sumPaid)
+      } else {
+        setTotalPaid(0)
+      }
+      const fetchedItemDiscountTotal = fetchedItems.reduce((acc: number, item: any) => acc + (item.discount_amount || 0), 0)
+      const orderDiscountAmount = Number(order.discount_amount || 0)
+      const billDiscount = orderDiscountAmount - fetchedItemDiscountTotal
+
+      if (billDiscount > 0) {
+        setDiscountType('fixed')
+        setDiscountValue(billDiscount)
+        setDiscountName('ส่วนลด/โปรโมชั่นเดิม')
+      } else {
+        setDiscountType('percent')
+        setDiscountValue(0)
+        setDiscountName('')
+      }
+
+      setOrderType(order.order_type)
+      setDeliveryPlatform(order.delivery_platform || '')
+      setPlatformOrderId(order.reference_name || '')
+      setSelectedTable(tables.find(t => t.id === order.table_id) || (order.table_id ? ({ id: order.table_id, table_number: order.table_number } as any) : null))
+      setShowPendingModal(false)
+      setShowTableModal(false)
+      setIsCartExpanded(true)
+
+      if (fetchedItems.length === 0) {
+        alert('ออเดอร์นี้ไม่มีรายการสินค้าเหลืออยู่ (ถูกยกเลิกหมดแล้ว) คุณสามารถเพิ่มรายการใหม่หรือยกเลิกบิลนี้ได้ครับ')
       }
     } catch (e: any) {
       console.error('Resume Order Error:', e)
@@ -3080,51 +3082,35 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                   className="flex h-16 flex-1 items-center justify-center gap-3 border border-[#1A1A18] text-[10px] font-black uppercase tracking-[0.3em] transition-all hover:bg-black hover:text-white disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400"
                 >
                   <Printer size={16} /> {isHeldOrderBaselineLoading ? 'กำลังเช็กบิลพัก' : !!editingOrderId && !hasUnsavedOrderChanges ? 'พักแล้ว เพิ่มรายการใหม่' : locale === 'en' ? 'พักบิล' : locale === 'zh' ? 'พักบิล' : 'พักบิล'}</button>
-                {!!editingOrderId && cart.length === 0 ? (
-                  <button
-                    onClick={() => {
-                      handleDeleteOrder(editingOrderId)
-                      setCart([])
-                      setEditingOrderId(null)
-                      setSelectedTable(null)
-                      setOrderType('takeaway')
-                    }}
-                    className="flex h-16 flex-[2] items-center justify-center gap-4 text-[11px] font-black uppercase tracking-[0.4em] text-white shadow-xl transition-all bg-red-600 hover:bg-red-700"
-                  >
-                    <span>เคลียร์โต๊ะ (ยกเลิกบิล)</span>
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => {
-                      if (orderType === 'dine_in' && !selectedTable) {
-                        fetchTables()
-                        refreshPendingOrders()
-                        setShowTableModal(true)
-                        return
-                      }
-                      if (orderType === 'delivery') {
-                        setShowDeliveryCheckoutModal(true)
-                        return
-                      }
-                      if (!selectedCustomer) {
-                        setMemberCheckoutStep('lookup')
-                        setMemberSearchQuery('')
-                        setShowMemberCheckoutFlow(true)
-                      } else {
-                        setMemberCheckoutStep('points')
-                        setRedeemPointsAmount('')
-                        setShowMemberCheckoutFlow(true)
-                      }
-                    }}
-                    disabled={cart.length === 0}
-                    className={`flex h-16 flex-[2] items-center justify-center gap-4 text-[11px] font-black uppercase tracking-[0.4em] text-white shadow-xl transition-all ${
-                      cart.length === 0 ? 'bg-gray-400 cursor-not-allowed' : orderType === 'delivery' ? 'bg-orange-500 hover:bg-orange-600' : 'bg-[#1A1A18] hover:bg-black'
-                    }`}
-                  >
-                    <span>{orderType === 'delivery' ? 'ยืนยันส่งออเดอร์' : locale === 'en' ? 'Checkout' : locale === 'zh' ? '结账' : 'ชำระเงิน'}</span>
-                    <ArrowRight size={18} />
-                  </button>
-                )}
+                <button
+                  onClick={() => {
+                    if (orderType === 'dine_in' && !selectedTable) {
+                      fetchTables()
+                      refreshPendingOrders()
+                      setShowTableModal(true)
+                      return
+                    }
+                    if (orderType === 'delivery') {
+                      setShowDeliveryCheckoutModal(true)
+                      return
+                    }
+                    if (!selectedCustomer) {
+                      setMemberCheckoutStep('lookup')
+                      setMemberSearchQuery('')
+                      setShowMemberCheckoutFlow(true)
+                    } else {
+                      setMemberCheckoutStep('points')
+                      setRedeemPointsAmount('')
+                      setShowMemberCheckoutFlow(true)
+                    }
+                  }}
+                  className={`flex h-16 flex-[2] items-center justify-center gap-4 text-[11px] font-black uppercase tracking-[0.4em] text-white shadow-xl transition-all ${
+                    orderType === 'delivery' ? 'bg-orange-500 hover:bg-orange-600' : 'bg-[#1A1A18] hover:bg-black'
+                  }`}
+                >
+                  <span>{orderType === 'delivery' ? 'ยืนยันส่งออเดอร์' : locale === 'en' ? 'Checkout' : locale === 'zh' ? '结账' : 'ชำระเงิน'}</span>
+                  <ArrowRight size={18} />
+                </button>
               </div>
             </footer>
         </div>
