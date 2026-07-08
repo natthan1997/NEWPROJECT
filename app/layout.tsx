@@ -64,7 +64,7 @@ export default function RootLayout({
             __html: `
               try {
                 if (typeof window !== 'undefined') {
-                  const CURRENT_VERSION = 'v7';
+                  const CURRENT_VERSION = 'v8';
                   if (localStorage.getItem('app_version') !== CURRENT_VERSION) {
                     localStorage.setItem('app_version', CURRENT_VERSION);
                     if ('caches' in window) {
@@ -85,6 +85,15 @@ export default function RootLayout({
                       window.location.reload();
                     }, 500);
                   }
+                  
+                  // Diagnostic test fetches to see exactly why R2 fetches fail on this browser
+                  const testUrl = 'https://pub-a6469596238f4a58a3a44fb4bbecd952.r2.dev/migrated-menus/2436f7cc-4d69-426f-aaa1-e8aa1de262a2-1783492523221.jpg';
+                  fetch(testUrl, { mode: 'cors' })
+                    .then(function(res) { console.log('DIAGNOSTIC CORS fetch SUCCESS:', res.status); })
+                    .catch(function(err) { console.error('DIAGNOSTIC CORS fetch FAILED:', err.message || err); });
+                  fetch(testUrl, { mode: 'no-cors' })
+                    .then(function(res) { console.log('DIAGNOSTIC NO-CORS fetch SUCCESS:', res.status); })
+                    .catch(function(err) { console.error('DIAGNOSTIC NO-CORS fetch FAILED:', err.message || err); });
                 }
               } catch (e) {
                 console.error(e);

@@ -727,7 +727,7 @@ export default function HouseDetailPage() {
              className="absolute inset-0 bg-[#FAFAFA]"
            >
               <img crossOrigin="anonymous"  
-                        src={house.image_url || "/assets/default-house.png" ? `${house.image_url || "/assets/default-house.png"}?v=7` : ''}
+                        src={house.image_url || "/assets/default-house.png" ? `${house.image_url || "/assets/default-house.png"}?v=8` : ''}
                 className="w-full h-full object-cover grayscale-[0.2] brightness-90"
                 alt="House Hero"
               />

@@ -131,7 +131,7 @@ export default async function HouseInvitePage({
       {/* Hero Image */}
       <div className="relative w-full h-[50vh] md:h-[60vh]">
         <img crossOrigin="anonymous"  
-          src={house.image_url || '/assets/default-house.png' ? `${house.image_url || '/assets/default-house.png'}?v=7` : ''}
+          src={house.image_url || '/assets/default-house.png' ? `${house.image_url || '/assets/default-house.png'}?v=8` : ''}
           alt="House Preview"
           className="w-full h-full object-cover brightness-75"
         />

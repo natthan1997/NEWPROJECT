@@ -952,7 +952,7 @@ export default function AdminItemLibraryPage() {
             </div>
             {editor.image_url ? (
               <div className="overflow-hidden border border-[#E5E5E5] bg-[#F3F3EE]">
-                <img crossOrigin="anonymous"  src={editor.image_url ? `${editor.image_url}?v=7` : ''} alt={editor.item_name || 'item preview'} className="h-48 w-full object-cover" />
+                <img crossOrigin="anonymous"  src={editor.image_url ? `${editor.image_url}?v=8` : ''} alt={editor.item_name || 'item preview'} className="h-48 w-full object-cover" />
               </div>
             ) : null}
           </div>
@@ -1009,7 +1009,7 @@ export default function AdminItemLibraryPage() {
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-[88px_minmax(0,1fr)] sm:items-start">
                     <div className="h-[88px] overflow-hidden border border-[#EAEAEA] bg-[#F3F3EE]">
                       {group.image_url ? (
-                        <img crossOrigin="anonymous"  src={group.image_url ? `${group.image_url}?v=7` : ''} alt={group.item_name} className="h-full w-full object-cover" />
+                        <img crossOrigin="anonymous"  src={group.image_url ? `${group.image_url}?v=8` : ''} alt={group.item_name} className="h-full w-full object-cover" />
                       ) : (
                         <div className="flex h-full items-center justify-center text-[10px] font-bold uppercase tracking-[0.12em] text-[#999999]">No Image</div>
                       )}

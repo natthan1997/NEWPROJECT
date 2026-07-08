@@ -14,10 +14,6 @@ const withPWA = require('@ducanh2912/next-pwa').default({
         options: {
           cacheName: 'r2-images',
           networkTimeoutSeconds: 10,
-          expiration: {
-            maxEntries: 200,
-            maxAgeSeconds: 30 * 24 * 60 * 60,
-          },
           cacheableResponse: {
             statuses: [0, 200],
           },
