@@ -726,7 +726,7 @@ export default function HouseDetailPage() {
              transition={{ duration: 1.5, ease: [0.19, 1, 0.22, 1] }}
              className="absolute inset-0 bg-[#FAFAFA]"
            >
-              <img  
+              <img crossOrigin="anonymous"  
                         src={house.image_url || "/assets/default-house.png" ? `${house.image_url || "/assets/default-house.png"}?cb=2` : ''}
                 className="w-full h-full object-cover grayscale-[0.2] brightness-90"
                 alt="House Hero"

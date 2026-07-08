@@ -146,7 +146,7 @@ export default function CustomerMarketplaceCartPage() {
 
             return (
               <div key={row.id} className="customer-editorial-list-item">
-                <img
+                <img crossOrigin="anonymous"
                   src={plant?.image_url || 'https://images.unsplash.com/photo-1463320726281-696a485928c7?q=80&w=600&auto=format&fit=crop'}
                   alt={plant?.name || 'plant'}
                   className="h-16 w-16 object-cover border border-[#EAE5DA]"

@@ -6303,7 +6303,7 @@ export default function CreateManualDocumentPage(props: any) {
                                               />
                                             ) : null}
                                             {card.imageUrl ? (
-                                              <img  src={card.imageUrl ? `${card.imageUrl}?cb=2` : ''} alt={card.description} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]" />
+                                              <img crossOrigin="anonymous"  src={card.imageUrl ? `${card.imageUrl}?cb=2` : ''} alt={card.description} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]" />
                                             ) : (
                                               <div className="flex h-full items-center justify-center text-[9px] font-bold tracking-[0.16em] text-[#A3A39A] uppercase">No Image</div>
                                             )}

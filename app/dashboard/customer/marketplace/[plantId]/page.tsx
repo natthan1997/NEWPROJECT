@@ -186,7 +186,7 @@ export default function CustomerMarketplaceDetailPage() {
         <div className="customer-editorial-grid two">
           <div className="customer-editorial-card overflow-hidden">
             <div className="aspect-[4/3] bg-[#F3F3EF]">
-          <img
+          <img crossOrigin="anonymous"
             src={plant.image_url || 'https://images.unsplash.com/photo-1463320726281-696a485928c7?q=80&w=600&auto=format&fit=crop'}
             alt={plant.name}
             className="h-full w-full object-cover"
