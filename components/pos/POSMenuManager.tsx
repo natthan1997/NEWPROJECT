@@ -1,5 +1,4 @@
-'use client'
-import Image from "next/image";;
+'use client';
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { 
   Plus, Search, Edit3, Trash2, Filter, 
@@ -724,7 +723,7 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
                                 <MenuIcon size={14} />
                               </div>
                               <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border border-[#F0F0E8] bg-gray-50">
-                                {item.image_url ? <Image src={item.image_url || ''} alt="menu image" width={300} height={300} className="h-full w-full object-cover" /> : <ImageIcon size={16} className="text-gray-300" />}
+                                {item.image_url ? <img loading="lazy" crossOrigin="anonymous"  src={item.image_url || ''} className="h-full w-full object-cover" /> : <ImageIcon size={16} className="text-gray-300" />}
                               </div>
                               <div className="min-w-0 flex-1">
                                 <div className="truncate text-sm font-black text-[#1A1A18]">{getPrimaryMenuName(item)}</div>
@@ -821,7 +820,7 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
                                                     <td className="p-4 text-center">
                                                         <div className="relative w-12 h-12 rounded-xl bg-gray-100 overflow-hidden mx-auto shadow-sm group-hover:shadow transition-all">
                                                             {item.image_url ? (
-                                                                <Image src={item.image_url || ''} alt="menu image" width={300} height={300} className="w-full h-full object-cover" />
+                                                                <img loading="lazy" crossOrigin="anonymous"  src={item.image_url || ''} className="w-full h-full object-cover" />
                                                             ) : (
                                                                 <div className="w-full h-full flex items-center justify-center text-gray-300"><ImageIcon size={14} /></div>
                                                             )}
@@ -1184,7 +1183,7 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
                               <div className="aspect-video bg-gray-50 border border-dashed border-gray-200 flex items-center justify-center relative overflow-hidden group">
                                   {editingItem.image_url ? (
                                       <>
-                                          <Image src={editingItem.image_url || ''} alt="menu image" width={300} height={300} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                                          <img loading="lazy" crossOrigin="anonymous"  src={editingItem.image_url || ''} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                                           <button 
                                               onClick={() => setEditingItem({...editingItem, image_url: null})}
                                               className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-md shadow-xl text-red-500 hover:bg-white transition-all"

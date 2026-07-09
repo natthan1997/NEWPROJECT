@@ -1,5 +1,4 @@
 'use client'
-import Image from "next/image";
 
 import React, { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
@@ -43,7 +42,7 @@ export function PromoBannerSlider() {
     <div className="flex h-full transition-transform duration-700 ease-out" style={{ transform: `translateX(-${currentBanner * 100}%)` }}>
       {banners.map((b: any) => (
         <div key={b.id} className="w-full h-full flex-shrink-0 relative">
-          <Image src={b.image_url || b.image || ''} alt={b.title} width={800} height={400} className="w-full h-full object-cover" />
+          <img loading="lazy" crossOrigin="anonymous"  src={b.image_url || b.image || ''} alt={b.title} className="w-full h-full object-cover" />
         </div>
       ))}
     </div>
