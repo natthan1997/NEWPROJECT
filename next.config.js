@@ -14,6 +14,22 @@ const withPWA = require('@ducanh2912/next-pwa').default({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // App Router is stable in Next.js 13.4+, no need for experimental.appDir
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'xyl-images.*.workers.dev',
+      },
+      {
+        protocol: 'https',
+        hostname: 'pub-*.r2.dev',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.supabase.co',
+      },
+    ],
+  },
   eslint: {
     // Ignore ESLint during builds for rapid iteration
     ignoreDuringBuilds: true,

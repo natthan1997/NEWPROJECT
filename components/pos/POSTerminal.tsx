@@ -1,3 +1,4 @@
+import Image from "next/image";
 'use client';
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 
@@ -2651,10 +2652,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                           className={`relative overflow-hidden rounded-xl bg-gray-50 font-bold transition-all duration-500 shrink-0 ${viewMode === 'list' ? 'h-20 w-20' : 'mb-3 sm:mb-4 w-full aspect-[1/1] sm:aspect-[4/5]'}`}
                         >
                           {item.image_url ? (
-                            <img loading="lazy" crossOrigin="anonymous" 
-                              src={item.image_url || ''}
-                              className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-                            />
+                            <Image src={item.image_url || ''} alt="menu image" width={300} height={300} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
                           ) : (
                             <div className="flex h-full w-full items-center justify-center text-gray-300">
                               <ImageIcon size={32} />
@@ -2813,10 +2811,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                   >
                     <div className="relative h-24 w-20 overflow-hidden border border-gray-100 bg-gray-50 transition-all group-hover:shadow-lg">
                       {item.image_url ? (
-                        <img loading="lazy" crossOrigin="anonymous" 
-                          src={item.image_url || ''}
-                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                        />
+                        <Image src={item.image_url || ''} alt="menu image" width={300} height={300} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
                       ) : (
                         <div className="flex h-full w-full items-center justify-center bg-gray-100 text-gray-200">
                           <ImageIcon size={24} />
@@ -3645,7 +3640,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
               <div className="flex items-center gap-5">
                 <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-gray-50 shadow-sm border border-gray-100">
                   {modifierModalItem.image_url ? (
-                    <img loading="lazy" crossOrigin="anonymous"  src={modifierModalItem.image_url || ''} className="h-full w-full object-cover" />
+                    <Image src={modifierModalItem.image_url || ''} alt="menu image" width={300} height={300} className="h-full w-full object-cover" />
                   ) : (
                     <ShoppingCart size={28} className="text-gray-300" />
                   )}
@@ -5061,7 +5056,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
               }}
             >
               {fi.imageUrl ? (
-                <img loading="lazy" crossOrigin="anonymous"  src={fi.imageUrl || ''} className="w-full h-full object-cover rounded-full" />
+                <Image src={fi.imageUrl || ''} alt="menu image" width={300} height={300} className="w-full h-full object-cover rounded-full" />
               ) : (
                 <div className="w-4 h-4 bg-black rounded-full" />
               )}
