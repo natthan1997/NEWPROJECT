@@ -468,12 +468,16 @@ export default function CustomerMenuPage() {
 
   const fetchData = async () => {
     setLoading(true)
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
     const [itemRes, catRes, tableRes, bannerRes, salesRes] = await Promise.all([
         supabase.from('pos_menu_items').select('*, category:pos_menu_categories(name)').eq('is_active', true).order('name', { ascending: true }),
         supabase.from('pos_menu_categories').select('*').order('order_index'),
         supabase.from('pos_tables').select('*').eq('table_number', table_id).single(),
         supabase.from('pos_banners').select('*').eq('is_active', true).order('order_index'),
-        supabase.from('pos_order_items').select('item_id, quantity')
+        supabase.from('pos_order_items').select('item_id, quantity').gte('created_at', startOfMonth.toISOString())
     ])
 
     if (salesRes.data) {
@@ -482,8 +486,7 @@ export default function CustomerMenuPage() {
           counts[s.item_id] = (counts[s.item_id] || 0) + (s.quantity || 1);
         });
         const sortedIds = Object.keys(counts)
-          .sort((a, b) => counts[b] - counts[a])
-          .slice(0, 4);
+          .sort((a, b) => counts[b] - counts[a]);
         setBestSellingIds(sortedIds);
     }
 
@@ -1350,10 +1353,14 @@ export default function CustomerMenuPage() {
           </section>
 
         {/* ❤️ Tier 2: Most Loved (Best Sellers) */}
-        <section id="category-popular" className="px-4 sm:px-6 mt-10 mb-6 max-w-7xl mx-auto scroll-spy-section">
+        {bestSellingIds.length > 0 && (
+          <section id="category-popular" className="px-4 sm:px-6 mt-10 mb-6 max-w-7xl mx-auto scroll-spy-section">
             <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-400 mb-6 px-1">{locale === 'en' ? 'Most Loved • เมนูยอดนิยม' : locale === 'zh' ? 'Most Loved • เมนูยอดนิยม' : 'Most Loved • เมนูยอดนิยม'}</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {displayItems.filter(i => bestSellingIds.includes(i.id)).slice(0, 4).map(item => (
+              {bestSellingIds.filter(id => displayItems.some(i => i.id === id)).slice(0, 4).map((id, index) => {
+                const item = displayItems.find(i => i.id === id);
+                if (!item) return null;
+                return (
                 <div key={item.id} className={`bg-white border border-gray-100 flex flex-col group overflow-hidden relative ${item.in_stock === false ? 'opacity-60 grayscale' : ''}`}>
                    <div className={`relative aspect-[4/3] bg-gray-50 overflow-hidden ${item.in_stock !== false ? 'cursor-pointer' : 'cursor-not-allowed'}`} onClick={() => item.in_stock !== false && handleItemClick(item)}>
                      {item.image_url ? <img crossOrigin="anonymous"  src={item.image_url ? `${item.image_url}?v=8` : ''} alt={getPrimaryMenuName(item)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" /> : <div className="absolute inset-0 flex items-center justify-center text-gray-300"><Utensils size={24} strokeWidth={1} /></div>}
@@ -1365,7 +1372,19 @@ export default function CustomerMenuPage() {
                            </div>
                         </div>
                      )}
-                     <div className="absolute bottom-2 right-2 px-2 py-0.5 bg-black/40 backdrop-blur-md text-white text-[6px] font-black uppercase tracking-widest z-30">Pop</div>
+                     
+                     {/* 🥇 NEW RANK BADGE */}
+                     <div className="absolute top-0 left-0 z-30">
+                        <div className={`w-8 h-8 flex items-center justify-center text-white font-black shadow-lg
+                          ${index === 0 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600' : 
+                            index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-400' : 
+                            index === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-700' : 
+                            'bg-gradient-to-br from-gray-700 to-gray-900'}
+                        `} style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%)' }}>
+                          <span className="text-[12px] pb-1">#{index + 1}</span>
+                        </div>
+                     </div>
+
                    </div>
                    <div className="p-3 relative z-10">
                       <h3 className="text-[10px] font-bold text-gray-800 line-clamp-1">{getPrimaryMenuName(item)}</h3>
@@ -1382,9 +1401,11 @@ export default function CustomerMenuPage() {
                       </div>
                    </div>
                 </div>
-              ))}
+                )
+              })}
             </div>
           </section>
+        )}
 
         {/* 📦 Full Collections: Categorized Browsing (Full-width Rows) - Matching LIFF Style */}
         <div className="p-4 sm:p-6 pb-40 space-y-12 max-w-7xl mx-auto bg-white">
