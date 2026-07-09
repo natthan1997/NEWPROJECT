@@ -753,7 +753,10 @@ export default function LiffMenuPage() {
         }
 
         let baseSettings = allSettings.find(s => s.status !== 'closed' && s.is_open !== false);
-        if (!baseSettings) baseSettings = allSettings[0];
+        if (!baseSettings) {
+           // Fallback to the first setting that has a branch_id to ensure menus still load when closed
+           baseSettings = allSettings.find(s => s.branch_id) || allSettings[0];
+        }
 
         const settings = {
             ...baseSettings,
