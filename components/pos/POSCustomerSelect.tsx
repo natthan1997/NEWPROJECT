@@ -145,7 +145,7 @@ export default function POSCustomerSelect({ onSelect, selectedCustomer, onClose,
                                             <div className="flex items-center gap-4">
                                                 <div className="w-12 h-12 rounded-none bg-sage-50 text-sage-600 flex items-center justify-center font-black overflow-hidden">
                                                     {c.avatar_url ? (
-                                                        <img  src={c.avatar_url} alt={c.display_name} className="w-full h-full object-cover" />
+                                                        <img loading="lazy"  src={c.avatar_url} alt={c.display_name} className="w-full h-full object-cover" />
                                                     ) : (
                                                         (c.display_name || c.full_name || 'M').slice(0,1)
                                                     )}
@@ -250,7 +250,7 @@ export default function POSCustomerSelect({ onSelect, selectedCustomer, onClose,
                           <div className="flex items-center gap-4">
                              <div className="w-10 h-10 rounded-none bg-sage-600 text-white flex items-center justify-center font-black text-xs uppercase overflow-hidden">
                                 {selectedCustomer.avatar_url ? (
-                                    <img  src={selectedCustomer.avatar_url} alt={selectedCustomer.display_name} className="w-full h-full object-cover" />
+                                    <img loading="lazy"  src={selectedCustomer.avatar_url} alt={selectedCustomer.display_name} className="w-full h-full object-cover" />
                                 ) : (
                                     (selectedCustomer.display_name || selectedCustomer.full_name || 'M').slice(0,1)
                                 )}
