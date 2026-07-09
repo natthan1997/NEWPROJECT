@@ -1959,7 +1959,7 @@ export default function LiffMenuPage() {
               {locale === 'en' ? 'Your Regulars • เมนูประจำของคุณ' : locale === 'zh' ? 'Your Regulars • เมนูประจำของคุณ' : 'Your Regulars • เมนูประจำของคุณ'}
             </h2>
             <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide">
-              {items.filter(i => regularItemIds.includes(i.id)).slice(0, 4).map(item => (
+              {items.filter(i => regularItemIds.includes(i.id)).slice(0, 4).map((item, index) => (
                 <div key={item.id} className={`snap-start shrink-0 w-[140px] bg-white border border-gray-100 flex flex-col group overflow-hidden relative ${item.in_stock === false ? 'opacity-60 grayscale' : ''}`}>
                    <div className={`relative aspect-[4/3] bg-gray-50 overflow-hidden ${item.in_stock !== false ? 'cursor-pointer' : 'cursor-not-allowed'}`} onClick={() => item.in_stock !== false && addToCart(item)}>
                      {item.image_url && <Image src={item.image_url} alt={getPrimaryMenuName(item)} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover group-hover:scale-110 transition-transform duration-700" priority={index < 2} />}
@@ -2147,7 +2147,7 @@ export default function LiffMenuPage() {
                     <div className="h-px bg-gray-100 w-full" />
                 </div>
                 <div className="space-y-4">
-                  {catItems.map(item => (
+                  {catItems.map((item, index) => (
                     <div key={item.id} className={`group bg-white border border-gray-100 p-4 transition-all hover:border-emerald-100 flex gap-5 ${item.in_stock === false ? 'opacity-60 grayscale' : ''}`}>
                        <div
                          className={`relative w-24 h-24 flex-shrink-0 bg-gray-50 overflow-hidden ${item.in_stock !== false ? 'cursor-pointer' : 'cursor-not-allowed'}`}
