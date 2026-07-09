@@ -250,6 +250,7 @@ export default function LiffMenuPage() {
   const checkoutLockRef = useRef(false);
   const [recentReviews, setRecentReviews] = useState<any[]>([]);
   const [bestSellingIds, setBestSellingIds] = useState<string[]>([]);
+  const [bestSellingCounts, setBestSellingCounts] = useState<Record<string, number>>({});
   const [pickupTime, setPickupTime] = useState('');
   const [showPickupTimeModal, setShowPickupTimeModal] = useState(false);
   const [pickupTimeDraft, setPickupTimeDraft] = useState('');
@@ -718,9 +719,9 @@ export default function LiffMenuPage() {
           counts[s.item_id] = (counts[s.item_id] || 0) + (s.quantity || 1);
         });
         const sortedIds = Object.keys(counts)
-          .sort((a, b) => counts[b] - counts[a])
-          .slice(0, 4);
+          .sort((a, b) => counts[b] - counts[a]);
         setBestSellingIds(sortedIds);
+        setBestSellingCounts(counts);
       }
     };
 
@@ -2041,11 +2042,14 @@ export default function LiffMenuPage() {
 
 
         {/* ❤️ Tier 2: Most Loved (Best Sellers) */}
-        {!searchTerm && (
+        {!searchTerm && bestSellingIds.length > 0 && (
           <section id="category-popular" className="px-4 mb-10 scroll-spy-section">
             <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-400 mb-6 px-1">{locale === 'en' ? 'Most Loved • เมนูยอดนิยม' : locale === 'zh' ? 'Most Loved • เมนูยอดนิยม' : 'Most Loved • เมนูยอดนิยม'}</h2>
             <div className="grid grid-cols-2 gap-4">
-              {items.filter(i => bestSellingIds.includes(i.id)).slice(0, 4).map(item => (
+              {bestSellingIds.slice(0, 4).map((id, index) => {
+                const item = items.find(i => i.id === id);
+                if (!item) return null;
+                return (
                 <div key={item.id} className={`bg-white border border-gray-100 flex flex-col group overflow-hidden relative ${item.in_stock === false ? 'opacity-60 grayscale' : ''}`}>
                    <div className={`relative aspect-[4/3] bg-gray-50 overflow-hidden ${item.in_stock !== false ? 'cursor-pointer' : 'cursor-not-allowed'}`} onClick={() => item.in_stock !== false && addToCart(item)}>
                      {item.image_url && <img crossOrigin="anonymous"  src={item.image_url ? `${item.image_url}?v=8` : ''} alt={getPrimaryMenuName(item)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />}
@@ -2057,7 +2061,22 @@ export default function LiffMenuPage() {
                            </div>
                         </div>
                      )}
-                     <div className="absolute bottom-2 right-2 px-2 py-0.5 bg-black/40 backdrop-blur-md text-white text-[6px] font-black uppercase tracking-widest z-30">Pop</div>
+                     
+                     {/* 🥇 NEW RANK BADGE */}
+                     <div className="absolute top-0 left-0 z-30">
+                        <div className={`w-8 h-8 flex items-center justify-center text-white font-black shadow-lg
+                          ${index === 0 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600' : 
+                            index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-400' : 
+                            index === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-700' : 
+                            'bg-gradient-to-br from-gray-700 to-gray-900'}
+                        `} style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%)' }}>
+                          <span className="text-[12px] pb-1">#{index + 1}</span>
+                        </div>
+                     </div>
+
+                     <div className="absolute bottom-2 right-2 px-2 py-0.5 bg-black/40 backdrop-blur-md text-white text-[6px] font-black uppercase tracking-widest z-30">
+                       {locale === 'en' ? `Sold ${bestSellingCounts[item.id] || 0}` : `ขายแล้ว ${bestSellingCounts[item.id] || 0}`}
+                     </div>
                    </div>
                    <div className="p-3 relative z-10">
                       <h3 className="text-[10px] font-bold text-gray-800 line-clamp-1">{getPrimaryMenuName(item)}</h3>
@@ -2074,7 +2093,7 @@ export default function LiffMenuPage() {
                       </div>
                    </div>
                 </div>
-              ))}
+              )})}
             </div>
           </section>
         )}
