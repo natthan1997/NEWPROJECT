@@ -89,7 +89,7 @@ export default function AuthSuccessPage() {
         }
 
         if (profile?.role === 'staff') {
-          router.replace('/dashboard/staff')
+          if ((profile as any)?.is_pos_account) { router.replace('/dashboard/pos') } else { router.replace('/dashboard/staff') }
           return
         }
 

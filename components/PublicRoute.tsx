@@ -27,7 +27,7 @@ export default function PublicRoute({ children }: PublicRouteProps) {
       if (profile.role === 'admin') {
         router.push('/dashboard/admin');
       } else if (profile.role === 'staff') {
-        router.push('/dashboard/staff');
+        if (profile.is_pos_account) { router.push('/dashboard/pos'); } else { router.push('/dashboard/staff'); }
       } else if (profile.role === 'customer') {
         router.push('/dashboard/customer');
       }
