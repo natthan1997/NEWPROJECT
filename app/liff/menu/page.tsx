@@ -309,7 +309,6 @@ export default function LiffMenuPage() {
     if (isDataReady) {
       if (ctxCategories.length > 0 && categories.length === 0) setCategories(ctxCategories as any);
       if (ctxBanners.length > 0 && banners.length === 0) setBanners(ctxBanners);
-      if (ctxBestSellers.length > 0) setBestSellingIds(ctxBestSellers.map((b: any) => b.id));
       if (ctxActiveOrders.length > 0 && activeOrders.length === 0) setActiveOrders(ctxActiveOrders);
       if (ctxMemberInfo && !memberInfo) setMemberInfo(ctxMemberInfo);
       if (ctxShopStatus) setShopSettings(ctxShopStatus);
