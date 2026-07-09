@@ -1,5 +1,5 @@
-import Image from "next/image";
 'use client'
+import Image from "next/image";
 
 import React, { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'

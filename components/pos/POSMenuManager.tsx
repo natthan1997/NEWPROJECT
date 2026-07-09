@@ -1,5 +1,5 @@
-import Image from "next/image";
-'use client';
+'use client'
+import Image from "next/image";;
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { 
   Plus, Search, Edit3, Trash2, Filter, 

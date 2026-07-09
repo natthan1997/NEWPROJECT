@@ -1,5 +1,5 @@
-import Image from "next/image";
-'use client';
+'use client'
+import Image from "next/image";;
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 
 import { POSReceipt } from './POSReceipt'
