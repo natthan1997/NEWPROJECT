@@ -1,6 +1,8 @@
 'use client';
 export const dynamic = 'force-dynamic';
 
+import Image from 'next/image';
+
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { PromoBannerSlider } from '@/components/pos/PromoBannerSlider';
