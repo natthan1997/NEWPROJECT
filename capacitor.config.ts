@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'Xylem POS',
   webDir: 'out',
   server: {
-    url: 'https://xylem-landscape.vercel.app',
+    url: 'https://xylstudio.com',
     cleartext: true,
     allowNavigation: ['access.line.me', 'api.line.me', '*.line.me', 'profile.line-scdn.net']
   }

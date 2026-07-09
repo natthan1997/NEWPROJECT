@@ -174,6 +174,7 @@ export default function LiffMenuPage() {
   const [isFetchingItems, setIsFetchingItems] = useState(true);
   const [items, setItems] = useState<MenuItem[]>([]);
   const [activeCategoryId, setActiveCategoryId] = useState<string>('all');
+  const [regularItemIds, setRegularItemIds] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [lang, setLang] = useState<'th' | 'en'>('th');
 
@@ -722,6 +723,20 @@ export default function LiffMenuPage() {
       }
     };
 
+    const fetchRegularItems = async () => {
+      const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
+      if (!userId) return;
+      try {
+        const res = await fetch(`/api/liff/customer/regulars?line_user_id=${userId}`);
+        const data = await res.json();
+        if (data.regulars) {
+          setRegularItemIds(data.regulars);
+        }
+      } catch (err) {
+        console.error('Failed to fetch regular items:', err);
+      }
+    };
+
     const fetchShopStatus = async () => {
       try {
         // Attempt to find the first settings record that is linked to a branch
@@ -957,7 +972,8 @@ export default function LiffMenuPage() {
         fetchSavedAddresses(),
         fetchMemberInfo(),
         fetchRecentReviews(),
-        fetchBestSellers()
+        fetchBestSellers(),
+        fetchRegularItems()
       ]);
       setLoading(false);
       // ✅ Mark as seen for this session to avoid repeated full-screen loaders when navigating back
@@ -1868,6 +1884,60 @@ export default function LiffMenuPage() {
                         <button disabled={item.in_stock === false} onClick={() => item.in_stock !== false && addToCart(item)} className={`w-8 h-8 flex items-center justify-center rounded-none shadow-lg transition-all ${item.in_stock === false ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-black text-white active:scale-90'}`}>
                           <Plus size={14} />
                         </button>
+                      </div>
+                   </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ⭐ Tier 1.5: Regulars (Smart Favorites) */}
+        {!searchTerm && regularItemIds.length > 0 && (
+          <section id="category-regulars" className="px-4 mb-10 scroll-spy-section">
+            <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-400 mb-6 px-1 flex items-center gap-2">
+              <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
+              {locale === 'en' ? 'Your Regulars • เมนูประจำของคุณ' : locale === 'zh' ? 'Your Regulars • เมนูประจำของคุณ' : 'Your Regulars • เมนูประจำของคุณ'}
+            </h2>
+            <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide">
+              {items.filter(i => regularItemIds.includes(i.id)).slice(0, 4).map(item => (
+                <div key={item.id} className={`snap-start shrink-0 w-[140px] bg-white border border-gray-100 flex flex-col group overflow-hidden relative ${item.in_stock === false ? 'opacity-60 grayscale' : ''}`}>
+                   <div className={`relative aspect-[4/3] bg-gray-50 overflow-hidden ${item.in_stock !== false ? 'cursor-pointer' : 'cursor-not-allowed'}`} onClick={() => item.in_stock !== false && addToCart(item)}>
+                     {item.image_url && <img crossOrigin="anonymous" src={item.image_url ? `${item.image_url}?v=8` : ''} alt={getPrimaryMenuName(item)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />}
+                     {item.in_stock === false && (
+                        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/35 backdrop-blur-[2px] pointer-events-none">
+                           <div className="flex flex-col items-center gap-2">
+                             <span className="bg-red-600 text-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] shadow-lg">สินค้าหมด</span>
+                             <span className="bg-white/90 text-red-600 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.18em] shadow-sm">Unavailable</span>
+                           </div>
+                        </div>
+                     )}
+                     <div className="absolute bottom-2 right-2 px-2 py-0.5 bg-yellow-500/90 backdrop-blur-md text-white text-[6px] font-black uppercase tracking-widest z-30 flex items-center gap-1">
+                       <Star className="w-2 h-2 fill-white" />
+                       Regular
+                     </div>
+                   </div>
+                   <div className="p-3 relative z-10 flex flex-col justify-between flex-1">
+                      <div>
+                        <h3 className="text-[10px] font-bold text-gray-800 line-clamp-1">{getPrimaryMenuName(item)}</h3>
+                        {getSecondaryMenuName(item, locale === 'zh' ? 'zh' : 'en') && (
+                          <p className="mt-1 text-[8px] font-semibold text-gray-500 line-clamp-1">
+                            {getSecondaryMenuName(item, locale === 'zh' ? 'zh' : 'en')}
+                          </p>
+                        )}
+                      </div>
+                      <div className="mt-4 flex items-center justify-between">
+                         <span className="text-[10px] font-bold text-gray-900">฿{item.sale_price}</span>
+                         <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if(item.in_stock !== false) addToCart(item);
+                            }}
+                            disabled={item.in_stock === false}
+                            className={`w-6 h-6 flex items-center justify-center bg-black text-white hover:bg-gray-800 transition-colors ${item.in_stock === false ? 'opacity-50 cursor-not-allowed' : ''}`}
+                         >
+                           <Plus className="w-3 h-3" />
+                         </button>
                       </div>
                    </div>
                 </div>
