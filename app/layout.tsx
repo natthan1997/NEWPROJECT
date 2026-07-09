@@ -64,7 +64,7 @@ export default function RootLayout({
             __html: `
               try {
                 if (typeof window !== 'undefined') {
-                  const CURRENT_VERSION = 'v8';
+                  const CURRENT_VERSION = 'v10';
                   if (localStorage.getItem('app_version') !== CURRENT_VERSION) {
                     localStorage.setItem('app_version', CURRENT_VERSION);
                     if ('caches' in window) {
