@@ -2046,7 +2046,7 @@ export default function LiffMenuPage() {
           <section id="category-popular" className="px-4 mb-10 scroll-spy-section">
             <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-400 mb-6 px-1">{locale === 'en' ? 'Most Loved • เมนูยอดนิยม' : locale === 'zh' ? 'Most Loved • เมนูยอดนิยม' : 'Most Loved • เมนูยอดนิยม'}</h2>
             <div className="grid grid-cols-2 gap-4">
-              {bestSellingIds.slice(0, 4).map((id, index) => {
+              {bestSellingIds.filter(id => items.some(i => i.id === id)).slice(0, 4).map((id, index) => {
                 const item = items.find(i => i.id === id);
                 if (!item) return null;
                 return (
@@ -2074,9 +2074,6 @@ export default function LiffMenuPage() {
                         </div>
                      </div>
 
-                     <div className="absolute bottom-2 right-2 px-2 py-0.5 bg-black/40 backdrop-blur-md text-white text-[6px] font-black uppercase tracking-widest z-30">
-                       {locale === 'en' ? `Sold ${bestSellingCounts[item.id] || 0}` : `ขายแล้ว ${bestSellingCounts[item.id] || 0}`}
-                     </div>
                    </div>
                    <div className="p-3 relative z-10">
                       <h3 className="text-[10px] font-bold text-gray-800 line-clamp-1">{getPrimaryMenuName(item)}</h3>
