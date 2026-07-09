@@ -32,7 +32,7 @@ export async function GET(request: Request) {
     // 2. Get items from these orders
     const { data: items, error: itemsError } = await supabase
       .from('pos_order_items')
-      .select('menu_item_id')
+      .select('item_id')
       .in('order_id', orderIds);
 
     if (itemsError || !items) {
@@ -42,8 +42,8 @@ export async function GET(request: Request) {
     // 3. Calculate frequency
     const frequency: Record<string, number> = {};
     for (const item of items) {
-      if (item.menu_item_id) {
-        frequency[item.menu_item_id] = (frequency[item.menu_item_id] || 0) + 1;
+      if (item.item_id) {
+        frequency[item.item_id] = (frequency[item.item_id] || 0) + 1;
       }
     }
 
