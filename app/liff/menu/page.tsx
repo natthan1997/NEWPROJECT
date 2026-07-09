@@ -709,9 +709,14 @@ export default function LiffMenuPage() {
     };
 
     const fetchBestSellers = async () => {
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
       const { data: sales } = await supabase
         .from('pos_order_items')
-        .select('item_id, quantity');
+        .select('item_id, quantity')
+        .gte('created_at', startOfMonth.toISOString());
       
       if (sales) {
         const counts: Record<string, number> = {};
