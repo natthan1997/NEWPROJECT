@@ -245,6 +245,7 @@ export default function LiffMenuPage() {
   const [isInternalRedirectOpen, setIsInternalRedirectOpen] = useState(false);
   const [internalRedirectUrl, setInternalRedirectUrl] = useState<string | null>(null);
   const [activeOrders, setActiveOrders] = useState<any[]>([]);
+  const [latestOrder, setLatestOrder] = useState<any>(null);
   const cleanupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const checkoutLockRef = useRef(false);
   const [recentReviews, setRecentReviews] = useState<any[]>([]);
@@ -737,6 +738,27 @@ export default function LiffMenuPage() {
       }
     };
 
+    const fetchLatestCompletedOrder = async () => {
+      const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
+      if (!userId) return;
+      try {
+        const { data: latestOrderObj, error } = await supabase
+          .from('pos_orders')
+          .select(`*, items:pos_order_items(*)`)
+          .eq('line_user_id', userId)
+          .in('status', ['completed', 'delivered'])
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+        
+        if (latestOrderObj) {
+          setLatestOrder(latestOrderObj);
+        }
+      } catch (err) {
+        console.error('Failed to fetch latest order:', err);
+      }
+    };
+
     const fetchShopStatus = async () => {
       try {
         // Attempt to find the first settings record that is linked to a branch
@@ -976,7 +998,8 @@ export default function LiffMenuPage() {
         fetchMemberInfo(),
         fetchRecentReviews(),
         fetchBestSellers(),
-        fetchRegularItems()
+        fetchRegularItems(),
+        fetchLatestCompletedOrder()
       ]);
       setLoading(false);
       // ✅ Mark as seen for this session to avoid repeated full-screen loaders when navigating back
@@ -1193,6 +1216,31 @@ export default function LiffMenuPage() {
     readyIn: 'พร้องส่งภายใน 15-20 นาที',
     phoneLabel: 'เบอร์โทรศัพท์',
     notesLabel: 'หมายเหตุเพิ่มเติมอาทิเช่น บ้านเลขที่ หรือจุดสังเกต'
+  };
+
+  const handleReorderLatest = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!latestOrder || !latestOrder.items) return;
+    if (!isShopEffectivelyOpen) {
+       alert(closeMessage || 'ขออภัย ขณะนี้ร้านปิดให้บริการ');
+       return;
+    }
+    
+    // Add all available items to cart
+    let addedCount = 0;
+    latestOrder.items.forEach((orderItem: any) => {
+       const menuItem = items.find(i => i.id === orderItem.item_id);
+       if (menuItem && menuItem.in_stock !== false) {
+          addToCart(menuItem, orderItem.selected_modifiers || [], orderItem.quantity || 1);
+          addedCount++;
+       }
+    });
+    
+    if (addedCount > 0) {
+      setIsCartOpen(true);
+    } else {
+      alert('ขออภัย สินค้าในออเดอร์นี้หมดหรือไม่มีจำหน่ายแล้ว');
+    }
   };
 
   const addToCart = async (item: MenuItem, selectedModifiers: any[] = [], quantity: number = 1) => {
@@ -1740,6 +1788,102 @@ export default function LiffMenuPage() {
       </header>
 
       <main className="flex-1 pb-32">
+        {/* ⭐ Latest Order */}
+        {!searchTerm && latestOrder && latestOrder.items && latestOrder.items.length > 0 && (
+          <section className="px-4 mb-6 pt-4">
+             <div className="bg-white border border-gray-100 p-4 shadow-sm relative">
+                <div className="flex items-start justify-between mb-3">
+                   <div>
+                     <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-800 flex items-center gap-2">
+                       <History size={12} className="text-gray-400" />
+                       {locale === 'en' ? 'Latest Order • สั่งล่าสุด' : 'Latest Order • สั่งล่าสุด'}
+                     </h2>
+                     <p className="text-[9px] font-bold text-gray-400 uppercase mt-1 tracking-widest">
+                       {latestOrder.items.length} {locale === 'en' ? 'Items' : 'รายการ'}
+                     </p>
+                   </div>
+                   <button 
+                     onClick={handleReorderLatest}
+                     className="bg-black text-white px-3 py-1.5 text-[9px] font-black uppercase tracking-widest active:scale-95 transition-all"
+                   >
+                     {locale === 'en' ? 'Order Again' : 'สั่งอีกครั้ง'}
+                   </button>
+                </div>
+                
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                   {latestOrder.items.map((orderItem: any, idx: number) => {
+                      const mItem = items.find(i => i.id === orderItem.item_id);
+                      if (!mItem) return null;
+                      return (
+                         <div key={idx} className="shrink-0 w-[60px] flex flex-col gap-1">
+                            <div className="w-[60px] h-[60px] bg-gray-50 border border-gray-100 overflow-hidden relative">
+                               {mItem.image_url && <img src={`${mItem.image_url}?v=8`} className="w-full h-full object-cover" crossOrigin="anonymous" />}
+                               <div className="absolute bottom-0 right-0 bg-black text-white text-[7px] font-black px-1">
+                                 x{orderItem.quantity}
+                               </div>
+                            </div>
+                         </div>
+                      )
+                   })}
+                </div>
+             </div>
+          </section>
+        )}
+
+        {/* ⭐ Tier 1.5: Regulars (Smart Favorites) Moved to Top */}
+        {!searchTerm && regularItemIds.length > 0 && (
+          <section id="category-regulars" className="px-4 mb-10 pt-4 scroll-spy-section">
+            <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-400 mb-6 px-1 flex items-center gap-2">
+              <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
+              {locale === 'en' ? 'Your Regulars • เมนูประจำของคุณ' : locale === 'zh' ? 'Your Regulars • เมนูประจำของคุณ' : 'Your Regulars • เมนูประจำของคุณ'}
+            </h2>
+            <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide">
+              {items.filter(i => regularItemIds.includes(i.id)).slice(0, 4).map(item => (
+                <div key={item.id} className={`snap-start shrink-0 w-[140px] bg-white border border-gray-100 flex flex-col group overflow-hidden relative ${item.in_stock === false ? 'opacity-60 grayscale' : ''}`}>
+                   <div className={`relative aspect-[4/3] bg-gray-50 overflow-hidden ${item.in_stock !== false ? 'cursor-pointer' : 'cursor-not-allowed'}`} onClick={() => item.in_stock !== false && addToCart(item)}>
+                     {item.image_url && <img crossOrigin="anonymous" src={item.image_url ? `${item.image_url}?v=8` : ''} alt={getPrimaryMenuName(item)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />}
+                     {item.in_stock === false && (
+                        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/35 backdrop-blur-[2px] pointer-events-none">
+                           <div className="flex flex-col items-center gap-2">
+                             <span className="bg-red-600 text-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] shadow-lg">สินค้าหมด</span>
+                             <span className="bg-white/90 text-red-600 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.18em] shadow-sm">Unavailable</span>
+                           </div>
+                        </div>
+                     )}
+                     <div className="absolute bottom-2 right-2 px-2 py-0.5 bg-yellow-500/90 backdrop-blur-md text-white text-[6px] font-black uppercase tracking-widest z-30 flex items-center gap-1">
+                       <Star className="w-2 h-2 fill-white" />
+                       Regular
+                     </div>
+                   </div>
+                   <div className="p-3 relative z-10 flex flex-col justify-between flex-1">
+                      <div>
+                        <h3 className="text-[10px] font-bold text-gray-800 line-clamp-1">{getPrimaryMenuName(item)}</h3>
+                        {getSecondaryMenuName(item, locale === 'zh' ? 'zh' : 'en') && (
+                          <p className="mt-1 text-[8px] font-semibold text-gray-500 line-clamp-1">
+                            {getSecondaryMenuName(item, locale === 'zh' ? 'zh' : 'en')}
+                          </p>
+                        )}
+                      </div>
+                      <div className="mt-4 flex items-center justify-between">
+                         <span className="text-[10px] font-bold text-gray-900">฿{item.sale_price}</span>
+                         <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if(item.in_stock !== false) addToCart(item);
+                            }}
+                            disabled={item.in_stock === false}
+                            className={`w-6 h-6 flex items-center justify-center bg-black text-white hover:bg-gray-800 transition-colors ${item.in_stock === false ? 'opacity-50 cursor-not-allowed' : ''}`}
+                         >
+                           <Plus className="w-3 h-3" />
+                         </button>
+                      </div>
+                   </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* Banner Carousel */}
         <div className="mb-4 aspect-[16/7] overflow-hidden relative bg-gray-100">
            <PromoBannerSlider />
@@ -1895,59 +2039,6 @@ export default function LiffMenuPage() {
           </section>
         )}
 
-        {/* ⭐ Tier 1.5: Regulars (Smart Favorites) */}
-        {!searchTerm && regularItemIds.length > 0 && (
-          <section id="category-regulars" className="px-4 mb-10 scroll-spy-section">
-            <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-400 mb-6 px-1 flex items-center gap-2">
-              <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
-              {locale === 'en' ? 'Your Regulars • เมนูประจำของคุณ' : locale === 'zh' ? 'Your Regulars • เมนูประจำของคุณ' : 'Your Regulars • เมนูประจำของคุณ'}
-            </h2>
-            <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide">
-              {items.filter(i => regularItemIds.includes(i.id)).slice(0, 4).map(item => (
-                <div key={item.id} className={`snap-start shrink-0 w-[140px] bg-white border border-gray-100 flex flex-col group overflow-hidden relative ${item.in_stock === false ? 'opacity-60 grayscale' : ''}`}>
-                   <div className={`relative aspect-[4/3] bg-gray-50 overflow-hidden ${item.in_stock !== false ? 'cursor-pointer' : 'cursor-not-allowed'}`} onClick={() => item.in_stock !== false && addToCart(item)}>
-                     {item.image_url && <img crossOrigin="anonymous" src={item.image_url ? `${item.image_url}?v=8` : ''} alt={getPrimaryMenuName(item)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />}
-                     {item.in_stock === false && (
-                        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/35 backdrop-blur-[2px] pointer-events-none">
-                           <div className="flex flex-col items-center gap-2">
-                             <span className="bg-red-600 text-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] shadow-lg">สินค้าหมด</span>
-                             <span className="bg-white/90 text-red-600 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.18em] shadow-sm">Unavailable</span>
-                           </div>
-                        </div>
-                     )}
-                     <div className="absolute bottom-2 right-2 px-2 py-0.5 bg-yellow-500/90 backdrop-blur-md text-white text-[6px] font-black uppercase tracking-widest z-30 flex items-center gap-1">
-                       <Star className="w-2 h-2 fill-white" />
-                       Regular
-                     </div>
-                   </div>
-                   <div className="p-3 relative z-10 flex flex-col justify-between flex-1">
-                      <div>
-                        <h3 className="text-[10px] font-bold text-gray-800 line-clamp-1">{getPrimaryMenuName(item)}</h3>
-                        {getSecondaryMenuName(item, locale === 'zh' ? 'zh' : 'en') && (
-                          <p className="mt-1 text-[8px] font-semibold text-gray-500 line-clamp-1">
-                            {getSecondaryMenuName(item, locale === 'zh' ? 'zh' : 'en')}
-                          </p>
-                        )}
-                      </div>
-                      <div className="mt-4 flex items-center justify-between">
-                         <span className="text-[10px] font-bold text-gray-900">฿{item.sale_price}</span>
-                         <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if(item.in_stock !== false) addToCart(item);
-                            }}
-                            disabled={item.in_stock === false}
-                            className={`w-6 h-6 flex items-center justify-center bg-black text-white hover:bg-gray-800 transition-colors ${item.in_stock === false ? 'opacity-50 cursor-not-allowed' : ''}`}
-                         >
-                           <Plus className="w-3 h-3" />
-                         </button>
-                      </div>
-                   </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
 
         {/* ❤️ Tier 2: Most Loved (Best Sellers) */}
         {!searchTerm && (
