@@ -1,7 +1,6 @@
 'use client';
 import React, { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { StripePaymentModal } from '@/components/pos/StripePaymentModal'
 import { supabase } from '@/lib/supabaseClient'
@@ -1233,7 +1232,7 @@ export default function CustomerMenuPage() {
             {banners.length > 0 ? (
                 <PromoBannerSlider banners={banners} />
             ) : table?.branch?.image_url ? (
-                <Image unoptimized src={table.branch.image_url} alt="" fill sizes="100px" className="object-cover" priority={true} />
+                <img crossOrigin="anonymous"  src={table.branch.image_url ? `${table.branch.image_url}?v=8` : ''} className="w-full h-full object-cover" />
             ) : null}
             
             {/* Gradient Overlay for Text Readability - Dark at bottom */}
@@ -1322,8 +1321,8 @@ export default function CustomerMenuPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {displayItems.filter(i => i.is_recommended).slice(0, 4).map(item => (
                 <div key={item.id} className={`bg-white border border-gray-100 flex flex-col group overflow-hidden shadow-sm relative ${item.in_stock === false ? 'opacity-60 grayscale' : ''}`}>
-                   <div className={`relative w-full aspect-square bg-gray-50 overflow-hidden ${item.in_stock !== false ? 'cursor-pointer' : 'cursor-not-allowed'}`} onClick={() => item.in_stock !== false && handleItemClick(item)}>
-                     {item.image_url ? <Image unoptimized src={item.image_url} alt={getPrimaryMenuName(item)} fill sizes="(max-width: 768px) 50vw, 25vw" className="object-cover group-hover:scale-110 transition-transform duration-700" priority={true} /> : <div className="absolute inset-0 flex items-center justify-center text-gray-300"><Utensils size={24} strokeWidth={1} /></div>}
+                   <div className={`relative aspect-square bg-gray-50 overflow-hidden ${item.in_stock !== false ? 'cursor-pointer' : 'cursor-not-allowed'}`} onClick={() => item.in_stock !== false && handleItemClick(item)}>
+                     {item.image_url ? <img crossOrigin="anonymous"  src={item.image_url ? `${item.image_url}?v=8` : ''} alt={getPrimaryMenuName(item)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" /> : <div className="absolute inset-0 flex items-center justify-center text-gray-300"><Utensils size={24} strokeWidth={1} /></div>}
                      {item.in_stock === false && (
                         <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/35 backdrop-blur-[2px] pointer-events-none">
                            <div className="flex flex-col items-center gap-2">
@@ -1363,8 +1362,8 @@ export default function CustomerMenuPage() {
                 if (!item) return null;
                 return (
                 <div key={item.id} className={`bg-white border border-gray-100 flex flex-col group overflow-hidden relative ${item.in_stock === false ? 'opacity-60 grayscale' : ''}`}>
-                   <div className={`relative w-full aspect-[4/3] bg-gray-50 overflow-hidden ${item.in_stock !== false ? 'cursor-pointer' : 'cursor-not-allowed'}`} onClick={() => item.in_stock !== false && handleItemClick(item)}>
-                     {item.image_url ? <Image unoptimized src={item.image_url} alt={getPrimaryMenuName(item)} fill sizes="(max-width: 768px) 50vw, 25vw" className="object-cover group-hover:scale-110 transition-transform duration-700" priority={true} /> : <div className="absolute inset-0 flex items-center justify-center text-gray-300"><Utensils size={24} strokeWidth={1} /></div>}
+                   <div className={`relative aspect-[4/3] bg-gray-50 overflow-hidden ${item.in_stock !== false ? 'cursor-pointer' : 'cursor-not-allowed'}`} onClick={() => item.in_stock !== false && handleItemClick(item)}>
+                     {item.image_url ? <img crossOrigin="anonymous"  src={item.image_url ? `${item.image_url}?v=8` : ''} alt={getPrimaryMenuName(item)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" /> : <div className="absolute inset-0 flex items-center justify-center text-gray-300"><Utensils size={24} strokeWidth={1} /></div>}
                      {item.in_stock === false && (
                         <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/35 backdrop-blur-[2px] pointer-events-none">
                            <div className="flex flex-col items-center gap-2">
@@ -1428,7 +1427,7 @@ export default function CustomerMenuPage() {
                     <div key={item.id} className={`group bg-white border border-gray-100 p-4 transition-all hover:border-emerald-100 flex gap-5 ${item.in_stock === false ? 'opacity-60 grayscale' : ''}`}>
                         <div className={`relative w-24 h-24 flex-shrink-0 bg-gray-50 overflow-hidden ${item.in_stock !== false ? 'cursor-pointer' : 'cursor-not-allowed'}`} onClick={() => item.in_stock !== false && handleItemClick(item)}>
                           {item.image_url ? (
-                              <Image unoptimized src={item.image_url} alt={getPrimaryMenuName(item)} fill sizes="(max-width: 768px) 50vw, 33vw" className="object-cover transition-transform duration-700 group-hover:scale-110" priority={true} />
+                              <img crossOrigin="anonymous"  src={item.image_url + (item.image_url.includes('?') ? '&' : '?') + 'v=' + Date.now()} alt={getPrimaryMenuName(item)} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                           ) : (
                               <div className="absolute inset-0 flex items-center justify-center text-gray-300">
                                  <Utensils size={24} strokeWidth={1} />
@@ -1538,7 +1537,7 @@ export default function CustomerMenuPage() {
                                     className="relative flex gap-4 items-start border-b border-gray-50 pb-6 mb-6 last:border-0 last:mb-0"
                                 >
                                     <div className="w-20 h-20 bg-gray-50 flex-shrink-0 relative">
-                                        {item.image_url ? <Image unoptimized src={item.image_url} alt="" fill sizes="100px" className="object-cover mix-blend-multiply" /> : <div className="absolute inset-0 flex items-center justify-center text-gray-200"><Utensils size={16} /></div>}
+                                        {item.image_url ? <img crossOrigin="anonymous"  src={item.image_url ? `${item.image_url}?v=8` : ''} className="w-full h-full object-cover mix-blend-multiply" /> : <div className="absolute inset-0 flex items-center justify-center text-gray-200"><Utensils size={16} /></div>}
                                     </div>
                                     <div className="flex-1 min-w-0 pr-2">
                                         <div className="flex justify-between items-start gap-2">
