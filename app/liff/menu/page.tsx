@@ -1936,7 +1936,7 @@ export default function LiffMenuPage() {
                       return (
                          <div key={idx} className="shrink-0 w-[60px] flex flex-col gap-1">
                             <div className="w-[60px] h-[60px] bg-gray-50 border border-gray-100 overflow-hidden relative">
-                               {mItem.image_url && <img src={`${mItem.image_url}?v=8`} className="w-full h-full object-cover" crossOrigin="anonymous" />}
+                               {mItem.image_url && <Image src={mItem.image_url} alt="" fill sizes="50px" className="object-cover" />}
                                <div className="absolute bottom-0 right-0 bg-black text-white text-[7px] font-black px-1">
                                  x{orderItem.quantity}
                                </div>
@@ -1960,7 +1960,7 @@ export default function LiffMenuPage() {
               {items.filter(i => regularItemIds.includes(i.id)).slice(0, 4).map(item => (
                 <div key={item.id} className={`snap-start shrink-0 w-[140px] bg-white border border-gray-100 flex flex-col group overflow-hidden relative ${item.in_stock === false ? 'opacity-60 grayscale' : ''}`}>
                    <div className={`relative aspect-[4/3] bg-gray-50 overflow-hidden ${item.in_stock !== false ? 'cursor-pointer' : 'cursor-not-allowed'}`} onClick={() => item.in_stock !== false && addToCart(item)}>
-                     {item.image_url && <img crossOrigin="anonymous" src={item.image_url ? `${item.image_url}?v=8` : ''} alt={getPrimaryMenuName(item)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />}
+                     {item.image_url && <Image src={item.image_url} alt={getPrimaryMenuName(item)} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover group-hover:scale-110 transition-transform duration-700" priority={index < 2} />}
                      {item.in_stock === false && (
                         <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/35 backdrop-blur-[2px] pointer-events-none">
                            <div className="flex flex-col items-center gap-2">
@@ -2013,7 +2013,7 @@ export default function LiffMenuPage() {
               {items.filter(i => i.is_recommended).slice(0, 4).map(item => (
                 <div key={item.id} className={`bg-white border border-gray-100 flex flex-col group overflow-hidden shadow-sm relative ${item.in_stock === false ? 'opacity-60 grayscale' : ''}`}>
                    <div className={`relative aspect-square bg-gray-50 overflow-hidden ${item.in_stock !== false ? 'cursor-pointer' : 'cursor-not-allowed'}`} onClick={() => item.in_stock !== false && addToCart(item)}>
-                     {item.image_url && <img crossOrigin="anonymous"  src={item.image_url ? `${item.image_url}?v=8` : ''} alt={getPrimaryMenuName(item)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />}
+                     {item.image_url && <Image src={item.image_url} alt={getPrimaryMenuName(item)} fill sizes="(max-width: 768px) 50vw, 33vw" className="object-cover group-hover:scale-110 transition-transform duration-700" priority={true} />}
                      {item.in_stock === false && (
                         <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/35 backdrop-blur-[2px] pointer-events-none">
                            <div className="flex flex-col items-center gap-2">
@@ -2056,7 +2056,7 @@ export default function LiffMenuPage() {
                 return (
                 <div key={item.id} className={`bg-white border border-gray-100 flex flex-col group overflow-hidden relative ${item.in_stock === false ? 'opacity-60 grayscale' : ''}`}>
                    <div className={`relative aspect-[4/3] bg-gray-50 overflow-hidden ${item.in_stock !== false ? 'cursor-pointer' : 'cursor-not-allowed'}`} onClick={() => item.in_stock !== false && addToCart(item)}>
-                     {item.image_url && <img crossOrigin="anonymous"  src={item.image_url ? `${item.image_url}?v=8` : ''} alt={getPrimaryMenuName(item)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />}
+                     {item.image_url && <Image src={item.image_url} alt={getPrimaryMenuName(item)} fill sizes="(max-width: 768px) 50vw, 33vw" className="object-cover group-hover:scale-110 transition-transform duration-700" priority={true} />}
                      {item.in_stock === false && (
                         <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/35 backdrop-blur-[2px] pointer-events-none">
                            <div className="flex flex-col items-center gap-2">
@@ -2119,7 +2119,7 @@ export default function LiffMenuPage() {
                    )}
                    <div className="flex items-center gap-3">
                      <div className="w-6 h-6 rounded-none bg-gray-200 overflow-hidden">
-                       {rev.customer_image && <img  src={rev.customer_image} className="w-full h-full object-cover" />}
+                       {rev.customer_image && <Image src={rev.customer_image} alt="Review" fill sizes="150px" className="object-cover" />}
                      </div>
                      <span className="text-[9px] font-black uppercase text-emerald-600 tracking-[0.2em]">{rev.customer_name || 'ลูกค้าคนสำคัญ'}</span>
                    </div>
@@ -2151,7 +2151,7 @@ export default function LiffMenuPage() {
                          className={`relative w-24 h-24 flex-shrink-0 bg-gray-50 overflow-hidden ${item.in_stock !== false ? 'cursor-pointer' : 'cursor-not-allowed'}`}
                          onClick={() => item.in_stock !== false && addToCart(item)}
                        >
-                         {item.image_url && <img crossOrigin="anonymous"  src={item.image_url ? `${item.image_url}?v=8` : ''} alt={getPrimaryMenuName(item)} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />}
+                         {item.image_url && <Image src={item.image_url} alt={getPrimaryMenuName(item)} fill sizes="(max-width: 768px) 50vw, 33vw" className="object-cover transition-transform duration-700 group-hover:scale-110" priority={index < 6} />}
                          {item.in_stock === false && (
                             <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/35 backdrop-blur-[2px] pointer-events-none">
                                <div className="flex flex-col items-center gap-2">
@@ -2250,7 +2250,7 @@ export default function LiffMenuPage() {
                     >
                       <div className="w-16 h-16 bg-gray-50 flex-shrink-0 relative overflow-hidden">
                         {item.image_url ? (
-                          <img crossOrigin="anonymous"  src={item.image_url ? `${item.image_url}?v=8` : ''} alt={getPrimaryMenuName(item)} className="w-full h-full object-cover" />
+                          <Image src={item.image_url} alt={getPrimaryMenuName(item)} fill sizes="100px" className="object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-gray-200"><ShoppingCart size={24} /></div>
                         )}
@@ -2444,7 +2444,7 @@ export default function LiffMenuPage() {
                   <div className="mt-8 bg-[#f6f7f1] border-2 border-black p-6 flex items-center justify-between group transition-all">
                     <div className="flex gap-4 items-center">
                        <div className="w-12 h-12 bg-white flex-shrink-0 overflow-hidden border border-black">
-                         <img crossOrigin="anonymous"  src={upsellItem.image_url ? `${upsellItem.image_url}?v=8` : ''} alt={getPrimaryMenuName(upsellItem)} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                         <Image src={upsellItem.image_url} alt={getPrimaryMenuName(upsellItem)} fill sizes="100px" className="object-cover transition-transform group-hover:scale-110" />
                        </div>
                        <div>
                          <p className="text-[7px] font-black text-black uppercase tracking-[0.3em] mb-1">Recommended for you</p>
