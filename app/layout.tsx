@@ -74,16 +74,21 @@ export default function RootLayout({
                         });
                       });
                     }
-                    if ('serviceWorker' in navigator) {
-                      navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                        registrations.forEach(function(registration) {
-                          registration.unregister();
-                        });
-                      });
-                    }
                     setTimeout(function() {
                       window.location.reload();
                     }, 500);
+                  }
+
+                  if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                      registrations.forEach(function(registration) {
+                        // Unregister any service worker that is not explicitly scoped to /dashboard/pos
+                        if (registration.scope !== window.location.origin + '/dashboard/pos' && registration.scope !== window.location.origin + '/dashboard/pos/') {
+                          console.log('Unregistering out-of-scope service worker:', registration.scope);
+                          registration.unregister();
+                        }
+                      });
+                    });
                   }
                   
                   // Diagnostic test fetches to see exactly why R2 fetches fail on this browser

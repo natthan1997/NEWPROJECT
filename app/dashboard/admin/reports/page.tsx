@@ -585,129 +585,120 @@ export default function AdminReports() {
   }
 
   return (
-    <div className="space-y-6 max-w-[1400px] mx-auto">
-      <div className="pb-4">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+    <div className="space-y-5">
+      <div className="border-b border-[#ECECE6] pb-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-3 py-1 text-xs font-semibold rounded-full mb-3">
-              <BarChart3 className="h-3.5 w-3.5" /> Admin Report Center
+            <span className="inline-flex items-center gap-1.5 border border-[#E5E5DF] bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#666666]">
+              <BarChart3 className="h-3 w-3" /> Admin Report Center
             </span>
-            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900">{locale === 'en' ? 'รายงานและสถิติ' : locale === 'zh' ? 'รายงานและสถิติ' : 'รายงานและสถิติ'}</h1>
-            <p className="mt-2 text-sm text-slate-500">{locale === 'en' ? 'เน้นข้อมูลสำคัญ รายได้ ผลงาน และจุดที่ต้องติดตามจากข้อมูลจริง' : locale === 'zh' ? 'เน้นข้อมูลสำคัญ รายได้ ผลงาน และจุดที่ต้องติดตามจากข้อมูลจริง' : 'เน้นข้อมูลสำคัญ รายได้ ผลงาน และจุดที่ต้องติดตามจากข้อมูลจริง'}</p>
+            <h1 className="mt-3 text-3xl font-light tracking-tight text-[#1A1A1A]">{locale === 'en' ? 'รายงานและสถิติ' : locale === 'zh' ? 'รายงานและสถิติ' : 'รายงานและสถิติ'}</h1>
+            <p className="mt-1 text-sm text-[#70706B]">{locale === 'en' ? 'เน้นข้อมูลสำคัญ รายได้ ผลงาน และจุดที่ต้องติดตามจากข้อมูลจริง' : locale === 'zh' ? 'เน้นข้อมูลสำคัญ รายได้ ผลงาน และจุดที่ต้องติดตามจากข้อมูลจริง' : 'เน้นข้อมูลสำคัญ รายได้ ผลงาน และจุดที่ต้องติดตามจากข้อมูลจริง'}</p>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <Link
-              href="/dashboard/admin/reports/create-single"
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-white text-slate-700 border border-slate-200 rounded-xl text-xs font-semibold shadow-sm hover:bg-slate-50 transition-all hover:shadow-md"
-            >
-              <FileText size={16} className="text-indigo-500" />
-              {locale === 'en' ? 'Make an individual report' : locale === 'zh' ? '制作个人报告' : 'ลงรายงานรายตัว'}
-            </Link>
-            <Link
-              href="/dashboard/admin/reports/create"
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-semibold shadow-sm hover:bg-emerald-700 hover:shadow-md transition-all"
-            >
-              <Sparkles size={16} className="text-emerald-100" />
-              {locale === 'en' ? 'ลงรายงานแบบรวม' : locale === 'zh' ? 'ลงรายงานแบบรวม' : 'ลงรายงานแบบรวม'}
-            </Link>
+            <div className="flex flex-wrap items-center gap-2">
+                <Link
+                  href="/dashboard/admin/reports/create-single"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-white text-gray-700 border border-gray-200 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-gray-50 transition-all shadow-sm"
+                >
+                  <FileText size={14} className="text-indigo-500" />
+                  {locale === 'en' ? 'Make an individual report' : locale === 'zh' ? '制作个人报告' : '                   ลงรายงานรายตัว                 '}</Link>
+                <Link
+                  href="/dashboard/admin/reports/create"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1F3A2C] text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-[#162A20] transition-all shadow-sm shadow-emerald-100"
+                >
+                  <Sparkles size={14} className="text-emerald-300" />
+                  {locale === 'en' ? '                   ลงรายงานแบบรวม                 ' : locale === 'zh' ? '                   ลงรายงานแบบรวม                 ' : '                   ลงรายงานแบบรวม                 '}</Link>
+                <button
+                  onClick={() => applyDatePreset('all')}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-white text-gray-500 border border-gray-100 rounded-xl text-xs font-bold uppercase tracking-widest hover:text-gray-900 transition-all"
+                >
+                  <RefreshCcw size={14} />
+                  {locale === 'en' ? '                   รีเซ็ต                 ' : locale === 'zh' ? '                   รีเซ็ต                 ' : '                   รีเซ็ต                 '}</button>
           </div>
         </div>
 
-        <div className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-xs font-medium text-slate-500">Completed Revenue</p>
-              <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
-                <Wallet className="h-4 w-4 text-emerald-600" />
+        <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 lg:grid-cols-4">
+          <div className="border-t border-[#E9E9E2] pt-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#B5B5B0]">Completed Revenue</p>
+                <p className="mt-1 text-2xl font-light text-[#1A1A1A]">{locale === 'en' ? '฿' : locale === 'zh' ? '฿' : '฿'}{loading ? '...' : formatMoney(analytics.completedRevenue)}</p>
               </div>
+              <Wallet className="h-4 w-4 text-[#2A4532]" />
             </div>
-            <p className="mt-4 text-2xl sm:text-3xl font-bold text-slate-900">{locale === 'en' ? '฿' : locale === 'zh' ? '฿' : '฿'}{loading ? '...' : formatMoney(analytics.completedRevenue)}</p>
           </div>
 
-          <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-xs font-medium text-slate-500">Reports In Range</p>
-              <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
-                <CalendarDays className="h-4 w-4 text-blue-600" />
+          <div className="border-t border-[#E9E9E2] pt-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#B5B5B0]">Reports In Range</p>
+                <p className="mt-1 text-2xl font-light text-[#1A1A1A]">{loading ? '...' : analytics.reportsInRange}</p>
               </div>
+              <CalendarDays className="h-4 w-4 text-[#2A4532]" />
             </div>
-            <p className="mt-4 text-2xl sm:text-3xl font-bold text-slate-900">{loading ? '...' : analytics.reportsInRange}</p>
           </div>
 
-          <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-xs font-medium text-slate-500">Active Orders</p>
-              <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center shrink-0">
-                <BarChart3 className="h-4 w-4 text-indigo-600" />
+          <div className="border-t border-[#E9E9E2] pt-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#B5B5B0]">Active Orders</p>
+                <p className="mt-1 text-2xl font-light text-[#1A1A1A]">{loading ? '...' : analytics.activeOrders}</p>
               </div>
+              <BarChart3 className="h-4 w-4 text-[#2A4532]" />
             </div>
-            <p className="mt-4 text-2xl sm:text-3xl font-bold text-slate-900">{loading ? '...' : analytics.activeOrders}</p>
           </div>
 
-          <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-xs font-medium text-slate-500">Customers Served</p>
-              <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center shrink-0">
-                <Users className="h-4 w-4 text-orange-600" />
+          <div className="border-t border-[#E9E9E2] pt-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#B5B5B0]">Customers Served</p>
+                <p className="mt-1 text-2xl font-light text-[#1A1A1A]">{loading ? '...' : analytics.customersServed}</p>
               </div>
+              <Users className="h-4 w-4 text-[#2A4532]" />
             </div>
-            <p className="mt-4 text-2xl sm:text-3xl font-bold text-slate-900">{loading ? '...' : analytics.customersServed}</p>
           </div>
         </div>
       </div>
 
-      {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+      {error && <div className="border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-6 mb-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
-          <div className="flex p-1 bg-slate-100 rounded-xl overflow-x-auto w-full md:w-auto shrink-0 scrollbar-hide">
+      <div className="border border-[#ECECE6] bg-white p-4 sm:p-5">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-[#F1F1EB] pb-3">
+          <div className="inline-flex flex-wrap gap-2">
             <button
               onClick={() => applyDatePreset('all')}
-              className={`flex-1 md:flex-none px-4 py-2 text-xs font-medium rounded-lg whitespace-nowrap transition-all ${activePreset === 'all' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+              className={`px-3 py-2 text-xs font-semibold border ${activePreset === 'all' ? 'bg-[#1A1A1A] text-white border-[#1A1A1A]' : 'bg-white text-[#666666] border-[#E5E5DF]'}`}
             >
-              {locale === 'en' ? 'ทั้งหมด' : locale === 'zh' ? 'ทั้งหมด' : 'ทั้งหมด'}
-            </button>
+              {locale === 'en' ? '               ทั้งหมด             ' : locale === 'zh' ? '               ทั้งหมด             ' : '               ทั้งหมด             '}</button>
             <button
               onClick={() => applyDatePreset('7d')}
-              className={`flex-1 md:flex-none px-4 py-2 text-xs font-medium rounded-lg whitespace-nowrap transition-all ${activePreset === '7d' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+              className={`px-3 py-2 text-xs font-semibold border ${activePreset === '7d' ? 'bg-[#1A1A1A] text-white border-[#1A1A1A]' : 'bg-white text-[#666666] border-[#E5E5DF]'}`}
             >
-              {locale === 'en' ? '7 วัน' : locale === 'zh' ? '7 วัน' : '7 วัน'}
-            </button>
+              {locale === 'en' ? '               7 วัน             ' : locale === 'zh' ? '               7 วัน             ' : '               7 วัน             '}</button>
             <button
               onClick={() => applyDatePreset('30d')}
-              className={`flex-1 md:flex-none px-4 py-2 text-xs font-medium rounded-lg whitespace-nowrap transition-all ${activePreset === '30d' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+              className={`px-3 py-2 text-xs font-semibold border ${activePreset === '30d' ? 'bg-[#1A1A1A] text-white border-[#1A1A1A]' : 'bg-white text-[#666666] border-[#E5E5DF]'}`}
             >
-              {locale === 'en' ? '30 วัน' : locale === 'zh' ? '30 วัน' : '30 วัน'}
-            </button>
+              {locale === 'en' ? '               30 วัน             ' : locale === 'zh' ? '               30 วัน             ' : '               30 วัน             '}</button>
             <button
               onClick={() => applyDatePreset('month')}
-              className={`flex-1 md:flex-none px-4 py-2 text-xs font-medium rounded-lg whitespace-nowrap transition-all ${activePreset === 'month' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+              className={`px-3 py-2 text-xs font-semibold border ${activePreset === 'month' ? 'bg-[#1A1A1A] text-white border-[#1A1A1A]' : 'bg-white text-[#666666] border-[#E5E5DF]'}`}
             >
-              {locale === 'en' ? 'เดือนนี้' : locale === 'zh' ? 'เดือนนี้' : 'เดือนนี้'}
-            </button>
+              {locale === 'en' ? '               เดือนนี้             ' : locale === 'zh' ? '               เดือนนี้             ' : '               เดือนนี้             '}</button>
           </div>
 
-          <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
-            <button
-              onClick={() => applyDatePreset('all')}
-              className="flex-1 md:flex-none justify-center inline-flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-            >
-              <RefreshCcw size={14} />
-              {locale === 'en' ? 'รีเซ็ต' : locale === 'zh' ? 'รีเซ็ต' : 'รีเซ็ต'}
-            </button>
-            <button
-              onClick={downloadCsv}
-              disabled={filteredReports.length === 0 || loading}
-              className="flex-1 md:flex-none justify-center inline-flex items-center gap-2 bg-slate-900 px-4 py-2 text-xs font-medium text-white rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50"
-            >
-              <Download className="h-4 w-4" /> Export CSV
-            </button>
-          </div>
+          <button
+            onClick={downloadCsv}
+            disabled={filteredReports.length === 0 || loading}
+            className="inline-flex items-center gap-2 bg-[#1A1A1A] px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
+          >
+            <Download className="h-3.5 w-3.5" /> Export CSV
+          </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-5 items-end">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] mb-5 items-end">
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1.5">{locale === 'en' ? 'วันที่เริ่ม' : locale === 'zh' ? 'วันที่เริ่ม' : 'วันที่เริ่ม'}</label>
+            <label className="block text-xs font-semibold text-[#666666] mb-1">{locale === 'en' ? 'วันที่เริ่ม' : locale === 'zh' ? 'วันที่เริ่ม' : 'วันที่เริ่ม'}</label>
             <input
               type="date"
               value={startDate}
@@ -715,11 +706,11 @@ export default function AdminReports() {
                 setActivePreset('all')
                 setStartDate(e.target.value)
               }}
-              className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+              className="xyl-input w-full"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1.5">{locale === 'en' ? 'วันที่สิ้นสุด' : locale === 'zh' ? 'วันที่สิ้นสุด' : 'วันที่สิ้นสุด'}</label>
+            <label className="block text-xs font-semibold text-[#666666] mb-1">{locale === 'en' ? 'วันที่สิ้นสุด' : locale === 'zh' ? 'วันที่สิ้นสุด' : 'วันที่สิ้นสุด'}</label>
             <input
               type="date"
               value={endDate}
@@ -727,123 +718,116 @@ export default function AdminReports() {
                 setActivePreset('all')
                 setEndDate(e.target.value)
               }}
-              className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+              className="xyl-input w-full"
             />
           </div>
-          <div className="bg-slate-50 rounded-xl px-4 py-3 border border-slate-100 w-full lg:w-auto lg:ml-auto">
-             <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 text-center lg:text-right">Visible Reports</div>
-             <div className="mt-0.5 text-2xl font-bold text-slate-900 text-center lg:text-right">{loading ? '...' : filteredReports.length}</div>
+          <div>
+            <div className="border-t border-[#E9E9E2] pt-3 text-right md:min-w-[180px]">
+              <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#B5B5B0]">Visible Reports</div>
+              <div className="mt-1 text-2xl font-light text-[#1A1A1A]">{loading ? '...' : filteredReports.length}</div>
+            </div>
           </div>
         </div>
-      </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-5 sm:p-6 lg:col-span-2 hover:shadow-md transition-shadow">
-            <h3 className="text-sm font-bold text-slate-800 mb-5 flex items-center gap-2">
-              <Activity className="h-4 w-4 text-emerald-600" />
-              Telemetry Funnel
-            </h3>
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
-                <div className="text-xs font-medium text-slate-500 mb-2">Staff Submitted</div>
-                <div className="text-3xl font-bold text-slate-900">{loading ? '...' : eventFunnel.staffSubmitted}</div>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="border border-[#ECECE6] bg-white p-4 lg:col-span-2">
+            <h3 className="text-sm font-bold uppercase tracking-[0.18em] text-[#1A1A1A] mb-3">Telemetry Funnel v1</h3>
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              <div className="border-t border-[#E9E9E2] pt-3">
+                <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#9A9A94]">Staff Submitted</div>
+                <div className="mt-1 text-2xl font-light text-[#1A1A1A]">{loading ? '...' : eventFunnel.staffSubmitted}</div>
               </div>
-              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
-                <div className="text-xs font-medium text-slate-500 mb-2">Customer Viewed</div>
-                <div className="text-3xl font-bold text-slate-900">{loading ? '...' : eventFunnel.customerViewed}</div>
+              <div className="border-t border-[#E9E9E2] pt-3">
+                <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#9A9A94]">Customer Viewed</div>
+                <div className="mt-1 text-2xl font-light text-[#1A1A1A]">{loading ? '...' : eventFunnel.customerViewed}</div>
               </div>
-              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
-                <div className="text-xs font-medium text-slate-500 mb-2">Admin Viewed</div>
-                <div className="text-3xl font-bold text-slate-900">{loading ? '...' : eventFunnel.adminViewed}</div>
+              <div className="border-t border-[#E9E9E2] pt-3">
+                <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#9A9A94]">Admin Viewed</div>
+                <div className="mt-1 text-2xl font-light text-[#1A1A1A]">{loading ? '...' : eventFunnel.adminViewed}</div>
               </div>
-              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
-                <div className="text-xs font-medium text-slate-500 mb-2">CSV Exported</div>
-                <div className="text-3xl font-bold text-slate-900">{loading ? '...' : eventFunnel.csvExported}</div>
+              <div className="border-t border-[#E9E9E2] pt-3">
+                <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#9A9A94]">CSV Exported</div>
+                <div className="mt-1 text-2xl font-light text-[#1A1A1A]">{loading ? '...' : eventFunnel.csvExported}</div>
               </div>
             </div>
 
-            <div className="mt-5 flex flex-wrap items-center gap-3 text-xs font-medium text-slate-600">
-              <span className="bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-lg border border-emerald-100">Customer View Rate: <span className="font-bold">{eventFunnel.viewRate}%</span></span>
-              <span className="bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg border border-indigo-100">Admin Export Rate: <span className="font-bold">{eventFunnel.exportRate}%</span></span>
-              <span className="bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">Events In Range: <span className="font-bold">{eventFunnel.total}</span></span>
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-semibold text-[#666666]">
+              <span className="border border-[#E5E5DF] bg-white px-2.5 py-1">Customer View Rate: {eventFunnel.viewRate}%</span>
+              <span className="border border-[#E5E5DF] bg-white px-2.5 py-1">Admin Export Rate: {eventFunnel.exportRate}%</span>
+              <span className="border border-[#E5E5DF] bg-white px-2.5 py-1">Events In Range: {eventFunnel.total}</span>
             </div>
           </div>
 
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-5 sm:p-6 lg:col-span-2 hover:shadow-md transition-shadow">
-            <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
-              <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                <Activity className="h-4 w-4 text-indigo-600" />
-                Telemetry Trend
-              </h3>
-              <div className="flex flex-wrap items-center gap-2">
+          <div className="border border-[#ECECE6] bg-white p-4 lg:col-span-2">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-sm font-bold uppercase tracking-[0.18em] text-[#1A1A1A]">Telemetry Trend</h3>
+              <div className="flex items-center gap-2">
                 <button
                   onClick={downloadTelemetryCsv}
                   disabled={!hasTelemetryTrendData || loading}
-                  className="inline-flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 rounded-lg hover:bg-slate-100 hover:text-slate-900 transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 border border-[#E5E5DF] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#666666] hover:text-[#1A1A1A] disabled:opacity-50"
                 >
-                  <Download className="h-3.5 w-3.5" /> Export CSV
+                  <Download className="h-3.5 w-3.5" /> Export Telemetry CSV
                 </button>
                 <button
                   onClick={downloadTelemetryJson}
                   disabled={!hasTelemetryTrendData || loading}
-                  className="inline-flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 rounded-lg hover:bg-slate-100 hover:text-slate-900 transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 border border-[#E5E5DF] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#666666] hover:text-[#1A1A1A] disabled:opacity-50"
                 >
-                  <Download className="h-3.5 w-3.5" /> Export JSON
+                  <Download className="h-3.5 w-3.5" /> Export Telemetry JSON
                 </button>
 
-                <div className="inline-flex bg-slate-100 p-1 rounded-lg">
+                <div className="inline-flex border border-[#E5E5DF] bg-white p-1">
                   <button
                     onClick={() => setTrendDays(7)}
-                    className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${trendDays === 7 ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                    className={`px-2.5 py-1 text-xs font-semibold ${trendDays === 7 ? 'bg-[#1A1A1A] text-white' : 'text-[#666666]'}`}
                   >
-                    {locale === 'en' ? '7 วัน' : locale === 'zh' ? '7 วัน' : '7 วัน'}
-                  </button>
+                    {locale === 'en' ? '                     7 วัน                   ' : locale === 'zh' ? '                     7 วัน                   ' : '                     7 วัน                   '}</button>
                   <button
                     onClick={() => setTrendDays(30)}
-                    className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${trendDays === 30 ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                    className={`px-2.5 py-1 text-xs font-semibold ${trendDays === 30 ? 'bg-[#1A1A1A] text-white' : 'text-[#666666]'}`}
                   >
-                    {locale === 'en' ? '30 วัน' : locale === 'zh' ? '30 วัน' : '30 วัน'}
-                  </button>
+                    {locale === 'en' ? '                     30 วัน                   ' : locale === 'zh' ? '                     30 วัน                   ' : '                     30 วัน                   '}</button>
                 </div>
               </div>
             </div>
 
-            <div className="mb-4 flex flex-wrap items-center gap-4 text-[11px] font-semibold text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100">
-              <span className="inline-flex items-center gap-1.5"><span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-600" />Submit</span>
-              <span className="inline-flex items-center gap-1.5"><span className="inline-block h-2.5 w-2.5 rounded-full bg-blue-500" />Customer View</span>
-              <span className="inline-flex items-center gap-1.5"><span className="inline-block h-2.5 w-2.5 rounded-full bg-indigo-500" />Admin View</span>
-              <span className="inline-flex items-center gap-1.5"><span className="inline-block h-2.5 w-2.5 rounded-full bg-orange-400" />CSV Export</span>
+            <div className="mb-3 flex flex-wrap items-center gap-3 text-[11px] font-semibold text-[#666666]">
+              <span className="inline-flex items-center gap-1"><span className="inline-block h-2 w-2 bg-[#2A4532]" />Submit</span>
+              <span className="inline-flex items-center gap-1"><span className="inline-block h-2 w-2 bg-[#4B7A59]" />Customer View</span>
+              <span className="inline-flex items-center gap-1"><span className="inline-block h-2 w-2 bg-[#7FA08A]" />Admin View</span>
+              <span className="inline-flex items-center gap-1"><span className="inline-block h-2 w-2 bg-[#A9BFAF]" />CSV Export</span>
             </div>
 
-            <div className="mb-6 h-64 border border-slate-100 rounded-2xl bg-white p-3 shadow-sm">
+            <div className="mb-4 h-64 border border-[#F3F3EF] bg-[#FDFDFB] p-3">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={trendChartRows}>
-                  <CartesianGrid stroke="#f1f5f9" strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} width={28} />
+                  <CartesianGrid stroke="#ECECE7" strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#666666' }} axisLine={false} tickLine={false} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#666666' }} axisLine={false} tickLine={false} width={28} />
                   <Tooltip
-                    contentStyle={{ border: '1px solid #e2e8f0', borderRadius: '12px', fontSize: 12, boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                    contentStyle={{ border: '1px solid #E5E5DF', fontSize: 12 }}
                   />
-                  <Line type="monotone" dataKey="submit" stroke="#059669" strokeWidth={3} dot={{r:3, strokeWidth:2}} name="Submit" />
-                  <Line type="monotone" dataKey="customerView" stroke="#3b82f6" strokeWidth={3} dot={{r:3, strokeWidth:2}} name="Customer View" />
-                  <Line type="monotone" dataKey="adminView" stroke="#6366f1" strokeWidth={3} dot={{r:3, strokeWidth:2}} name="Admin View" />
-                  <Line type="monotone" dataKey="csvExport" stroke="#fb923c" strokeWidth={3} dot={{r:3, strokeWidth:2}} name="CSV Export" />
+                  <Line type="monotone" dataKey="submit" stroke="#2A4532" strokeWidth={2} dot={false} name="Submit" />
+                  <Line type="monotone" dataKey="customerView" stroke="#4B7A59" strokeWidth={2} dot={false} name="Customer View" />
+                  <Line type="monotone" dataKey="adminView" stroke="#7FA08A" strokeWidth={2} dot={false} name="Admin View" />
+                  <Line type="monotone" dataKey="csvExport" stroke="#A9BFAF" strokeWidth={2} dot={false} name="CSV Export" />
                 </LineChart>
               </ResponsiveContainer>
             </div>
 
-            <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
-                <div className="text-xs font-medium text-slate-500 mb-1">Avg Daily Customer View Rate</div>
-                <div className="text-2xl font-bold text-slate-900">{trendRates.avgViewRate}%</div>
+            <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div className="border-t border-[#E9E9E2] pt-3">
+                <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#9A9A94]">Avg Daily Customer View Rate</div>
+                <div className="mt-1 text-xl font-light text-[#1A1A1A]">{trendRates.avgViewRate}%</div>
               </div>
-              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
-                <div className="text-xs font-medium text-slate-500 mb-1">Avg Daily Admin Export Rate</div>
-                <div className="text-2xl font-bold text-slate-900">{trendRates.avgExportRate}%</div>
+              <div className="border-t border-[#E9E9E2] pt-3">
+                <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#9A9A94]">Avg Daily Admin Export Rate</div>
+                <div className="mt-1 text-xl font-light text-[#1A1A1A]">{trendRates.avgExportRate}%</div>
               </div>
             </div>
 
-            <div className="space-y-3 mb-6">
+            <div className="space-y-2">
               {eventTrend.rows.map((row) => {
                 const submit = row.work_report_submitted
                 const customerView = row.customer_reports_viewed
@@ -853,34 +837,31 @@ export default function AdminReports() {
                 const widthPercent = total > 0 ? Math.max(4, Math.round((total / eventTrend.maxTotal) * 100)) : 0
 
                 return (
-                  <div key={row.key} className="grid grid-cols-[80px_1fr_40px] items-center gap-3">
-                    <div className="text-[11px] font-semibold text-slate-500">{row.label}</div>
-                    <div className="h-4 bg-slate-100 rounded-full overflow-hidden flex">
-                      {submit > 0 && <div className="h-full bg-emerald-500" style={{ width: `${Math.max(2, Math.round((submit / total) * widthPercent))}%` }} />}
-                      {customerView > 0 && <div className="h-full bg-blue-500" style={{ width: `${Math.max(2, Math.round((customerView / total) * widthPercent))}%` }} />}
-                      {adminView > 0 && <div className="h-full bg-indigo-500" style={{ width: `${Math.max(2, Math.round((adminView / total) * widthPercent))}%` }} />}
-                      {csvExport > 0 && <div className="h-full bg-orange-400" style={{ width: `${Math.max(2, Math.round((csvExport / total) * widthPercent))}%` }} />}
+                  <div key={row.key} className="grid grid-cols-[76px_1fr_52px] items-center gap-2">
+                    <div className="text-[11px] font-semibold text-[#666666]">{row.label}</div>
+                    <div className="h-6 bg-[#F6F6F2] overflow-hidden flex">
+                      {submit > 0 && <div className="h-full bg-[#2A4532]" style={{ width: `${Math.max(2, Math.round((submit / total) * widthPercent))}%` }} />}
+                      {customerView > 0 && <div className="h-full bg-[#4B7A59]" style={{ width: `${Math.max(2, Math.round((customerView / total) * widthPercent))}%` }} />}
+                      {adminView > 0 && <div className="h-full bg-[#7FA08A]" style={{ width: `${Math.max(2, Math.round((adminView / total) * widthPercent))}%` }} />}
+                      {csvExport > 0 && <div className="h-full bg-[#A9BFAF]" style={{ width: `${Math.max(2, Math.round((csvExport / total) * widthPercent))}%` }} />}
                     </div>
-                    <div className="text-right text-[11px] font-bold text-slate-700">{total}</div>
+                    <div className="text-right text-[11px] font-semibold text-[#666666]">{total}</div>
                   </div>
                 )
               })}
             </div>
 
-            <div className="bg-white rounded-2xl border border-slate-100 p-4 shadow-sm">
-              <div className="mb-3 text-xs font-bold text-slate-800 flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-indigo-500" />
-                Daily Conversion Snapshot
-              </div>
-              <div className="space-y-2">
+            <div className="mt-4 border border-[#F3F3EF] bg-[#FDFDFB] p-3">
+              <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#9A9A94]">Daily Conversion Snapshot</div>
+              <div className="space-y-1.5">
                 {trendRates.latestRows.length === 0 ? (
-                  <div className="text-xs text-slate-500">{locale === 'en' ? 'ยังไม่มีข้อมูล trend' : locale === 'zh' ? 'ยังไม่มีข้อมูล trend' : 'ยังไม่มีข้อมูล trend'}</div>
+                  <div className="text-xs text-[#70706B]">{locale === 'en' ? 'ยังไม่มีข้อมูล trend' : locale === 'zh' ? 'ยังไม่มีข้อมูล trend' : 'ยังไม่มีข้อมูล trend'}</div>
                 ) : (
                   trendRates.latestRows.map((row) => (
-                    <div key={row.label} className="grid grid-cols-[80px_1fr_1fr] gap-3 text-xs items-center p-2 rounded-lg hover:bg-slate-50 transition-colors">
-                      <span className="font-semibold text-slate-600">{row.label}</span>
-                      <span className="flex items-center gap-1.5 text-blue-600 bg-blue-50 px-2 py-1 rounded-md"><Activity className="w-3 h-3"/> View {row.customerViewRate}%</span>
-                      <span className="flex items-center gap-1.5 text-orange-600 bg-orange-50 px-2 py-1 rounded-md"><Download className="w-3 h-3"/> Export {row.adminExportRate}%</span>
+                    <div key={row.label} className="grid grid-cols-[68px_1fr_1fr] gap-2 text-[11px]">
+                      <span className="font-semibold text-[#666666]">{row.label}</span>
+                      <span className="text-[#2A4532]">View {row.customerViewRate}%</span>
+                      <span className="text-[#4B7A59]">Export {row.adminExportRate}%</span>
                     </div>
                   ))
                 )}
@@ -888,34 +869,31 @@ export default function AdminReports() {
             </div>
           </div>
 
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-5 sm:p-6 lg:col-span-2 hover:shadow-md transition-shadow">
-            <h3 className="text-sm font-bold text-slate-800 mb-5 flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-rose-500" />
-              Exception Inbox
-            </h3>
-            <div className="space-y-3">
+          <div className="border border-[#ECECE6] bg-white p-4 lg:col-span-2">
+            <h3 className="text-sm font-bold uppercase tracking-[0.18em] text-[#1A1A1A] mb-3">Exception Inbox v1</h3>
+            <div className="space-y-2">
               {loading ? (
-                <div className="text-sm text-slate-500 flex items-center justify-center py-6">{locale === 'en' ? 'Loading...' : locale === 'zh' ? '加载中...' : 'กำลังโหลด...'}</div>
+                <div className="text-sm text-[#70706B]">{locale === 'en' ? 'Loading...' : locale === 'zh' ? '加载中...' : 'กำลังโหลด...'}</div>
               ) : exceptionInbox.length === 0 ? (
-                <div className="text-sm text-slate-500 flex items-center justify-center py-6 bg-slate-50 rounded-xl border border-slate-100">{locale === 'en' ? 'ไม่พบรายการเสี่ยงในช่วงเวลานี้' : locale === 'zh' ? 'ไม่พบรายการเสี่ยงในช่วงเวลานี้' : 'ไม่พบรายการเสี่ยงในช่วงเวลานี้'}</div>
+                <div className="text-sm text-[#70706B]">{locale === 'en' ? 'ไม่พบรายการเสี่ยงในช่วงเวลานี้' : locale === 'zh' ? 'ไม่พบรายการเสี่ยงในช่วงเวลานี้' : 'ไม่พบรายการเสี่ยงในช่วงเวลานี้'}</div>
               ) : (
                 exceptionInbox.map((item) => (
-                  <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white border border-slate-100 rounded-xl p-4 hover:shadow-sm transition-all hover:border-slate-200">
+                  <div key={item.id} className="flex items-center justify-between border-b border-[#F3F3EF] px-0 py-2 last:border-b-0">
                     <div className="min-w-0">
-                      <div className="text-sm font-bold text-slate-900 truncate mb-0.5">{item.title}</div>
-                      <div className="text-xs text-slate-500 truncate">{item.subtitle}</div>
+                      <div className="text-sm font-semibold text-[#1A1A1A] truncate">{item.title}</div>
+                      <div className="text-xs text-[#70706B] truncate">{item.subtitle}</div>
                     </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <span className={`px-2.5 py-1 text-[10px] font-bold uppercase rounded-lg border ${
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={`px-2 py-1 text-[10px] font-bold uppercase border ${
                         item.severity === 'high'
-                          ? 'bg-rose-50 text-rose-700 border-rose-200'
+                          ? 'bg-red-100 text-red-700 border-red-200'
                           : item.severity === 'medium'
-                            ? 'bg-amber-50 text-amber-700 border-amber-200'
-                            : 'bg-slate-50 text-slate-700 border-slate-200'
+                            ? 'bg-amber-100 text-amber-700 border-amber-200'
+                            : 'bg-slate-100 text-slate-700 border-slate-200'
                       }`}>
                         {item.severity}
                       </span>
-                      <span className="text-[11px] font-medium text-slate-400 bg-slate-50 px-2 py-1 rounded-lg border border-slate-100">{formatDateTH(item.date)}</span>
+                      <span className="text-[11px] text-[#9A9A94]">{formatDateTH(item.date)}</span>
                     </div>
                   </div>
                 ))
@@ -923,30 +901,25 @@ export default function AdminReports() {
             </div>
           </div>
 
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-5 sm:p-6 hover:shadow-md transition-shadow">
-            <h3 className="text-sm font-bold text-slate-800 mb-5 flex items-center gap-2">
-              <Star className="h-4 w-4 text-amber-500" />
-              Top Services
-            </h3>
-            <div className="space-y-4">
+          <div className="border border-[#ECECE6] bg-white p-4">
+            <h3 className="text-sm font-bold uppercase tracking-[0.18em] text-[#1A1A1A] mb-3">Top Services</h3>
+            <div className="space-y-3">
               {loading ? (
-                <div className="text-sm text-slate-500 flex justify-center py-6">{locale === 'en' ? 'Loading...' : locale === 'zh' ? '加载中...' : 'กำลังโหลด...'}</div>
+                <div className="text-sm text-[#70706B]">{locale === 'en' ? 'Loading...' : locale === 'zh' ? '加载中...' : 'กำลังโหลด...'}</div>
               ) : analytics.topServices.length === 0 ? (
-                <div className="text-sm text-slate-500 flex justify-center py-6 bg-slate-50 rounded-xl border border-slate-100">{locale === 'en' ? 'ยังไม่มีข้อมูลบริการ' : locale === 'zh' ? 'ยังไม่มีข้อมูลบริการ' : 'ยังไม่มีข้อมูลบริการ'}</div>
+                <div className="text-sm text-[#70706B]">{locale === 'en' ? 'ยังไม่มีข้อมูลบริการ' : locale === 'zh' ? 'ยังไม่มีข้อมูลบริการ' : 'ยังไม่มีข้อมูลบริการ'}</div>
               ) : (
                 analytics.topServices.map((item, index) => {
                   const max = analytics.topServices[0]?.count || 1
                   const widthPercent = Math.max(10, Math.round((item.count / max) * 100))
                   return (
-                    <div key={item.serviceId} className="group">
-                      <div className="mb-2 flex items-center justify-between gap-3">
-                        <span className="truncate text-sm font-medium text-slate-700 group-hover:text-emerald-700 transition-colors">
-                          <span className="inline-block w-5 text-slate-400 font-bold">{index + 1}.</span> {item.label}
-                        </span>
-                        <span className="text-xs font-bold text-slate-900 bg-slate-50 px-2 py-1 rounded-lg border border-slate-100">{item.count}</span>
+                    <div key={item.serviceId}>
+                      <div className="mb-1 flex items-center justify-between gap-2">
+                        <span className="truncate text-sm text-[#1A1A1A]">{index + 1}. {item.label}</span>
+                        <span className="text-xs font-semibold text-[#666666]">{item.count}</span>
                       </div>
-                      <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${widthPercent}%` }} />
+                      <div className="h-2 bg-[#F3F3EF]">
+                        <div className="h-2 bg-[#2A4532]" style={{ width: `${widthPercent}%` }} />
                       </div>
                     </div>
                   )
@@ -955,50 +928,47 @@ export default function AdminReports() {
             </div>
           </div>
 
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-5 sm:p-6 hover:shadow-md transition-shadow">
-            <h3 className="text-sm font-bold text-slate-800 mb-5 flex items-center gap-2">
-              <Clock className="h-4 w-4 text-blue-500" />
-              Recent Work Reports
-            </h3>
+          <div className="border border-[#ECECE6] bg-white p-4">
+            <h3 className="text-sm font-bold uppercase tracking-[0.18em] text-[#1A1A1A] mb-3">Recent Work Reports</h3>
             <div className="space-y-3">
               {loading ? (
-                <div className="text-sm text-slate-500 flex justify-center py-6">{locale === 'en' ? 'Loading...' : locale === 'zh' ? '加载中...' : 'กำลังโหลด...'}</div>
+                <div className="text-sm text-[#70706B]">{locale === 'en' ? 'Loading...' : locale === 'zh' ? '加载中...' : 'กำลังโหลด...'}</div>
               ) : recentReports.length === 0 ? (
-                <div className="text-sm text-slate-500 flex justify-center py-6 bg-slate-50 rounded-xl border border-slate-100">{locale === 'en' ? 'ยังไม่มีรายงาน' : locale === 'zh' ? 'ยังไม่มีรายงาน' : 'ยังไม่มีรายงาน'}</div>
+                <div className="text-sm text-[#70706B]">{locale === 'en' ? 'ยังไม่มีรายงาน' : locale === 'zh' ? 'ยังไม่มีรายงาน' : 'ยังไม่มีรายงาน'}</div>
               ) : (
                 recentReports.map((item) => (
-                  <div key={item.id} className="bg-white border border-slate-100 rounded-xl p-4 hover:shadow-sm transition-all hover:border-slate-200 hover:bg-slate-50 group">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div key={item.id} className="border-b border-[#F3F3EF] bg-[#FDFDFB] p-4 last:border-b-0 hover:bg-[#F9F9F7] transition-colors">
+                    <div className="flex items-center justify-between gap-4">
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2.5 mb-2">
-                          <span className="truncate text-sm font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">{item.orderCode}</span>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="truncate text-sm font-bold text-[#1A1A1A]">{item.orderCode}</span>
                           {item.pricingPeriod === 'yearly' && (
-                            <span className="bg-amber-50 text-amber-700 border border-amber-200 text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg">Annual</span>
+                            <span className="bg-[#FAF7E6] text-[#A48E21] border border-[#EBE3B5] text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded">Annual Plan</span>
                           )}
                           {item.pricingPeriod === 'monthly' && (
-                            <span className="bg-blue-50 text-blue-700 border border-blue-200 text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg">Monthly</span>
+                            <span className="bg-[#E6F1FA] text-[#2168A4] border border-[#B5D5EB] text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded">Monthly Care</span>
                           )}
                           {item.pricingPeriod === 'one-time' && (
-                            <span className="bg-slate-100 text-slate-600 border border-slate-200 text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg">One-time</span>
+                            <span className="bg-[#F1F1F1] text-[#666666] border border-[#E5E5DF] text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded">One-time</span>
                           )}
                         </div>
-                        <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                          <span className="flex items-center gap-1.5"><Users size={14} className="text-slate-400" /> {item.staffId.slice(0, 8)}</span>
+                        <div className="flex items-center gap-3 text-xs text-[#70706B]">
+                          <span className="flex items-center gap-1"><Users size={12} className="text-[#A9A9A4]" /> {item.staffId.slice(0, 8)}</span>
                           {item.pricingPeriod !== 'one-time' && (
-                            <span className="flex items-center gap-1.5 font-medium text-emerald-700 bg-emerald-50 px-2 py-1 rounded-md">
+                            <span className="flex items-center gap-1 font-medium text-[#1F3A2C]">
                               <RefreshCcw size={12} />
-                              {item.completedSessions}/{item.totalSessions} Sessions
+                              Progress: {item.completedSessions}/{item.totalSessions}
                             </span>
                           )}
                         </div>
                       </div>
-                      <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center shrink-0">
-                        <div className="text-[11px] font-medium text-slate-400 mb-1">{formatDateTH(item.updatedAt)}</div>
+                      <div className="text-right shrink-0">
+                        <div className="text-[11px] font-medium text-[#1A1A1A]">{formatDateTH(item.updatedAt)}</div>
                         <Link 
                           href={`/dashboard/admin/reports/edit/${item.id}`}
-                          className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-2 py-1 rounded-lg transition-colors"
+                          className="mt-1 inline-block text-[10px] font-bold uppercase text-[#A45A2A] hover:underline"
                         >
-                          View <ArrowRight size={12} />
+                          View Detail →
                         </Link>
                       </div>
                     </div>
@@ -1008,6 +978,7 @@ export default function AdminReports() {
             </div>
           </div>
         </div>
+      </div>
     </div>
   )
 }

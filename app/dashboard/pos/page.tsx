@@ -227,6 +227,13 @@ function RestaurantOSPageContent() {
       fetchInventoryCategories()
       fetchPendingOrders()
     }
+    
+    // Register PWA Service Worker strictly scoped to /dashboard/pos
+    if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js', { scope: '/dashboard/pos' })
+        .then((reg) => console.log('✅ POS-scoped Service Worker registered:', reg.scope))
+        .catch((err) => console.error('❌ POS-scoped Service Worker registration failed:', err))
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.id])
 
