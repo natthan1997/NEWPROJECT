@@ -714,19 +714,36 @@ export default function LiffMenuPage() {
 
       const { data: sales } = await supabase
         .from('pos_order_items')
-        .select('item_id, quantity')
-        .gte('created_at', startOfMonth.toISOString());
+        .select('item_id, quantity, pos_orders!inner(status)')
+        .gte('created_at', startOfMonth.toISOString())
+        .in('pos_orders.status', ['paid', 'completed']);
       
+      let topRankedIds: string[] = [];
       if (sales) {
         const counts: Record<string, number> = {};
         sales.forEach(s => {
           counts[s.item_id] = (counts[s.item_id] || 0) + (s.quantity || 1);
         });
-        const sortedIds = Object.keys(counts)
+        topRankedIds = Object.keys(counts)
           .sort((a, b) => counts[b] - counts[a]);
-        setBestSellingIds(sortedIds);
         setBestSellingCounts(counts);
       }
+      
+      const { data: popularItems } = await supabase
+        .from('pos_menu_items')
+        .select('id')
+        .eq('is_popular', true)
+        .eq('is_active', true);
+        
+      let finalBestSellingIds = [...topRankedIds];
+      if (popularItems) {
+        popularItems.forEach((p: any) => {
+            if (!finalBestSellingIds.includes(p.id)) {
+                finalBestSellingIds.push(p.id);
+            }
+        });
+      }
+      setBestSellingIds(finalBestSellingIds);
     };
 
     const fetchRegularItems = async () => {

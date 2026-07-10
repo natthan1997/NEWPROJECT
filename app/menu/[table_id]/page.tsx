@@ -477,20 +477,32 @@ export default function CustomerMenuPage() {
         supabase.from('pos_menu_categories').select('*').order('order_index'),
         supabase.from('pos_tables').select('*').eq('table_number', table_id).single(),
         supabase.from('pos_banners').select('*').eq('is_active', true).order('order_index'),
-        supabase.from('pos_order_items').select('item_id, quantity').gte('created_at', startOfMonth.toISOString())
+        supabase.from('pos_order_items').select('item_id, quantity, pos_orders!inner(status)').gte('created_at', startOfMonth.toISOString()).in('pos_orders.status', ['paid', 'completed'])
     ])
 
+    let topRankedIds: string[] = [];
     if (salesRes.data) {
         const counts: Record<string, number> = {};
         salesRes.data.forEach(s => {
           counts[s.item_id] = (counts[s.item_id] || 0) + (s.quantity || 1);
         });
-        const sortedIds = Object.keys(counts)
+        topRankedIds = Object.keys(counts)
           .sort((a, b) => counts[b] - counts[a]);
-        setBestSellingIds(sortedIds);
     }
-
-    if (itemRes.data) setItems(sortMenuItemsByOrder(itemRes.data))
+    
+    // Merge with manually marked popular items
+    let finalBestSellingIds = [...topRankedIds];
+    if (itemRes.data) {
+        const items = sortMenuItemsByOrder(itemRes.data);
+        setItems(items);
+        const manualPopular = items.filter(i => i.is_popular).map(i => i.id);
+        manualPopular.forEach(id => {
+            if (!finalBestSellingIds.includes(id)) {
+                finalBestSellingIds.push(id);
+            }
+        });
+        setBestSellingIds(finalBestSellingIds);
+    }
     if (catRes.data) setCategories(catRes.data)
     if (bannerRes.data) setBanners(bannerRes.data)
     if (tableRes.data) {
