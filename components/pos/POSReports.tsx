@@ -587,16 +587,16 @@ export default function POSReports({
   }
 
   return (
-    <div className="p-4 sm:p-10 font-bold overflow-y-auto no-scrollbar bg-[#FBFBFB] min-h-screen text-slate-800">
+    <div className="p-4 sm:p-6 lg:p-8 font-medium overflow-y-auto no-scrollbar bg-gray-50 min-h-screen text-slate-800">
       {/* Mobile Tabs */}
-      <div className="sm:hidden mb-8 overflow-x-auto no-scrollbar rounded-[2rem] bg-white p-2 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-slate-100 backdrop-blur-xl">
-          <div className="flex min-w-max items-center gap-2">
+      <div className="sm:hidden mb-6 overflow-x-auto no-scrollbar rounded-2xl bg-white p-1.5 shadow-sm border border-gray-200">
+          <div className="flex min-w-max items-center gap-1.5">
               {(['overview', 'menu', 'payment', 'inventory', 'expenses', 'discounts_voids'] as ReportTab[]).map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`min-w-[128px] rounded-[1.5rem] px-5 py-3.5 text-center text-[13px] font-black transition-all duration-300 ${
-                      activeTab === tab ? 'bg-slate-900 text-white shadow-md scale-100' : 'text-slate-400 hover:bg-slate-50 scale-95 hover:scale-100'
+                    className={`min-w-[120px] rounded-xl px-4 py-2.5 text-center text-[13px] font-semibold transition-all duration-200 ${
+                      activeTab === tab ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:bg-gray-50 hover:text-slate-900'
                     }`}
                   >
                     {tab === 'overview' ? 'ภาพรวม' : tab === 'menu' ? 'อันดับขายดี' : tab === 'payment' ? 'สรุปการเงิน' : tab === 'inventory' ? 'สต็อก' : tab === 'expenses' ? 'ค่าใช้จ่าย' : 'ส่วนลด/ยกเลิก'}
@@ -606,12 +606,12 @@ export default function POSReports({
       </div>
 
       {/* Desktop Tabs */}
-      <div className="hidden sm:flex items-center gap-6 mb-12 w-full border-b border-gray-200/60 pb-2">
+      <div className="hidden sm:flex items-center gap-8 mb-10 w-full border-b border-gray-200 pb-3">
           {(['overview', 'menu', 'payment', 'inventory', 'expenses', 'discounts_voids'] as ReportTab[]).map((tab) => (
-              <button key={tab} onClick={() => setActiveTab(tab)} className={`pb-3 text-[11px] uppercase font-black tracking-widest transition-all duration-300 relative ${activeTab === tab ? 'text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}>
+              <button key={tab} onClick={() => setActiveTab(tab)} className={`pb-3 text-[12px] uppercase font-semibold tracking-wider transition-all duration-200 relative ${activeTab === tab ? 'text-slate-900' : 'text-gray-400 hover:text-gray-700'}`}>
                   {tab === 'overview' ? 'Overview' : tab === 'menu' ? 'Best Sellers' : tab === 'payment' ? 'Finance' : tab === 'inventory' ? 'Inventory' : tab === 'expenses' ? 'Expenses' : 'Voids'}
                   {activeTab === tab && (
-                      <motion.div layoutId="desktopActiveTab" className="absolute -bottom-[9px] left-0 right-0 h-[2px] bg-slate-900" />
+                      <motion.div layoutId="desktopActiveTab" className="absolute -bottom-[13px] left-0 right-0 h-[2px] bg-slate-900" />
                   )}
               </button>
           ))}
@@ -774,44 +774,44 @@ function OverviewReport({ financials }: any) {
     return (
         <div className="space-y-12">
             <div className="sm:hidden space-y-4">
-                <div className="overflow-hidden rounded-[1.75rem] border border-gray-200 bg-white shadow-sm">
+                <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
                     <div className="flex items-start justify-between gap-3 p-4 pb-5">
                         <div>
-                            <div className="text-[11px] font-black text-gray-400">รายได้สุทธิ (NET SALES)</div>
-                            <div className="mt-3 text-[40px] leading-none font-black tracking-tighter text-[#1A1A18]">
+                            <div className="text-[11px] font-semibold text-gray-500">รายได้สุทธิ (NET SALES)</div>
+                            <div className="mt-2 text-[32px] leading-none font-bold tracking-tight text-gray-900">
                                 ฿{Number(financials.netRevenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </div>
-                            <div className="mt-2 text-[10px] font-black text-gray-300">
+                            <div className="mt-1.5 text-[11px] font-medium text-gray-400">
                                 ช่วงก่อนหน้า ฿{Number(financials.comparisonBaseNetRevenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </div>
                         </div>
-                        <div className={`max-w-[42%] rounded-[1rem] border px-3 py-2 text-right text-[10px] font-black leading-tight ${comparisonTone}`}>
+                        <div className={`max-w-[42%] rounded-lg border px-3 py-1.5 text-right text-[10px] font-semibold leading-tight ${comparisonTone}`}>
                             {comparisonText}
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 border-t border-gray-200">
-                        <div className="border-r border-gray-200 p-4">
-                            <div className="text-[11px] font-black text-gray-400">จำนวนบิลที่ปิด</div>
-                            <div className="mt-2.5 flex items-end gap-2">
-                                <span className="text-[30px] leading-none font-black text-[#1A1A18]">{financials.totalOrders || 0}</span>
-                                <span className="pb-1 text-[12px] font-black text-gray-300">ออเดอร์</span>
+                    <div className="grid grid-cols-2 border-t border-gray-100">
+                        <div className="border-r border-gray-100 p-4">
+                            <div className="text-[11px] font-semibold text-gray-500">จำนวนบิลที่ปิด</div>
+                            <div className="mt-1.5 flex items-end gap-1.5">
+                                <span className="text-[24px] leading-none font-bold tracking-tight text-gray-900">{financials.totalOrders || 0}</span>
+                                <span className="pb-1 text-[11px] font-medium text-gray-400">ออเดอร์</span>
                             </div>
                         </div>
                         <div className="p-4">
-                            <div className="text-[11px] font-black text-gray-400">ยอดต่อบิลเฉลี่ย</div>
-                            <div className="mt-2.5 text-[30px] leading-none font-black text-[#1A1A18]">
+                            <div className="text-[11px] font-semibold text-gray-500">ยอดต่อบิลเฉลี่ย</div>
+                            <div className="mt-1.5 text-[24px] leading-none font-bold tracking-tight text-gray-900">
                                 ฿{Number(financials.averageTicketSize || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </div>
                         </div>
                     </div>
 
-                    <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3.5">
-                        <div className="flex items-center gap-2.5 text-[11px] font-black text-gray-400">
-                            <span className="h-2.5 w-2.5 rounded-full bg-amber-400"></span>
+                    <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3.5">
+                        <div className="flex items-center gap-2.5 text-[11px] font-medium text-gray-500">
+                            <span className="h-2 w-2 rounded-full bg-amber-400"></span>
                             <span>ส่วนลดมอบแก่ลูกค้า</span>
                         </div>
-                        <div className="text-[16px] font-black text-[#1A1A18]">
+                        <div className="text-[14px] font-semibold text-gray-900">
                             ฿{Number(financials.discountTotal || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </div>
                     </div>
@@ -820,23 +820,23 @@ function OverviewReport({ financials }: any) {
                 <div className="space-y-3">
                     <div className="flex items-end justify-between px-1">
                         <div>
-                            <h3 className="text-[17px] font-black text-[#1A1A18]">กราฟสรุปภาพรวม</h3>
-                            <p className="mt-1 text-[11px] font-black text-gray-300">เลื่อนซ้ายขวาเพื่อดูกราฟแต่ละมุม</p>
+                            <h3 className="text-[15px] font-semibold text-gray-900">กราฟสรุปภาพรวม</h3>
+                            <p className="mt-1 text-[11px] font-medium text-gray-500">เลื่อนซ้ายขวาเพื่อดูกราฟแต่ละมุม</p>
                         </div>
-                        <div className="rounded-full bg-[#F4F4F1] px-3 py-1.5 text-[10px] font-black text-gray-500">
+                        <div className="rounded-full bg-gray-100 px-2.5 py-1 text-[10px] font-semibold text-gray-500">
                             3 การ์ด
                         </div>
                     </div>
                     <div className="overflow-x-auto no-scrollbar">
-                        <div className="flex gap-3 pr-3">
+                        <div className="flex gap-3 pr-3 pb-2">
                             {mobileCharts.map((chart) => (
-                                <div key={chart.key} className="min-w-[82vw] snap-start overflow-hidden rounded-[1.75rem] border border-gray-200 bg-white p-4 shadow-sm">
+                                <div key={chart.key} className="min-w-[82vw] snap-start overflow-hidden rounded-2xl border border-gray-200 bg-white p-4 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)]">
                                     <div className="mb-4 flex items-start justify-between gap-3">
                                         <div>
-                                            <h4 className="text-[15px] font-black text-[#1A1A18]">{chart.title}</h4>
-                                            <p className="mt-1 text-[10px] font-black text-gray-300">{chart.subtitle}</p>
+                                            <h4 className="text-[13px] font-semibold text-gray-900">{chart.title}</h4>
+                                            <p className="mt-0.5 text-[10px] font-medium text-gray-400">{chart.subtitle}</p>
                                         </div>
-                                        <div className={`rounded-full border px-3 py-1.5 text-[9px] font-black leading-none ${chart.badgeTone}`}>
+                                        <div className={`rounded-lg border px-2.5 py-1 text-[9px] font-semibold leading-none ${chart.badgeTone}`}>
                                             {chart.badge}
                                         </div>
                                     </div>
@@ -847,45 +847,45 @@ function OverviewReport({ financials }: any) {
                     </div>
                 </div>
 
-                <div className="overflow-hidden rounded-[1.75rem] border border-gray-200 bg-white p-4 shadow-sm">
+                <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
                     <div className="mb-4 flex items-center justify-between">
-                        <h3 className="text-[16px] font-black text-[#1A1A18]">งบกำไรขาดทุน</h3>
-                        <div className={`rounded-full px-3 py-1.5 text-[10px] font-black ${financials.netProfit >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+                        <h3 className="text-[15px] font-semibold text-gray-900">งบกำไรขาดทุน</h3>
+                        <div className={`rounded-lg px-2.5 py-1 text-[10px] font-semibold ${financials.netProfit >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
                             สุทธิ
                         </div>
                     </div>
-                    <div className="space-y-2.5">
-                        <div className="flex items-center justify-between rounded-[1.15rem] bg-[#F8F8F6] px-4 py-3">
-                            <span className="text-[11px] font-black text-gray-400">รายได้ยอดขาย</span>
-                            <span className="text-[14px] font-black text-[#1A1A18]">฿{Number(financials.totalRevenue || 0).toLocaleString()}</span>
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3">
+                            <span className="text-[11px] font-semibold text-gray-500">รายได้ยอดขาย</span>
+                            <span className="text-[13px] font-bold text-gray-900">฿{Number(financials.totalRevenue || 0).toLocaleString()}</span>
                         </div>
                         {financials.discountTotal > 0 && (
-                          <div className="flex items-center justify-between rounded-[1.15rem] bg-orange-50/70 px-4 py-3">
-                              <span className="text-[11px] font-black text-orange-400">ส่วนลดที่ให้ลูกค้า</span>
-                              <span className="text-[14px] font-black text-orange-600">-฿{Number(financials.discountTotal || 0).toLocaleString()}</span>
+                          <div className="flex items-center justify-between rounded-xl bg-orange-50/70 px-4 py-3">
+                              <span className="text-[11px] font-semibold text-orange-500">ส่วนลดที่ให้ลูกค้า</span>
+                              <span className="text-[13px] font-bold text-orange-600">-฿{Number(financials.discountTotal || 0).toLocaleString()}</span>
                           </div>
                         )}
-                        <div className="flex items-center justify-between rounded-[1.15rem] bg-red-50/70 px-4 py-3">
-                            <span className="text-[11px] font-black text-red-400">ต้นทุนวัตถุดิบ</span>
-                            <span className="text-[14px] font-black text-red-600">-฿{Number(financials.theoreticalCogs || 0).toLocaleString()}</span>
+                        <div className="flex items-center justify-between rounded-xl bg-red-50/70 px-4 py-3">
+                            <span className="text-[11px] font-semibold text-red-500">ต้นทุนวัตถุดิบ</span>
+                            <span className="text-[13px] font-bold text-red-600">-฿{Number(financials.theoreticalCogs || 0).toLocaleString()}</span>
                         </div>
-                        <div className="flex items-center justify-between rounded-[1.15rem] bg-red-50/40 px-4 py-3">
-                            <span className="text-[11px] font-black text-red-400">ค่าแรงพนักงาน</span>
-                            <span className="text-[14px] font-black text-red-600">-฿{Number(financials.laborCost || 0).toLocaleString()}</span>
+                        <div className="flex items-center justify-between rounded-xl bg-red-50/40 px-4 py-3">
+                            <span className="text-[11px] font-semibold text-red-500">ค่าแรงพนักงาน</span>
+                            <span className="text-[13px] font-bold text-red-600">-฿{Number(financials.laborCost || 0).toLocaleString()}</span>
                         </div>
-                        <div className="flex items-center justify-between rounded-[1.15rem] bg-red-50/30 px-4 py-3">
-                            <span className="text-[11px] font-black text-red-400">ค่าใช้จ่ายอื่นๆ</span>
-                            <span className="text-[14px] font-black text-red-600">-฿{Number(financials.otherExpenses || 0).toLocaleString()}</span>
+                        <div className="flex items-center justify-between rounded-xl bg-red-50/30 px-4 py-3">
+                            <span className="text-[11px] font-semibold text-red-500">ค่าใช้จ่ายอื่นๆ</span>
+                            <span className="text-[13px] font-bold text-red-600">-฿{Number(financials.otherExpenses || 0).toLocaleString()}</span>
                         </div>
                         {financials.totalGpFee > 0 && (
-                          <div className="flex items-center justify-between rounded-[1.15rem] bg-red-50/30 px-4 py-3">
-                              <span className="text-[11px] font-black text-red-400">หัก GP Delivery</span>
-                              <span className="text-[14px] font-black text-red-600">-฿{Number(financials.totalGpFee || 0).toLocaleString()}</span>
+                          <div className="flex items-center justify-between rounded-xl bg-red-50/30 px-4 py-3">
+                              <span className="text-[11px] font-semibold text-red-500">หัก GP Delivery</span>
+                              <span className="text-[13px] font-bold text-red-600">-฿{Number(financials.totalGpFee || 0).toLocaleString()}</span>
                           </div>
                         )}
-                        <div className="flex items-end justify-between border-t border-gray-100 pt-4">
-                            <span className="text-[12px] font-black text-gray-400">กำไรสุทธิ</span>
-                            <span className={`text-[24px] leading-none font-black ${financials.netProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>฿{Number(financials.netProfit || 0).toLocaleString()}</span>
+                        <div className="flex items-end justify-between border-t border-gray-100 pt-4 px-2">
+                            <span className="text-[11px] font-semibold text-gray-500">กำไรสุทธิ</span>
+                            <span className={`text-[20px] leading-none font-bold tracking-tight ${financials.netProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>฿{Number(financials.netProfit || 0).toLocaleString()}</span>
                         </div>
                     </div>
                 </div>
@@ -893,26 +893,26 @@ function OverviewReport({ financials }: any) {
 
             <div className="hidden sm:block space-y-12">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                <MetricCard title="Net Sales" subtitle="รายได้สุทธิ" value={financials.netRevenue} icon={<DollarSign size={18} strokeWidth={2.5}/>} bgClass="bg-white border border-gray-100/80 shadow-[0_4px_24px_-12px_rgba(0,0,0,0.06)]" unit="฿" />
-                <MetricCard title="Transactions" subtitle="จำนวนบิลทั้งหมด" value={financials.totalOrders} icon={<FileText size={18} strokeWidth={2.5}/>} bgClass="bg-white border border-gray-100/80 shadow-[0_4px_24px_-12px_rgba(0,0,0,0.06)]" unit="บิล" />
-                <MetricCard title="Average Ticket" subtitle="ยอดต่อบิลเฉลี่ย" value={financials.averageTicketSize} icon={<ShoppingBag size={18} strokeWidth={2.5}/>} bgClass="bg-white border border-gray-100/80 shadow-[0_4px_24px_-12px_rgba(0,0,0,0.06)]" unit="฿" />
-                <MetricCard title="Discount Given" subtitle="ส่วนลดที่ให้ลูกค้า" value={financials.discountTotal} icon={<Wallet size={18} strokeWidth={2.5}/>} bgClass="bg-white border border-gray-100/80 shadow-[0_4px_24px_-12px_rgba(0,0,0,0.06)]" unit="฿" />
+                <MetricCard title="Net Sales" subtitle="รายได้สุทธิ" value={financials.netRevenue} icon={<DollarSign size={16} strokeWidth={2.5}/>} bgClass="bg-white border border-gray-200 shadow-sm" unit="฿" />
+                <MetricCard title="Transactions" subtitle="จำนวนบิลทั้งหมด" value={financials.totalOrders} icon={<FileText size={16} strokeWidth={2.5}/>} bgClass="bg-white border border-gray-200 shadow-sm" unit="บิล" />
+                <MetricCard title="Average Ticket" subtitle="ยอดต่อบิลเฉลี่ย" value={financials.averageTicketSize} icon={<ShoppingBag size={16} strokeWidth={2.5}/>} bgClass="bg-white border border-gray-200 shadow-sm" unit="฿" />
+                <MetricCard title="Discount Given" subtitle="ส่วนลดที่ให้ลูกค้า" value={financials.discountTotal} icon={<Wallet size={16} strokeWidth={2.5}/>} bgClass="bg-white border border-gray-200 shadow-sm" unit="฿" />
             </div>
 
-            <div className="grid lg:grid-cols-2 gap-8">
-                <div className="bg-white border border-gray-100/80 p-8 rounded-[2rem] h-[400px] shadow-[0_4px_24px_-12px_rgba(0,0,0,0.06)]">
-                    <div className="flex justify-between items-center mb-10"><h3 className="text-[13px] font-black uppercase tracking-[0.2em] text-slate-800">{locale === 'en' ? 'แนวโน้มรายได้ (รายวัน/รายชั่วโมง)' : locale === 'zh' ? 'แนวโน้มรายได้' : 'แนวโน้มรายได้'}</h3><TrendingUp size={18} className="text-slate-400" /></div>
-                    <div className="h-[260px]"><ResponsiveContainer width="100%" height="100%"><AreaChart data={financials.salesTrend}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f8fafc" /><XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 800, fill: '#94a3b8'}} /><YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 800, fill: '#94a3b8'}} /><Tooltip contentStyle={{backgroundColor: '#0f172a', border: 'none', color: '#fff', borderRadius: '12px'}} /><Area type="monotone" dataKey="value" stroke="#0f172a" strokeWidth={3} fillOpacity={0.04} fill="#0f172a" /></AreaChart></ResponsiveContainer></div>
+            <div className="grid lg:grid-cols-2 gap-6">
+                <div className="bg-white border border-gray-200 p-6 rounded-2xl h-[360px] shadow-sm">
+                    <div className="flex justify-between items-center mb-8"><h3 className="text-[12px] font-semibold text-gray-800">{locale === 'en' ? 'แนวโน้มรายได้ (รายวัน/รายชั่วโมง)' : locale === 'zh' ? 'แนวโน้มรายได้' : 'แนวโน้มรายได้'}</h3><TrendingUp size={16} className="text-gray-400" /></div>
+                    <div className="h-[240px]"><ResponsiveContainer width="100%" height="100%"><AreaChart data={financials.salesTrend}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" /><XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 500, fill: '#64748b'}} /><YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 500, fill: '#64748b'}} /><Tooltip contentStyle={{backgroundColor: '#0f172a', border: 'none', color: '#fff', borderRadius: '8px'}} /><Area type="monotone" dataKey="value" stroke="#334155" strokeWidth={2} fillOpacity={0.04} fill="#334155" /></AreaChart></ResponsiveContainer></div>
                 </div>
                 
-                <div className="bg-white border border-gray-100/80 p-8 rounded-[2rem] h-[400px] shadow-[0_4px_24px_-12px_rgba(0,0,0,0.06)]">
-                    <div className="flex justify-between items-center mb-10"><h3 className="text-[13px] font-black uppercase tracking-[0.2em] text-slate-800">{locale === 'en' ? 'ยอดขายตามช่วงเวลา (Heatmap)' : locale === 'zh' ? 'ยอดขายตามช่วงเวลา' : 'ยอดขายตามช่วงเวลา (Heatmap)'}</h3><Clock size={18} className="text-slate-400" /></div>
-                    <div className="h-[260px]"><ResponsiveContainer width="100%" height="100%"><BarChart data={financials.hourlyHeatmap}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f8fafc" /><XAxis dataKey="hour" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 800, fill: '#94a3b8'}} /><YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 800, fill: '#94a3b8'}} /><Tooltip contentStyle={{backgroundColor: '#0f172a', border: 'none', color: '#fff', borderRadius: '12px'}} cursor={{fill: '#f8fafc' }}/><Bar dataKey="revenue" fill="#0f172a" radius={[6, 6, 0, 0]}><LabelList dataKey="orders" position="top" style={{fontSize: '10px', fontWeight: 'bold', fill: '#94a3b8'}} /></Bar></BarChart></ResponsiveContainer></div>
+                <div className="bg-white border border-gray-200 p-6 rounded-2xl h-[360px] shadow-sm">
+                    <div className="flex justify-between items-center mb-8"><h3 className="text-[12px] font-semibold text-gray-800">{locale === 'en' ? 'ยอดขายตามช่วงเวลา (Heatmap)' : locale === 'zh' ? 'ยอดขายตามช่วงเวลา' : 'ยอดขายตามช่วงเวลา (Heatmap)'}</h3><Clock size={16} className="text-gray-400" /></div>
+                    <div className="h-[240px]"><ResponsiveContainer width="100%" height="100%"><BarChart data={financials.hourlyHeatmap}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" /><XAxis dataKey="hour" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 500, fill: '#64748b'}} /><YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 500, fill: '#64748b'}} /><Tooltip contentStyle={{backgroundColor: '#0f172a', border: 'none', color: '#fff', borderRadius: '8px'}} cursor={{fill: '#f8fafc' }}/><Bar dataKey="revenue" fill="#334155" radius={[4, 4, 0, 0]}><LabelList dataKey="orders" position="top" style={{fontSize: '9px', fontWeight: 'bold', fill: '#64748b'}} /></Bar></BarChart></ResponsiveContainer></div>
                 </div>
             </div>
 
-            <div className="bg-white border border-gray-100/80 p-10 rounded-[2.5rem] shadow-[0_4px_24px_-12px_rgba(0,0,0,0.06)]">
-                <h3 className="text-[14px] font-black uppercase tracking-[0.2em] text-slate-800 mb-8 border-b border-gray-100 pb-6">{locale === 'en' ? 'งบกำไรขาดทุน (P&L)' : locale === 'zh' ? 'งบกำไรขาดทุน (P&L)' : 'งบกำไรขาดทุน (P&L)'}</h3>
+            <div className="bg-white border border-gray-200 p-8 rounded-2xl shadow-sm">
+                <h3 className="text-[13px] font-semibold text-gray-800 mb-6 border-b border-gray-100 pb-4">{locale === 'en' ? 'งบกำไรขาดทุน (P&L)' : locale === 'zh' ? 'งบกำไรขาดทุน (P&L)' : 'งบกำไรขาดทุน (P&L)'}</h3>
                 <div className="space-y-6">
                     <PLRow label={locale === 'en' ? 'รายได้ยอดขาย (Gross)' : locale === 'zh' ? 'รายได้ยอดขาย (Gross)' : 'รายได้ยอดขาย (Gross)'} value={financials.totalRevenue} color="text-black" />
                     <div className="pl-6 space-y-4 border-l-2 border-gray-50">
@@ -972,27 +972,26 @@ function OverviewReport({ financials }: any) {
 function MetricCard({ title, subtitle, value, icon, bgClass, unit = "฿" }: any) {
     const displayValue = Math.abs(value)
     return (
-      <div className={`p-7 rounded-3xl transition-transform hover:-translate-y-1 duration-300 ${bgClass} relative overflow-hidden group`}>
-        <div className="flex items-center gap-3 mb-8">
-            <div className="p-3 bg-gray-50 text-slate-600 rounded-[1rem] group-hover:bg-slate-900 group-hover:text-white transition-colors duration-500 shadow-sm">{icon}</div>
+      <div className={`p-6 rounded-2xl transition-all duration-200 ${bgClass} relative overflow-hidden group hover:shadow-md`}>
+        <div className="flex items-center gap-3 mb-6">
+            <div className="p-2.5 bg-gray-50 text-gray-500 rounded-lg group-hover:bg-slate-900 group-hover:text-white transition-colors duration-300 border border-gray-100">{icon}</div>
             <div>
-              <div className="text-[11px] font-black uppercase tracking-widest text-slate-800">{title}</div>
-              {subtitle && <div className="text-[10px] font-bold text-gray-400 mt-0.5">{subtitle}</div>}
+              <div className="text-[12px] font-semibold text-gray-800">{title}</div>
+              {subtitle && <div className="text-[10px] font-medium text-gray-500 mt-0.5">{subtitle}</div>}
             </div>
         </div>
-        <div className="flex items-end gap-1">
-            {unit === '฿' && <span className="text-[20px] font-bold text-slate-400 mb-1">{unit}</span>}
-            <span className="text-[40px] leading-[1] font-black tracking-tighter text-slate-900">{displayValue.toLocaleString(undefined, {minimumFractionDigits: unit === '฿' ? 2 : 0, maximumFractionDigits: 2})}</span>
-            {unit !== '฿' && <span className="text-[12px] font-black uppercase text-gray-400 ml-1 pb-1">{unit}</span>}
+        <div className="flex items-end gap-1.5">
+            {unit === '฿' && <span className="text-[16px] font-bold text-gray-400 mb-1">{unit}</span>}
+            <span className="text-[32px] leading-[1] font-bold tracking-tight text-gray-900">{displayValue.toLocaleString(undefined, {minimumFractionDigits: unit === '฿' ? 2 : 0, maximumFractionDigits: 2})}</span>
+            {unit !== '฿' && <span className="text-[11px] font-semibold text-gray-400 ml-1 pb-1">{unit}</span>}
         </div>
-        <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-slate-50/50 rounded-full blur-2xl pointer-events-none" />
       </div>
     )
 }
 
 function PLRow({ label, value, color }: any) {
     const { locale } = useI18n();
-    return (<div className="flex justify-between items-center group p-3 -ml-3 rounded-[1rem] hover:bg-gray-50/50 transition-colors"><span className="text-[11px] font-bold text-gray-500 group-hover:text-slate-800 transition-all">{label}</span><span className={`text-[14px] font-black ${color}`}>{locale === 'en' ? '฿ ' : locale === 'zh' ? '฿ ' : '฿ '}{value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></div>)
+    return (<div className="flex justify-between items-center group p-2.5 -ml-2.5 rounded-lg hover:bg-gray-50/70 transition-colors"><span className="text-[11px] font-medium text-gray-500 group-hover:text-gray-800 transition-all">{label}</span><span className={`text-[13px] font-bold ${color}`}>{locale === 'en' ? '฿ ' : locale === 'zh' ? '฿ ' : '฿ '}{value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></div>)
 }
 
 function MenuReport({ menuPerformance, topModifiers }: any) {
@@ -1001,73 +1000,73 @@ function MenuReport({ menuPerformance, topModifiers }: any) {
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
             {/* Mobile Layout */}
             <div className="sm:hidden space-y-6">
-                <div className="overflow-hidden rounded-[2.5rem] border border-slate-100/50 bg-white/70 backdrop-blur-xl shadow-[0_8px_30px_-12px_rgba(0,0,0,0.1)]">
-                    <div className="border-b border-slate-100/50 px-6 py-5 flex items-center justify-between">
-                        <h3 className="text-[15px] font-black tracking-widest text-slate-900">{locale === 'en' ? 'TOP SELLERS' : 'อันดับเมนูขายดี'}</h3>
-                        <div className="p-2 bg-amber-50 rounded-full"><Award size={16} className="text-amber-500" /></div>
+                <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+                    <div className="border-b border-gray-100 px-5 py-4 flex items-center justify-between">
+                        <h3 className="text-[13px] font-semibold text-gray-900">{locale === 'en' ? 'TOP SELLERS' : 'อันดับเมนูขายดี'}</h3>
+                        <div className="p-1.5 bg-amber-50 rounded-lg"><Award size={14} className="text-amber-500" /></div>
                     </div>
-                    <div className="divide-y divide-slate-100/50 p-2">
+                    <div className="divide-y divide-gray-100 p-2">
                         {menuPerformance.map((item: any, idx: number) => (
-                          <div key={idx} className="flex items-center justify-between p-4 rounded-2xl hover:bg-slate-50 transition-colors">
-                              <div className="flex items-center gap-4">
-                                  <div className={`flex items-center justify-center w-8 h-8 rounded-full font-black text-[12px] ${idx === 0 ? 'bg-amber-100 text-amber-700' : idx === 1 ? 'bg-slate-100 text-slate-700' : idx === 2 ? 'bg-orange-100 text-orange-700' : 'bg-slate-50 text-slate-400'}`}>
+                          <div key={idx} className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 transition-colors">
+                              <div className="flex items-center gap-3">
+                                  <div className={`flex items-center justify-center w-7 h-7 rounded-lg font-bold text-[11px] ${idx === 0 ? 'bg-amber-100 text-amber-700' : idx === 1 ? 'bg-gray-100 text-gray-700' : idx === 2 ? 'bg-orange-100 text-orange-700' : 'bg-gray-50 text-gray-400'}`}>
                                       {idx + 1}
                                   </div>
                                   <div className="min-w-0">
-                                      <div className="truncate text-[14px] font-black text-slate-900">{item.name}</div>
-                                      <div className="mt-0.5 text-[11px] font-black text-slate-400">{item.quantity} {locale === 'en' ? 'Items' : 'รายการ'}</div>
+                                      <div className="truncate text-[13px] font-semibold text-gray-900">{item.name}</div>
+                                      <div className="mt-0.5 text-[11px] font-medium text-gray-500">{item.quantity} {locale === 'en' ? 'Items' : 'รายการ'}</div>
                                   </div>
                               </div>
-                              <div className="text-right text-[15px] font-black text-emerald-600">฿{item.revenue.toLocaleString()}</div>
+                              <div className="text-right text-[14px] font-bold text-emerald-600">฿{item.revenue.toLocaleString()}</div>
                           </div>
                         ))}
                     </div>
                 </div>
 
-                <div className="overflow-hidden rounded-[2.5rem] border border-slate-100/50 bg-white/70 backdrop-blur-xl shadow-[0_8px_30px_-12px_rgba(0,0,0,0.1)]">
-                    <div className="border-b border-slate-100/50 px-6 py-5">
-                        <h3 className="text-[15px] font-black tracking-widest text-slate-900">{locale === 'en' ? 'TOP MODIFIERS' : 'ตัวเลือกเสริมยอดฮิต'}</h3>
+                <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+                    <div className="border-b border-gray-100 px-5 py-4">
+                        <h3 className="text-[13px] font-semibold text-gray-900">{locale === 'en' ? 'TOP MODIFIERS' : 'ตัวเลือกเสริมยอดฮิต'}</h3>
                     </div>
-                    <div className="divide-y divide-slate-100/50 p-2">
+                    <div className="divide-y divide-gray-100 p-2">
                         {topModifiers?.map((item: any, idx: number) => (
-                          <div key={idx} className="flex items-center justify-between p-4 hover:bg-slate-50 rounded-2xl transition-colors">
-                              <div className="text-[13px] font-black text-slate-900">{item.name}</div>
-                              <div className="text-[13px] font-black text-slate-500 bg-slate-100 px-3 py-1 rounded-full">{item.count}</div>
+                          <div key={idx} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-xl transition-colors">
+                              <div className="text-[12px] font-semibold text-gray-900">{item.name}</div>
+                              <div className="text-[11px] font-bold text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-full">{item.count}</div>
                           </div>
                         ))}
-                        {(!topModifiers || topModifiers.length === 0) && <div className="px-5 py-8 text-center text-[12px] font-black text-slate-300">ไม่มีข้อมูลตัวเลือกเสริม</div>}
+                        {(!topModifiers || topModifiers.length === 0) && <div className="px-5 py-8 text-center text-[12px] font-medium text-gray-400">ไม่มีข้อมูลตัวเลือกเสริม</div>}
                     </div>
                 </div>
             </div>
 
             {/* Desktop Layout */}
             <div className="hidden sm:grid lg:grid-cols-2 gap-8">
-                <div className="bg-white border border-gray-100/80 rounded-3xl overflow-hidden shadow-[0_4px_24px_-12px_rgba(0,0,0,0.06)]">
-                    <div className="flex items-center justify-between p-8 border-b border-gray-100/80">
-                        <h3 className="text-[13px] font-black uppercase tracking-[0.2em] text-slate-800">{locale === 'en' ? 'Best-Selling Items' : 'สินค้าขายดีประจำช่วงเวลา'}</h3>
-                        <Award size={18} className="text-slate-400" />
+                <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+                    <div className="flex items-center justify-between p-6 border-b border-gray-100">
+                        <h3 className="text-[13px] font-semibold text-gray-800">{locale === 'en' ? 'Best-Selling Items' : 'สินค้าขายดีประจำช่วงเวลา'}</h3>
+                        <Award size={16} className="text-gray-400" />
                     </div>
-                    <div className="p-2">
+                    <div>
                         <table className="w-full text-left">
-                            <thead className="text-[9px] font-black uppercase tracking-widest text-gray-400">
+                            <thead className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 bg-gray-50/50">
                                 <tr>
-                                    <th className="px-6 py-4">RANK</th>
-                                    <th className="px-6 py-4">ITEM NAME</th>
-                                    <th className="px-6 py-4 text-center">UNITS SOLD</th>
-                                    <th className="px-6 py-4 text-right">REVENUE</th>
+                                    <th className="px-6 py-3 font-semibold">RANK</th>
+                                    <th className="px-6 py-3 font-semibold">ITEM NAME</th>
+                                    <th className="px-6 py-3 font-semibold text-center">UNITS SOLD</th>
+                                    <th className="px-6 py-3 font-semibold text-right">REVENUE</th>
                                 </tr>
                             </thead>
-                            <tbody className="space-y-1">
+                            <tbody className="divide-y divide-gray-100">
                                 {menuPerformance.map((item: any, idx: number) => (
-                                    <tr key={idx} className="group hover:bg-slate-50/50 transition-colors">
-                                        <td className="px-6 py-4 border-t border-gray-50/50">
-                                            <span className="text-[11px] font-black text-slate-400">{idx + 1}.</span>
+                                    <tr key={idx} className="group hover:bg-gray-50 transition-colors">
+                                        <td className="px-6 py-3.5">
+                                            <span className="text-[11px] font-medium text-gray-400">{idx + 1}.</span>
                                         </td>
-                                        <td className="px-6 py-4 border-t border-gray-50/50 text-[12px] font-black text-slate-800">{item.name}</td>
-                                        <td className="px-6 py-4 border-t border-gray-50/50 text-center text-[12px] font-bold text-slate-500">
+                                        <td className="px-6 py-3.5 text-[12px] font-semibold text-gray-900">{item.name}</td>
+                                        <td className="px-6 py-3.5 text-center text-[12px] font-medium text-gray-500">
                                             {item.quantity}
                                         </td>
-                                        <td className="px-6 py-4 border-t border-gray-50/50 text-right text-[13px] font-black text-slate-900">
+                                        <td className="px-6 py-3.5 text-right text-[13px] font-bold text-gray-900">
                                             {locale === 'en' ? '฿ ' : '฿ '}{item.revenue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                                         </td>
                                     </tr>
@@ -1077,30 +1076,30 @@ function MenuReport({ menuPerformance, topModifiers }: any) {
                     </div>
                 </div>
                 
-                <div className="bg-white/80 backdrop-blur-xl border border-slate-200/60 rounded-[2rem] overflow-hidden shadow-[0_8px_30px_-12px_rgba(0,0,0,0.06)]">
-                    <div className="flex items-center justify-between p-8 border-b border-slate-100/60">
-                        <h3 className="text-[13px] font-black uppercase tracking-[0.2em] text-slate-900">{locale === 'en' ? 'Top Modifiers' : 'ตัวเลือกเสริมยอดฮิต (Add-ons)'}</h3>
-                        <Layers size={20} className="text-blue-500" />
+                <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+                    <div className="flex items-center justify-between p-6 border-b border-gray-100">
+                        <h3 className="text-[13px] font-semibold text-gray-800">{locale === 'en' ? 'Top Modifiers' : 'ตัวเลือกเสริมยอดฮิต (Add-ons)'}</h3>
+                        <Layers size={16} className="text-blue-500" />
                     </div>
-                    <div className="p-4">
+                    <div>
                         <table className="w-full text-left">
-                            <thead className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400">
+                            <thead className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 bg-gray-50/50">
                                 <tr>
-                                    <th className="px-6 py-4 pb-6">{locale === 'en' ? 'Modifier' : 'ตัวเลือกเสริม'}</th>
-                                    <th className="px-6 py-4 pb-6 text-right">{locale === 'en' ? 'Count' : 'จำนวนครั้งที่ถูกเลือก'}</th>
+                                    <th className="px-6 py-3 font-semibold">{locale === 'en' ? 'Modifier' : 'ตัวเลือกเสริม'}</th>
+                                    <th className="px-6 py-3 font-semibold text-right">{locale === 'en' ? 'Count' : 'จำนวนครั้งที่ถูกเลือก'}</th>
                                 </tr>
                             </thead>
-                            <tbody className="space-y-2">
+                            <tbody className="divide-y divide-gray-100">
                                 {topModifiers?.map((item: any, idx: number) => (
-                                    <tr key={idx} className="group hover:bg-slate-50 rounded-2xl transition-colors">
-                                        <td className="px-6 py-4 text-[12px] font-black text-slate-800 rounded-l-2xl">{item.name}</td>
-                                        <td className="px-6 py-4 text-right text-[12px] font-bold text-slate-500 rounded-r-2xl">
-                                            <span className="bg-slate-100 px-3 py-1.5 rounded-full">{item.count}</span>
+                                    <tr key={idx} className="group hover:bg-gray-50 transition-colors">
+                                        <td className="px-6 py-3.5 text-[12px] font-semibold text-gray-900">{item.name}</td>
+                                        <td className="px-6 py-3.5 text-right text-[12px] font-medium text-gray-500">
+                                            <span className="bg-gray-100 px-2.5 py-1 rounded-md">{item.count}</span>
                                         </td>
                                     </tr>
                                 ))}
                                 {(!topModifiers || topModifiers.length === 0) && 
-                                    <tr><td colSpan={2} className="px-6 py-12 text-center text-[12px] text-slate-400 font-bold">ไม่มีข้อมูลตัวเลือกเสริม</td></tr>
+                                    <tr><td colSpan={2} className="px-6 py-12 text-center text-[12px] text-gray-400 font-medium">ไม่มีข้อมูลตัวเลือกเสริม</td></tr>
                                 }
                             </tbody>
                         </table>
@@ -1145,12 +1144,12 @@ function PaymentReport({ paymentData, totalRevenue, platformGpData, totalGpFee }
             </div>
         </div>
 
-        <div className="hidden sm:block bg-white border border-gray-100/80 rounded-[2.5rem] overflow-hidden p-10 space-y-8 shadow-[0_4px_24px_-12px_rgba(0,0,0,0.06)]">
-            <h3 className="text-[14px] font-black uppercase tracking-[0.2em] border-b border-gray-100 pb-6 text-slate-800">{locale === 'en' ? 'ช่องทางการรับชำระเงิน' : locale === 'zh' ? 'ช่องทางการรับชำระเงิน' : 'ช่องทางการรับชำระเงิน'}</h3>
+        <div className="hidden sm:block bg-white border border-gray-200 rounded-2xl overflow-hidden p-8 space-y-8 shadow-sm">
+            <h3 className="text-[13px] font-semibold text-gray-800 border-b border-gray-100 pb-4">{locale === 'en' ? 'ช่องทางการรับชำระเงิน' : locale === 'zh' ? 'ช่องทางการรับชำระเงิน' : 'ช่องทางการรับชำระเงิน'}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                 <div>
                     <table className="w-full text-left">
-                        <thead className="bg-gray-50 text-[8px] font-black uppercase tracking-widest text-gray-400">
+                        <thead className="bg-gray-50/50 text-[10px] font-semibold uppercase tracking-wider text-gray-500">
                             <tr><th className="px-6 py-4">{locale === 'en' ? 'ช่องทาง' : locale === 'zh' ? 'ช่องทาง' : 'ช่องทาง'}</th><th className="px-6 py-4 text-right">{locale === 'en' ? 'ยอดรับ (บาท)' : locale === 'zh' ? 'ยอดรับ (บาท)' : 'ยอดรับ (บาท)'}</th><th className="px-6 py-4 text-right">{locale === 'en' ? 'สัดส่วน' : locale === 'zh' ? 'สัดส่วน' : 'สัดส่วน'}</th></tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
@@ -1186,13 +1185,13 @@ function PaymentReport({ paymentData, totalRevenue, platformGpData, totalGpFee }
             </div>
 
             {platformGpData && platformGpData.length > 0 && (
-              <div className="mt-8">
-                <h4 className="text-[12px] font-black uppercase tracking-widest border-b border-gray-100 pb-4 mb-4 flex items-center gap-2">
-                  <span className="bg-red-100 text-red-700 px-2 py-0.5 text-[9px]">GP</span>
+              <div className="mt-8 border-t border-gray-100 pt-8">
+                <h4 className="text-[12px] font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <span className="bg-red-50 text-red-600 px-2 py-0.5 text-[10px] rounded-md font-bold">GP</span>
                   สรุป GP แต่ละแพลตฟอร์ม Delivery
                 </h4>
                 <table className="w-full text-left">
-                  <thead className="bg-gray-50 text-[8px] font-black uppercase tracking-widest text-gray-400">
+                  <thead className="bg-gray-50/50 text-[10px] font-semibold uppercase tracking-wider text-gray-500">
                     <tr>
                       <th className="px-6 py-4">แพลตฟอร์ม</th>
                       <th className="px-6 py-4 text-center">บิล</th>
@@ -1266,28 +1265,28 @@ function ExpensesTab({ expenseList, total, onDelete, onAdd }: any) {
                 </div>
             </div>
 
-            <div className="hidden sm:block space-y-8">
-            <div className="flex justify-between items-end">
-                <div><h3 className="text-[14px] font-black uppercase tracking-widest">{locale === 'en' ? 'การจัดการค่าใช้จ่ายอื่นๆ' : locale === 'zh' ? 'การจัดการค่าใช้จ่ายอื่นๆ' : 'การจัดการค่าใช้จ่ายอื่นๆ'}</h3></div>
-                <button onClick={onAdd} className="px-6 py-4 bg-black text-white text-[10px] font-black uppercase">{locale === 'en' ? 'Add item' : locale === 'zh' ? '添加项目' : 'เพิ่มรายการ'}</button>
+            <div className="hidden sm:block space-y-6">
+            <div className="flex justify-between items-center">
+                <div><h3 className="text-[14px] font-semibold text-gray-900">{locale === 'en' ? 'การจัดการค่าใช้จ่ายอื่นๆ' : locale === 'zh' ? 'การจัดการค่าใช้จ่ายอื่นๆ' : 'การจัดการค่าใช้จ่ายอื่นๆ'}</h3></div>
+                <button onClick={onAdd} className="px-5 py-2.5 bg-gray-900 hover:bg-gray-800 text-white text-[12px] font-medium rounded-lg transition-colors">{locale === 'en' ? 'Add item' : locale === 'zh' ? '添加项目' : 'เพิ่มรายการ'}</button>
             </div>
             <div className="grid lg:grid-cols-4 gap-6">
-                <div className="p-8 bg-slate-900 text-white rounded-3xl shadow-sm flex flex-col justify-center">
-                    <div className="text-[10px] font-black uppercase tracking-widest mb-2 opacity-60">{locale === 'en' ? 'รวมช่วงเวลานี้' : locale === 'zh' ? 'รวมช่วงเวลานี้' : 'รวมค่าใช้จ่าย (ตามช่วงเวลา)'}</div>
-                    <div className="text-4xl font-black">{locale === 'en' ? '฿ ' : locale === 'zh' ? '฿ ' : '฿ '}{total.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 2})}</div>
+                <div className="p-6 bg-gray-900 text-white rounded-2xl shadow-sm flex flex-col justify-center">
+                    <div className="text-[11px] font-medium text-gray-400 mb-1">{locale === 'en' ? 'รวมช่วงเวลานี้' : locale === 'zh' ? 'รวมช่วงเวลานี้' : 'รวมค่าใช้จ่าย (ตามช่วงเวลา)'}</div>
+                    <div className="text-3xl font-bold tracking-tight">{locale === 'en' ? '฿ ' : locale === 'zh' ? '฿ ' : '฿ '}{total.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 2})}</div>
                 </div>
-                <div className="lg:col-span-3 bg-white border border-gray-100/80 rounded-3xl overflow-hidden shadow-[0_4px_24px_-12px_rgba(0,0,0,0.06)]">
+                <div className="lg:col-span-3 bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
                     <table className="w-full text-left">
-                        <thead className="bg-gray-50 text-[8px] font-black uppercase tracking-widest text-gray-400">
+                        <thead className="bg-gray-50/50 text-[10px] font-semibold uppercase tracking-wider text-gray-500">
                             <tr>
-                                <th className="px-8 py-4">{locale === 'en' ? 'date' : locale === 'zh' ? '日期' : 'วันที่บันทึก'}</th>
-                                <th className="px-8 py-4">{locale === 'en' ? 'รายการ' : locale === 'zh' ? 'รายการ' : 'รายการ'}</th>
-                                <th className="px-8 py-4">{locale === 'en' ? 'ประเภท' : locale === 'zh' ? 'ประเภท' : 'ประเภท'}</th>
-                                <th className="px-8 py-4 text-right">{locale === 'en' ? 'ยอดที่หัก (บาท)' : locale === 'zh' ? 'ยอดที่หัก' : 'ยอดที่นำมาหัก (ตามวัน)'}</th>
-                                <th className="px-8 py-4"></th>
+                                <th className="px-6 py-3">{locale === 'en' ? 'date' : locale === 'zh' ? '日期' : 'วันที่บันทึก'}</th>
+                                <th className="px-6 py-3">{locale === 'en' ? 'รายการ' : locale === 'zh' ? 'รายการ' : 'รายการ'}</th>
+                                <th className="px-6 py-3">{locale === 'en' ? 'ประเภท' : locale === 'zh' ? 'ประเภท' : 'ประเภท'}</th>
+                                <th className="px-6 py-3 text-right">{locale === 'en' ? 'ยอดที่หัก (บาท)' : locale === 'zh' ? 'ยอดที่หัก' : 'ยอดที่นำมาหัก (ตามวัน)'}</th>
+                                <th className="px-6 py-3"></th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-50">
+                        <tbody className="divide-y divide-gray-100">
                             {expenseList.map((e: any) => (
                                 <tr key={e.id} className="hover:bg-gray-50">
                                     <td className="px-8 py-4 text-[10px] font-black text-gray-500">{e.date}</td>
@@ -1330,8 +1329,8 @@ function ExpensesTab({ expenseList, total, onDelete, onAdd }: any) {
 }
 function InventoryReport({ varianceCost }: any) {
     const { locale } = useI18n(); return <>
-      <div className="sm:hidden rounded-[2rem] border border-gray-200 bg-white p-5 shadow-sm"><div className="text-[12px] font-black text-gray-400">{locale === 'en' ? 'ความสูญเสียในสต็อก' : locale === 'zh' ? 'ความสูญเสียในสต็อก' : 'ความสูญเสียในสต็อก'}</div><div className="mt-4 text-[34px] font-black text-red-600">฿{Math.abs(varianceCost).toLocaleString()}</div><div className="mt-2 text-[11px] font-black text-gray-300">{locale === 'en' ? 'มูลค่าความสูญเสียรวมจากการนับสต็อก' : locale === 'zh' ? 'มูลค่าความสูญเสียรวมจากการนับสต็อก' : 'มูลค่าความสูญเสียรวมจากการนับสต็อก'}</div></div>
-      <div className="hidden sm:block bg-white border border-[#F0F0E8] overflow-hidden"><div className="p-8 border-b border-[#F0F0E8] bg-gray-50/50"><h3 className="text-[11px] font-black uppercase tracking-widest">{locale === 'en' ? 'ความสูญเสียในสต็อก' : locale === 'zh' ? 'ความสูญเสียในสต็อก' : 'ความสูญเสียในสต็อก'}</h3></div><div className="p-20 text-center"><div className="text-4xl font-black text-red-600 mb-4">{locale === 'en' ? '฿ ' : locale === 'zh' ? '฿ ' : '฿ '}{Math.abs(varianceCost).toLocaleString()}</div><div className="text-[10px] font-black uppercase text-gray-400 tracking-widest">{locale === 'en' ? 'มูลค่าความสูญเสียรวมจากการนับสต็อก' : locale === 'zh' ? 'มูลค่าความสูญเสียรวมจากการนับสต็อก' : 'มูลค่าความสูญเสียรวมจากการนับสต็อก'}</div></div></div>
+      <div className="sm:hidden rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"><div className="text-[12px] font-semibold text-gray-500">{locale === 'en' ? 'ความสูญเสียในสต็อก' : locale === 'zh' ? 'ความสูญเสียในสต็อก' : 'ความสูญเสียในสต็อก'}</div><div className="mt-2 text-[32px] font-bold tracking-tight text-red-600">฿{Math.abs(varianceCost).toLocaleString()}</div><div className="mt-1.5 text-[11px] font-medium text-gray-400">{locale === 'en' ? 'มูลค่าความสูญเสียรวมจากการนับสต็อก' : locale === 'zh' ? 'มูลค่าความสูญเสียรวมจากการนับสต็อก' : 'มูลค่าความสูญเสียรวมจากการนับสต็อก'}</div></div>
+      <div className="hidden sm:block bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm"><div className="p-6 border-b border-gray-100 bg-gray-50/50"><h3 className="text-[13px] font-semibold text-gray-800">{locale === 'en' ? 'ความสูญเสียในสต็อก' : locale === 'zh' ? 'ความสูญเสียในสต็อก' : 'ความสูญเสียในสต็อก'}</h3></div><div className="p-16 text-center"><div className="text-4xl font-bold tracking-tight text-red-600 mb-2">{locale === 'en' ? '฿ ' : locale === 'zh' ? '฿ ' : '฿ '}{Math.abs(varianceCost).toLocaleString()}</div><div className="text-[12px] font-medium text-gray-500">{locale === 'en' ? 'มูลค่าความสูญเสียรวมจากการนับสต็อก' : locale === 'zh' ? 'มูลค่าความสูญเสียรวมจากการนับสต็อก' : 'มูลค่าความสูญเสียรวมจากการนับสต็อก'}</div></div></div>
     </> }
 function DiscountsVoidsReport({ discountTotal, voidedOrders }: any) {
     const { locale } = useI18n(); 
@@ -1367,33 +1366,33 @@ function DiscountsVoidsReport({ discountTotal, voidedOrders }: any) {
                 </div>
             </div>
 
-            <div className="hidden sm:block space-y-8">
+            <div className="hidden sm:block space-y-6">
             <div className="grid lg:grid-cols-2 gap-6">
-                <div className="p-8 bg-blue-50 text-blue-700 border border-blue-100 shadow-sm">
-                    <div className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-2">สรุปส่วนลดและโปรโมชั่น (Discount)</div>
-                    <div className="flex items-baseline gap-2"><span className="text-4xl font-black tracking-tighter">{discountTotal.toLocaleString()}</span><span className="text-[10px] font-black uppercase opacity-60">บาท</span></div>
-                    <div className="text-[9px] font-bold mt-4 opacity-70">ยอดเงินรวมที่ลดให้ลูกค้าในช่วงเวลานี้</div>
+                <div className="p-6 bg-blue-50/50 text-blue-700 border border-blue-100 rounded-2xl shadow-sm">
+                    <div className="text-[12px] font-semibold text-blue-600 mb-2">สรุปส่วนลดและโปรโมชั่น (Discount)</div>
+                    <div className="flex items-baseline gap-2"><span className="text-3xl font-bold tracking-tight">{discountTotal.toLocaleString()}</span><span className="text-[12px] font-medium opacity-80">บาท</span></div>
+                    <div className="text-[11px] font-medium mt-3 opacity-70">ยอดเงินรวมที่ลดให้ลูกค้าในช่วงเวลานี้</div>
                 </div>
-                <div className="p-8 bg-red-50 text-red-700 border border-red-100 shadow-sm">
-                    <div className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-2">มูลค่าบิลที่ถูกยกเลิก (Voided)</div>
-                    <div className="flex items-baseline gap-2"><span className="text-4xl font-black tracking-tighter">{voidedOrders.reduce((sum: number, o: any) => sum + (o.total_amount || 0), 0).toLocaleString()}</span><span className="text-[10px] font-black uppercase opacity-60">บาท</span></div>
-                    <div className="text-[9px] font-bold mt-4 opacity-70">จำนวนทั้งหมด {voidedOrders.length} บิลที่ถูกยกเลิก</div>
+                <div className="p-6 bg-red-50/50 text-red-700 border border-red-100 rounded-2xl shadow-sm">
+                    <div className="text-[12px] font-semibold text-red-600 mb-2">มูลค่าบิลที่ถูกยกเลิก (Voided)</div>
+                    <div className="flex items-baseline gap-2"><span className="text-3xl font-bold tracking-tight">{voidedOrders.reduce((sum: number, o: any) => sum + (o.total_amount || 0), 0).toLocaleString()}</span><span className="text-[12px] font-medium opacity-80">บาท</span></div>
+                    <div className="text-[11px] font-medium mt-3 opacity-70">จำนวนทั้งหมด {voidedOrders.length} บิลที่ถูกยกเลิก</div>
                 </div>
             </div>
 
-            <div className="bg-white border border-[#F0F0E8] overflow-hidden shadow-sm">
-                <h3 className="text-[12px] font-black uppercase tracking-widest p-6 border-b border-gray-100">รายงานการยกเลิกบิล (Void Report)</h3>
+            <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+                <h3 className="text-[13px] font-semibold p-6 border-b border-gray-100 text-gray-800">รายงานการยกเลิกบิล (Void Report)</h3>
                 <table className="w-full text-left">
-                    <thead className="bg-gray-50 text-[8px] font-black uppercase tracking-widest text-gray-400 border-b border-gray-100">
+                    <thead className="bg-gray-50/50 text-[10px] font-semibold uppercase tracking-wider text-gray-500 border-b border-gray-100">
                         <tr>
-                            <th className="px-6 py-4">วันเวลา</th>
-                            <th className="px-6 py-4">หมายเลขบิล</th>
-                            <th className="px-6 py-4">พนักงานที่ทำรายการ</th>
-                            <th className="px-6 py-4">เหตุผลในการยกเลิก</th>
-                            <th className="px-6 py-4 text-right text-red-500">มูลค่าบิล</th>
+                            <th className="px-6 py-3">วันเวลา</th>
+                            <th className="px-6 py-3">หมายเลขบิล</th>
+                            <th className="px-6 py-3">พนักงานที่ทำรายการ</th>
+                            <th className="px-6 py-3">เหตุผลในการยกเลิก</th>
+                            <th className="px-6 py-3 text-right">มูลค่าบิล</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-50">
+                    <tbody className="divide-y divide-gray-100">
                         {voidedOrders.map((o: any, idx: number) => (
                             <tr key={idx} className="hover:bg-gray-50 transition-all">
                                 <td className="px-6 py-4 text-[10px] font-black">{new Date(o.updated_at || o.created_at).toLocaleString('th-TH')}</td>
