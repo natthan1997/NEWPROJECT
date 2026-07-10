@@ -714,8 +714,12 @@ export default function LiffMenuPage() {
 
       const { data: sales } = await supabase
         .from('pos_order_items')
-        .select('item_id, quantity')
-        .gte('created_at', startOfMonth.toISOString());
+        .select('item_id, quantity, pos_orders!inner(status)')
+        .gte('created_at', startOfMonth.toISOString())
+        .neq('pos_orders.status', 'cancelled')
+        .neq('pos_orders.status', 'void')
+        .order('created_at', { ascending: false })
+        .limit(1000);
       
       if (sales) {
         const counts: Record<string, number> = {};
