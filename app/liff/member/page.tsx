@@ -20,6 +20,7 @@ export default function LiffMemberPage() {
   const [memberInfo, setMemberInfo] = useState<any>(null);
   const [pointsHistory, setPointsHistory] = useState<any[]>([]);
   const [rewards, setRewards] = useState<any[]>([]);
+  const [vouchers, setVouchers] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'rewards' | 'history'>('rewards');
   const [showMysteryBox, setShowMysteryBox] = useState(false);
   const [mysteryBoxState, setMysteryBoxState] = useState<'idle' | 'opening' | 'result'>('idle');
@@ -206,6 +207,10 @@ const fetchData = async () => {
       }
       const { data: rewardsData } = await supabase.from('pos_loyalty_coupons').select('*').eq('is_active', true).order('cost_points', { ascending: true });
       if (rewardsData) setRewards(rewardsData);
+      if (member) {
+        const { data: couponsData } = await supabase.from('pos_member_coupons').select('*').eq('member_id', member.id).order('created_at', { ascending: false });
+        if (couponsData) setVouchers(couponsData);
+      }
       
       // Fetch smart badges from our new API
       const lineUserId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
@@ -359,13 +364,13 @@ const fetchData = async () => {
       
       {/* 📱 Ultra Clean Header */}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-xl px-6 py-4 flex items-center justify-between border-b border-gray-100">
-        <button onClick={handleBack} className="text-gray-400 hover:text-gray-900 transition-colors p-1 -ml-1">
+        <button onClick={() => router.back()} className="text-gray-400 hover:text-gray-900 transition-colors p-1 -ml-1">
           <ChevronLeft size={24} strokeWidth={2} />
         </button>
         <div className="flex flex-col items-center">
           <h1 className="text-[16px] font-medium tracking-tight text-gray-900">{dict.title}</h1>
         </div>
-        <div className="w-6"></div> {/* Spacer */}
+        <div className="w-6"></div>
       </header>
 
       <main className="px-5 pt-8 relative z-10 max-w-lg mx-auto flex flex-col gap-8">
@@ -383,9 +388,23 @@ const fetchData = async () => {
             )}
           </div>
           <div className="flex-1">
-            <h2 className="text-[20px] font-semibold text-gray-900 tracking-tight leading-tight mb-1">
-              {memberInfo?.nickname || memberInfo?.name || lineProfile?.displayName || 'Member'}
-            </h2>
+            <div className="flex items-center gap-2 mb-1">
+              <h2 className="text-[20px] font-semibold text-gray-900 tracking-tight leading-tight">
+                {memberInfo?.nickname || memberInfo?.name || lineProfile?.displayName || 'Member'}
+              </h2>
+              {/* Badge Next to Name */}
+              {activeTitle && (
+                <button 
+                  onClick={() => setShowCatalog(true)}
+                  className="px-2 py-0.5 rounded-full text-[11px] font-medium flex items-center gap-1 border border-gray-100/50"
+                  style={{ backgroundColor: activeTitle.bgHex || '#F5F5F5', color: activeTitle.textHex || '#1A1A18' }}
+                >
+                  {activeTitle.name}
+                  <ChevronRight size={12} className="opacity-50" />
+                </button>
+              )}
+            </div>
+            
             <div className="flex items-center gap-2">
               {memberInfo?.phone ? (
                 <span className="text-[13px] text-gray-500 font-mono tracking-wide">
@@ -399,10 +418,14 @@ const fetchData = async () => {
                   Add Phone
                 </button>
               )}
-              <span className="text-gray-300">|</span>
-              <button onClick={() => setShowCatalog(true)} className="text-[13px] font-medium text-gray-500 hover:text-gray-900 transition-colors">
-                ดูฉายา
-              </button>
+              {!activeTitle && (
+                <>
+                  <span className="text-gray-300">|</span>
+                  <button onClick={() => setShowCatalog(true)} className="text-[13px] font-medium text-gray-500 hover:text-gray-900 transition-colors">
+                    ดูฉายา
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </motion.section>
@@ -410,7 +433,7 @@ const fetchData = async () => {
         {/* ✨ Clean Joined Balance & Progress Card */}
         <motion.section 
           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}
-          className="w-full flex flex-col drop-shadow-sm"
+          className="w-full flex flex-col"
         >
           {/* Top Dark Card */}
           <div className="bg-[#262822] text-white p-7 rounded-[24px] rounded-b-none relative flex justify-between items-center z-10 border border-[#262822]">
@@ -433,29 +456,30 @@ const fetchData = async () => {
               onClick={() => setShowBenefits(true)}
               className="w-14 h-14 rounded-full border border-white/10 flex items-center justify-center bg-white/5 text-[#DFCB98] hover:bg-white/10 active:scale-95 transition-all"
             >
-              <Sparkles size={24} strokeWidth={1.5} />
+              <Info size={24} strokeWidth={1.5} />
             </button>
           </div>
           
-          {/* Bottom White Card */}
-          <div className="bg-white p-6 rounded-[24px] rounded-t-none border border-gray-100 border-t-0 relative z-0">
-            <div className="flex justify-between items-baseline mb-4">
-              <span className="text-[14px] font-semibold text-[#8C6D23]">{currentTier.name} Member</span>
-              <span className="text-[12px] text-gray-400">
+          {/* Bottom Progress Card - Clean styling based on Tier */}
+          <div className="p-6 rounded-[24px] rounded-t-none border border-gray-100 border-t-0 relative z-0" style={{ backgroundColor: currentTier.bgHex || '#F5F5F5' }}>
+            <div className="flex justify-between items-baseline mb-3">
+              <span className="text-[14px] font-semibold" style={{ color: currentTier.textHex || '#1A1A18' }}>{currentTier.name} Member</span>
+              <span className="text-[12px] font-medium opacity-70" style={{ color: currentTier.textHex || '#1A1A18' }}>
                 {nextTier ? `${(nextTier.minPoints - totalAccumulated).toLocaleString()} pts to ${nextTier.name}` : 'Max Tier'}
               </span>
             </div>
             
-            <div className="w-full h-[4px] bg-gray-100 rounded-full overflow-hidden mb-4">
+            <div className="w-full h-[6px] rounded-full overflow-hidden mb-4 bg-black/5">
               <motion.div 
                 initial={{ width: 0 }}
                 animate={{ width: `${Math.max(2, progressPercent)}%` }}
                 transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
-                className="h-full bg-[#C29B43] rounded-full" 
+                className="h-full rounded-full opacity-80" 
+                style={{ backgroundColor: currentTier.textHex || '#1A1A18' }}
               />
             </div>
             
-            <p className="text-[12px] text-gray-400 font-light">
+            <p className="text-[12px] opacity-60 font-medium" style={{ color: currentTier.textHex || '#1A1A18' }}>
               {locale === 'en' ? 'Member since' : 'เป็นสมาชิกตั้งแต่'} {new Date(memberInfo?.created_at || Date.now()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
             </p>
           </div>
@@ -525,7 +549,7 @@ const fetchData = async () => {
                 onClick={() => setActiveTab(tab as any)}
                 className={`flex-1 py-3 text-[14px] font-medium capitalize transition-colors relative ${activeTab === tab ? 'text-gray-900' : 'text-gray-400'}`}
               >
-                {tab === 'rewards' ? dict.rewardsCatalog : tab === 'coupons' ? dict.coupons : dict.pointsHistory}
+                {tab === 'rewards' ? dict.rewardsCatalog : tab === 'coupons' ? (locale === 'en' ? 'Coupons' : 'คูปอง') : dict.pointsHistory}
                 {activeTab === tab && (
                   <motion.div 
                     layoutId="activeTabUnderline" 
@@ -587,38 +611,40 @@ const fetchData = async () => {
                 className="space-y-3"
               >
                 {vouchers.length > 0 ? vouchers.map((voucher) => (
-                  <div key={voucher.id} className={`flex border rounded-[20px] overflow-hidden bg-white ${voucher.is_used ? 'border-gray-100 opacity-60 grayscale' : 'border-gray-200'}`}>
+                  <div key={voucher.id} className={`flex border rounded-[20px] overflow-hidden bg-white ${voucher.status !== 'active' ? 'border-gray-100 opacity-60 grayscale' : 'border-gray-200'}`}>
                     <div className="w-[80px] bg-gray-50 border-r border-dashed border-gray-200 flex flex-col items-center justify-center p-4">
                       <span className="text-xl font-light text-gray-900">
-                        {voucher.type === 'percent' ? voucher.discount_percent : voucher.discount_amount}
+                        {voucher.discount_type === 'percent' ? voucher.discount_value : voucher.discount_type === 'free_item' ? 'FREE' : voucher.discount_value}
                       </span>
                       <span className="text-[10px] text-gray-500 uppercase tracking-widest mt-1">
-                        {voucher.type === 'percent' ? '%' : 'THB'}
+                        {voucher.discount_type === 'percent' ? '%' : voucher.discount_type === 'free_item' ? 'ITEM' : 'THB'}
                       </span>
                     </div>
                     <div className="flex-1 p-4 flex flex-col justify-between">
                       <div>
-                        <h4 className="text-[14px] font-medium text-gray-900 mb-1">{voucher.title}</h4>
-                        <p className="text-[12px] text-gray-500">{voucher.description}</p>
+                        <h4 className="text-[14px] font-medium text-gray-900 mb-1">{voucher.coupon_name}</h4>
+                        <p className="text-[12px] text-gray-500">
+                           {voucher.discount_type === 'free_item' ? 'คูปองแลกสินค้าฟรี' : 'คูปองส่วนลด'}
+                        </p>
                       </div>
                       <div className="mt-3 flex items-center justify-between">
                         <span className="text-[11px] text-gray-400">
-                          {voucher.expires_at ? `Exp: ${new Date(voucher.expires_at).toLocaleDateString('en-GB')}` : 'No Expiry'}
+                          {new Date(voucher.created_at).toLocaleDateString('en-GB')}
                         </span>
                         <button 
-                          disabled={voucher.is_used}
+                          disabled={voucher.status !== 'active'}
                           className={`text-[11px] font-medium px-4 py-1.5 rounded-full ${
-                            voucher.is_used ? 'bg-gray-100 text-gray-400' : 'bg-gray-900 text-white'
+                            voucher.status !== 'active' ? 'bg-gray-100 text-gray-400' : 'bg-gray-900 text-white'
                           }`}
                         >
-                          {voucher.is_used ? 'Used' : dict.useCoupon}
+                          {voucher.status !== 'active' ? 'Used' : 'Ready to use'}
                         </button>
                       </div>
                     </div>
                   </div>
                 )) : (
                   <div className="py-20 text-center text-gray-400 text-[13px]">
-                    {dict.noCoupons}
+                    ไม่มีคูปองส่วนลดในขณะนี้
                   </div>
                 )}
               </motion.div>
@@ -632,7 +658,7 @@ const fetchData = async () => {
                   <div key={item.id} className="flex justify-between items-center py-4 border-b border-gray-100 last:border-0">
                     <div>
                       <p className="text-[14px] font-medium text-gray-900 mb-1">
-                        {translateHistoryDescription(item.description, locale as string)}
+                        {item.description}
                       </p>
                       <p className="text-[12px] text-gray-400">
                         {new Date(item.created_at).toLocaleDateString(locale === 'en' ? 'en-US' : locale === 'zh' ? 'zh-CN' : 'th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}
