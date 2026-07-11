@@ -431,58 +431,75 @@ const fetchData = async () => {
           </div>
         </motion.section>
 
-        {/* ✨ Clean Joined Balance & Progress Card */}
+        {/* ✨ Clean Unified Tier Card */}
         <motion.section 
           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}
           className="w-full flex flex-col"
         >
-          {/* Top Dark Card */}
-          <div className="bg-[#262822] text-white p-7 rounded-[24px] rounded-b-none relative flex justify-between items-center z-10 border border-[#262822]">
-            <div>
-              <p className="text-white/60 text-[13px] font-medium tracking-wide mb-1.5">
-                {locale === 'en' ? 'Your Balance' : 'คะแนนสะสมของคุณ'}
-              </p>
-              <div className="flex items-baseline gap-2">
-                <span className="text-[42px] leading-none font-serif text-[#DFCB98] tracking-tighter">
-                  {(memberInfo?.points || 0).toLocaleString()}
-                </span>
-                <span className="text-[#DFCB98] text-[15px] font-medium opacity-90">Points</span>
+          <div 
+            className="p-7 rounded-[24px] relative z-10 flex flex-col overflow-hidden shadow-sm border border-black/5" 
+            style={{ backgroundColor: currentTier.bgHex || '#F5F5F5' }}
+          >
+            {/* Background Accent */}
+            <div className="absolute top-0 right-0 w-40 h-40 bg-white/40 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4"></div>
+            
+            <div className="flex justify-between items-start mb-6 relative z-10">
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/50 backdrop-blur-md mb-4 border border-white/40 shadow-sm">
+                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: currentTier.textHex || '#1A1A18' }}></span>
+                  <span className="text-[12px] font-bold tracking-wider uppercase" style={{ color: currentTier.textHex || '#1A1A18' }}>
+                    {currentTier.name} Member
+                  </span>
+                </div>
+                <p className="text-[13px] font-medium tracking-wide mb-1 opacity-70" style={{ color: currentTier.textHex || '#1A1A18' }}>
+                  {locale === 'en' ? 'Your Balance' : 'คะแนนสะสม'}
+                </p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-[46px] leading-none font-serif tracking-tighter" style={{ color: currentTier.textHex || '#1A1A18' }}>
+                    {(memberInfo?.points || 0).toLocaleString()}
+                  </span>
+                  <span className="text-[15px] font-medium opacity-90" style={{ color: currentTier.textHex || '#1A1A18' }}>pts</span>
+                </div>
               </div>
-              <p className="text-white/40 text-[12px] mt-2 tracking-wide">
-                = ฿{((memberInfo?.points || 0) / 10).toFixed(2)} credit
-              </p>
+              
+              <button 
+                onClick={() => setShowBenefits(true)}
+                className="w-10 h-10 rounded-full bg-white/50 backdrop-blur-md flex items-center justify-center border border-white/40 hover:bg-white/80 transition-all shadow-sm"
+                style={{ color: currentTier.textHex || '#1A1A18' }}
+              >
+                <Info size={20} strokeWidth={2.5} />
+              </button>
             </div>
             
-            <button 
-              onClick={() => setShowBenefits(true)}
-              className="w-14 h-14 rounded-full border border-white/10 flex items-center justify-center bg-white/5 text-[#DFCB98] hover:bg-white/10 active:scale-95 transition-all"
-            >
-              <Info size={24} strokeWidth={1.5} />
-            </button>
-          </div>
-          
-          {/* Bottom Progress Card - Clean styling based on Tier */}
-          <div className="p-6 rounded-[24px] rounded-t-none border border-gray-100 border-t-0 relative z-0" style={{ backgroundColor: currentTier.bgHex || '#F5F5F5' }}>
-            <div className="flex justify-between items-baseline mb-3">
-              <span className="text-[14px] font-semibold" style={{ color: currentTier.textHex || '#1A1A18' }}>{currentTier.name} Member</span>
-              <span className="text-[12px] font-medium opacity-70" style={{ color: currentTier.textHex || '#1A1A18' }}>
-                {nextTier ? `${(nextTier.minPoints - totalAccumulated).toLocaleString()} pts to ${nextTier.name}` : 'Max Tier'}
-              </span>
+            {/* Progress Section */}
+            <div className="relative z-10">
+              <div className="flex justify-between items-baseline mb-2">
+                <span className="text-[13px] font-semibold opacity-90" style={{ color: currentTier.textHex || '#1A1A18' }}>
+                  {nextTier ? `${(nextTier.minPoints - totalAccumulated).toLocaleString()} pts to ${nextTier.name}` : 'Max Tier Reached'}
+                </span>
+                <span className="text-[12px] font-medium opacity-70" style={{ color: currentTier.textHex || '#1A1A18' }}>
+                  ฿{((memberInfo?.points || 0) / 10).toFixed(2)} credit
+                </span>
+              </div>
+              
+              <div className="w-full h-[6px] rounded-full overflow-hidden bg-white/60 shadow-inner">
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.max(2, progressPercent)}%` }}
+                  transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
+                  className="h-full rounded-full" 
+                  style={{ backgroundColor: currentTier.textHex || '#1A1A18' }}
+                />
+              </div>
+              <div className="mt-4 pt-4 border-t border-black/5 flex justify-between items-center">
+                <p className="text-[11px] font-medium opacity-50 uppercase tracking-widest" style={{ color: currentTier.textHex || '#1A1A18' }}>
+                  {locale === 'en' ? 'Member Since' : 'เป็นสมาชิกตั้งแต่'}
+                </p>
+                <p className="text-[12px] font-semibold opacity-80" style={{ color: currentTier.textHex || '#1A1A18' }}>
+                  {new Date(memberInfo?.created_at || Date.now()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </p>
+              </div>
             </div>
-            
-            <div className="w-full h-[6px] rounded-full overflow-hidden mb-4 bg-black/5">
-              <motion.div 
-                initial={{ width: 0 }}
-                animate={{ width: `${Math.max(2, progressPercent)}%` }}
-                transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
-                className="h-full rounded-full opacity-80" 
-                style={{ backgroundColor: currentTier.textHex || '#1A1A18' }}
-              />
-            </div>
-            
-            <p className="text-[12px] opacity-60 font-medium" style={{ color: currentTier.textHex || '#1A1A18' }}>
-              {locale === 'en' ? 'Member since' : 'เป็นสมาชิกตั้งแต่'} {new Date(memberInfo?.created_at || Date.now()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-            </p>
           </div>
         </motion.section>
 
