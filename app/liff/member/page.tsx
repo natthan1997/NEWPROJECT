@@ -455,11 +455,14 @@ const fetchData = async () => {
                   {locale === 'en' ? 'Your Balance' : 'คะแนนสะสม'}
                 </p>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-[46px] leading-none font-serif tracking-tighter" style={{ color: currentTier.textHex || '#1A1A18' }}>
+                  <span className="text-[46px] leading-none font-bold tracking-tight" style={{ color: currentTier.textHex || '#1A1A18' }}>
                     {(memberInfo?.points || 0).toLocaleString()}
                   </span>
                   <span className="text-[15px] font-medium opacity-90" style={{ color: currentTier.textHex || '#1A1A18' }}>pts</span>
                 </div>
+                <p className="text-[13px] font-medium mt-1.5 opacity-80" style={{ color: currentTier.textHex || '#1A1A18' }}>
+                  = ฿{((memberInfo?.points || 0) / 10).toFixed(2)} credit
+                </p>
               </div>
               
               <button 
@@ -476,9 +479,6 @@ const fetchData = async () => {
               <div className="flex justify-between items-baseline mb-2">
                 <span className="text-[13px] font-semibold opacity-90" style={{ color: currentTier.textHex || '#1A1A18' }}>
                   {nextTier ? `${(nextTier.minPoints - totalAccumulated).toLocaleString()} pts to ${nextTier.name}` : 'Max Tier Reached'}
-                </span>
-                <span className="text-[12px] font-medium opacity-70" style={{ color: currentTier.textHex || '#1A1A18' }}>
-                  ฿{((memberInfo?.points || 0) / 10).toFixed(2)} credit
                 </span>
               </div>
               
