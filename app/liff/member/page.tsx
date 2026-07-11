@@ -799,16 +799,16 @@ const fetchData = async () => {
       {/* 🏆 Clean Badge Modal */}
       <AnimatePresence>
         {selectedBadge && (
-          <>
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-5">
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setSelectedBadge(null)}
-              className="fixed inset-0 z-[60] bg-gray-900/20 backdrop-blur-sm"
+              className="absolute inset-0 bg-gray-900/20 backdrop-blur-sm"
             />
             <motion.div 
               initial={{ scale: 0.95, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 10 }} 
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[60] w-[85%] max-w-sm bg-white rounded-[24px] overflow-hidden"
+              className="relative z-[60] w-[85%] max-w-sm bg-white rounded-[24px] overflow-hidden"
             >
               <div className="h-20 w-full flex items-center justify-between px-5" style={{ backgroundColor: selectedBadge.bgHex }}>
                 <div className="w-6"></div>
@@ -854,7 +854,7 @@ const fetchData = async () => {
                 </div>
               </div>
             </motion.div>
-          </>
+          </div>
         )}
       </AnimatePresence>
 
