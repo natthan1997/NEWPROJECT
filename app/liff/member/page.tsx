@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-  ChevronLeft, History, Gift, TrendingUp, User, Info, X, Check, Loader2
+  ChevronLeft, History, Gift, TrendingUp, User, Info, X, Check, Loader2, Sparkles, ChevronRight, Zap
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
@@ -355,191 +355,303 @@ const fetchData = async () => {
   }
 
   return (
-    <div className="min-h-screen bg-white text-[#111111] font-sans overflow-x-hidden pb-24 selection:bg-gray-200">
+    <div className="min-h-screen bg-[#0A0A0A] text-white font-sans overflow-x-hidden pb-24 selection:bg-white/20 relative">
       
-      {/* 📱 Minimal Header */}
-      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md px-4 py-4 flex items-center justify-between border-b border-gray-100">
-        <button onClick={handleBack} className="p-2 -ml-2 text-gray-400 hover:text-gray-900 transition-colors">
-          <ChevronLeft size={24} strokeWidth={2} />
+      {/* 🔮 Ambient Background Glow */}
+      <div 
+        className="fixed top-[-10%] left-[-10%] w-[120%] h-[50vh] blur-[120px] opacity-20 pointer-events-none rounded-full"
+        style={{ background: `radial-gradient(circle, ${currentTier.bgHex || '#F5E6C4'} 0%, transparent 70%)` }}
+      />
+      <div className="fixed bottom-[-10%] right-[-10%] w-[100%] h-[40vh] bg-blue-900/10 blur-[100px] pointer-events-none rounded-full" />
+
+      {/* 📱 Premium Glass Header */}
+      <header className="sticky top-0 z-40 bg-[#0A0A0A]/60 backdrop-blur-3xl px-5 py-4 flex items-center justify-between border-b border-white/5 shadow-sm">
+        <button onClick={handleBack} className="p-2 -ml-2 text-white/70 bg-white/5 hover:bg-white/10 rounded-full transition-colors backdrop-blur-sm">
+          <ChevronLeft size={22} strokeWidth={2.5} />
         </button>
-        <h1 className="text-[15px] font-medium tracking-wide">{dict.title}</h1>
-        <button onClick={() => setShowBenefits(true)} className="p-2 -mr-2 text-gray-400 hover:text-gray-900 transition-colors">
-          <Info size={20} strokeWidth={2} />
-        </button>
+        <div className="flex flex-col items-center">
+          <h1 className="text-[16px] font-black tracking-tight text-white">{dict.title}</h1>
+          <span className="text-[11px] font-bold uppercase tracking-widest opacity-80" style={{ color: currentTier.textHex || '#FFF' }}>
+            {currentTier.name}
+          </span>
+        </div>
+        
+        {/* Redeemable Points */}
+        <motion.div 
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="bg-white/10 px-3 py-1.5 rounded-full flex items-center gap-1.5 -mr-2 shadow-inner border border-white/5 backdrop-blur-md"
+        >
+          <Sparkles size={12} className="text-amber-300" />
+          <span className="text-[13px] font-black text-white tracking-wide">
+            {(memberInfo?.points || 0).toLocaleString()}
+          </span>
+        </motion.div>
       </header>
 
-      <main className="px-5 py-6 space-y-8">
+      <main className="space-y-6 px-5 pt-8 relative z-10">
         
-        {/* 💳 Clean Tier Card with Power Bar */}
-        <section>
-          <div className="w-full rounded-2xl p-6 transition-colors duration-500" style={{ backgroundColor: currentTier.bgHex || '#F2ECE4' }}>
-            <div className="flex items-center gap-4 mb-8">
-              <div className="w-12 h-12 rounded-full bg-white/60 overflow-hidden flex items-center justify-center flex-shrink-0">
+        {/* 🟡 HERO SECTION: Profile & Capsule Progress */}
+        <motion.section 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          className="flex flex-col items-center mb-8"
+        >
+          {/* Profile Avatar */}
+          <motion.div 
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 200, damping: 20, delay: 0.1 }}
+            className="relative mb-6"
+          >
+            {/* Outer Rotating Glow */}
+            <div className="absolute -inset-2 rounded-full opacity-30 animate-[spin_10s_linear_infinite] blur-xl" style={{ backgroundImage: `conic-gradient(from 0deg, transparent, ${currentTier.bgHex || '#fff'}, transparent)` }}></div>
+            
+            <div className="w-24 h-24 rounded-full overflow-hidden shadow-2xl border-[3px] border-white/20 relative z-10 bg-black/50 backdrop-blur-sm p-1">
+              <div className="w-full h-full rounded-full overflow-hidden bg-white/5 flex items-center justify-center">
                 {lineProfile?.pictureUrl ? (
-                  <img  src={lineProfile.pictureUrl} alt={lineProfile.displayName} className="w-full h-full object-cover" />
+                  <img src={lineProfile.pictureUrl} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
-                  <User size={20} className={currentTier.text} />
+                  <User size={36} className="text-white/30" />
                 )}
               </div>
-              <div>
-                <h2 className="text-[16px] font-semibold text-gray-900 leading-tight">
-                  {lineProfile?.displayName || 'Member'}
-                </h2>
-                {memberInfo?.phone ? (
-                  <p className="text-[13px] text-gray-500 mt-0.5">
-                    ID: {memberInfo.phone}
-                  </p>
-                ) : (
-                  <button 
-                    onClick={() => setShowPhoneModal(true)}
-                    className="text-[11px] bg-black text-white px-2 py-0.5 rounded-full mt-1 flex items-center gap-1 active:scale-95 transition-transform"
-                  >
-                    + เพิ่มเบอร์รับแต้มจากหน้าร้าน
-                  </button>
-                )}
-              </div>
-              <div className="ml-auto text-right">
-                <span className={`text-[13px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-white/50 ${currentTier.text}`}>
+            </div>
+
+            {/* Floating Tier Badge */}
+            <div 
+              className="absolute -bottom-2 -right-2 w-10 h-10 rounded-full border-4 border-[#0A0A0A] flex items-center justify-center text-[14px] font-black shadow-lg z-20"
+              style={{ backgroundColor: currentTier.bgHex || '#fff', color: currentTier.textHex || '#000' }}
+            >
+              {currentTier.name[0]}
+            </div>
+          </motion.div>
+          
+          <h2 className="text-[26px] font-black text-white leading-tight tracking-tight mb-1 text-center drop-shadow-md">
+            {memberInfo?.nickname || memberInfo?.name || lineProfile?.displayName || 'Valued Member'}
+          </h2>
+          {memberInfo?.phone && (
+            <p className="text-[13px] text-white/50 font-bold tracking-widest font-mono bg-white/5 px-3 py-1 rounded-full mt-2">
+              {memberInfo.phone.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3')}
+            </p>
+          )}
+
+          {/* ✨ Premium Glass Capsule Progress Bar */}
+          <div className="w-full mt-10 relative">
+            <div className="flex justify-between items-end mb-3 px-1">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-black text-white/70 uppercase tracking-widest bg-white/10 px-2 py-0.5 rounded-md backdrop-blur-sm">
                   {currentTier.name}
                 </span>
               </div>
+              <span className="text-[11px] font-bold text-white/40 uppercase tracking-widest">
+                {nextTier ? nextTier.name : 'MAX'}
+              </span>
             </div>
 
-            <div>
-              <p className="text-[12px] text-gray-500 mb-1">{dict.points}</p>
-              <div className="flex items-baseline gap-1.5">
-                <span className={`text-4xl font-medium tracking-tight text-gray-900`}>
-                  {(memberInfo?.points || 0).toLocaleString()}
-                </span>
-                <span className="text-[14px] text-gray-500 font-medium">{dict.pts}</span>
-              </div>
+            {/* Capsule Track */}
+            <div className="h-10 w-full bg-white/5 border border-white/10 rounded-full relative p-1 shadow-inner backdrop-blur-md">
+              {/* Fill */}
+              <motion.div 
+                initial={{ width: '0%' }}
+                animate={{ width: `${Math.max(10, progressPercent)}%` }}
+                transition={{ duration: 1.5, ease: "easeOut", delay: 0.3 }}
+                className="h-full rounded-full relative overflow-hidden shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+                style={{ backgroundColor: currentTier.bgHex || '#fff' }}
+              >
+                {/* Shine effect inside fill */}
+                <div className="absolute top-0 left-0 w-full h-[40%] bg-gradient-to-b from-white/40 to-transparent"></div>
+              </motion.div>
+              
+              {/* Floating Points Tooltip on the bar */}
+              <motion.div 
+                initial={{ left: '10%', opacity: 0 }}
+                animate={{ left: `${Math.max(10, progressPercent)}%`, opacity: 1 }}
+                transition={{ duration: 1.5, ease: "easeOut", delay: 0.3 }}
+                className="absolute top-1/2 -translate-y-1/2 -ml-[20px] bg-[#0A0A0A] border border-white/20 text-white text-[10px] font-black px-2 py-1 rounded-full shadow-lg z-10 flex items-center justify-center min-w-[40px]"
+              >
+                {totalAccumulated.toLocaleString()}
+              </motion.div>
             </div>
             
-            {/* THICK PROGRESS BAR (Power Bar) */}
-            <div className="mt-8 bg-white/40 p-4 rounded-xl">
-              {nextTier ? (
-                <div>
-                  <div className="flex justify-between items-end mb-2">
-                    <span className="text-[12px] font-medium text-gray-600">{currentTier.name}</span>
-                    <div className="text-right">
-                      <span className="text-[10px] text-gray-500 uppercase tracking-wider block">{dict.pointsToNextTier} {nextTier.name}</span>
-                      <span className="text-[14px] font-bold text-gray-900">{(nextTier.minPoints - totalAccumulated).toLocaleString()} {dict.pts}</span>
-                    </div>
-                  </div>
-                  
-                  {/* The actual Bar */}
-                  <div className="h-3.5 w-full bg-black/10 rounded-full overflow-hidden shadow-inner">
-                    <motion.div 
-                      initial={{ width: 0 }}
-                      animate={{ width: `${progressPercent}%` }}
-                      transition={{ duration: 1.2, ease: "easeOut", delay: 0.2 }}
-                      className={`h-full rounded-full ${currentTier.barColor} relative`}
-                    >
-                      {/* Shine effect on bar */}
-                      <div className="absolute top-0 right-0 bottom-0 w-8 bg-gradient-to-r from-transparent to-white/30" />
-                    </motion.div>
-                  </div>
-                  
-                  <div className="flex justify-between items-center text-[11px] text-gray-500 mt-2 font-medium">
-                    <span>{currentTier.minPoints.toLocaleString()}</span>
-                    <span>{nextTier.minPoints.toLocaleString()}</span>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-[13px] font-medium text-gray-700 text-center py-2 flex items-center justify-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                  {dict.maxTier}
-                </div>
-              )}
+            <div className="text-center mt-4">
+              <p className="text-[13px] font-medium text-white/60">
+                {nextTier ? (
+                  <>
+                    <span className="text-[15px] font-black text-white mr-1 drop-shadow-sm">{(nextTier.minPoints - totalAccumulated).toLocaleString()}</span> 
+                    {locale === 'en' ? 'pts to' : 'แต้มเพื่ออัปเกรดเป็น'} 
+                    <span className="font-bold ml-1 text-white opacity-90">{nextTier.name}</span>
+                  </>
+                ) : (
+                  <span className="text-[14px] font-black text-amber-300 drop-shadow-md">{locale === 'en' ? 'Maximum Tier Reached' : 'คุณอยู่ระดับสูงสุดแล้ว'}</span>
+                )}
+              </p>
             </div>
           </div>
-        </section>
+        </motion.section>
 
-        {/* 📢 Special Campaigns / Gamification Banners */}
-        <section className="space-y-3">
-          <h3 className="text-[14px] font-medium text-gray-900 px-1">{locale === 'en' ? 'Special Campaigns' : 'แคมเปญพิเศษ'}</h3>
+        {/* ⚡️ Quick Actions (Glass Buttons) */}
+        <motion.section 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="grid grid-cols-2 gap-4"
+        >
+          <motion.button 
+            whileHover={{ scale: 1.02, backgroundColor: 'rgba(255,255,255,0.1)' }}
+            whileTap={{ scale: 0.96 }}
+            onClick={() => setShowBenefits(true)}
+            className="bg-white/5 border border-white/10 rounded-[1.5rem] p-5 flex flex-col items-center justify-center gap-3 backdrop-blur-xl shadow-lg"
+          >
+            <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-white/90 shadow-inner border border-white/5">
+              <Info size={20} />
+            </div>
+            <span className="text-[13px] font-bold text-white/80 tracking-wide">{dict.benefitsTitle}</span>
+          </motion.button>
+          
+          <motion.button 
+            whileHover={{ scale: 1.02, backgroundColor: 'rgba(255,255,255,0.1)' }}
+            whileTap={{ scale: 0.96 }}
+            onClick={() => setShowCatalog(true)}
+            className="bg-white/5 border border-white/10 rounded-[1.5rem] p-5 flex flex-col items-center justify-center gap-3 backdrop-blur-xl shadow-lg relative overflow-hidden"
+          >
+            <div className="absolute top-0 right-0 w-16 h-16 bg-amber-500/20 blur-xl rounded-full"></div>
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-500/20 to-orange-500/10 flex items-center justify-center text-amber-400 shadow-inner border border-amber-500/20 z-10">
+              <Sparkles size={20} />
+            </div>
+            <span className="text-[13px] font-bold text-white/80 tracking-wide z-10">ฉายาของฉัน</span>
+          </motion.button>
+        </motion.section>
+
+        {/* 📢 Special Campaigns / Gamification (Neon Cards) */}
+        <motion.section 
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
+          className="space-y-4 pt-4 -mx-5"
+        >
+          <div className="flex items-center justify-between px-5">
+            <h3 className="text-[14px] font-black text-white/90 uppercase tracking-widest">{locale === 'en' ? 'Special Campaigns' : 'แคมเปญพิเศษ'}</h3>
+          </div>
           
           <div 
-            className="flex gap-3 overflow-x-auto pb-4 snap-x -mx-5 px-5" 
+            className="flex gap-4 overflow-x-auto pb-6 snap-x snap-mandatory px-5" 
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
-            {/* Custom style for webkit scrollbar hiding since tailwind plugin isn't active */}
-            <style jsx>{`
-              div::-webkit-scrollbar {
-                display: none;
-              }
-            `}</style>
+            <style jsx>{`div::-webkit-scrollbar { display: none; }`}</style>
+            
+            {!memberInfo?.phone && (
+              <motion.div 
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setShowPhoneModal(true)}
+                className="min-w-[280px] snap-center bg-gradient-to-br from-blue-900/40 to-purple-900/40 border border-white/10 rounded-[2rem] p-6 flex flex-col justify-between shadow-2xl relative overflow-hidden cursor-pointer backdrop-blur-xl"
+              >
+                <div className="absolute -right-4 -top-4 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+                <div className="relative z-10">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-white bg-white/20 px-3 py-1.5 rounded-full mb-4 inline-block backdrop-blur-md shadow-sm border border-white/10">
+                    {locale === 'en' ? 'Action Required' : 'ภารกิจ'}
+                  </span>
+                  <h4 className="text-[18px] font-black text-white leading-tight mb-1 drop-shadow-sm">{locale === 'en' ? 'Link your phone' : 'เชื่อมต่อเบอร์โทรศัพท์'}</h4>
+                  <p className="text-[13px] text-white/60 font-medium">{locale === 'en' ? 'To earn points from store' : 'เพื่อสะสมแต้มอัตโนมัติจากการสั่งหน้าร้าน'}</p>
+                </div>
+                <div className="mt-6 flex justify-end relative z-10">
+                  <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white backdrop-blur-md border border-white/5 hover:bg-white/20 transition-colors">
+                    <ChevronRight size={18} />
+                  </div>
+                </div>
+              </motion.div>
+            )}
 
             {campaigns.map((camp) => (
-              <div 
+              <motion.div 
                 key={camp.id} 
+                whileTap={{ scale: 0.95 }}
                 onClick={() => { if (camp.title.includes('กล่องสุ่ม')) setShowMysteryBox(true); }}
-                className={`min-w-[240px] snap-center bg-gradient-to-br ${camp.bg_gradient_from} ${camp.bg_gradient_to} rounded-2xl p-4 flex flex-col justify-between shadow-sm relative overflow-hidden cursor-pointer active:scale-[0.98] transition-transform`}
+                className="min-w-[280px] snap-center rounded-[2rem] p-6 flex flex-col justify-between shadow-2xl relative overflow-hidden cursor-pointer backdrop-blur-xl border border-white/10"
+                style={{ background: `linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01))` }}
               >
-                <div className="absolute -right-4 -top-4 text-6xl opacity-10">{camp.icon}</div>
-                <div>
-                  <span className={`text-[10px] font-bold uppercase tracking-wider ${camp.tag_color} bg-white/60 px-2 py-1 rounded-md mb-2 inline-block`}>
+                {/* Background glow based on campaign type */}
+                <div className={`absolute top-0 left-0 w-full h-full opacity-20 bg-gradient-to-br ${camp.bg_gradient_from} ${camp.bg_gradient_to} blur-xl`}></div>
+                
+                <div className="absolute -right-2 -bottom-2 text-8xl opacity-10 drop-shadow-lg grayscale">{camp.icon}</div>
+                <div className="relative z-10">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-white bg-white/10 px-3 py-1.5 rounded-full mb-4 inline-block backdrop-blur-md shadow-sm border border-white/10">
                     {camp.type_tag}
                   </span>
-                  <h4 className={`text-[14px] font-semibold ${camp.text_color} leading-tight mb-1`}>{camp.title}</h4>
-                  <p className={`text-[12px] ${camp.tag_color}`}>{camp.description}</p>
+                  <h4 className="text-[18px] font-black text-white leading-tight mb-1 drop-shadow-sm">{camp.title}</h4>
+                  <p className="text-[13px] text-white/60 font-medium">{camp.description}</p>
                 </div>
-              </div>
+                {camp.title.includes('กล่องสุ่ม') && (
+                   <div className="mt-6 flex justify-end relative z-10">
+                     <div className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-md flex items-center gap-1.5 border border-white/10 hover:bg-white/20 transition-colors">
+                       <span className="text-[13px] font-bold text-white">เปิดกล่องเลย</span>
+                       <Gift size={14} className="text-white/70" />
+                     </div>
+                   </div>
+                )}
+              </motion.div>
             ))}
           </div>
-        </section>
+        </motion.section>
 
-        {/* 🪄 Minimal Tabs */}
-        <section>
-          <div className="flex border-b border-gray-100 mb-6">
-            <button 
-              onClick={() => setActiveTab('rewards')}
-              className={`flex-1 pb-3 text-[14px] font-medium transition-colors relative ${activeTab === 'rewards' ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
-            >
-              {dict.rewardsCatalog}
-              {activeTab === 'rewards' && (
-                <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-gray-900" />
-              )}
-            </button>
-            <button 
-              onClick={() => setActiveTab('history')}
-              className={`flex-1 pb-3 text-[14px] font-medium transition-colors relative ${activeTab === 'history' ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
-            >
-              {dict.pointsHistory}
-              {activeTab === 'history' && (
-                <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-gray-900" />
-              )}
-            </button>
+        {/* 🪄 Sleek Tabs Section */}
+        <motion.section 
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+          className="bg-white/5 backdrop-blur-2xl rounded-[2.5rem] min-h-[500px] shadow-2xl border border-white/10 pt-8 px-5 pb-10"
+        >
+          {/* Tab Selector */}
+          <div className="flex mb-8 bg-black/40 p-1.5 rounded-full relative border border-white/5 shadow-inner">
+            {['rewards', 'coupons', 'history'].map((tab) => (
+              <button 
+                key={tab}
+                onClick={() => setActiveTab(tab as any)}
+                className={`flex-1 py-3 text-[13px] font-black capitalize transition-colors relative z-10 ${activeTab === tab ? 'text-black' : 'text-white/50 hover:text-white/80'}`}
+              >
+                {tab === 'rewards' ? dict.rewardsCatalog : tab === 'coupons' ? dict.coupons : dict.pointsHistory}
+                {activeTab === tab && (
+                  <motion.div 
+                    layoutId="activeTabBackground" 
+                    className="absolute inset-0 bg-white rounded-full shadow-[0_0_15px_rgba(255,255,255,0.2)]"
+                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    style={{ zIndex: -1 }}
+                  />
+                )}
+              </button>
+            ))}
           </div>
 
           <AnimatePresence mode="wait">
             {activeTab === 'rewards' ? (
               <motion.div 
                 key="rewards"
-                initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} transition={{ duration: 0.2 }}
+                initial={{ opacity: 0, scale: 0.98, y: 10 }} 
+                animate={{ opacity: 1, scale: 1, y: 0 }} 
+                exit={{ opacity: 0, scale: 0.98, y: -10 }} 
+                transition={{ duration: 0.3 }}
                 className="space-y-4"
               >
                 {rewards.length > 0 ? rewards.map((reward) => (
-                  <div key={reward.id} className="flex gap-4 p-4 rounded-xl border border-gray-100 hover:border-gray-200 transition-colors">
-                    <div className="w-20 h-20 bg-gray-50 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center">
-                      <Gift size={24} className="text-gray-300" />
+                  <div key={reward.id} className="group flex gap-4 p-4 rounded-[2rem] bg-black/40 border border-white/5 hover:bg-white/5 hover:border-white/10 transition-all">
+                    <div className="w-24 h-24 bg-white/5 rounded-[1.5rem] overflow-hidden flex-shrink-0 flex items-center justify-center group-hover:scale-105 transition-transform border border-white/5">
+                      <Gift size={28} className="text-white/30" />
                     </div>
-                    <div className="flex-1 flex flex-col">
-                      <h4 className="text-[14px] font-medium text-gray-900 leading-tight mb-1">{reward.name}</h4>
-                      <p className="text-[12px] text-gray-500 line-clamp-2 leading-relaxed">
+                    <div className="flex-1 flex flex-col justify-center py-1">
+                      <h4 className="text-[16px] font-black text-white leading-tight mb-1.5">{reward.name}</h4>
+                      <p className="text-[13px] text-white/50 line-clamp-2 leading-relaxed mb-4 font-medium">
                         {reward.discount_type === 'free_item' ? 'ฟรี 1 รายการ' : reward.discount_type === 'percent' ? `ลด ${reward.discount_value}%` : `ลด ${reward.discount_value} บาท`}
                       </p>
                       
-                      <div className="mt-auto flex items-center justify-between pt-2">
-                        <span className="text-[13px] font-medium text-gray-900">{reward.cost_points.toLocaleString()} {dict.pts}</span>
+                      <div className="mt-auto flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-full border border-white/5">
+                           <Sparkles size={14} className="text-amber-400" />
+                           <span className="text-[13px] font-black text-white">{reward.cost_points.toLocaleString()}</span>
+                        </div>
                         
                         <button 
                           onClick={() => handleRedeem(reward.id)}
                           disabled={(memberInfo?.points || 0) < reward.cost_points}
-                          className={`text-[13px] font-medium px-4 py-1.5 rounded-full transition-colors ${
+                          className={`text-[12px] font-black px-5 py-2.5 rounded-full transition-all ${
                             (memberInfo?.points || 0) >= reward.cost_points 
-                            ? 'bg-gray-900 text-white hover:bg-gray-800' 
-                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            ? 'bg-white text-black hover:scale-105 shadow-[0_0_20px_rgba(255,255,255,0.3)] active:scale-95' 
+                            : 'bg-white/5 text-white/30 cursor-not-allowed border border-white/5'
                           }`}
                         >
                           {dict.redeem}
@@ -548,92 +660,158 @@ const fetchData = async () => {
                     </div>
                   </div>
                 )) : (
-                  <div className="py-16 text-center">
-                    <p className="text-[14px] text-gray-400 mb-1">{dict.noRewards}</p>
-                    <p className="text-[13px] text-gray-300">{dict.checkBackLater}</p>
+                  <div className="py-24 text-center flex flex-col items-center">
+                    <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6 border border-white/5 shadow-inner">
+                      <Gift size={32} className="text-white/20" />
+                    </div>
+                    <p className="text-[16px] font-black text-white mb-2">{dict.noRewards}</p>
+                    <p className="text-[13px] text-white/40">{dict.checkBackLater}</p>
+                  </div>
+                )}
+              </motion.div>
+            ) : activeTab === 'coupons' ? (
+              <motion.div 
+                key="coupons"
+                initial={{ opacity: 0, scale: 0.98, y: 10 }} 
+                animate={{ opacity: 1, scale: 1, y: 0 }} 
+                exit={{ opacity: 0, scale: 0.98, y: -10 }} 
+                transition={{ duration: 0.3 }}
+                className="space-y-5"
+              >
+                {vouchers.length > 0 ? vouchers.map((voucher) => (
+                  <div key={voucher.id} className={`relative rounded-[2rem] overflow-hidden flex flex-col backdrop-blur-xl transition-all ${voucher.is_used ? 'bg-white/5 border-white/5 opacity-50 grayscale' : 'bg-gradient-to-br from-amber-500/10 to-orange-500/5 border-amber-500/20 shadow-[0_8px_30px_rgba(0,0,0,0.5)] hover:border-amber-500/40'}`} style={{ borderWidth: '1px' }}>
+                    <div className="flex items-stretch h-full">
+                      <div className={`w-[110px] flex flex-col items-center justify-center p-5 border-r border-dashed ${voucher.is_used ? 'border-white/10 text-white/30' : 'border-amber-500/30 text-amber-400'}`}>
+                        <span className="text-[10px] font-black uppercase tracking-widest mb-2 opacity-80">
+                          {voucher.type === 'percent' ? 'ส่วนลด' : 'มูลค่า'}
+                        </span>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-4xl font-black tracking-tighter drop-shadow-md">
+                            {voucher.type === 'percent' ? voucher.discount_percent : voucher.discount_amount}
+                          </span>
+                          <span className="text-sm font-bold opacity-80">
+                            {voucher.type === 'percent' ? '%' : '฿'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex-1 p-6 flex flex-col justify-between relative bg-black/20">
+                        {/* Cutout notch */}
+                        <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-[#0A0A0A] rounded-full border-r border-dashed border-amber-500/30 z-10" style={{ clipPath: 'polygon(50% 0, 100% 0, 100% 100%, 50% 100%)' }}></div>
+                        
+                        <div>
+                          <h4 className="text-[16px] font-black text-white leading-tight mb-2 pr-2">{voucher.title}</h4>
+                          <p className="text-[13px] text-white/60 line-clamp-2 font-medium">{voucher.description}</p>
+                        </div>
+                        
+                        <div className="mt-6 flex items-center justify-between">
+                          <span className="text-[11px] font-bold text-white/40 bg-white/5 border border-white/5 px-2.5 py-1 rounded-md">
+                            {voucher.expires_at ? `Exp: ${new Date(voucher.expires_at).toLocaleDateString('en-GB')}` : 'No Expiry'}
+                          </span>
+                          <button 
+                            disabled={voucher.is_used}
+                            className={`text-[12px] font-black px-6 py-2.5 rounded-full transition-all ${
+                              voucher.is_used ? 'bg-white/10 text-white/40' : 'bg-amber-500 text-black shadow-[0_0_20px_rgba(245,158,11,0.4)] hover:bg-amber-400 active:scale-95'
+                            }`}
+                          >
+                            {voucher.is_used ? 'ใช้แล้ว' : dict.useCoupon}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )) : (
+                  <div className="py-24 text-center flex flex-col items-center">
+                    <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6 border border-white/5 shadow-inner">
+                      <Gift size={32} className="text-white/20" />
+                    </div>
+                    <p className="text-[16px] font-black text-white mb-2">{dict.noCoupons}</p>
+                    <p className="text-[13px] text-white/40">{dict.noCouponsDesc}</p>
                   </div>
                 )}
               </motion.div>
             ) : (
               <motion.div 
                 key="history"
-                initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} transition={{ duration: 0.2 }}
-                className="space-y-4"
+                initial={{ opacity: 0, scale: 0.98, y: 10 }} 
+                animate={{ opacity: 1, scale: 1, y: 0 }} 
+                exit={{ opacity: 0, scale: 0.98, y: -10 }} 
+                transition={{ duration: 0.3 }}
+                className="space-y-2"
               >
                 {pointsHistory.length > 0 ? pointsHistory.map((item) => (
-                  <div key={item.id} className="flex justify-between items-center py-3 border-b border-gray-50 last:border-0">
-                    <div className="flex gap-3 items-center">
-                      <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400">
-                        {item.type === 'earn' ? <TrendingUp size={18} /> : <Gift size={18} />}
+                  <div key={item.id} className="flex justify-between items-center py-4 border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors px-3 rounded-2xl">
+                    <div className="flex gap-4 items-center">
+                      <div className={`w-12 h-12 rounded-[1rem] flex items-center justify-center border ${item.type === 'earn' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-white/5 border-white/10 text-white/50'}`}>
+                        {item.type === 'earn' ? <TrendingUp size={20} /> : <Gift size={20} />}
                       </div>
                       <div>
-                        <p className="text-[14px] font-medium text-gray-900">
+                        <p className="text-[14px] font-bold text-white leading-tight mb-1 drop-shadow-sm">
                           {translateHistoryDescription(item.description, locale as string)}
                         </p>
-                        <p className="text-[12px] text-gray-400 mt-0.5">
+                        <p className="text-[12px] text-white/40 font-medium">
                           {new Date(item.created_at).toLocaleDateString(locale === 'en' ? 'en-US' : locale === 'zh' ? 'zh-CN' : 'th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </p>
                       </div>
                     </div>
-                    <span className={`text-[14px] font-medium ${item.type === 'earn' ? 'text-gray-900' : 'text-gray-500'}`}>
+                    <span className={`text-[16px] font-black tracking-tight ${item.type === 'earn' ? 'text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.3)]' : 'text-white'}`}>
                       {item.type === 'earn' ? '+' : '-'}{item.points.toLocaleString()}
                     </span>
                   </div>
                 )) : (
-                  <div className="py-16 text-center">
-                    <p className="text-[14px] text-gray-400 mb-1">{dict.noHistory}</p>
-                    <p className="text-[13px] text-gray-300">{dict.historyEmpty}</p>
+                  <div className="py-24 text-center flex flex-col items-center">
+                    <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6 border border-white/5 shadow-inner">
+                      <History size={32} className="text-white/20" />
+                    </div>
+                    <p className="text-[16px] font-black text-white mb-2">{dict.noHistory}</p>
+                    <p className="text-[13px] text-white/40">{dict.historyEmpty}</p>
                   </div>
                 )}
               </motion.div>
             )}
           </AnimatePresence>
-        </section>
+        </motion.section>
       </main>
 
-      {/* 👑 Minimal Benefits Bottom Sheet */}
-      
-<AnimatePresence>
-{showBenefits && (
+      {/* 👑 Dark Premium Benefits Bottom Sheet */}
+      <AnimatePresence>
+        {showBenefits && (
           <>
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setShowBenefits(false)}
-              className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm"
+              className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md"
             />
             <motion.div 
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.08)] max-h-[90vh] overflow-y-auto pb-safe"
+              className="fixed bottom-0 left-0 right-0 z-50 bg-[#111] border-t border-white/10 rounded-t-[2.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.5)] max-h-[90vh] overflow-y-auto pb-safe"
             >
-              <div className="sticky top-0 bg-white/90 backdrop-blur-md z-10 px-6 py-5 flex items-center justify-between border-b border-gray-50">
-                <h3 className="text-[16px] font-medium text-gray-900">{dict.benefitsTitle}</h3>
-                <button onClick={() => setShowBenefits(false)} className="p-2 -mr-2 text-gray-400 hover:text-gray-900 transition-colors">
+              <div className="sticky top-0 bg-[#111]/90 backdrop-blur-xl z-10 px-6 py-6 flex items-center justify-between border-b border-white/5">
+                <h3 className="text-[18px] font-black text-white">{dict.benefitsTitle}</h3>
+                <button onClick={() => setShowBenefits(false)} className="p-2 -mr-2 bg-white/5 rounded-full text-white/50 hover:text-white hover:bg-white/10 transition-colors">
                   <X size={20} />
                 </button>
               </div>
 
               <div className="p-6 space-y-8">
-                
-                {/* Benefits Section */}
                 <div>
-                  <h4 className="text-[13px] text-gray-500 mb-3 uppercase tracking-wider font-semibold">สิทธิประโยชน์สมาชิก</h4>
-                  <div className="bg-gray-50 rounded-xl p-4 space-y-3">
-                    <div className="flex items-start gap-3">
-                      <div className="bg-white p-2 rounded-full shadow-sm">
-                        <Gift size={16} className="text-amber-500" />
+                  <h4 className="text-[12px] text-white/40 mb-4 uppercase tracking-widest font-black">สิทธิประโยชน์สมาชิก</h4>
+                  <div className="bg-black/50 rounded-[2rem] p-6 space-y-5 border border-white/5 shadow-inner">
+                    <div className="flex items-start gap-4">
+                      <div className="bg-white/5 p-3 rounded-2xl border border-white/10 text-amber-400">
+                        <Gift size={20} />
                       </div>
-                      <div>
-                        <p className="text-[14px] font-medium text-gray-900">{dict.howToEarn}</p>
-                        <p className="text-[13px] text-gray-500">{dict.earnRule}</p>
+                      <div className="pt-1">
+                        <p className="text-[14px] font-bold text-white">{dict.howToEarn}</p>
+                        <p className="text-[13px] text-white/50 mt-1">{dict.earnRule}</p>
                       </div>
                     </div>
-                    <div className="flex items-start gap-3">
-                      <div className="bg-white p-2 rounded-full shadow-sm">
-                        <User size={16} className="text-blue-500" />
+                    <div className="flex items-start gap-4">
+                      <div className="bg-white/5 p-3 rounded-2xl border border-white/10 text-blue-400">
+                        <User size={20} />
                       </div>
-                      <div>
-                        <p className="text-[14px] font-medium text-gray-900">สะสมฉายาสุดเท่</p>
-                        <p className="text-[13px] text-gray-500">ทำภารกิจลับเพื่อปลดล็อกฉายาพิเศษ</p>
+                      <div className="pt-1">
+                        <p className="text-[14px] font-bold text-white">สะสมฉายาสุดเท่</p>
+                        <p className="text-[13px] text-white/50 mt-1">ทำภารกิจลับเพื่อปลดล็อกฉายาพิเศษ</p>
                       </div>
                     </div>
                     
@@ -642,34 +820,33 @@ const fetchData = async () => {
                         setShowBenefits(false);
                         setShowCatalog(true);
                       }}
-                      className="w-full mt-4 py-3 bg-gray-900 text-white rounded-xl text-[14px] font-medium"
+                      className="w-full mt-4 py-4 bg-white/10 text-white rounded-2xl text-[14px] font-black hover:bg-white/20 transition-colors border border-white/5"
                     >
                       ดูแคตตาล็อคฉายาทั้งหมด
                     </button>
                   </div>
                 </div>
 
-                <hr className="border-gray-100" />
+                <hr className="border-white/5" />
 
-                {/* Tiers List */}
                 <div>
-                  <h4 className="text-[13px] text-gray-500 mb-4 uppercase tracking-wider font-semibold">สิทธิประโยชน์ตามระดับ</h4>
+                  <h4 className="text-[12px] text-white/40 mb-6 uppercase tracking-widest font-black">สิทธิประโยชน์ตามระดับ</h4>
                   <div className="space-y-6">
                     {tiers.map((tier) => (
-                      <div key={tier.name} className="flex gap-4">
-                        <div className="w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center text-[13px] font-bold uppercase tracking-wider shadow-sm" style={{ backgroundColor: tier.bgHex || '#F2ECE4', color: tier.textHex || '#1A1A18' }}>
+                      <div key={tier.name} className="flex gap-4 items-start bg-black/20 p-4 rounded-[2rem] border border-white/5">
+                        <div className="w-14 h-14 rounded-3xl flex-shrink-0 flex items-center justify-center text-[16px] font-black uppercase tracking-wider shadow-lg border border-white/20" style={{ backgroundColor: tier.bgHex || '#F2ECE4', color: tier.textHex || '#1A1A18' }}>
                           {tier.name[0]}
                         </div>
-                        <div>
-                          <div className="flex items-baseline gap-2 mb-2">
-                            <h4 className="text-[15px] font-bold text-gray-900">{tier.name}</h4>
-                            <span className="text-[12px] text-gray-400 font-medium">{tier.minPoints.toLocaleString()} {dict.pts}</span>
+                        <div className="pt-1">
+                          <div className="flex items-baseline gap-2 mb-3">
+                            <h4 className="text-[16px] font-black text-white">{tier.name}</h4>
+                            <span className="text-[12px] text-white/40 font-bold">{tier.minPoints.toLocaleString()} {dict.pts}</span>
                           </div>
-                          <ul className="space-y-2">
-                            {tier.benefits && tier.benefits.map((b, i) => (
-                              <li key={i} className="flex items-start gap-2 text-[13px] text-gray-600">
-                                <Check size={16} strokeWidth={2} className="text-green-500 flex-shrink-0 mt-0.5" />
-                                <span>{b}</span>
+                          <ul className="space-y-3">
+                            {tier.benefits && tier.benefits.map((b: string, i: number) => (
+                              <li key={i} className="flex items-start gap-2.5 text-[13px] text-white/70 font-medium">
+                                <Check size={16} strokeWidth={3} className="text-emerald-400 flex-shrink-0 mt-0.5" />
+                                <span className="leading-relaxed">{b}</span>
                               </li>
                             ))}
                           </ul>
@@ -678,55 +855,56 @@ const fetchData = async () => {
                     ))}
                   </div>
                 </div>
-
               </div>
             </motion.div>
           </>
         )}
       </AnimatePresence>
 
-      {/* 👑 CATALOG MODAL */}
+      {/* 👑 DARK CATALOG MODAL */}
       <AnimatePresence>
         {showCatalog && (
           <>
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setShowCatalog(false)}
-              className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm"
+              className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md"
             />
             <motion.div 
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.08)] max-h-[90vh] overflow-y-auto pb-safe flex flex-col"
+              className="fixed bottom-0 left-0 right-0 z-50 bg-[#111] border-t border-white/10 rounded-t-[2.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.5)] max-h-[90vh] overflow-y-auto pb-safe flex flex-col"
             >
-              <div className="sticky top-0 bg-white/90 backdrop-blur-md z-10 px-6 py-5 flex items-center justify-between border-b border-gray-50 shrink-0">
-                <h3 className="text-[16px] font-medium text-gray-900">แคตตาล็อคฉายา</h3>
-                <button onClick={() => setShowCatalog(false)} className="p-2 -mr-2 text-gray-400 hover:text-gray-900 transition-colors">
+              <div className="sticky top-0 bg-[#111]/90 backdrop-blur-xl z-10 px-6 py-6 flex items-center justify-between border-b border-white/5 shrink-0">
+                <h3 className="text-[18px] font-black text-white">แคตตาล็อคฉายา</h3>
+                <button onClick={() => setShowCatalog(false)} className="p-2 -mr-2 bg-white/5 rounded-full text-white/50 hover:text-white hover:bg-white/10 transition-colors">
                   <X size={20} />
                 </button>
               </div>
 
               <div className="p-6 overflow-y-auto flex-1">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-4">
                   {titles.map((tier, idx) => (
-                    <div 
+                    <motion.div 
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
                       key={idx} 
                       onClick={() => setSelectedBadge(tier)}
-                      className={`relative flex flex-col items-center justify-center p-4 rounded-2xl border cursor-pointer hover:shadow-md transition-shadow ${tier.isUnlocked ? 'bg-white border-gray-200' : 'bg-gray-50 border-transparent grayscale opacity-80'}`}
+                      className={`relative flex flex-col items-center justify-center p-6 rounded-[2rem] border shadow-lg cursor-pointer transition-all ${tier.isUnlocked ? 'bg-black/50 border-white/10' : 'bg-black/20 border-white/5 grayscale opacity-50'}`}
                     >
-                      <div className="w-14 h-14 rounded-full flex items-center justify-center text-[20px] font-bold shadow-sm mb-3" style={{ backgroundColor: tier.bgHex, color: tier.textHex }}>
+                      <div className="w-16 h-16 rounded-3xl flex items-center justify-center text-[24px] font-black shadow-inner border border-white/20 mb-4" style={{ backgroundColor: tier.bgHex, color: tier.textHex }}>
                         {tier.name[0]}
                       </div>
-                      <h4 className="text-[13px] font-medium text-center text-gray-900 leading-tight mb-1">{tier.name}</h4>
+                      <h4 className="text-[14px] font-bold text-center text-white leading-tight mb-1">{tier.name}</h4>
                       
                       {/* Mini Progress */}
                       {!tier.isUnlocked && (
-                        <div className="w-full mt-2">
-                          <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                        <div className="w-full mt-4">
+                          <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
                             <div className="h-full bg-blue-500 rounded-full" style={{ width: `${tier.progress}%` }}></div>
                           </div>
                         </div>
                       )}
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
               </div>
@@ -735,62 +913,66 @@ const fetchData = async () => {
         )}
       </AnimatePresence>
 
-      {/* 🏆 BADGE DETAIL MODAL */}
+      {/* 🏆 DARK BADGE DETAIL MODAL */}
       <AnimatePresence>
         {selectedBadge && (
           <>
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setSelectedBadge(null)}
-              className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm"
+              className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-md"
             />
             <motion.div 
               initial={{ scale: 0.9, opacity: 0, y: 20 }} 
               animate={{ scale: 1, opacity: 1, y: 0 }} 
               exit={{ scale: 0.9, opacity: 0, y: 20 }} 
-              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[60] w-[90%] max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden"
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[60] w-[90%] max-w-sm bg-[#1A1A1A] rounded-[2.5rem] shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/10 overflow-hidden"
             >
               {/* Header colored banner */}
-              <div className="h-24 w-full flex items-center justify-center relative" style={{ backgroundColor: selectedBadge.bgHex }}>
-                <button onClick={() => setSelectedBadge(null)} className="absolute top-3 right-3 p-2 bg-black/10 hover:bg-black/20 rounded-full text-black/50 transition-colors">
-                  <X size={18} />
+              <div className="h-32 w-full flex items-center justify-center relative overflow-hidden" style={{ backgroundColor: selectedBadge.bgHex }}>
+                <div className="absolute inset-0 bg-black/20 mix-blend-overlay"></div>
+                <button onClick={() => setSelectedBadge(null)} className="absolute top-4 right-4 p-2 bg-black/20 hover:bg-black/40 rounded-full text-white/80 transition-colors backdrop-blur-md z-10">
+                  <X size={20} />
                 </button>
               </div>
               
               {/* Avatar floating */}
-              <div className="relative flex justify-center -mt-10">
-                <div className="w-20 h-20 rounded-full flex items-center justify-center text-[28px] font-bold shadow-lg bg-white border-4 border-white" style={{ backgroundColor: selectedBadge.bgHex, color: selectedBadge.textHex }}>
+              <div className="relative flex justify-center -mt-12">
+                <div className="w-24 h-24 rounded-[2rem] flex items-center justify-center text-[36px] font-black shadow-2xl bg-[#1A1A1A] border-4 border-[#1A1A1A] relative z-10" style={{ backgroundColor: selectedBadge.bgHex, color: selectedBadge.textHex }}>
                   {selectedBadge.name[0]}
                 </div>
               </div>
 
-              <div className="px-6 pb-6 pt-4 text-center">
-                <h3 className="text-[20px] font-bold text-gray-900 mb-1">{selectedBadge.name}</h3>
+              <div className="px-6 pb-8 pt-6 text-center">
+                <h3 className="text-[22px] font-black text-white mb-3 drop-shadow-md">{selectedBadge.name}</h3>
                 
                 {selectedBadge.isUnlocked ? (
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-700 text-[12px] font-medium rounded-full mb-6">
-                    <Check size={14} /> ปลดล็อกแล้ว
+                  <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[13px] font-black rounded-full mb-6 shadow-[0_0_15px_rgba(52,211,153,0.1)]">
+                    <Check size={16} strokeWidth={3} /> ปลดล็อกแล้ว
                   </div>
                 ) : (
-                  <div className="text-[12px] text-gray-500 mb-6">
+                  <div className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-white/5 text-white/40 border border-white/5 text-[13px] font-bold rounded-full mb-6">
                     ยังไม่ปลดล็อก
                   </div>
                 )}
 
-                <div className="text-left space-y-5">
+                <div className="text-left space-y-4">
                   {/* How to get */}
-                  <div className="bg-gray-50 rounded-xl p-4">
-                    <h4 className="text-[12px] font-bold text-gray-400 uppercase tracking-wider mb-2">🎯 ภารกิจรับฉายา</h4>
-                    <p className="text-[14px] text-gray-800 leading-relaxed">{selectedBadge.description || `สะสม ${selectedBadge.minPoints} เป้าหมาย`}</p>
+                  <div className="bg-black/40 rounded-3xl p-5 border border-white/5 shadow-inner">
+                    <h4 className="text-[11px] font-black text-white/40 uppercase tracking-widest mb-3 flex items-center gap-2">
+                      <Zap size={14} className="text-amber-400" /> ภารกิจรับฉายา
+                    </h4>
+                    <p className="text-[14px] font-medium text-white/80 leading-relaxed">{selectedBadge.description || `สะสม ${selectedBadge.minPoints} เป้าหมาย`}</p>
                     
                     {!selectedBadge.isUnlocked && (
-                      <div className="mt-4">
-                        <div className="flex justify-between text-[12px] mb-1">
-                          <span className="text-gray-500">ความคืบหน้า</span>
-                          <span className="font-medium">{selectedBadge.currentValue} / {selectedBadge.minPoints}</span>
+                      <div className="mt-5">
+                        <div className="flex justify-between text-[12px] mb-2 font-bold">
+                          <span className="text-white/40">ความคืบหน้า</span>
+                          <span className="text-white">{selectedBadge.currentValue} / {selectedBadge.minPoints}</span>
                         </div>
-                        <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-                          <div className="h-full bg-blue-500 rounded-full transition-all duration-1000" style={{ width: `${selectedBadge.progress}%` }}></div>
+                        <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden shadow-inner">
+                          <div className="h-full bg-blue-500 rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(59,130,246,0.5)]" style={{ width: `${selectedBadge.progress}%` }}></div>
                         </div>
                       </div>
                     )}
@@ -798,9 +980,11 @@ const fetchData = async () => {
 
                   {/* Benefits */}
                   {selectedBadge.benefits && (
-                    <div className="bg-amber-50 rounded-xl p-4 border border-amber-100/50">
-                      <h4 className="text-[12px] font-bold text-amber-600 uppercase tracking-wider mb-2">🎁 สิทธิพิเศษ</h4>
-                      <p className="text-[14px] text-gray-800 leading-relaxed whitespace-pre-line">{selectedBadge.benefits}</p>
+                    <div className="bg-amber-500/10 rounded-3xl p-5 border border-amber-500/20">
+                      <h4 className="text-[11px] font-black text-amber-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                        <Gift size={14} /> สิทธิพิเศษ
+                      </h4>
+                      <p className="text-[14px] font-medium text-amber-100/80 leading-relaxed whitespace-pre-line">{selectedBadge.benefits}</p>
                     </div>
                   )}
                 </div>
@@ -808,131 +992,140 @@ const fetchData = async () => {
             </motion.div>
           </>
         )}
-</AnimatePresence>
+      </AnimatePresence>
 
-
-      {/* 🎁 MYSTERY BOX MODAL */}
+      {/* 🎁 NEON MYSTERY BOX MODAL */}
       <AnimatePresence>
         {showMysteryBox && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-            <div className="absolute inset-0 bg-[#1A1A18]/80 backdrop-blur-md" onClick={() => !isPlayingBox && mysteryBoxState !== 'opening' && setShowMysteryBox(false)}></div>
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="relative w-full max-w-sm bg-white rounded-[2.5rem] p-8 overflow-hidden text-center shadow-2xl"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/80 backdrop-blur-md" 
+              onClick={() => !isPlayingBox && mysteryBoxState !== 'opening' && setShowMysteryBox(false)}
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative w-full max-w-sm bg-[#111] border border-white/10 rounded-[3rem] p-8 overflow-hidden text-center shadow-[0_0_50px_rgba(0,0,0,0.5)]"
             >
               <button 
                 onClick={() => setShowMysteryBox(false)} 
                 disabled={mysteryBoxState === 'opening'}
-                className="absolute top-6 right-6 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 disabled:opacity-30"
+                className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center rounded-full bg-white/5 text-white/50 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-30 border border-white/5"
               >
-                <X size={16} />
+                <X size={20} />
               </button>
               
               {mysteryBoxState === 'idle' && (
-                <>
-                  <div className="w-24 h-24 mx-auto bg-gradient-to-br from-[#FCF7E8] to-[#F5E6C4] rounded-3xl flex items-center justify-center text-5xl mb-6 shadow-inner relative overflow-hidden">
-                    <span className="relative z-10">🎁</span>
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                  <div className="w-28 h-28 mx-auto bg-gradient-to-br from-amber-500/20 to-orange-500/10 border border-amber-500/20 rounded-[2rem] flex items-center justify-center text-6xl mb-6 shadow-[0_0_30px_rgba(245,158,11,0.2)] relative overflow-hidden">
+                    <span className="relative z-10 drop-shadow-md">🎁</span>
                   </div>
-                  <h3 className="text-2xl font-black text-[#1A1A18] tracking-tight mb-2">
+                  <h3 className="text-[24px] font-black text-white tracking-tight mb-2 drop-shadow-md">
                     {locale === 'en' ? 'Mystery Box' : 'กล่องสุ่มหรรษา'}
                   </h3>
-                  <p className="text-gray-500 text-sm mb-6 leading-relaxed">
+                  <p className="text-white/50 text-[14px] font-medium mb-8 leading-relaxed px-4">
                     {locale === 'en' ? 'Spend 50 points to open a box and win random points back! (Up to 500 Pts)' : 'ใช้ 50 แต้ม เพื่อเปิดกล่องสุ่ม ลุ้นรับแต้มคืนสูงสุด 500 แต้ม!'}
                   </p>
                   <button
                     onClick={handlePlayMysteryBox}
                     disabled={(memberInfo?.points || 0) < 50}
-                    className="w-full py-4 bg-[#1A1A18] text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-black transition-all disabled:opacity-50 disabled:bg-gray-300 shadow-xl"
+                    className="w-full py-4 bg-white text-black rounded-2xl font-black text-[15px] uppercase tracking-wider hover:bg-gray-200 active:scale-95 transition-all disabled:opacity-50 disabled:bg-white/10 disabled:text-white/30 shadow-[0_0_20px_rgba(255,255,255,0.2)]"
                   >
                     {(memberInfo?.points || 0) < 50 ? (locale === 'en' ? 'Not enough points' : 'แต้มไม่เพียงพอ') : (locale === 'en' ? 'Open Box (50 Pts)' : 'เปิดกล่อง (50 แต้ม)')}
                   </button>
-                </>
+                </motion.div>
               )}
               
               {mysteryBoxState === 'opening' && (
-                <div className="py-8">
+                <div className="py-10">
                   <motion.div 
                     animate={{ rotate: [-5, 5, -5, 5, 0], scale: [1, 1.1, 1] }}
                     transition={{ repeat: Infinity, duration: 0.5 }}
-                    className="w-32 h-32 mx-auto bg-gradient-to-br from-[#FCF7E8] to-[#F5E6C4] rounded-full flex items-center justify-center text-6xl shadow-xl"
+                    className="w-32 h-32 mx-auto bg-gradient-to-br from-amber-500/40 to-orange-500/20 rounded-[2rem] flex items-center justify-center text-7xl shadow-[0_0_40px_rgba(245,158,11,0.4)] border border-amber-500/40"
                   >
-                    🎁
+                    <span className="drop-shadow-lg">🎁</span>
                   </motion.div>
-                  <h3 className="text-xl font-black text-[#1A1A18] tracking-tight mt-8 animate-pulse">
+                  <h3 className="text-[20px] font-black text-white tracking-tight mt-10 animate-pulse drop-shadow-md">
                     {locale === 'en' ? 'Opening...' : 'กำลังเปิดกล่อง...'}
                   </h3>
                 </div>
               )}
               
               {mysteryBoxState === 'result' && (
-                <>
+                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="py-4">
                   <motion.div 
                     initial={{ scale: 0.5, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
-                    className="w-28 h-28 mx-auto bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mb-6 relative"
+                    transition={{ type: "spring", damping: 15 }}
+                    className="w-32 h-32 mx-auto bg-emerald-500/20 text-emerald-400 rounded-[2rem] flex items-center justify-center mb-8 relative border border-emerald-500/40 shadow-[0_0_40px_rgba(52,211,153,0.3)]"
                   >
                     <motion.div 
                       animate={{ y: [0, -10, 0] }} 
                       transition={{ repeat: Infinity, duration: 2 }}
-                      className="text-6xl font-black"
+                      className="text-7xl font-black drop-shadow-lg"
                     >
                       {mysteryBoxResult > 50 ? '🎉' : mysteryBoxResult === 50 ? '🎁' : '😅'}
                     </motion.div>
                   </motion.div>
-                  <h3 className="text-2xl font-black text-[#1A1A18] tracking-tight mb-2">
+                  <h3 className="text-[24px] font-black text-white tracking-tight mb-2 drop-shadow-md">
                     {mysteryBoxResult > 50 ? (locale === 'en' ? 'JACKPOT!' : 'แจ็คพอตแตก!') : mysteryBoxResult === 50 ? (locale === 'en' ? 'Nice!' : 'ดีเลย!') : (locale === 'en' ? 'Ouch!' : 'ได้เกลือออ!')}
                   </h3>
-                  <div className="text-emerald-500 font-black text-4xl mb-6 tracking-tighter">
-                    +{mysteryBoxResult} <span className="text-xl">PTS</span>
+                  <div className="text-emerald-400 font-black text-5xl mb-8 tracking-tighter drop-shadow-[0_0_15px_rgba(52,211,153,0.5)]">
+                    +{mysteryBoxResult} <span className="text-2xl opacity-70">PTS</span>
                   </div>
                   <button
                     onClick={() => {
                       setMysteryBoxState('idle');
                       setShowMysteryBox(false);
                     }}
-                    className="w-full py-4 bg-gray-100 text-[#1A1A18] rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-gray-200 transition-all"
+                    className="w-full py-4 bg-white/10 text-white border border-white/10 rounded-2xl font-black text-[15px] uppercase tracking-wider hover:bg-white/20 active:scale-95 transition-all"
                   >
                     {locale === 'en' ? 'Close' : 'ปิดหน้าต่าง'}
                   </button>
-                </>
+                </motion.div>
               )}
             </motion.div>
           </div>
         )}
       </AnimatePresence>
       
-      {/* 📱 Phone Link Modal */}
+      {/* 📱 DARK Phone Link Modal */}
       <AnimatePresence>
         {showPhoneModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-5">
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setShowPhoneModal(false)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/80 backdrop-blur-md"
             />
             <motion.div 
-              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="relative bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl z-10"
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative bg-[#111] border border-white/10 w-full max-w-sm rounded-[2.5rem] p-8 shadow-[0_0_50px_rgba(0,0,0,0.5)] z-10 text-center"
             >
-              <h3 className="text-xl font-black text-[#1A1A18] mb-2">
-                {dict.locale === 'en' ? 'Link Phone Number' : 'เชื่อมต่อเบอร์โทรศัพท์'}
+              <div className="w-16 h-16 mx-auto bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-[1.5rem] flex items-center justify-center mb-6 shadow-[0_0_20px_rgba(59,130,246,0.2)]">
+                 <Zap size={28} />
+              </div>
+              <h3 className="text-[22px] font-black text-white mb-2 leading-tight drop-shadow-md">
+                {locale === 'en' ? 'Link Phone Number' : 'เชื่อมต่อเบอร์โทรศัพท์'}
               </h3>
-              <p className="text-sm text-gray-500 mb-6">
-                {dict.locale === 'en' ? 'Link your phone number to receive points from POS orders.' : 'ระบุเบอร์โทรศัพท์ของคุณเพื่อรับแต้มจากการสั่งซื้อหน้าร้าน (รวมคะแนนอัตโนมัติ)'}
+              <p className="text-[14px] text-white/50 font-medium mb-8 leading-relaxed">
+                {locale === 'en' ? 'Link your phone number to receive points from POS orders.' : 'ระบุเบอร์โทรศัพท์ของคุณเพื่อรับแต้มจากการสั่งซื้อหน้าร้าน (รวมคะแนนอัตโนมัติ)'}
               </p>
               
-              <div className="mb-6 space-y-3">
+              <div className="mb-8 space-y-4">
                 <input 
                   type="text" 
                   id="nickname-input-modal"
                   value={nicknameInput} 
                   onChange={e => setNicknameInput(e.target.value)} 
-                  placeholder={dict.locale === 'en' ? "Nickname / Name" : "ชื่อเล่น / ชื่อเรียก"} 
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-[18px] font-bold text-[#1A1A18] text-center focus:ring-2 focus:ring-black outline-none transition-all placeholder:font-medium" 
+                  placeholder={locale === 'en' ? "Nickname / Name" : "ชื่อเล่น / ชื่อเรียก"} 
+                  className="w-full bg-black/50 border border-white/10 rounded-2xl p-4 text-[16px] font-bold text-white text-center focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder:font-medium placeholder:text-white/20 shadow-inner" 
                 />
                 <input 
                   type="tel" 
@@ -940,23 +1133,23 @@ const fetchData = async () => {
                   value={phoneInput} 
                   onChange={e => setPhoneInput(e.target.value)} 
                   placeholder="08X-XXX-XXXX" 
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-[18px] font-black text-[#1A1A18] text-center focus:ring-2 focus:ring-black outline-none transition-all" 
+                  className="w-full bg-black/50 border border-white/10 rounded-2xl p-4 text-[20px] font-black text-white text-center focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder:font-medium placeholder:text-white/20 tracking-wider shadow-inner" 
                 />
               </div>
 
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowPhoneModal(false)}
-                  className="flex-1 py-3 bg-gray-100 text-[#1A1A18] rounded-xl font-bold text-sm hover:bg-gray-200 transition-colors"
+                  className="flex-1 py-4 bg-white/5 text-white/60 border border-white/10 rounded-2xl font-bold text-[14px] hover:bg-white/10 hover:text-white transition-colors"
                 >
-                  {dict.locale === 'en' ? 'Cancel' : 'ยกเลิก'}
+                  {locale === 'en' ? 'Cancel' : 'ยกเลิก'}
                 </button>
                 <button
                   onClick={handleLinkPhone}
                   disabled={isLinkingPhone || phoneInput.length < 9 || !nicknameInput.trim()}
-                  className="flex-1 py-3 bg-black text-white rounded-xl font-bold text-sm hover:bg-gray-900 transition-colors disabled:opacity-50 flex justify-center items-center"
+                  className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-black text-[14px] shadow-[0_0_20px_rgba(37,99,235,0.4)] hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:shadow-none flex justify-center items-center active:scale-95"
                 >
-                  {isLinkingPhone ? <Loader2 size={18} className="animate-spin" /> : (dict.locale === 'en' ? 'Link' : 'บันทึก')}
+                  {isLinkingPhone ? <Loader2 size={20} className="animate-spin" /> : (locale === 'en' ? 'Link Phone' : 'บันทึก')}
                 </button>
               </div>
             </motion.div>
