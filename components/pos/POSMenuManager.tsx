@@ -411,27 +411,24 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
       const filePath = `pos-menus/${fileName}`
 
       const { data: { session } } = await supabase.auth.getSession()
-      const signRes = await fetch('/api/admin/storage/sign-upload', {
+      
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('bucket', 'marketplace-images')
+      formData.append('path', filePath)
+
+      const uploadRes = await fetch('/api/admin/storage/upload', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
         },
-        body: JSON.stringify({ path: filePath, bucket: 'marketplace-images' })
+        body: formData
       })
 
-      const signResult = await signRes.json()
-      if (!signRes.ok) throw new Error(signResult.error || 'Failed to get upload permission')
+      const uploadResult = await uploadRes.json()
+      if (!uploadRes.ok) throw new Error(uploadResult.error || 'Failed to upload file')
 
-      const uploadRes = await fetch(signResult.signedUrl, {
-        method: 'PUT',
-        body: file,
-        headers: { 'Content-Type': file.type }
-      })
-
-      if (!uploadRes.ok) throw new Error('Failed to upload file')
-
-      await handleBulkUpdate(itemId, 'image_url', signResult.publicUrl)
+      await handleBulkUpdate(itemId, 'image_url', uploadResult.publicUrl)
     } catch (error: any) {
       alert('Error uploading image: ' + error.message)
     } finally {
@@ -450,27 +447,24 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
           const filePath = `pos-menus/${fileName}`
           
           const { data: { session } } = await supabase.auth.getSession()
-          const signRes = await fetch('/api/admin/storage/sign-upload', {
+          
+          const formData = new FormData()
+          formData.append('file', file)
+          formData.append('bucket', 'marketplace-images')
+          formData.append('path', filePath)
+
+          const uploadRes = await fetch('/api/admin/storage/upload', {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/json',
               ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
             },
-            body: JSON.stringify({ path: filePath, bucket: 'marketplace-images' })
+            body: formData
           })
 
-          const signResult = await signRes.json()
-          if (!signRes.ok) throw new Error(signResult.error || 'Failed to get upload permission')
-
-          const uploadRes = await fetch(signResult.signedUrl, {
-            method: 'PUT',
-            body: file,
-            headers: { 'Content-Type': file.type }
-          })
-
-          if (!uploadRes.ok) throw new Error('Failed to upload file')
+          const uploadResult = await uploadRes.json()
+          if (!uploadRes.ok) throw new Error(uploadResult.error || 'Failed to upload file')
               
-          setEditingItem({ ...editingItem, image_url: signResult.publicUrl })
+          setEditingItem({ ...editingItem, image_url: uploadResult.publicUrl })
       } catch (error: any) {
           alert('Error uploading image: ' + error.message)
       } finally {

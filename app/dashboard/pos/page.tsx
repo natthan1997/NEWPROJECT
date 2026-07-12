@@ -334,7 +334,7 @@ function RestaurantOSPageContent() {
     } else {
       query = query.eq('id', '00000000-0000-0000-0000-000000000001')
     }
-    const { data } = await query.maybeSingle()
+    const { data } = await query.order('updated_at', { ascending: false }).limit(1).maybeSingle()
     if (data) {
       const activeBranchId = data.branch_id || branchId
       if (activeBranchId && !branchName) {

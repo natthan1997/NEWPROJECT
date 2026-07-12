@@ -15,7 +15,7 @@ const createSupabaseServiceClient = () => {
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json().catch(() => ({}))
-        const { lineUserId, phone, fullName } = body
+        const { lineUserId, phone, fullName, dateOfBirth } = body
 
         if (!lineUserId || !phone) {
             return NextResponse.json({ error: 'Missing lineUserId or phone' }, { status: 400 })
@@ -52,7 +52,8 @@ export async function POST(req: NextRequest) {
                 phone: phone,
                 points: combinedPoints,
                 total_accumulated_points: combinedTotal,
-                full_name: phoneMember.full_name || fullName || undefined
+                full_name: phoneMember.full_name || fullName || undefined,
+                date_of_birth: lineMember.date_of_birth || phoneMember.date_of_birth || dateOfBirth || undefined
             }).eq('id', lineMember.id)
 
             // Re-assign history
@@ -68,7 +69,8 @@ export async function POST(req: NextRequest) {
             // JUST UPDATE PHONE AND NAME
             await supabase.from('pos_members').update({
                 phone: phone,
-                full_name: fullName || undefined
+                full_name: fullName || undefined,
+                date_of_birth: dateOfBirth || undefined
             }).eq('id', lineMember.id)
             
             return NextResponse.json({ success: true, merged: false, newPoints: lineMember.points })

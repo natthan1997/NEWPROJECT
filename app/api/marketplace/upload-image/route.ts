@@ -51,8 +51,9 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    if (profileError || !profile || profile.role !== 'admin') {
-      return NextResponse.json({ error: 'อนุญาตเฉพาะ admin เท่านั้น' }, { status: 403 })
+    const role = profile?.role || ''
+    if (profileError || !profile || (role !== 'admin' && role !== 'manager' && role !== 'staff')) {
+      return NextResponse.json({ error: 'ไม่มีสิทธิ์ในการอัปโหลด' }, { status: 403 })
     }
 
     const formData = await request.formData()

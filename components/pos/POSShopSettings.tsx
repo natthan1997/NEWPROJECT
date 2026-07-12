@@ -151,6 +151,10 @@ export default function POSShopSettings({
                 address: data.opening_hours?.address || '',
                 loyalty_points_per_thb: data.opening_hours?.loyalty_points_per_thb || 10,
                 loyalty_earn_rate: data.opening_hours?.loyalty_earn_rate || 100,
+                loyalty_earn_thb: data.opening_hours?.loyalty_earn_thb !== undefined ? data.opening_hours.loyalty_earn_thb : (data.opening_hours?.loyalty_earn_rate || 100),
+                loyalty_earn_pts: data.opening_hours?.loyalty_earn_pts !== undefined ? data.opening_hours.loyalty_earn_pts : 1,
+                loyalty_redeem_pts: data.opening_hours?.loyalty_redeem_pts !== undefined ? data.opening_hours.loyalty_redeem_pts : 1,
+                loyalty_redeem_thb: data.opening_hours?.loyalty_redeem_thb !== undefined ? data.opening_hours.loyalty_redeem_thb : (data.opening_hours?.loyalty_points_per_thb || 10),
                 delivery_gp: data.opening_hours?.delivery_gp || { grab: 32.1, lineman: 32.1, shopee: 32.1, foodpanda: 32.1, robinhood: 0 },
                 active_delivery_platforms: data.opening_hours?.active_delivery_platforms || ['grab', 'shopee', 'lineman', 'foodpanda', 'robinhood'],
             })
@@ -196,6 +200,10 @@ export default function POSShopSettings({
         address: settings.address,
         loyalty_points_per_thb: settings.loyalty_points_per_thb,
         loyalty_earn_rate: settings.loyalty_earn_rate,
+        loyalty_earn_thb: settings.loyalty_earn_thb,
+        loyalty_earn_pts: settings.loyalty_earn_pts,
+        loyalty_redeem_pts: settings.loyalty_redeem_pts,
+        loyalty_redeem_thb: settings.loyalty_redeem_thb,
         delivery_gp: settings.delivery_gp,
         active_delivery_platforms: settings.active_delivery_platforms,
       },
@@ -212,6 +220,10 @@ export default function POSShopSettings({
     delete payload.receipt_payment_qr_image;
     delete payload.loyalty_points_per_thb;
     delete payload.loyalty_earn_rate;
+    delete payload.loyalty_earn_thb;
+    delete payload.loyalty_earn_pts;
+    delete payload.loyalty_redeem_pts;
+    delete payload.loyalty_redeem_thb;
     delete payload.address;
     delete payload.delivery_gp;
     delete payload.active_delivery_platforms;
@@ -226,6 +238,7 @@ export default function POSShopSettings({
                 .select()
                 .single()
         } else {
+            delete payload.id;
             result = await supabase
                 .from('pos_shop_settings')
                 .insert(payload)
@@ -256,6 +269,10 @@ export default function POSShopSettings({
                 address: data.opening_hours?.address || '',
                 loyalty_points_per_thb: data.opening_hours?.loyalty_points_per_thb || 10,
                 loyalty_earn_rate: data.opening_hours?.loyalty_earn_rate || 100,
+                loyalty_earn_thb: data.opening_hours?.loyalty_earn_thb !== undefined ? data.opening_hours.loyalty_earn_thb : (data.opening_hours?.loyalty_earn_rate || 100),
+                loyalty_earn_pts: data.opening_hours?.loyalty_earn_pts !== undefined ? data.opening_hours.loyalty_earn_pts : 1,
+                loyalty_redeem_pts: data.opening_hours?.loyalty_redeem_pts !== undefined ? data.opening_hours.loyalty_redeem_pts : 1,
+                loyalty_redeem_thb: data.opening_hours?.loyalty_redeem_thb !== undefined ? data.opening_hours.loyalty_redeem_thb : (data.opening_hours?.loyalty_points_per_thb || 10),
                 delivery_gp: data.opening_hours?.delivery_gp || { grab: 32.1, lineman: 32.1, shopee: 32.1, foodpanda: 32.1, robinhood: 0 },
                 active_delivery_platforms: data.opening_hours?.active_delivery_platforms || ['grab', 'shopee', 'lineman', 'foodpanda', 'robinhood'],
             })
@@ -683,7 +700,7 @@ export default function POSShopSettings({
                                     <p className="text-[12px] text-gray-500 font-bold mb-8">{locale === 'en' ? 'รูปแบบตัวอักษรและการแสดงผลสำหรับบิลที่พิมพ์เข้าห้องครัว' : locale === 'zh' ? 'รูปแบบตัวอักษรและการแสดงผลสำหรับบิลที่พิมพ์เข้าห้องครัว' : 'รูปแบบตัวอักษรและการแสดงผลสำหรับบิลที่พิมพ์เข้าห้องครัว'}</p>
                                     
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                        <div className="space-y-3 md:col-span-2">
+                                        <div className="space-y-3 md:grid-cols-2">
                                             <label className="text-[11px] font-black uppercase tracking-widest text-gray-400 block mb-2">{locale === 'en' ? 'ขนาดตัวอักษรรายการอาหาร (Font Size)' : locale === 'zh' ? 'ขนาดตัวอักษรรายการอาหาร (Font Size)' : 'ขนาดตัวอักษรรายการอาหาร (Font Size)'}</label>
                                             <div className="flex flex-wrap sm:flex-nowrap p-1 bg-gray-100 rounded-xl">
                                                 <button onClick={() => setSettings({...settings, kitchen_font_size: 'normal'})} className={`flex-1 min-w-[100px] py-3 text-sm font-black rounded-lg transition-all ${(!settings.kitchen_font_size || settings.kitchen_font_size === 'normal') ? 'bg-white shadow-sm text-black' : 'text-gray-500'}`}>{locale === 'en' ? 'normal' : locale === 'zh' ? '普通的' : 'ปกติ'}</button>
@@ -692,7 +709,7 @@ export default function POSShopSettings({
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center justify-between bg-gray-50 p-5 rounded-xl border border-gray-100 md:col-span-2">
+                                        <div className="flex items-center justify-between bg-gray-50 p-5 rounded-xl border border-gray-100 md:grid-cols-2">
                                             <div>
                                                 <label className="text-[13px] font-black text-gray-900 block mb-1">{locale === 'en' ? 'แสดงประเภทออเดอร์ (Order Type)' : locale === 'zh' ? 'แสดงประเภทออเดอร์ (Order Type)' : 'แสดงประเภทออเดอร์ (Order Type)'}</label>
                                                 <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">{locale === 'en' ? 'เช่น ทานที่ร้าน, สั่งกลับบ้าน, เดลิเวอรี่' : locale === 'zh' ? 'เช่น ทานที่ร้าน, สั่งกลับบ้าน, เดลิเวอรี่' : 'เช่น ทานที่ร้าน, สั่งกลับบ้าน, เดลิเวอรี่'}</p>
@@ -721,48 +738,67 @@ export default function POSShopSettings({
                                         <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 flex flex-col md:flex-row items-center gap-4">
                                             <div className="flex-1">
                                                 <label className="text-[14px] font-black tracking-tight text-[#1A1A18] mb-1 block">
-                                                    {locale === 'en' ? 'Earn Rate' : 'อัตราการให้แต้ม (Earn Rate)'}
+                                                    {locale === 'en' ? 'Earn Rate' : 'เงื่อนไขการได้รับแต้ม (Earn Rate)'}
                                                 </label>
                                                 <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">
-                                                    {locale === 'en' ? 'How many THB equals 1 Point' : 'ลูกค้าซื้อกี่บาท ถึงจะได้ 1 แต้ม'}
+                                                    {locale === 'en' ? 'THB spent to earn 1 Point' : 'ทุกๆ ยอดสั่งซื้อกี่บาท ถึงจะได้รับ 1 แต้ม'}
                                                 </p>
                                             </div>
-                                            <div className="flex items-center gap-3">
-                                                <div className="relative w-32">
+                                            <div className="flex items-center gap-3 bg-white p-2 rounded-xl shadow-sm border border-gray-100">
+                                                <div className="relative w-24">
                                                     <input 
                                                         type="number" 
-                                                        value={settings.loyalty_earn_rate || 0}
-                                                        onChange={e => setSettings({...settings, loyalty_earn_rate: parseInt(e.target.value) || 0})}
-                                                        className="w-full bg-white border-2 border-gray-200 focus:border-[#1A1A18] rounded-xl py-3 text-center text-xl font-black outline-none transition-colors" 
+                                                        value={settings.loyalty_earn_thb !== undefined ? settings.loyalty_earn_thb : (settings.loyalty_earn_rate || 100)}
+                                                        onChange={e => setSettings({...settings, loyalty_earn_thb: parseInt(e.target.value) || 0})}
+                                                        className="w-full bg-gray-50 border border-gray-200 focus:border-[#1A1A18] focus:bg-white rounded-lg py-2 text-center text-lg font-black outline-none transition-colors" 
                                                     />
                                                 </div>
-                                                <span className="text-[16px] font-black text-gray-400 tracking-widest">{locale === 'en' ? 'THB' : 'บาท'}</span>
-                                                <span className="text-[16px] font-black text-[#1A1A18] mx-2">=</span>
-                                                <span className="text-[16px] font-black text-emerald-500 bg-emerald-50 px-4 py-2 rounded-xl">1 {locale === 'en' ? 'PT' : 'แต้ม'}</span>
+                                                <span className="text-[14px] font-bold text-gray-500">{locale === 'en' ? 'THB' : 'บาท'}</span>
+                                                <span className="text-[14px] font-black text-gray-300 mx-1">➜</span>
+                                                <span className="text-[14px] font-black text-emerald-600 bg-emerald-50 px-3 py-2 rounded-lg whitespace-nowrap">รับ</span>
+                                                <div className="relative w-20">
+                                                    <input 
+                                                        type="number" 
+                                                        value={settings.loyalty_earn_pts !== undefined ? settings.loyalty_earn_pts : 1}
+                                                        onChange={e => setSettings({...settings, loyalty_earn_pts: parseInt(e.target.value) || 0})}
+                                                        className="w-full bg-gray-50 border border-gray-200 focus:border-[#1A1A18] focus:bg-white rounded-lg py-2 text-center text-lg font-black outline-none transition-colors" 
+                                                    />
+                                                </div>
+                                                <span className="text-[14px] font-bold text-emerald-600">{locale === 'en' ? 'PT' : 'แต้ม'}</span>
                                             </div>
                                         </div>
 
                                         <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 flex flex-col md:flex-row items-center gap-4">
                                             <div className="flex-1">
                                                 <label className="text-[14px] font-black tracking-tight text-[#1A1A18] mb-1 block">
-                                                    {locale === 'en' ? 'Redemption Value' : 'มูลค่าของแต้ม (Redemption)'}
+                                                    {locale === 'en' ? 'Redemption Rate' : 'เงื่อนไขการแลกส่วนลด (Redemption)'}
                                                 </label>
                                                 <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">
-                                                    {locale === 'en' ? 'How much discount for 1 Point' : 'ใช้ 1 แต้ม แลกส่วนลดได้กี่บาท'}
+                                                    {locale === 'en' ? 'Points required for 1 THB discount' : 'ต้องใช้กี่แต้ม เพื่อแลกรับส่วนลด 1 บาท'}
                                                 </p>
                                             </div>
-                                            <div className="flex items-center gap-3">
-                                                <span className="text-[16px] font-black text-emerald-500 bg-emerald-50 px-4 py-2 rounded-xl">1 {locale === 'en' ? 'PT' : 'แต้ม'}</span>
-                                                <span className="text-[16px] font-black text-[#1A1A18] mx-2">=</span>
-                                                <div className="relative w-32">
+                                            <div className="flex items-center gap-3 bg-white p-2 rounded-xl shadow-sm border border-gray-100">
+                                                <span className="text-[14px] font-black text-orange-600 bg-orange-50 px-3 py-2 rounded-lg whitespace-nowrap">ใช้</span>
+                                                <div className="relative w-24">
                                                     <input 
                                                         type="number" 
-                                                        value={settings.loyalty_points_per_thb || 0}
-                                                        onChange={e => setSettings({...settings, loyalty_points_per_thb: parseInt(e.target.value) || 0})}
-                                                        className="w-full bg-white border-2 border-gray-200 focus:border-[#1A1A18] rounded-xl py-3 text-center text-xl font-black outline-none transition-colors" 
+                                                        value={settings.loyalty_redeem_pts !== undefined ? settings.loyalty_redeem_pts : 1}
+                                                        onChange={e => setSettings({...settings, loyalty_redeem_pts: parseInt(e.target.value) || 0})}
+                                                        className="w-full bg-gray-50 border border-gray-200 focus:border-[#1A1A18] focus:bg-white rounded-lg py-2 text-center text-lg font-black outline-none transition-colors" 
                                                     />
                                                 </div>
-                                                <span className="text-[16px] font-black text-gray-400 tracking-widest">{locale === 'en' ? 'THB' : 'บาท'}</span>
+                                                <span className="text-[14px] font-bold text-gray-500">{locale === 'en' ? 'PT' : 'แต้ม'}</span>
+                                                <span className="text-[14px] font-black text-gray-300 mx-1">➜</span>
+                                                <span className="text-[14px] font-black text-emerald-600 bg-emerald-50 px-3 py-2 rounded-lg whitespace-nowrap">ลด</span>
+                                                <div className="relative w-24">
+                                                    <input 
+                                                        type="number" 
+                                                        value={settings.loyalty_redeem_thb !== undefined ? settings.loyalty_redeem_thb : (settings.loyalty_points_per_thb || 10)}
+                                                        onChange={e => setSettings({...settings, loyalty_redeem_thb: parseInt(e.target.value) || 0})}
+                                                        className="w-full bg-gray-50 border border-gray-200 focus:border-[#1A1A18] focus:bg-white rounded-lg py-2 text-center text-lg font-black outline-none transition-colors" 
+                                                    />
+                                                </div>
+                                                <span className="text-[14px] font-bold text-emerald-600">{locale === 'en' ? 'THB' : 'บาท'}</span>
                                             </div>
                                         </div>
                                     </div>

@@ -112,9 +112,11 @@ export default function PosSettingsPage() {
         result = await updatePosSettings(settings.id, settings)
       } else {
         // Create new settings entry
+        const payload = { ...settings, branch_id: selectedBranchId }
+        delete payload.id
         const { data, error } = await supabase
           .from('pos_shop_settings')
-          .insert({ ...settings, branch_id: selectedBranchId })
+          .insert(payload)
           .select()
           .single()
         result = { data, error }

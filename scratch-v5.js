@@ -1,367 +1,29 @@
+const fs = require('fs');
 
-'use client';
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { 
-  ChevronLeft, History, Gift, TrendingUp, User, Info, X, Check, Loader2, Sparkles, ChevronRight, Zap
-} from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { createClient } from '@/utils/supabase/client';
-import { useLiff } from '@/components/liff/LiffProvider';
-import XYLLoader from '@/components/loaders/XYLLoader';
-import { useI18n } from "@/lib/I18nContext";
+const original = fs.readFileSync('app/liff/member/page.tsx', 'utf8');
 
-export default function LiffMemberPage() {
-  const { locale } = useI18n();
-  const router = useRouter();
-  const supabase = createClient();
-  const { lineProfile, loading: liffLoading, hasSeenLoader } = useLiff();
-  
-  const [memberInfo, setMemberInfo] = useState<any>(null);
-  const [pointsHistory, setPointsHistory] = useState<any[]>([]);
-  const [rewards, setRewards] = useState<any[]>([]);
-  const [vouchers, setVouchers] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'rewards' | 'history'>('rewards');
-  const [showMysteryBox, setShowMysteryBox] = useState(false);
-  const [mysteryBoxState, setMysteryBoxState] = useState<'idle' | 'opening' | 'result'>('idle');
-  const [mysteryBoxResult, setMysteryBoxResult] = useState(0);
-  const [isPlayingBox, setIsPlayingBox] = useState(false);
-  const [showPhoneModal, setShowPhoneModal] = useState(false);
-  const [phoneInput, setPhoneInput] = useState('');
-  const [nicknameInput, setNicknameInput] = useState('');
-  const [dobInput, setDobInput] = useState('');
-  const [isLinkingPhone, setIsLinkingPhone] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [showBenefits, setShowBenefits] = useState(false);
-  const [earnRate, setEarnRate] = useState(100);
-  const [showCatalog, setShowCatalog] = useState(false);
-  const [selectedBadge, setSelectedBadge] = useState<any>(null);
+// 1. Add vouchers state
+let newContent = original.replace(
+  "const [rewards, setRewards] = useState<any[]>([]);",
+  "const [rewards, setRewards] = useState<any[]>([]);\n  const [vouchers, setVouchers] = useState<any[]>([]);"
+);
 
-  const t = {
-    th: {
-      loading: 'กำลังโหลดข้อมูล...',
-      title: 'XYL Member',
-      points: 'คะแนนของคุณ',
-      rewardsCatalog: 'ของรางวัล',
-      pointsHistory: 'ประวัติ',
-      pointsToNextTier: 'คะแนนเพื่อเลื่อนระดับ',
-      maxTier: 'คุณคือสมาชิกระดับสูงสุด',
-      redeem: 'แลกรางวัล',
-      noRewards: 'ยังไม่มีของรางวัลในขณะนี้',
-      checkBackLater: 'โปรดกลับมาตรวจสอบใหม่ในภายหลัง',
-      earnedPoints: 'ได้รับคะแนน',
-      redeemedReward: 'แลกของรางวัล',
-      noHistory: 'ยังไม่มีประวัติการใช้งาน',
-      historyEmpty: 'ประวัติคะแนนของคุณจะแสดงที่นี่',
-      pts: 'pts',
-      benefitsTitle: 'สิทธิประโยชน์',
-      close: 'ปิด',
-      howToEarn: 'วิธีสะสมคะแนน',
-      earnRule: `ทุก ${earnRate} บาท = 1 คะแนน`
-    },
-    en: {
-      loading: 'Loading data...',
-      title: 'XYL Member',
-      points: 'Your Points',
-      rewardsCatalog: 'Rewards',
-      pointsHistory: 'History',
-      pointsToNextTier: 'points to',
-      maxTier: 'Top Tier Achieved',
-      redeem: 'Redeem',
-      noRewards: 'No rewards available',
-      checkBackLater: 'Please check back later.',
-      earnedPoints: 'Earned Points',
-      redeemedReward: 'Redeemed Reward',
-      noHistory: 'No History',
-      historyEmpty: 'Your points history will appear here.',
-      pts: 'pts',
-      benefitsTitle: 'Benefits',
-      close: 'Close',
-      howToEarn: 'How to earn',
-      earnRule: `${earnRate} THB = 1 Point`
-    },
-    zh: {
-      loading: '正在加载...',
-      title: 'XYL 会员',
-      points: '您的积分',
-      rewardsCatalog: '奖励',
-      pointsHistory: '历史',
-      pointsToNextTier: '分升级至',
-      maxTier: '最高等级',
-      redeem: '兑换',
-      noRewards: '暂无奖励',
-      checkBackLater: '请稍后回来查看。',
-      earnedPoints: '获得积分',
-      redeemedReward: '兑换奖励',
-      noHistory: '无历史记录',
-      historyEmpty: '您的积分历史将显示在此处。',
-      pts: '分',
-      benefitsTitle: '会员权益',
-      close: '关闭',
-      howToEarn: '如何赚取',
-      earnRule: `${earnRate} 泰铢 = 1 积分`
-    }
-  };
-  const dict = t[(locale as keyof typeof t) || 'th'];
-
-  const [titles, setTitles] = useState<any[]>([]);
-  const [activeTitle, setActiveTitle] = useState<any>(null);
-  const tiers = React.useMemo(() => [
-    { name: 'Bronze', minPoints: 0, bg: 'bg-[#F2ECE4]', text: 'text-[#8C6D53]', barColor: 'bg-[#C19A6B]', bgHex: '#F2ECE4', textHex: '#8C6D53', benefits: [`อัตราสะสมคะแนน ${earnRate} บาท = 1 คะแนน`, 'รับสิทธิ์ลุ้นกล่องสุ่มเมื่อครบ 50 คะแนน'] },
-    { name: 'Silver', minPoints: 500, bg: 'bg-[#F0F2F5]', text: 'text-[#64748B]', barColor: 'bg-[#94A3B8]', bgHex: '#F0F2F5', textHex: '#64748B', benefits: ['อัตราสะสมคะแนน x1.2', 'เครื่องดื่มพิเศษในเดือนเกิด', 'สิทธิ์สั่งซื้อต้นไม้คอลเลกชันใหม่ล่วงหน้า 12 ชม.'] },
-    { name: 'Gold', minPoints: 2000, bg: 'bg-[#FCF7E8]', text: 'text-[#B48529]', barColor: 'bg-[#D4AF37]', bgHex: '#FCF7E8', textHex: '#B48529', benefits: ['อัตราสะสมคะแนน x1.5', 'ส่วนลด 5% ทุกออเดอร์', 'สิทธิ์ Fast Track ลัดคิวเข้ารับบริการ', 'สิทธิ์สั่งซื้อต้นไม้ Rare Item ล่วงหน้า 24 ชม.'] },
-    { name: 'Platinum', minPoints: 5000, bg: 'bg-[#EBF1F5]', text: 'text-[#3E6578]', barColor: 'bg-[#6495ED]', bgHex: '#EBF1F5', textHex: '#3E6578', benefits: ['อัตราสะสมคะแนน x2.0', 'ส่วนลด 10% ทุกออเดอร์', 'สิทธิ์ Fast Track ขั้นสูงสุด', 'เบอร์ติดต่อสายตรง (Direct Line) ปรึกษาผู้เชี่ยวชาญ 24 ชม.'] }
-  ]);
-  const [campaigns, setCampaigns] = useState<any[]>([]);
-
-  
-  const handlePlayMysteryBox = async () => {
-    if ((memberInfo?.points || 0) < 50) {
-      alert(locale === 'en' ? 'Not enough points (Requires 50 Pts)' : 'แต้มไม่พอ (ต้องใช้ 50 แต้ม)');
-      return;
-    }
-    
-    setIsPlayingBox(true);
-    setMysteryBoxState('opening');
-    
-    try {
-      const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
-      const res = await fetch('/api/liff/mystery-box', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: userId })
-      });
-      const data = await res.json();
-      
-      if (data.success) {
-        // Wait for animation
-        setTimeout(() => {
-          setMysteryBoxResult(data.wonPoints);
-          setMysteryBoxState('result');
-          fetchData(); // Refresh points
-          setIsPlayingBox(false);
-        }, 1500);
-      } else {
-        alert(data.error || 'Failed to play');
-        setMysteryBoxState('idle');
-        setShowMysteryBox(false);
-        setIsPlayingBox(false);
-      }
-    } catch (e) {
-      alert('Error connecting to server');
-      setMysteryBoxState('idle');
-      setShowMysteryBox(false);
-      setIsPlayingBox(false);
-    }
-  };
-  
-  const handleLinkPhone = async () => {
-    if (!nicknameInput.trim()) {
-        alert(dict.locale === 'en' ? 'Please enter your nickname or name' : 'กรุณากรอกชื่อเล่นหรือชื่อเรียก');
-        document.getElementById('nickname-input-modal')?.focus();
-        return;
-    }
-    if (phoneInput.length < 9) {
-        alert(dict.locale === 'en' ? 'Invalid phone number' : 'กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง');
-        document.getElementById('phone-input-modal')?.focus();
-        return;
-    }
-    const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
-    if (!userId) return;
-
-    setIsLinkingPhone(true);
-    try {
-        const res = await fetch('/api/liff/member/link-phone', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ lineUserId: userId, phone: phoneInput, fullName: nicknameInput, dateOfBirth: dobInput || null })
-        });
-        const data = await res.json();
-        
-        if (data.success) {
-            alert(dict.locale === 'en' ? 'Phone number linked successfully!' : 'เชื่อมต่อเบอร์โทรศัพท์สำเร็จ!');
-            setShowPhoneModal(false);
-            fetchData();
-        } else {
-            alert(data.error || 'Failed to link phone');
-        }
-    } catch (e) {
-        alert('Error linking phone');
-    } finally {
-        setIsLinkingPhone(false);
-    }
-  };
-  
-const fetchData = async () => {
-    const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
-    if (!userId) return;
-    try {
-      setLoading(true);
-      const { data: member } = await supabase.from('pos_members').select('*').eq('line_user_id', userId).maybeSingle();
-      const { data: shopSettings } = await supabase.from('pos_shop_settings').select('opening_hours').order('updated_at', { ascending: false }).limit(1).maybeSingle();
-      if (shopSettings && shopSettings.opening_hours && shopSettings.opening_hours.loyalty_earn_rate) {
-        setEarnRate(shopSettings.opening_hours.loyalty_earn_rate);
-      }
-      if (member) {
-        setMemberInfo(member);
-        const { data: history } = await supabase.from('pos_points_history').select('*').in('member_id', [member.id, userId]).order('created_at', { ascending: false });
-        if (history) setPointsHistory(history);
-      }
-      const { data: rewardsData } = await supabase.from('pos_loyalty_coupons').select('*').eq('is_active', true).order('cost_points', { ascending: true });
+// 2. Add vouchers fetch logic in fetchData
+newContent = newContent.replace(
+  "const { data: rewardsData } = await supabase.from('pos_loyalty_coupons').select('*').eq('is_active', true).order('cost_points', { ascending: true });\n      if (rewardsData) setRewards(rewardsData);",
+  `const { data: rewardsData } = await supabase.from('pos_loyalty_coupons').select('*').eq('is_active', true).order('cost_points', { ascending: true });
       if (rewardsData) setRewards(rewardsData);
       if (member) {
         const { data: couponsData } = await supabase.from('pos_member_coupons').select('*').eq('member_id', member.id).order('created_at', { ascending: false });
         if (couponsData) setVouchers(couponsData);
-      }
-      
-      // Fetch smart badges from our new API
-      const lineUserId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
-      try {
-        const titlesRes = await fetch('/api/liff/member/titles', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lineUserId, memberId: member?.id || userId })
-        });
-        const titlesData = await titlesRes.json();
-        if (titlesData.success) {
-          setActiveTitle(titlesData.activeTitle);
-          setTitles(titlesData.titles.map((t: any) => ({
-            name: t.name,
-            minPoints: t.rule_threshold, // used for progress threshold
-            bgHex: t.badge_color || '#F2ECE4',
-            textHex: '#1A1A18',
-            barHex: '#1A1A18',
-            description: t.description || '',
-            benefits: t.benefits || '',
-            isUnlocked: t.isUnlocked,
-            progress: t.progress,
-            currentValue: t.currentValue
-          })));
-        }
-      } catch (err) {
-        console.error('Failed to load smart badges', err);
-      }
-      
-      const { data: campData, error: campError } = await supabase.from('pos_loyalty_campaigns').select('*').eq('is_active', true);
-      if (campData && !campError && campData.length > 0) {
-        const defaultGradients = [
-          { from: 'from-orange-100', to: 'to-amber-50', text: 'text-orange-900', tag: 'text-orange-800' },
-          { from: 'from-blue-100', to: 'to-cyan-50', text: 'text-blue-900', tag: 'text-blue-800' },
-          { from: 'from-purple-100', to: 'to-pink-50', text: 'text-purple-900', tag: 'text-purple-800' },
-          { from: 'from-emerald-100', to: 'to-teal-50', text: 'text-emerald-900', tag: 'text-emerald-800' },
-        ];
-        
-        setCampaigns(campData.map((c, i) => {
-          const style = defaultGradients[i % defaultGradients.length];
-          return {
-            ...c,
-            title: c.name,
-            description: c.applicable_categories && c.applicable_categories.length > 0 ? `เฉพาะหมวด: ${c.applicable_categories.join(', ')}` : 'ทุกหมวดหมู่',
-            bg_gradient_from: style.from,
-            bg_gradient_to: style.to,
-            text_color: style.text,
-            tag_color: style.tag,
-            icon: '✨',
-            type_tag: `แต้ม x${c.multiplier}`
-          };
-        }));
-      } else {
-        // Fallback default campaigns if table not ready
-        setCampaigns([
-          { id: '1', title: 'ฝนตกรับคะแนน x2', description: 'รับคะแนนสองเท่าทุกออเดอร์ในวันฝนตก!', icon: '🌧️', type_tag: 'Flash Event', bg_gradient_from: 'from-[#EBF1F5]', bg_gradient_to: 'to-[#D6E4EE]', text_color: 'text-[#1F333C]', tag_color: 'text-[#3E6578]' },
-          { id: '2', title: 'ลุ้นกล่องสุ่มทุก 50 Pts', description: 'สะสมครบทุก 50 คะแนน รับสิทธิ์เปิดกล่องสุ่มส่วนลด!', icon: '🎁', type_tag: 'Milestone', bg_gradient_from: 'from-[#FCF7E8]', bg_gradient_to: 'to-[#F5E6C4]', text_color: 'text-[#8B651B]', tag_color: 'text-[#B48529]' },
-          { id: '3', title: 'รักษาสถานะของคุณ', description: 'อย่าลืมซื้อสินค้า 1 ชิ้นภายใน 30 วันเพื่อคงระดับ', icon: '⚠️', type_tag: 'Expiring Soon', bg_gradient_from: 'from-[#FFF0F0]', bg_gradient_to: 'to-[#FFE0E0]', text_color: 'text-[#B33535]', tag_color: 'text-[#D94C4C]' }
-        ]);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+      }`
+);
 
-  const handleRedeem = async (couponId: string) => {
-    if (!confirm(locale === 'en' ? 'Confirm redemption?' : 'ยืนยันการแลกคูปองนี้ใช่หรือไม่?')) return;
-    try {
-      setLoading(true);
-      const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
-      const res = await fetch('/api/liff/member/redeem', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lineUserId: userId, couponId })
-      });
-      const data = await res.json();
-      if (data.success) {
-        alert(locale === 'en' ? 'Redeemed successfully! Coupon added to your account.' : 'แลกคูปองสำเร็จ! คูปองถูกเก็บไว้ในบัญชีของคุณแล้ว');
-        fetchData();
-      } else {
-        alert(data.error || 'Failed to redeem');
-      }
-    } catch (e) {
-      alert('Error connecting to server');
-    } finally {
-      setLoading(false);
-    }
-  };
+// 3. Replace the JSX from return (
+const returnIndex = newContent.indexOf('\n  return (\n    <div');
+const beforeReturn = newContent.substring(0, returnIndex + 1);
 
-  useEffect(() => {
-    if (!liffLoading) fetchData();
-    
-    const channel = supabase.channel('member_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_members' }, () => {
-        fetchData();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_points_history' }, () => {
-        fetchData();
-      })
-      .subscribe();
-      
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [lineProfile, liffLoading]);
-
-  if (liffLoading && !hasSeenLoader) return <XYLLoader tagline={dict.loading} />;
-
-  const totalAccumulated = memberInfo?.total_accumulated_points || memberInfo?.points || 0;
-  let currentTierIndex = 0;
-  for (let i = tiers.length - 1; i >= 0; i--) {
-    if (totalAccumulated >= tiers[i].minPoints) {
-      currentTierIndex = i;
-      break;
-    }
-  }
-  const currentTier = tiers[currentTierIndex];
-  const nextTier = currentTierIndex < tiers.length - 1 ? tiers[currentTierIndex + 1] : null;
-  const progressPercent = nextTier ? Math.min(100, Math.max(0, ((totalAccumulated - currentTier.minPoints) / (nextTier.minPoints - currentTier.minPoints)) * 100)) : 100;
-
-  const handleBack = () => {
-    if (window.history.length > 2) {
-      router.back();
-    } else {
-      router.push('/liff/menu');
-    }
-  };
-
-  const translateHistoryDescription = (desc: string | undefined | null, locale: string) => {
-    if (!desc) return locale === 'en' ? 'General Transaction' : locale === 'zh' ? '一般交易' : 'รายการทั่วไป';
-    if (desc.includes('Earned from POS Order #')) {
-        const orderNum = desc.split('#')[1] || '';
-        return locale === 'en' ? `Earned from Order #${orderNum}` : locale === 'zh' ? `从订单获得积分 #${orderNum}` : `ได้รับจากออเดอร์ #${orderNum}`;
-    }
-    if (desc.includes('Redeemed') && desc.includes('pts for POS Order #')) {
-        const match = desc.match(/Redeemed (\d+) pts for POS Order #(.+)/);
-        if (match) {
-            return locale === 'en' ? `Redeemed ${match[1]} pts for Order #${match[2]}` : locale === 'zh' ? `兑换 ${match[1]} 积分于订单 #${match[2]}` : `ใช้ ${match[1]} แต้มกับออเดอร์ #${match[2]}`;
-        }
-    }
-    if (desc === 'Claimed via QR Code') {
-        return locale === 'en' ? 'Claimed via QR Code' : locale === 'zh' ? '通过二维码领取' : 'สแกนรับแต้มจาก QR Code';
-    }
-    return desc;
-  }
-
-  return (
+const newJSX = `  return (
     <div className="min-h-screen bg-[#FAFAFA] text-[#1A1A1A] font-sans overflow-x-hidden pb-24 selection:bg-gray-200">
       
       {/* 📱 Ultra Clean Header */}
@@ -410,7 +72,7 @@ const fetchData = async () => {
             <div className="flex items-center gap-2">
               {memberInfo?.phone ? (
                 <span className="text-[13px] text-gray-500 font-mono tracking-wide">
-                  {memberInfo.phone.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3')}
+                  {memberInfo.phone.replace(/(\\d{3})(\\d{3})(\\d{4})/, '$1-$2-$3')}
                 </span>
               ) : (
                 <button 
@@ -432,75 +94,58 @@ const fetchData = async () => {
           </div>
         </motion.section>
 
-        {/* ✨ Clean Unified Tier Card */}
+        {/* ✨ Clean Joined Balance & Progress Card */}
         <motion.section 
           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}
           className="w-full flex flex-col"
         >
-          <div 
-            className="p-7 rounded-[24px] relative z-10 flex flex-col overflow-hidden shadow-sm border border-black/5" 
-            style={{ backgroundColor: currentTier.bgHex || '#F5F5F5' }}
-          >
-            {/* Background Accent */}
-            <div className="absolute top-0 right-0 w-40 h-40 bg-white/40 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4"></div>
-            
-            <div className="flex justify-between items-start mb-6 relative z-10">
-              <div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/50 backdrop-blur-md mb-4 border border-white/40 shadow-sm">
-                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: currentTier.textHex || '#1A1A18' }}></span>
-                  <span className="text-[12px] font-bold tracking-wider uppercase" style={{ color: currentTier.textHex || '#1A1A18' }}>
-                    {currentTier.name} Member
-                  </span>
-                </div>
-                <p className="text-[13px] font-medium tracking-wide mb-1 opacity-70" style={{ color: currentTier.textHex || '#1A1A18' }}>
-                  {locale === 'en' ? 'Your Balance' : 'คะแนนสะสม'}
-                </p>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-[46px] leading-none font-bold tracking-tight" style={{ color: currentTier.textHex || '#1A1A18' }}>
-                    {(memberInfo?.points || 0).toLocaleString()}
-                  </span>
-                  <span className="text-[15px] font-medium opacity-90" style={{ color: currentTier.textHex || '#1A1A18' }}>pts</span>
-                </div>
-                <p className="text-[13px] font-medium mt-1.5 opacity-80" style={{ color: currentTier.textHex || '#1A1A18' }}>
-                  = ฿{((memberInfo?.points || 0) / 10).toFixed(2)} credit
-                </p>
-              </div>
-              
-              <button 
-                onClick={() => setShowBenefits(true)}
-                className="w-10 h-10 rounded-full bg-white/50 backdrop-blur-md flex items-center justify-center border border-white/40 hover:bg-white/80 transition-all shadow-sm"
-                style={{ color: currentTier.textHex || '#1A1A18' }}
-              >
-                <Info size={20} strokeWidth={2.5} />
-              </button>
-            </div>
-            
-            {/* Progress Section */}
-            <div className="relative z-10">
-              <div className="flex justify-between items-baseline mb-2">
-                <span className="text-[13px] font-semibold opacity-90" style={{ color: currentTier.textHex || '#1A1A18' }}>
-                  {nextTier ? `${(nextTier.minPoints - totalAccumulated).toLocaleString()} pts to ${nextTier.name}` : 'Max Tier Reached'}
+          {/* Top Dark Card */}
+          <div className="bg-[#262822] text-white p-7 rounded-[24px] rounded-b-none relative flex justify-between items-center z-10 border border-[#262822]">
+            <div>
+              <p className="text-white/60 text-[13px] font-medium tracking-wide mb-1.5">
+                {locale === 'en' ? 'Your Balance' : 'คะแนนสะสมของคุณ'}
+              </p>
+              <div className="flex items-baseline gap-2">
+                <span className="text-[42px] leading-none font-serif text-[#DFCB98] tracking-tighter">
+                  {(memberInfo?.points || 0).toLocaleString()}
                 </span>
+                <span className="text-[#DFCB98] text-[15px] font-medium opacity-90">Points</span>
               </div>
-              
-              <div className="w-full h-[6px] rounded-full overflow-hidden bg-white/60 shadow-inner">
-                <motion.div 
-                  initial={{ width: 0 }}
-                  animate={{ width: `${Math.max(2, progressPercent)}%` }}
-                  transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
-                  className="h-full rounded-full" 
-                  style={{ backgroundColor: currentTier.textHex || '#1A1A18' }}
-                />
-              </div>
-              <div className="mt-4 pt-4 border-t border-black/5 flex justify-between items-center">
-                <p className="text-[11px] font-medium opacity-50 uppercase tracking-widest" style={{ color: currentTier.textHex || '#1A1A18' }}>
-                  {locale === 'en' ? 'Member Since' : 'เป็นสมาชิกตั้งแต่'}
-                </p>
-                <p className="text-[12px] font-semibold opacity-80" style={{ color: currentTier.textHex || '#1A1A18' }}>
-                  {new Date(memberInfo?.created_at || Date.now()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                </p>
-              </div>
+              <p className="text-white/40 text-[12px] mt-2 tracking-wide">
+                = ฿{((memberInfo?.points || 0) / 10).toFixed(2)} credit
+              </p>
             </div>
+            
+            <button 
+              onClick={() => setShowBenefits(true)}
+              className="w-14 h-14 rounded-full border border-white/10 flex items-center justify-center bg-white/5 text-[#DFCB98] hover:bg-white/10 active:scale-95 transition-all"
+            >
+              <Info size={24} strokeWidth={1.5} />
+            </button>
+          </div>
+          
+          {/* Bottom Progress Card - Clean styling based on Tier */}
+          <div className="p-6 rounded-[24px] rounded-t-none border border-gray-100 border-t-0 relative z-0" style={{ backgroundColor: currentTier.bgHex || '#F5F5F5' }}>
+            <div className="flex justify-between items-baseline mb-3">
+              <span className="text-[14px] font-semibold" style={{ color: currentTier.textHex || '#1A1A18' }}>{currentTier.name} Member</span>
+              <span className="text-[12px] font-medium opacity-70" style={{ color: currentTier.textHex || '#1A1A18' }}>
+                {nextTier ? \`\${(nextTier.minPoints - totalAccumulated).toLocaleString()} pts to \${nextTier.name}\` : 'Max Tier'}
+              </span>
+            </div>
+            
+            <div className="w-full h-[6px] rounded-full overflow-hidden mb-4 bg-black/5">
+              <motion.div 
+                initial={{ width: 0 }}
+                animate={{ width: \`\${Math.max(2, progressPercent)}%\` }}
+                transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
+                className="h-full rounded-full opacity-80" 
+                style={{ backgroundColor: currentTier.textHex || '#1A1A18' }}
+              />
+            </div>
+            
+            <p className="text-[12px] opacity-60 font-medium" style={{ color: currentTier.textHex || '#1A1A18' }}>
+              {locale === 'en' ? 'Member since' : 'เป็นสมาชิกตั้งแต่'} {new Date(memberInfo?.created_at || Date.now()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+            </p>
           </div>
         </motion.section>
 
@@ -514,7 +159,7 @@ const fetchData = async () => {
           </div>
           
           <div className="flex gap-3 overflow-x-auto pb-4 snap-x snap-mandatory px-5" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            <style jsx>{`div::-webkit-scrollbar { display: none; }`}</style>
+            <style jsx>{\`div::-webkit-scrollbar { display: none; }\`}</style>
             
             {!memberInfo?.phone && (
               <motion.div 
@@ -566,7 +211,7 @@ const fetchData = async () => {
               <button 
                 key={tab}
                 onClick={() => setActiveTab(tab as any)}
-                className={`flex-1 py-3 text-[14px] font-medium capitalize transition-colors relative ${activeTab === tab ? 'text-gray-900' : 'text-gray-400'}`}
+                className={\`flex-1 py-3 text-[14px] font-medium capitalize transition-colors relative \${activeTab === tab ? 'text-gray-900' : 'text-gray-400'}\`}
               >
                 {tab === 'rewards' ? dict.rewardsCatalog : tab === 'coupons' ? (locale === 'en' ? 'Coupons' : 'คูปอง') : dict.pointsHistory}
                 {activeTab === tab && (
@@ -595,7 +240,7 @@ const fetchData = async () => {
                     <div className="flex-1 flex flex-col py-1">
                       <h4 className="text-[14px] font-medium text-gray-900 leading-tight mb-1">{reward.name}</h4>
                       <p className="text-[12px] text-gray-500 mb-3">
-                        {reward.discount_type === 'free_item' ? 'ฟรี 1 รายการ' : reward.discount_type === 'percent' ? `ลด ${reward.discount_value}%` : `ลด ${reward.discount_value} บาท`}
+                        {reward.discount_type === 'free_item' ? 'ฟรี 1 รายการ' : reward.discount_type === 'percent' ? \`ลด \${reward.discount_value}%\` : \`ลด \${reward.discount_value} บาท\`}
                       </p>
                       
                       <div className="mt-auto flex items-center justify-between">
@@ -606,11 +251,11 @@ const fetchData = async () => {
                         <button 
                           onClick={() => handleRedeem(reward.id)}
                           disabled={(memberInfo?.points || 0) < reward.cost_points}
-                          className={`text-[12px] font-medium px-4 py-2 rounded-full transition-all ${
+                          className={\`text-[12px] font-medium px-4 py-2 rounded-full transition-all \${
                             (memberInfo?.points || 0) >= reward.cost_points 
                             ? 'bg-gray-900 text-white active:scale-95' 
                             : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                          }`}
+                          }\`}
                         >
                           {dict.redeem}
                         </button>
@@ -630,7 +275,7 @@ const fetchData = async () => {
                 className="space-y-3"
               >
                 {vouchers.length > 0 ? vouchers.map((voucher) => (
-                  <div key={voucher.id} className={`flex border rounded-[20px] overflow-hidden bg-white ${voucher.status !== 'active' ? 'border-gray-100 opacity-60 grayscale' : 'border-gray-200'}`}>
+                  <div key={voucher.id} className={\`flex border rounded-[20px] overflow-hidden bg-white \${voucher.status !== 'active' ? 'border-gray-100 opacity-60 grayscale' : 'border-gray-200'}\`}>
                     <div className="w-[80px] bg-gray-50 border-r border-dashed border-gray-200 flex flex-col items-center justify-center p-4">
                       <span className="text-xl font-light text-gray-900">
                         {voucher.discount_type === 'percent' ? voucher.discount_value : voucher.discount_type === 'free_item' ? 'FREE' : voucher.discount_value}
@@ -652,9 +297,9 @@ const fetchData = async () => {
                         </span>
                         <button 
                           disabled={voucher.status !== 'active'}
-                          className={`text-[11px] font-medium px-4 py-1.5 rounded-full ${
+                          className={\`text-[11px] font-medium px-4 py-1.5 rounded-full \${
                             voucher.status !== 'active' ? 'bg-gray-100 text-gray-400' : 'bg-gray-900 text-white'
-                          }`}
+                          }\`}
                         >
                           {voucher.status !== 'active' ? 'Used' : 'Ready to use'}
                         </button>
@@ -683,7 +328,7 @@ const fetchData = async () => {
                         {new Date(item.created_at).toLocaleDateString(locale === 'en' ? 'en-US' : locale === 'zh' ? 'zh-CN' : 'th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </p>
                     </div>
-                    <span className={`text-[15px] font-medium ${item.type === 'earn' ? 'text-gray-900' : 'text-gray-500'}`}>
+                    <span className={\`text-[15px] font-medium \${item.type === 'earn' ? 'text-gray-900' : 'text-gray-500'}\`}>
                       {item.type === 'earn' ? '+' : '-'}{item.points.toLocaleString()}
                     </span>
                   </div>
@@ -793,7 +438,7 @@ const fetchData = async () => {
                       whileTap={{ scale: 0.98 }}
                       key={idx} 
                       onClick={() => setSelectedBadge(tier)}
-                      className={`bg-white border p-5 rounded-[20px] flex flex-col items-center cursor-pointer ${tier.isUnlocked ? 'border-gray-200 shadow-sm' : 'border-gray-100 opacity-60 grayscale'}`}
+                      className={\`bg-white border p-5 rounded-[20px] flex flex-col items-center cursor-pointer \${tier.isUnlocked ? 'border-gray-200 shadow-sm' : 'border-gray-100 opacity-60 grayscale'}\`}
                     >
                       <div className="w-12 h-12 rounded-full flex items-center justify-center text-[16px] font-medium mb-3" style={{ backgroundColor: tier.bgHex, color: tier.textHex }}>
                         {tier.name[0]}
@@ -802,7 +447,7 @@ const fetchData = async () => {
                       
                       {!tier.isUnlocked && (
                         <div className="w-full mt-2 h-[2px] bg-gray-100 rounded-full overflow-hidden">
-                          <div className="h-full bg-gray-300" style={{ width: `${tier.progress}%` }}></div>
+                          <div className="h-full bg-gray-300" style={{ width: \`\${tier.progress}%\` }}></div>
                         </div>
                       )}
                     </motion.div>
@@ -817,16 +462,16 @@ const fetchData = async () => {
       {/* 🏆 Clean Badge Modal */}
       <AnimatePresence>
         {selectedBadge && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-5">
+          <>
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setSelectedBadge(null)}
-              className="absolute inset-0 bg-gray-900/20 backdrop-blur-sm"
+              className="fixed inset-0 z-[60] bg-gray-900/20 backdrop-blur-sm"
             />
             <motion.div 
               initial={{ scale: 0.95, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 10 }} 
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="relative z-[60] w-[85%] max-w-sm bg-white rounded-[24px] overflow-hidden"
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[60] w-[85%] max-w-sm bg-white rounded-[24px] overflow-hidden"
             >
               <div className="h-20 w-full flex items-center justify-between px-5" style={{ backgroundColor: selectedBadge.bgHex }}>
                 <div className="w-6"></div>
@@ -848,7 +493,7 @@ const fetchData = async () => {
                 <div className="text-left space-y-4">
                   <div>
                     <h4 className="text-[11px] text-gray-400 uppercase tracking-widest font-semibold mb-2">Requirement</h4>
-                    <p className="text-[13px] text-gray-700">{selectedBadge.description || `สะสม ${selectedBadge.minPoints} เป้าหมาย`}</p>
+                    <p className="text-[13px] text-gray-700">{selectedBadge.description || \`สะสม \${selectedBadge.minPoints} เป้าหมาย\`}</p>
                     
                     {!selectedBadge.isUnlocked && (
                       <div className="mt-3">
@@ -857,7 +502,7 @@ const fetchData = async () => {
                           <span>{selectedBadge.currentValue} / {selectedBadge.minPoints}</span>
                         </div>
                         <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
-                          <div className="h-full bg-gray-300" style={{ width: `${selectedBadge.progress}%` }}></div>
+                          <div className="h-full bg-gray-300" style={{ width: \`\${selectedBadge.progress}%\` }}></div>
                         </div>
                       </div>
                     )}
@@ -872,7 +517,7 @@ const fetchData = async () => {
                 </div>
               </div>
             </motion.div>
-          </div>
+          </>
         )}
       </AnimatePresence>
 
@@ -974,17 +619,6 @@ const fetchData = async () => {
                   placeholder="08X-XXX-XXXX" 
                   className="w-full bg-[#FAFAFA] border border-gray-100 rounded-[16px] p-4 text-[16px] tracking-wide text-center focus:border-gray-300 outline-none transition-all placeholder:text-gray-400" 
                 />
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[11px] font-bold text-gray-400 uppercase tracking-widest">
-                    {locale === 'en' ? 'Birthday' : 'วันเกิด (รับคูปอง)'}
-                  </span>
-                  <input 
-                    type="date" 
-                    value={dobInput} 
-                    onChange={e => setDobInput(e.target.value)} 
-                    className="w-full bg-[#FAFAFA] border border-gray-100 rounded-[16px] p-4 pl-32 text-[14px] text-center focus:border-gray-300 outline-none transition-all text-gray-700" 
-                  />
-                </div>
               </div>
 
               <div className="flex gap-3">
@@ -1006,4 +640,7 @@ const fetchData = async () => {
 
     </div>
   );
-}
+}`;
+
+newContent = beforeReturn + newJSX;
+fs.writeFileSync('app/liff/member/page.tsx', newContent, 'utf8');

@@ -1715,7 +1715,7 @@ export const getPosSettings = async (branchId?: string): Promise<{ data: PosShop
       query = query.is('branch_id', null)
     }
     
-    const { data, error } = await query.maybeSingle()
+    const { data, error } = await query.order('updated_at', { ascending: false }).limit(1).maybeSingle()
     return { data, error }
   } catch (error) {
     return { data: null, error }

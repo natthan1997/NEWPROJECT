@@ -1,10 +1,11 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Save, Plus, Trash2, Tag, Gift, Zap, Edit2, CheckCircle2 } from 'lucide-react';
+import { Save, Plus, Trash2, Tag, Gift, Zap, Edit2, CheckCircle2, Award, AlertTriangle } from 'lucide-react';
 
 export default function LoyaltySettingsPage() {
-  const [activeTab, setActiveTab] = useState<'titles' | 'coupons' | 'campaigns'>('titles');
+  const [activeTab, setActiveTab] = useState<'tiers' | 'titles' | 'coupons' | 'campaigns'>('tiers');
+  const [tiers, setTiers] = useState<any[]>([]);
   const [titles, setTitles] = useState<any[]>([]);
   const [coupons, setCoupons] = useState<any[]>([]);
   const [campaigns, setCampaigns] = useState<any[]>([]);
@@ -18,19 +19,51 @@ export default function LoyaltySettingsPage() {
 
   const loadData = async () => {
     setLoading(true);
-    const [t, c, camp, m, cat] = await Promise.all([
+    const [tr, t, c, camp, m, cat] = await Promise.all([
+      supabase.from('pos_member_tiers').select('*').order('min_points', { ascending: true }),
       supabase.from('pos_loyalty_titles').select('*').order('rule_threshold', { ascending: true }),
       supabase.from('pos_loyalty_coupons').select('*').order('cost_points', { ascending: true }),
       supabase.from('pos_loyalty_campaigns').select('*').order('created_at', { ascending: false }),
       supabase.from('pos_menu_items').select('id, name').eq('is_active', true).order('name'),
       supabase.from('pos_menu_categories').select('id, name').order('name')
     ]);
+    if (tr.data) setTiers(tr.data);
     if (t.data) setTitles(t.data);
     if (c.data) setCoupons(c.data);
     if (camp.data) setCampaigns(camp.data);
     if (m.data) setMenuItems(m.data);
     if (cat.data) setCategories(cat.data);
     setLoading(false);
+  };
+
+  const handleSaveTier = async (tier: any) => {
+    const { id, ...data } = tier;
+    
+    // Parse benefits string back to array if it was edited as string
+    let parsedBenefits = data.benefits;
+    if (typeof parsedBenefits === 'string') {
+      try { parsedBenefits = JSON.parse(parsedBenefits); }
+      catch(e) { parsedBenefits = parsedBenefits.split(',').map((s:string) => s.trim()).filter((s:string) => s); }
+    }
+    
+    const saveData = { ...data, benefits: parsedBenefits };
+    
+    if (id.startsWith('new-')) {
+      const { error } = await supabase.from('pos_member_tiers').insert([saveData]);
+      if(error) alert('Insert Error: ' + error.message);
+    } else {
+      const { error } = await supabase.from('pos_member_tiers').update(saveData).eq('id', id);
+      if(error) alert('Update Error: ' + error.message);
+    }
+    loadData();
+  };
+
+  const handleDeleteTier = async (id: string) => {
+    if (!confirm('ยืนยันการลบ?')) return;
+    if (!id.startsWith('new-')) {
+      await supabase.from('pos_member_tiers').delete().eq('id', id);
+    }
+    setTiers(tiers.filter(t => t.id !== id));
   };
 
   const handleSaveTitle = async (title: any) => { console.log('Saving title:', title);
@@ -108,6 +141,119 @@ export default function LoyaltySettingsPage() {
     }
     fetchData();
   };
+
+  const handleManualReset = async () => {
+    const confirmation = window.prompt("⚠️ พิมพ์คำว่า 'RESET' เพื่อยืนยันการล้างแต้มและประเมินรักษาสิทธิ์รายปี (ระวัง: ข้อมูลนี้ไม่สามารถกู้คืนได้)");
+    if (confirmation === 'RESET') {
+      try {
+        const { error } = await supabase.rpc('reset_annual_loyalty');
+        if (error) throw error;
+        alert('✅ ล้างแต้มและรักษาสิทธิ์ประจำปีสำเร็จ');
+      } catch (err: any) {
+        alert('❌ เกิดข้อผิดพลาด: ' + err.message);
+      }
+    }
+  };
+
+  const renderTiers = () => (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center bg-amber-50 p-4 rounded-xl border border-amber-100">
+        <div>
+          <h2 className="text-lg font-bold text-amber-900">ระดับสมาชิก (Member Tiers)</h2>
+          <p className="text-sm text-amber-700">จัดการระดับสมาชิก ส่วนลดเปอร์เซ็นต์ และตัวคูณคะแนน</p>
+        </div>
+        <button 
+          onClick={() => setTiers([...tiers, { id: 'new-' + Date.now(), name: 'New Tier', min_points: 1000, multiplier: 1.0, discount_rate: 0, bg_hex: '#ffffff', text_hex: '#000000', bar_hex: '#3b82f6', benefits: '[]' }])}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm"
+        >
+          <Plus className="w-4 h-4" /> เพิ่มระดับสมาชิก
+        </button>
+      </div>
+
+      {tiers.map(tier => (
+        <div key={tier.id} className="p-4 bg-white border border-gray-200 rounded-xl space-y-4 shadow-sm hover:border-amber-200 transition-colors">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Award className="w-6 h-6" style={{ color: tier.bar_hex || '#000' }} />
+              <input 
+                type="color" 
+                value={tier.bg_hex || '#ffffff'} 
+                onChange={e => setTiers(tiers.map(t => t.id === tier.id ? { ...t, bg_hex: e.target.value } : t))}
+                className="w-8 h-8 rounded cursor-pointer border border-gray-200" title="Background Color"
+              />
+              <input 
+                type="color" 
+                value={tier.text_hex || '#000000'} 
+                onChange={e => setTiers(tiers.map(t => t.id === tier.id ? { ...t, text_hex: e.target.value } : t))}
+                className="w-8 h-8 rounded cursor-pointer border border-gray-200" title="Text Color"
+              />
+              <input 
+                type="color" 
+                value={tier.bar_hex || '#000000'} 
+                onChange={e => setTiers(tiers.map(t => t.id === tier.id ? { ...t, bar_hex: e.target.value } : t))}
+                className="w-8 h-8 rounded cursor-pointer border border-gray-200" title="Badge/Bar Color"
+              />
+              <input 
+                type="text" 
+                value={tier.name} 
+                onChange={e => setTiers(tiers.map(t => t.id === tier.id ? { ...t, name: e.target.value } : t))}
+                placeholder="ชื่อระดับ เช่น Gold" 
+                className="font-bold text-lg border-gray-300 rounded-md focus:ring-amber-500 focus:border-amber-500 w-48"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => handleSaveTier(tier)} className="p-2 text-green-600 hover:bg-green-50 rounded-lg">
+                <Save className="w-5 h-5" />
+              </button>
+              <button onClick={() => handleDeleteTier(tier.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg">
+                <Trash2 className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-4 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wider">คะแนนสะสมขั้นต่ำ</label>
+              <input 
+                type="number" 
+                value={tier.min_points} 
+                onChange={e => setTiers(tiers.map(t => t.id === tier.id ? { ...t, min_points: parseInt(e.target.value) } : t))}
+                className="w-full border-gray-300 rounded-md text-sm font-medium"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wider">ตัวคูณแต้ม (Multiplier)</label>
+              <input 
+                type="number" step="0.1"
+                value={tier.multiplier} 
+                onChange={e => setTiers(tiers.map(t => t.id === tier.id ? { ...t, multiplier: parseFloat(e.target.value) } : t))}
+                className="w-full border-gray-300 rounded-md text-sm font-medium text-blue-600"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wider">ส่วนลดอัตโนมัติ (%)</label>
+              <input 
+                type="number" step="0.1"
+                value={tier.discount_rate || 0} 
+                onChange={e => setTiers(tiers.map(t => t.id === tier.id ? { ...t, discount_rate: parseFloat(e.target.value) } : t))}
+                className="w-full border-gray-300 rounded-md text-sm font-medium text-emerald-600"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wider">สิทธิประโยชน์ (JSON array หรือคั่นด้วยลูกน้ำ)</label>
+              <input 
+                type="text" 
+                value={typeof tier.benefits === 'string' ? tier.benefits : JSON.stringify(tier.benefits || [])} 
+                onChange={e => setTiers(tiers.map(t => t.id === tier.id ? { ...t, benefits: e.target.value } : t))}
+                className="w-full border-gray-300 rounded-md text-sm text-gray-600"
+                placeholder='["สิทธิ์ A", "สิทธิ์ B"]'
+              />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 
   const renderTitles = () => (
     <div className="space-y-4">
@@ -373,17 +519,33 @@ export default function LoyaltySettingsPage() {
 
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl flex items-center justify-center text-white shadow-lg">
-          <Zap className="w-5 h-5" />
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl flex items-center justify-center text-white shadow-lg">
+            <Zap className="w-5 h-5" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Loyalty Rules Engine</h1>
+            <p className="text-gray-500 text-sm">ตั้งค่ากฎเกณฑ์ของระบบสมาชิก ฉายา คูปอง และแคมเปญแจกแต้ม</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Loyalty Rules Engine</h1>
-          <p className="text-gray-500 text-sm">ตั้งค่ากฎเกณฑ์ของระบบสมาชิก ฉายา คูปอง และแคมเปญแจกแต้ม</p>
-        </div>
+        
+        <button 
+          onClick={handleManualReset}
+          className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 rounded-lg text-sm font-bold shadow-sm transition-colors"
+        >
+          <AlertTriangle className="w-4 h-4" />
+          Reset All Points & XP
+        </button>
       </div>
 
-      <div className="flex space-x-1 border-b border-gray-200">
+      <div className="flex space-x-1 border-b border-gray-200 overflow-x-auto">
+        <button
+          onClick={() => setActiveTab('tiers')}
+          className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'tiers' ? 'border-amber-500 text-amber-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+        >
+          <Award className="w-4 h-4" /> ระดับสมาชิก (Tiers)
+        </button>
         <button
           onClick={() => setActiveTab('titles')}
           className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-colors \${activeTab === 'titles' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
@@ -409,6 +571,7 @@ export default function LoyaltySettingsPage() {
           <div className="flex justify-center p-12"><CheckCircle2 className="w-8 h-8 text-gray-300 animate-pulse" /></div>
         ) : (
           <>
+            {activeTab === 'tiers' && renderTiers()}
             {activeTab === 'titles' && renderTitles()}
             {activeTab === 'coupons' && renderCoupons()}
             {activeTab === 'campaigns' && renderCampaigns()}

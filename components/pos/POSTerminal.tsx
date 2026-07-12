@@ -364,6 +364,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   const [isSearchingMember, setIsSearchingMember] = useState(false)
   const [redeemPointsAmount, setRedeemPointsAmount] = useState<string>('')
   const [memberSearchResults, setMemberSearchResults] = useState<any[]>([])
+  const [memberTiers, setMemberTiers] = useState<any[]>([])
 
   const openDeliveryPlatformModal = (platformOverride?: string) => {
     // ผู้ใช้ต้องการให้ "กดคือต้องเลือกค่ายใหม่ทุกครั้ง" จึงบังคับเคลียร์ค่า draft เสมอ
@@ -1256,7 +1257,16 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   }, [syncPulse])
 
   const initData = async () => {
-    await Promise.all([fetchItems(), fetchTables(), refreshPendingOrders(), fetchCampaigns()])
+    await Promise.all([fetchItems(), fetchTables(), refreshPendingOrders(), fetchCampaigns(), fetchTiers()])
+  }
+
+  const fetchTiers = async () => {
+    try {
+      const { data } = await supabase.from('pos_member_tiers').select('*').order('min_points', { ascending: true });
+      if (data) setMemberTiers(data);
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   const fetchCampaigns = async () => {
@@ -1388,6 +1398,40 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       return () => clearTimeout(timer)
     }
   }, [paymentSuccessData])
+
+  useEffect(() => {
+    if (selectedCustomer && memberTiers.length > 0) {
+      const totalPoints = selectedCustomer.total_accumulated_points ?? selectedCustomer.points ?? 0;
+      // 1. Calculated Tier
+      let calculatedTierIndex = 0;
+      for (let i = memberTiers.length - 1; i >= 0; i--) {
+        if (totalPoints >= memberTiers[i].min_points) {
+          calculatedTierIndex = i;
+          break;
+        }
+      }
+      
+      // 2. Retained Tier
+      let retainedTierIndex = 0;
+      if (selectedCustomer.member_tier && typeof selectedCustomer.member_tier === 'string') {
+        const foundIndex = memberTiers.findIndex(t => t.name.toLowerCase() === selectedCustomer.member_tier.toLowerCase());
+        if (foundIndex !== -1) retainedTierIndex = foundIndex;
+      }
+      
+      const effectiveTierIndex = Math.max(calculatedTierIndex, retainedTierIndex);
+      const appliedTier = memberTiers[effectiveTierIndex];
+      
+      if (appliedTier && appliedTier.discount_rate > 0) {
+        setDiscountType('percent');
+        setDiscountRate(appliedTier.discount_rate);
+        setDiscountName(`ส่วนลดสมาชิกระดับ ${appliedTier.name}`);
+      }
+    } else if (!selectedCustomer && discountName.includes('ส่วนลดสมาชิกระดับ')) {
+      setDiscountType('percent');
+      setDiscountRate(0);
+      setDiscountName('');
+    }
+  }, [selectedCustomer, memberTiers]);
 
   const fetchTables = async () => {
     const branchId = shopSettings?.branch_id
@@ -1847,6 +1891,11 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 	        referenceName: orderType === 'delivery' ? platformOrderId.trim() : '',
 	        newItems: newItemsForPrint,
 	      }
+    const redeemPts = Number(shopSettings?.opening_hours?.loyalty_redeem_pts !== undefined ? shopSettings.opening_hours.loyalty_redeem_pts : 1) || 1;
+    const redeemThb = Number(shopSettings?.opening_hours?.loyalty_redeem_thb !== undefined ? shopSettings.opening_hours.loyalty_redeem_thb : (shopSettings?.opening_hours?.loyalty_points_per_thb || 10)) || 10;
+    
+    // Calculate how much discount is allowed per point entered
+    const maxDiscountAllowed = Math.floor(pointsToUse / redeemPts) * redeemThb;
 
 	      resetOrderComposer()
 	      refreshPendingOrders()
@@ -1929,8 +1978,8 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       return;
     }
     
-    const valPerPoint = Number(shopSettings?.opening_hours?.loyalty_points_per_thb) || 10;
-    const discountValue = pointsToUse * valPerPoint;
+    const valPerPoint = Number(shopSettings?.opening_hours?.loyalty_redeem_thb !== undefined ? shopSettings.opening_hours.loyalty_redeem_thb : (shopSettings?.opening_hours?.loyalty_points_per_thb || 10)) || 10;
+    const discountValue = Math.floor(pointsToUse / (Number(shopSettings?.opening_hours?.loyalty_redeem_pts !== undefined ? shopSettings.opening_hours.loyalty_redeem_pts : 1) || 1)) * valPerPoint;
     const grossTotal = cartSubTotal + vatAmount + serviceChargeAmount;
     
     if (discountValue > grossTotal) {
@@ -2315,26 +2364,23 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
           }
         }
 
-        // EARN NEW POINTS based on amount to pay (gross total minus discounts)
-        // With Campaigns Multiplier Logic
-        const earnRate = shopSettings?.opening_hours?.loyalty_earn_rate || 100
+        // EARN NEW POINTS
+        const earnThb = shopSettings?.opening_hours?.loyalty_earn_thb !== undefined ? shopSettings.opening_hours.loyalty_earn_thb : (shopSettings?.opening_hours?.loyalty_earn_rate || 100);
+        const earnPts = shopSettings?.opening_hours?.loyalty_earn_pts !== undefined ? shopSettings.opening_hours.loyalty_earn_pts : 1;
         
         let pointableAmount = amountToPay;
-        let pointsToEarn = 0;
+        let pointsEarned = 0;
         
-        if (pointableAmount > 0) {
-          // If there are campaigns, we calculate effective amount based on items
-          if (activeCampaigns.length > 0 && cart.length > 0) {
+        if (pointableAmount > 0 && earnThb > 0) {
+          if (activeCampaigns && activeCampaigns.length > 0 && cart.length > 0) {
             let totalMultiplierEffectiveAmount = 0;
-            // Distribute discount proportionally to find effective price of each item
-            const ratio = amountToPay / (cartTotal || 1); // cartTotal is net_total before bill discount
+            const ratio = amountToPay / (cartTotal || 1);
             
             cart.forEach((item: any) => {
               const itemEffectivePrice = ((item.price || 0) * (item.quantity || 1)) * ratio;
               let multiplier = 1.0;
               const catName = item.category?.name || '';
               
-              // Find matching campaign
               activeCampaigns.forEach(camp => {
                 if (camp.applicable_categories && camp.applicable_categories.length > 0) {
                   const match = camp.applicable_categories.find((c: string) => c.toLowerCase() === catName.toLowerCase());
@@ -2342,32 +2388,32 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                     multiplier = Math.max(multiplier, camp.multiplier);
                   }
                 } else {
-                   // Applies to all
                    multiplier = Math.max(multiplier, camp.multiplier);
                 }
               });
               totalMultiplierEffectiveAmount += (itemEffectivePrice * multiplier);
             });
-            pointsToEarn = Math.floor(totalMultiplierEffectiveAmount / earnRate);
+            pointsEarned = Math.floor(totalMultiplierEffectiveAmount / earnThb) * earnPts;
           } else {
-            pointsToEarn = Math.floor(amountToPay / earnRate);
+            pointsEarned = Math.floor(amountToPay / earnThb) * earnPts;
           }
         }
         
-        if (pointsToEarn > 0) {
+        if (pointsEarned > 0) {
           try {
-            // First re-fetch current points in case they were just deducted above
-            const { data: memberData } = await supabase.from('pos_members').select('points').eq('id', selectedCustomer.id).single();
+            const { data: memberData } = await supabase.from('pos_members').select('points, total_accumulated_points').eq('id', selectedCustomer.id).single();
             const currentPoints = memberData?.points || 0;
+            const currentXP = memberData?.total_accumulated_points ?? memberData?.points ?? 0;
             
             await supabase.from('pos_members').update({
-              points: currentPoints + pointsToEarn
+              points: currentPoints + pointsEarned,
+              total_accumulated_points: currentXP + pointsEarned
             }).eq('id', selectedCustomer.id)
             const historyObj: any = {
               member_id: selectedCustomer.id,
               order_id: finalOrderId,
-              points: pointsToEarn,
-              points_change: pointsToEarn,
+              points: pointsEarned,
+              points_change: pointsEarned,
               type: 'earn',
             }
 
@@ -4234,7 +4280,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                      </div>
                      <div className="mt-4 inline-flex items-center gap-2 bg-white/10 px-4 py-2 rounded-full text-xs font-bold text-white/90">
                        <Award size={14} />
-                       1 PTS = {(shopSettings?.opening_hours?.loyalty_points_per_thb) || 10} ฿
+                       {shopSettings?.opening_hours?.loyalty_redeem_pts !== undefined ? shopSettings.opening_hours.loyalty_redeem_pts : 1} PTS = {shopSettings?.opening_hours?.loyalty_redeem_thb !== undefined ? shopSettings.opening_hours.loyalty_redeem_thb : (shopSettings?.opening_hours?.loyalty_points_per_thb || 10)} ฿
                      </div>
                    </div>
                    
@@ -4245,7 +4291,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                        </label>
                        {redeemPointsAmount && parseInt(redeemPointsAmount) > 0 && (
                          <div className="text-xs font-black text-emerald-500 uppercase tracking-widest bg-emerald-50 px-3 py-1 rounded-full">
-                           -{(parseInt(redeemPointsAmount) * ((shopSettings?.opening_hours?.loyalty_points_per_thb) || 10)).toLocaleString()} ฿
+                           -{Math.floor(parseInt(redeemPointsAmount) / (shopSettings?.opening_hours?.loyalty_redeem_pts !== undefined ? shopSettings.opening_hours.loyalty_redeem_pts : 1)) * (shopSettings?.opening_hours?.loyalty_redeem_thb !== undefined ? shopSettings.opening_hours.loyalty_redeem_thb : (shopSettings?.opening_hours?.loyalty_points_per_thb || 10)).toLocaleString()} ฿
                          </div>
                        )}
                      </div>
