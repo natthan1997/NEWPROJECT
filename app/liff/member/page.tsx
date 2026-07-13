@@ -108,7 +108,7 @@ export default function LiffMemberPage() {
       }
       
       try {
-        const { data: campaignsData } = await supabase.from('pos_loyalty_campaigns').select('*').eq('is_active', true).order('created_at', { ascending: false });
+        const { data: campaignsData } = await supabase.from('pos_campaigns').select('*').eq('is_active', true).order('sort_order', { ascending: true });
         if (campaignsData) setCampaigns(campaignsData);
       } catch (err) {
         console.error('Failed to load campaigns', err);
@@ -264,9 +264,6 @@ export default function LiffMemberPage() {
             <Link href="/liff/point-history" className="text-[13px] font-medium text-[#7B8B7B] flex items-center gap-1 py-2 px-4 bg-white/50 rounded-full hover:bg-white transition-colors shadow-sm">
                 ดูประวัติพอยท์ <ChevronRight size={14} />
             </Link>
-            <Link href="/liff/history" className="text-[13px] font-medium text-[#7B8B7B] flex items-center gap-1 py-2 px-4 bg-white/50 rounded-full hover:bg-white transition-colors shadow-sm">
-                ประวัติการสั่งซื้อ <ChevronRight size={14} />
-            </Link>
             <Link href="/liff/my-rewards" className="text-[13px] font-medium text-[#7B8B7B] flex items-center gap-1 py-2 px-4 bg-white/50 rounded-full hover:bg-white transition-colors shadow-sm">
                 คูปองของฉัน <ChevronRight size={14} />
             </Link>
@@ -286,27 +283,24 @@ export default function LiffMemberPage() {
             <style jsx>{`div::-webkit-scrollbar { display: none; }`}</style>
             
             {campaigns.length > 0 ? campaigns.map((campaign, idx) => {
-                const gradients = [
-                    'from-[#1A1A18] to-gray-800',
-                    'from-[#7B8B7B] to-[#5C6E5C]',
-                    'from-[#A3B1A3] to-[#8A988A]',
-                    'from-[#C8B6A6] to-[#A99787]'
-                ];
-                const bgGradient = gradients[idx % gradients.length];
+                const bgFrom = campaign.bg_gradient_from || 'from-[#1A1A18]';
+                const bgTo = campaign.bg_gradient_to || 'to-gray-800';
+                const textCol = campaign.text_color || 'text-white';
+                const tagCol = campaign.tag_color || 'text-white';
+                const icon = campaign.icon || '🎁';
 
                 return (
-                    <div key={campaign.id} className="min-w-[280px] h-[160px] snap-center rounded-[20px] p-5 flex flex-col justify-end relative overflow-hidden shadow-sm">
-                        <div className={`absolute inset-0 bg-gradient-to-br ${bgGradient}`}></div>
-                        <div className="absolute top-0 right-0 p-4 opacity-20">
-                            <Gift size={80} className="text-white" />
+                    <div key={campaign.id} className={`min-w-[280px] h-[160px] snap-center rounded-[20px] p-5 flex flex-col justify-end relative overflow-hidden shadow-sm bg-gradient-to-br ${bgFrom} ${bgTo}`}>
+                        <div className="absolute top-0 right-0 p-4 opacity-20 text-[80px] leading-none">
+                            {icon}
                         </div>
                         <div className="relative z-10">
-                            <span className="inline-block px-2 py-1 bg-white/20 text-white text-[10px] font-bold tracking-widest uppercase rounded mb-2 backdrop-blur-sm">
-                                {campaign.multiplier ? `X${campaign.multiplier} POINTS` : 'PROMO'}
+                            <span className={`inline-block px-2 py-1 bg-white/20 ${tagCol} text-[10px] font-bold tracking-widest uppercase rounded mb-2 backdrop-blur-sm`}>
+                                {campaign.type_tag || 'PROMO'}
                             </span>
-                            <h4 className="text-white text-[18px] font-semibold leading-tight mb-1">{campaign.name}</h4>
-                            <p className="text-white/80 text-[12px]">
-                                {campaign.start_date && campaign.end_date ? `${new Date(campaign.start_date).toLocaleDateString()} - ${new Date(campaign.end_date).toLocaleDateString()}` : 'แคมเปญพิเศษสำหรับคุณ'}
+                            <h4 className={`${textCol} text-[18px] font-semibold leading-tight mb-1`}>{campaign.title}</h4>
+                            <p className={`${textCol} opacity-80 text-[12px]`}>
+                                {campaign.description}
                             </p>
                         </div>
                     </div>
