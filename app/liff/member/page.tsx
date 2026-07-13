@@ -145,7 +145,9 @@ export default function LiffMemberPage() {
             textHex: '#1A1A18',
             progress: t.progress,
             isUnlocked: t.isUnlocked,
-            currentValue: t.currentValue
+            currentValue: t.currentValue,
+            description: t.description,
+            benefits: t.benefits
           })));
         }
       } catch (err) {
@@ -621,8 +623,20 @@ export default function LiffMemberPage() {
                     <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center shrink-0 mt-0.5">
                         <span className="w-2 h-2 rounded-full bg-gray-400"></span>
                     </div>
-                    <span className="leading-relaxed">ยอดสะสมครบ {selectedBadge.minPoints.toLocaleString()} Pts</span>
+                    <span className="leading-relaxed text-left">{selectedBadge.description || `ทำภารกิจครบ ${selectedBadge.minPoints.toLocaleString()}`}</span>
                   </div>
+                  
+                  {selectedBadge.benefits && (
+                    <>
+                      <h4 className="text-[11px] text-gray-500 uppercase tracking-widest font-bold mb-3 mt-4 border-t border-gray-200 pt-4">สิทธิพิเศษฉายานี้</h4>
+                      <div className="flex items-start gap-3 text-[13px] font-medium text-[#1A1A18]">
+                        <div className="w-6 h-6 rounded-full bg-[#1A1A18] flex items-center justify-center shrink-0 mt-0.5">
+                            <span className="text-white text-[10px]">✨</span>
+                        </div>
+                        <span className="leading-relaxed text-left">{selectedBadge.benefits}</span>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </motion.div>

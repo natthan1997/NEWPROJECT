@@ -278,7 +278,7 @@ export default function LoyaltySettingsPage() {
             onChange={e => setTitles(titles.map(t => t.id === title.id ? { ...t, badge_color: e.target.value } : t))}
             className="w-10 h-10 rounded cursor-pointer" 
           />
-          <div className="flex-1 grid grid-cols-3 gap-4">
+          <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <label className="block text-xs text-gray-500 mb-1">ชื่อฉายา</label>
               <input 
@@ -334,6 +334,16 @@ export default function LoyaltySettingsPage() {
                 value={title.description || ''} 
                 onChange={e => setTitles(titles.map(t => t.id === title.id ? { ...t, description: e.target.value } : t))}
                 placeholder="เช่น มาซื้อตอนเช้าครบ 10 ครั้ง" 
+                className="w-full border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">สิทธิพิเศษ (Benefits)</label>
+              <input 
+                type="text" 
+                value={title.benefits || ''} 
+                onChange={e => setTitles(titles.map(t => t.id === title.id ? { ...t, benefits: e.target.value } : t))}
+                placeholder="เช่น ฟรี Americano 1 แก้ว" 
                 className="w-full border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
               />
             </div>
