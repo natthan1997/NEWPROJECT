@@ -15,7 +15,7 @@ const createSupabaseServiceClient = () => {
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json().catch(() => ({}))
-        const { lineUserId, phone, fullName, dateOfBirth, firstName, lastName, gender, favoriteMenu, pdpaConsent } = body
+        const { lineUserId, phone, fullName, dateOfBirth, firstName, lastName, gender, pdpaConsent } = body
 
         if (!lineUserId || !phone) {
             return NextResponse.json({ error: 'Missing lineUserId or phone' }, { status: 400 })
@@ -57,7 +57,6 @@ export async function POST(req: NextRequest) {
                 last_name: lastName || undefined,
                 date_of_birth: dateOfBirth || lineMember.date_of_birth || phoneMember.date_of_birth || undefined,
                 gender: gender || lineMember.gender || phoneMember.gender || undefined,
-                favorite_menu: favoriteMenu || lineMember.favorite_menu || undefined,
                 pdpa_consent: pdpaConsent !== undefined ? pdpaConsent : lineMember.pdpa_consent
             }).eq('id', lineMember.id)
 
@@ -79,7 +78,6 @@ export async function POST(req: NextRequest) {
                 last_name: lastName || undefined,
                 date_of_birth: dateOfBirth || undefined,
                 gender: gender || undefined,
-                favorite_menu: favoriteMenu || undefined,
                 pdpa_consent: pdpaConsent !== undefined ? pdpaConsent : undefined
             }).eq('id', lineMember.id)
             

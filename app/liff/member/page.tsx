@@ -169,7 +169,6 @@ export default function LiffMemberPage() {
               lastName: data.lastName,
               dateOfBirth: data.dateOfBirth,
               gender: data.gender,
-              favoriteMenu: data.favoriteMenu,
               pdpaConsent: data.pdpaConsent
             })
         });
