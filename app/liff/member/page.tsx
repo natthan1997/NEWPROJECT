@@ -11,7 +11,6 @@ import { useLiff } from '@/components/liff/LiffProvider';
 import XYLLoader from '@/components/loaders/XYLLoader';
 import { useI18n } from "@/lib/I18nContext";
 import RegistrationForm from './RegistrationForm';
-import LiffBottomNav from '@/components/liff/LiffBottomNav';
 import Link from 'next/link';
 
 export default function LiffMemberPage() {
@@ -253,42 +252,51 @@ export default function LiffMemberPage() {
             </div>
           </div>
           
-          <div className="flex justify-center mt-6">
-            <Link href="/liff/history" className="text-[14px] font-medium text-[#7B8B7B] flex items-center gap-1">
+          <div className="flex justify-center mt-6 relative z-20">
+            <Link href="/liff/history" className="text-[14px] font-medium text-[#7B8B7B] flex items-center gap-1 py-2 px-4 bg-white/50 rounded-full hover:bg-white transition-colors">
                 ดูประวัติพอยท์ <ChevronRight size={16} />
             </Link>
           </div>
         </motion.section>
 
-        {/* QR Code Button */}
+        {/* Campaign Cards Section */}
         <motion.section 
           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-          className="w-full"
+          className="-mx-5 mt-2"
         >
-          <Link href="/liff/menu" className="w-full bg-[#1A1A18] text-white py-4 rounded-[16px] flex items-center justify-center gap-2 shadow-sm font-medium hover:bg-black transition-colors">
-            <QrCode size={20} />
-            คิวอาร์โค้ดของฉัน
-          </Link>
-        </motion.section>
+          <div className="px-5 mb-4 flex justify-between items-baseline">
+            <h3 className="text-[16px] font-semibold text-gray-900 tracking-tight">แคมเปญพิเศษ</h3>
+          </div>
+          
+          <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory px-5" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            <style jsx>{`div::-webkit-scrollbar { display: none; }`}</style>
+            
+            {/* Card 1: Rewards */}
+            <Link href="/liff/rewards" className="min-w-[280px] h-[160px] snap-center rounded-[20px] p-5 flex flex-col justify-end relative overflow-hidden shadow-sm">
+                <div className="absolute inset-0 bg-gradient-to-br from-[#1A1A18] to-gray-800"></div>
+                <div className="absolute top-0 right-0 p-4 opacity-20">
+                    <Gift size={80} className="text-white" />
+                </div>
+                <div className="relative z-10">
+                    <span className="inline-block px-2 py-1 bg-white/20 text-white text-[10px] font-bold tracking-widest uppercase rounded mb-2 backdrop-blur-sm">REWARDS</span>
+                    <h4 className="text-white text-[18px] font-semibold leading-tight mb-1">แลกของรางวัล</h4>
+                    <p className="text-gray-300 text-[12px]">ใช้พอยท์แลกรับส่วนลดและสิทธิพิเศษมากมาย</p>
+                </div>
+            </Link>
 
-        {/* Quick Links */}
-        <motion.section 
-          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-          className="flex justify-between px-2"
-        >
-          {[
-            { icon: <MessageCircle size={22} />, label: 'LINE OA', href: 'https://line.me/R/ti/p/@xylstudio' },
-            { icon: <Phone size={22} />, label: 'หมายเลขโทรศัพท์', href: 'tel:0123456789' },
-            { icon: <Globe size={22} />, label: 'Website', href: 'https://xylstudio.com' },
-            { icon: <Facebook size={22} />, label: 'Facebook', href: 'https://facebook.com/xylstudio' },
-          ].map((link, idx) => (
-            <a key={idx} href={link.href} className="flex flex-col items-center gap-2 group">
-              <div className="w-14 h-14 rounded-full border border-gray-200 bg-white flex items-center justify-center text-[#7B8B7B] group-hover:bg-gray-50 transition-colors shadow-sm">
-                {link.icon}
-              </div>
-              <span className="text-[10px] font-medium text-gray-700">{link.label}</span>
-            </a>
-          ))}
+            {/* Card 2: My Coupons */}
+            <Link href="/liff/my-rewards" className="min-w-[280px] h-[160px] snap-center rounded-[20px] p-5 flex flex-col justify-end relative overflow-hidden shadow-sm">
+                <div className="absolute inset-0 bg-gradient-to-br from-[#7B8B7B] to-[#5C6E5C]"></div>
+                <div className="absolute top-0 right-0 p-4 opacity-20">
+                    <MessageCircle size={80} className="text-white" />
+                </div>
+                <div className="relative z-10">
+                    <span className="inline-block px-2 py-1 bg-white/20 text-white text-[10px] font-bold tracking-widest uppercase rounded mb-2 backdrop-blur-sm">MY COUPONS</span>
+                    <h4 className="text-white text-[18px] font-semibold leading-tight mb-1">คูปองของฉัน</h4>
+                    <p className="text-[#E3E8E3] text-[12px]">ดูคูปองส่วนลดที่คุณมีและพร้อมใช้งาน</p>
+                </div>
+            </Link>
+          </div>
         </motion.section>
 
         {/* 📢 Campaigns/Titles */}
@@ -385,7 +393,7 @@ export default function LiffMemberPage() {
         )}
       </AnimatePresence>
 
-      <LiffBottomNav />
+
     </div>
   );
 }

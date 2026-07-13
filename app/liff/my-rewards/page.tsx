@@ -7,7 +7,6 @@ import { motion } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
 import { useLiff } from '@/components/liff/LiffProvider';
 import XYLLoader from '@/components/loaders/XYLLoader';
-import LiffBottomNav from '@/components/liff/LiffBottomNav';
 import Link from 'next/link';
 
 export default function MyRewardsPage() {
@@ -108,7 +107,6 @@ export default function MyRewardsPage() {
         )}
       </main>
 
-      <LiffBottomNav />
     </div>
   );
 }

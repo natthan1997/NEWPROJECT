@@ -17,7 +17,6 @@ import { useLiff } from '@/components/liff/LiffProvider';
 import { HistoryListSkeleton } from '@/components/liff/LiffSkeleton';
 import XYLLoader from '@/components/loaders/XYLLoader';
 import { useI18n } from "@/lib/I18nContext";
-import LiffBottomNav from '@/components/liff/LiffBottomNav';
 
 export default function LiffHistoryPage() {
     const { locale } = useI18n();
@@ -242,13 +241,20 @@ export default function LiffHistoryPage() {
         </AnimatePresence>
       </main>
 
+      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50">
+         <button 
+            onClick={() => router.push('/liff/member')}
+            className="px-8 py-4 bg-[#1A1A18] text-white rounded-full shadow-lg border border-gray-100 flex items-center gap-3 text-[12px] font-bold uppercase tracking-[0.1em] active:scale-95 transition-all"
+         >
+           {locale === 'en' ? 'Return to Home' : locale === 'zh' ? '返回首页' : 'กลับสู่หน้าหลัก'}
+         </button>
+      </div>
+
       <div className="py-12 pb-24 text-center opacity-20 pointer-events-none">
          <p className="text-[7px] font-black uppercase tracking-[0.4em] text-[#1A1A18]">
            Designed by XYL STUDIO • v1.0.32
          </p>
       </div>
-      
-      <LiffBottomNav />
     </div>
   );
 }
