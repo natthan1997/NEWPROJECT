@@ -23,6 +23,8 @@ interface Customer {
     created_at: string
     line_user_id: string | null
     title?: string
+    date_of_birth?: string
+    gender?: string
 }
 
 interface Coupon {
@@ -189,7 +191,9 @@ export default function POSMemberManager({
                 email: editData.email,
                 points: editData.points,
                 tier: editData.tier,
-                title: editData.title
+                title: editData.title,
+                date_of_birth: editData.date_of_birth,
+                gender: editData.gender
             })
             .eq('id', selectedMember.id)
         
@@ -349,6 +353,14 @@ export default function POSMemberManager({
                                                     <Award size={12} className="text-sage-400" /> 
                                                     {locale === 'en' ? '                                                      เข้าร่วมเมื่อปี ' : locale === 'zh' ? '                                                      เข้าร่วมเมื่อปี ' : '                                                      เข้าร่วมเมื่อปี '}{selectedMember.created_at ? new Date(selectedMember.created_at).getFullYear() : '2026'}
                                                  </div>
+                                                 <div className="flex items-center gap-2 text-[9px] font-black uppercase text-[#8C8A81] tracking-widest">
+                                                    🎂 วันเกิด: {selectedMember.date_of_birth ? new Date(selectedMember.date_of_birth).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' }) : 'ไม่ระบุ'}
+                                                 </div>
+                                                 {selectedMember.gender && (
+                                                     <div className="flex items-center gap-2 text-[9px] font-black uppercase text-[#8C8A81] tracking-widest">
+                                                        👤 เพศ: {selectedMember.gender}
+                                                     </div>
+                                                 )}
                                             </div>
                                         </div>
                                     </div>
@@ -401,6 +413,29 @@ export default function POSMemberManager({
                                                         value={editData.phone || ''}
                                                         onChange={e => setEditData({...editData, phone: e.target.value})}
                                                     />
+                                                </div>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 font-bold">
+                                                    <div className="space-y-2 font-bold">
+                                                        <label className="text-[8px] font-black uppercase text-[#8C8A81] tracking-widest ml-1 font-bold">วันเกิด</label>
+                                                        <input 
+                                                            type="date"
+                                                            className="w-full h-14 bg-white border border-[#F0F0E8] px-6 text-sm font-bold outline-none focus:ring-1 focus:ring-[#1A1A18]"
+                                                            value={editData.date_of_birth || ''}
+                                                            onChange={e => setEditData({...editData, date_of_birth: e.target.value})}
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2 font-bold">
+                                                        <label className="text-[8px] font-black uppercase text-[#8C8A81] tracking-widest ml-1 font-bold">เพศ</label>
+                                                        <select 
+                                                            className="w-full h-14 bg-white border border-[#F0F0E8] px-6 text-sm font-bold outline-none focus:ring-1 focus:ring-[#1A1A18] appearance-none"
+                                                            value={editData.gender || ''}
+                                                            onChange={e => setEditData({...editData, gender: e.target.value})}
+                                                        >
+                                                            <option value="">ไม่ระบุ</option>
+                                                            <option value="ชาย">ชาย</option>
+                                                            <option value="หญิง">หญิง</option>
+                                                        </select>
+                                                    </div>
                                                 </div>
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 font-bold">
                                                     <div className="space-y-2 font-bold">
