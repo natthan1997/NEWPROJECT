@@ -884,6 +884,93 @@ export default function POSShopSettings({
                                         )})}
                                     </div>
                                 </div>
+
+                                {/* MYSTERY BOX SETTINGS */}
+                                <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
+                                    <h3 className="text-xl font-black mb-2 flex items-center gap-3">
+                                        <Gift className="text-purple-500" size={24} /> กล่องสุ่มรางวัล (Mystery Box)
+                                    </h3>
+                                    <p className="text-[12px] text-gray-500 font-bold mb-8">ตั้งค่าคะแนนที่ใช้เล่น และโอกาสการได้รางวัลแต่ละระดับ</p>
+                                    
+                                    <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 flex flex-col md:flex-row items-center gap-4 mb-6">
+                                        <div className="flex-1">
+                                            <label className="text-[14px] font-black tracking-tight text-[#1A1A18] mb-1 block">
+                                                คะแนนที่ต้องใช้เล่น
+                                            </label>
+                                            <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">
+                                                แต้มที่ลูกค้าจะถูกหักเมื่อกดสุ่ม
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center gap-3 bg-white p-2 rounded-xl shadow-sm border border-gray-100">
+                                            <span className="text-[14px] font-black text-red-600 bg-red-50 px-3 py-2 rounded-lg whitespace-nowrap">จ่าย</span>
+                                            <div className="relative w-24">
+                                                <input 
+                                                    type="number" 
+                                                    value={settings.mystery_box_cost || 50}
+                                                    onChange={e => setSettings({...settings, mystery_box_cost: parseInt(e.target.value) || 0})}
+                                                    className="w-full bg-gray-50 border border-gray-200 focus:border-[#1A1A18] focus:bg-white rounded-lg py-2 text-center text-lg font-black outline-none transition-colors" 
+                                                />
+                                            </div>
+                                            <span className="text-[14px] font-bold text-gray-500">แต้ม</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <label className="text-[14px] font-black tracking-tight text-[#1A1A18] block">ของรางวัลและโอกาสการได้ (รวมต้อง = 100%)</label>
+                                        {(settings.mystery_box_prizes || []).map((prize: any, idx: number) => (
+                                            <div key={idx} className="flex items-center gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100 flex-wrap">
+                                                <div className="flex-1 min-w-[120px]">
+                                                    <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest block mb-1">แต้มที่จะได้รับ</label>
+                                                    <input 
+                                                        type="number" 
+                                                        value={prize.points}
+                                                        onChange={e => {
+                                                            const newPrizes = [...(settings.mystery_box_prizes || [])];
+                                                            newPrizes[idx].points = parseInt(e.target.value) || 0;
+                                                            setSettings({...settings, mystery_box_prizes: newPrizes});
+                                                        }}
+                                                        className="w-full bg-white border border-gray-200 focus:border-[#1A1A18] rounded-lg py-2 px-3 font-bold outline-none" 
+                                                    />
+                                                </div>
+                                                <div className="flex-1 min-w-[120px]">
+                                                    <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest block mb-1">โอกาสสุ่มได้ (%)</label>
+                                                    <div className="flex items-center gap-2">
+                                                        <input 
+                                                            type="number" 
+                                                            value={prize.chance}
+                                                            onChange={e => {
+                                                                const newPrizes = [...(settings.mystery_box_prizes || [])];
+                                                                newPrizes[idx].chance = parseInt(e.target.value) || 0;
+                                                                setSettings({...settings, mystery_box_prizes: newPrizes});
+                                                            }}
+                                                            className="w-full bg-white border border-gray-200 focus:border-[#1A1A18] rounded-lg py-2 px-3 font-bold outline-none" 
+                                                        />
+                                                        <span className="text-gray-500 font-bold">%</span>
+                                                    </div>
+                                                </div>
+                                                <button 
+                                                    onClick={() => {
+                                                        const newPrizes = (settings.mystery_box_prizes || []).filter((_: any, i: number) => i !== idx);
+                                                        setSettings({...settings, mystery_box_prizes: newPrizes});
+                                                    }}
+                                                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg mt-4"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                        <button 
+                                            onClick={() => {
+                                                const newPrizes = [...(settings.mystery_box_prizes || []), { points: 0, chance: 0 }];
+                                                setSettings({...settings, mystery_box_prizes: newPrizes});
+                                            }}
+                                            className="w-full py-3 border-2 border-dashed border-gray-200 rounded-xl text-gray-500 font-bold hover:border-gray-300 hover:text-gray-600 transition-colors flex items-center justify-center gap-2"
+                                        >
+                                            <Plus size={16} /> เพิ่มรางวัล
+                                        </button>
+                                    </div>
+                                </div>
+
                             </div>
                         )}
 
