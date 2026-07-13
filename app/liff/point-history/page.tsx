@@ -48,38 +48,19 @@ export default function LiffPointHistoryPage() {
       if (member) {
         setMemberInfo(member);
         
-        // Fetch point transactions
+        // Fetch point transactions from the correct table
         const { data: txs, error: txsError } = await supabase
-          .from('pos_point_transactions')
+          .from('pos_points_history')
           .select('*')
           .eq('member_id', member.id)
           .order('created_at', { ascending: false })
           .limit(50);
           
-        // Fetch past orders that earned points
-        let orderQuery = supabase.from('pos_orders').select('id, order_number, total_amount, points_earned, created_at, status').gt('points_earned', 0);
-        if (currentUserId && phone) {
-            orderQuery = orderQuery.or(`line_user_id.eq.${currentUserId},reference_name.eq.${phone}`);
-        } else if (currentUserId) {
-            orderQuery = orderQuery.eq('line_user_id', currentUserId);
-        } else if (phone) {
-            orderQuery = orderQuery.eq('reference_name', phone);
+        if (txsError) {
+          console.error("Error fetching points:", txsError);
+        } else {
+          setTransactions(txs || []);
         }
-        const { data: ordersData } = await orderQuery.in('status', ['completed', 'delivered']).order('created_at', { ascending: false }).limit(50);
-
-        // Map orders into transactions format
-        const orderTxs = (ordersData || []).map(order => ({
-            id: order.id,
-            type: 'earn',
-            points: order.points_earned,
-            description: `จากการสั่งซื้อ #${order.order_number || order.id.slice(0,8).toUpperCase()}`,
-            created_at: order.created_at,
-            expires_at: null // Assuming standard annual expiry handled globally
-        }));
-
-        const combinedTxs = [...(txs || []), ...orderTxs].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 50);
-
-        setTransactions(combinedTxs);
       }
     } catch (err) {
       console.error('Points History fetch failed:', err);
@@ -165,10 +146,11 @@ export default function LiffPointHistoryPage() {
                  {transactions.map((tx, idx) => {
                    const isEarn = tx.type === 'earn';
                    const isRefund = tx.type === 'refund';
-                   const isPositive = isEarn || isRefund;
-                   const pointsText = isPositive ? `+${tx.points}` : `-${tx.points}`;
+                   const isPositive = tx.points_change > 0 || isEarn || isRefund;
+                   const pointsAmount = tx.points || Math.abs(tx.points_change) || 0;
+                   const pointsText = isPositive ? `+${pointsAmount}` : `-${pointsAmount}`;
                    const pointsColor = isPositive ? 'text-emerald-500' : 'text-red-500';
-                   const title = isEarn ? 'เพิ่มพอยท์' : isRefund ? 'คืนพอยท์' : 'ใช้พอยท์';
+                   const title = isPositive ? 'เพิ่มพอยท์' : 'ใช้พอยท์';
                    
                    return (
                      <motion.div 
