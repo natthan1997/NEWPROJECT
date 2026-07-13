@@ -1,6 +1,7 @@
 'use client';
 import React, { useState } from 'react';
-import { ChevronDown, Loader2 } from 'lucide-react';
+import { ChevronDown, Loader2, ChevronLeft } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface RegistrationFormProps {
   lineProfile: any;
@@ -9,6 +10,7 @@ interface RegistrationFormProps {
 }
 
 export default function RegistrationForm({ lineProfile, onSubmit, isSubmitting }: RegistrationFormProps) {
+  const router = useRouter();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
@@ -39,11 +41,11 @@ export default function RegistrationForm({ lineProfile, onSubmit, isSubmitting }
     <div className="min-h-screen bg-white text-gray-900 font-sans pb-32">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100 px-5 py-4 flex items-center justify-between">
-        <div className="w-6"></div>
-        <h1 className="text-[14px] font-bold tracking-[0.2em] text-gray-900 uppercase">XYL STUDIO</h1>
-        <button className="text-gray-400">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        <button onClick={() => router.push('/liff/menu')} className="text-gray-400 hover:text-gray-900 transition-colors p-1 -ml-1">
+          <ChevronLeft size={24} strokeWidth={2} />
         </button>
+        <h1 className="text-[14px] font-bold tracking-[0.2em] text-gray-900 uppercase">XYL STUDIO</h1>
+        <div className="w-6"></div>
       </header>
 
       <main className="px-5 pt-8 max-w-lg mx-auto">
