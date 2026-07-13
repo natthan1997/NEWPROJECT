@@ -7,6 +7,7 @@ export default function POSCampaignsTab() {
     const { locale } = useI18n();
     const [campaigns, setCampaigns] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editForm, setEditForm] = useState<any>({});
     const [isSaving, setIsSaving] = useState(false);
@@ -17,10 +18,18 @@ export default function POSCampaignsTab() {
 
     const fetchCampaigns = async () => {
         try {
-            const { data } = await supabase.from('pos_campaigns').select('*').order('sort_order', { ascending: true });
-            if (data) setCampaigns(data);
-        } catch (error) {
-            console.error('Fetch campaigns error:', error);
+            const res = await fetch('/api/pos/campaigns');
+            const { data, error } = await res.json();
+            if (error) {
+                console.error('API error:', error);
+                setErrorMsg(error);
+            } else if (data) {
+                setCampaigns(data);
+                setErrorMsg(null);
+            }
+        } catch (error: any) {
+            console.error('Fetch campaigns exception:', error);
+            setErrorMsg(error.message);
         } finally {
             setLoading(false);
         }
@@ -41,8 +50,14 @@ export default function POSCampaignsTab() {
                 is_active: true,
                 sort_order: campaigns.length + 1
             };
-            const { data, error } = await supabase.from('pos_campaigns').insert([newCampaign]).select().single();
-            if (error) throw error;
+            
+            const res = await fetch('/api/pos/campaigns', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newCampaign)
+            });
+            const { data, error } = await res.json();
+            if (error) throw new Error(error);
             if (data) {
                 setCampaigns([...campaigns, data]);
                 handleEdit(data);
@@ -57,8 +72,9 @@ export default function POSCampaignsTab() {
     const handleDelete = async (id: string) => {
         if (!confirm('ยืนยันการลบแคมเปญนี้?')) return;
         try {
-            const { error } = await supabase.from('pos_campaigns').delete().eq('id', id);
-            if (error) throw error;
+            const res = await fetch(`/api/pos/campaigns?id=${id}`, { method: 'DELETE' });
+            const { error } = await res.json();
+            if (error) throw new Error(error);
             setCampaigns(campaigns.filter(c => c.id !== id));
         } catch (error: any) {
             alert('Error deleting campaign: ' + error.message);
@@ -73,8 +89,13 @@ export default function POSCampaignsTab() {
     const handleSave = async () => {
         setIsSaving(true);
         try {
-            const { error } = await supabase.from('pos_campaigns').update(editForm).eq('id', editForm.id);
-            if (error) throw error;
+            const res = await fetch('/api/pos/campaigns', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(editForm)
+            });
+            const { error } = await res.json();
+            if (error) throw new Error(error);
             setCampaigns(campaigns.map(c => c.id === editForm.id ? editForm : c));
             setEditingId(null);
         } catch (error: any) {
@@ -102,6 +123,12 @@ export default function POSCampaignsTab() {
                         <Plus size={18} /> เพิ่มแคมเปญ
                     </button>
                 </div>
+
+                {errorMsg && (
+                    <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-xl font-bold border border-red-100">
+                        เกิดข้อผิดพลาดในการโหลดข้อมูล: {errorMsg}
+                    </div>
+                )}
 
                 <div className="space-y-4">
                     {campaigns.map((campaign, idx) => (
