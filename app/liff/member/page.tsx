@@ -488,139 +488,144 @@ export default function LiffMemberPage() {
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => { if (!playingMysteryBox && !mysteryReward) setShowMysteryBox(false); }}
-              className="fixed inset-0 z-[60] bg-[#1A1A18]/40 backdrop-blur-sm"
-            />
-            <motion.div 
-              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-[32px] max-h-[90vh] overflow-y-auto pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.05)]"
+              className="fixed inset-0 z-[60] bg-[#1A1A18]/60 backdrop-blur-md flex items-center justify-center p-4"
             >
-              <div className="sticky top-0 bg-white/90 backdrop-blur-xl z-10 px-6 py-5 flex items-center justify-between border-b border-gray-100">
-                <div className="flex flex-col">
-                    <h3 className="text-[15px] font-bold text-gray-900 tracking-tight">กล่องสุ่มหรรษา</h3>
-                    <span className="text-[11px] text-gray-400 font-medium tracking-wide">ลุ้นรับคะแนนพิเศษ</span>
-                </div>
-                {!playingMysteryBox && (
-                    <button onClick={() => { setShowMysteryBox(false); setMysteryReward(null); }} className="text-gray-400 hover:text-gray-900 p-1 bg-gray-50 rounded-full">
-                        <X size={20} strokeWidth={2} />
-                    </button>
-                )}
-              </div>
-
-              <div className="p-6 flex flex-col items-center justify-center relative min-h-[360px]">
-                {!mysteryReward ? (
-                    <motion.div 
-                        key="box"
-                        initial={{ scale: 0.9, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0.5, opacity: 0, y: 50 }}
-                        className="flex flex-col items-center w-full"
-                    >
-                        <motion.div 
-                            animate={playingMysteryBox ? {
-                                y: [0, -15, 0, -15, 0],
-                                rotate: [0, -5, 5, -5, 0],
-                                scale: [1, 1.05, 1, 1.05, 1]
-                            } : {
-                                y: [0, -5, 0]
-                            }}
-                            transition={playingMysteryBox ? {
-                                duration: 0.4,
-                                repeat: Infinity,
-                                ease: "easeInOut"
-                            } : {
-                                duration: 3,
-                                repeat: Infinity,
-                                ease: "easeInOut"
-                            }}
-                            className="w-32 h-32 mb-6 relative"
-                        >
-                            <div className="absolute inset-0 bg-gradient-to-br from-[#FCF7E8] to-[#F5E6C4] rounded-[24px] shadow-lg shadow-[#F5E6C4]/50 flex items-center justify-center border border-[#F5E6C4]">
-                                <Gift size={60} className="text-[#8B651B]" />
-                            </div>
-                        </motion.div>
-
-                        <div className="text-center mb-6">
-                            <p className="text-gray-500 text-[13px] leading-relaxed">ใช้ {MYSTERY_COST} คะแนน เพื่อลุ้นรับคะแนน<br/>โบนัสสูงสุดถึง 500 Pts!</p>
-                        </div>
-
-                        {mysteryError && (
-                            <div className="mb-6 px-4 py-3 bg-red-50 text-red-600 rounded-xl text-[13px] flex items-center gap-2 w-full max-w-[280px]">
-                                <AlertCircle size={16} />
-                                {mysteryError}
-                            </div>
-                        )}
-
-                        <button 
-                            onClick={handlePlayMysteryBox}
-                            disabled={playingMysteryBox || (memberInfo?.points || 0) < MYSTERY_COST}
-                            className={`w-full max-w-[280px] h-14 rounded-full flex items-center justify-center gap-2 text-[14px] font-bold tracking-wider transition-all
-                                ${(memberInfo?.points || 0) >= MYSTERY_COST 
-                                    ? 'bg-[#1A1A18] text-white shadow-xl shadow-black/10 active:scale-95' 
-                                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                }`}
-                        >
-                            {playingMysteryBox ? (
-                                <>กำลังเปิดกล่อง...</>
-                            ) : (
-                                <>
-                                    <Sparkles size={16} />
-                                    แลก {MYSTERY_COST} Pts เพื่อสุ่ม
-                                </>
-                            )}
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95, y: 20 }} 
+                  animate={{ opacity: 1, scale: 1, y: 0 }} 
+                  exit={{ opacity: 0, scale: 0.95, y: 20 }} 
+                  transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                  className="bg-white rounded-[32px] w-full max-w-sm max-h-[85vh] overflow-y-auto shadow-2xl relative"
+                  onClick={(e) => e.stopPropagation()} // Prevent clicking inside from closing it
+                >
+                  <div className="sticky top-0 bg-white/90 backdrop-blur-xl z-10 px-6 py-5 flex items-center justify-between border-b border-gray-50 rounded-t-[32px]">
+                    <div className="flex flex-col">
+                        <h3 className="text-[16px] font-black text-gray-900 tracking-tight">กล่องสุ่มหรรษา</h3>
+                        <span className="text-[11px] text-gray-400 font-bold tracking-wide">ลุ้นรับคะแนนพิเศษ</span>
+                    </div>
+                    {!playingMysteryBox && (
+                        <button onClick={() => { setShowMysteryBox(false); setMysteryReward(null); }} className="text-gray-400 hover:text-gray-900 p-1.5 bg-gray-50 rounded-full active:scale-95 transition-transform">
+                            <X size={18} strokeWidth={2.5} />
                         </button>
-                    </motion.div>
-                ) : (
-                    <motion.div 
-                        key="reward"
-                        initial={{ scale: 0.5, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        className="flex flex-col items-center w-full"
-                    >
+                    )}
+                  </div>
+
+                  <div className="p-6 flex flex-col items-center justify-center relative min-h-[320px]">
+                    {!mysteryReward ? (
                         <motion.div 
-                            initial={{ rotate: -180, scale: 0 }}
-                            animate={{ rotate: 0, scale: 1 }}
-                            transition={{ type: "spring", bounce: 0.5 }}
-                            className="w-32 h-32 mb-6 relative"
+                            key="box"
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.5, opacity: 0, y: 30 }}
+                            className="flex flex-col items-center w-full"
                         >
-                            <div className="absolute inset-0 bg-gradient-to-br from-[#1A1A18] to-gray-800 rounded-[24px] shadow-xl shadow-black/20 flex items-center justify-center">
-                                <div className="text-center text-white">
-                                    <p className="text-[12px] font-bold uppercase tracking-widest mb-1 opacity-80">ได้รับ</p>
-                                    <p className="text-[42px] font-black leading-none">+{mysteryReward}</p>
+                            <motion.div 
+                                animate={playingMysteryBox ? {
+                                    y: [0, -15, 0, -15, 0],
+                                    rotate: [0, -5, 5, -5, 0],
+                                    scale: [1, 1.05, 1, 1.05, 1]
+                                } : {
+                                    y: [0, -5, 0]
+                                }}
+                                transition={playingMysteryBox ? {
+                                    duration: 0.4,
+                                    repeat: Infinity,
+                                    ease: "easeInOut"
+                                } : {
+                                    duration: 3,
+                                    repeat: Infinity,
+                                    ease: "easeInOut"
+                                }}
+                                className="w-32 h-32 mb-6 relative"
+                            >
+                                <div className="absolute inset-0 bg-gradient-to-br from-[#FCF7E8] to-[#F5E6C4] rounded-[24px] shadow-lg shadow-[#F5E6C4]/50 flex items-center justify-center border border-[#F5E6C4]">
+                                    <Gift size={60} className="text-[#8B651B]" />
                                 </div>
-                            </div>
-                            <motion.div animate={{ rotate: 360 }} transition={{ duration: 10, repeat: Infinity, ease: "linear" }} className="absolute -inset-8 -z-10">
-                                <div className="absolute top-0 left-1/2 text-[#1A1A18] opacity-20"><Sparkles size={20} /></div>
-                                <div className="absolute bottom-0 right-1/4 text-yellow-500"><Sparkles size={16} /></div>
                             </motion.div>
-                        </motion.div>
 
-                        <div className="text-center mb-8">
-                            <h2 className="text-[20px] font-black text-gray-900 mb-2">ยินดีด้วย! 🎉</h2>
-                            <p className="text-gray-500 text-[13px]">คะแนนโบนัสถูกเพิ่มเข้าบัญชีของคุณเรียบร้อยแล้ว</p>
-                        </div>
+                            <div className="text-center mb-6">
+                                <p className="text-gray-500 text-[13px] leading-relaxed">ใช้ {MYSTERY_COST} คะแนน เพื่อลุ้นรับคะแนน<br/>โบนัสสูงสุดถึง 500 Pts!</p>
+                            </div>
 
-                        <div className="flex gap-3 w-full max-w-[280px]">
+                            {mysteryError && (
+                                <div className="mb-6 px-4 py-3 bg-red-50 text-red-600 rounded-xl text-[12px] font-medium flex items-center gap-2 w-full">
+                                    <AlertCircle size={16} className="shrink-0" />
+                                    <span>{mysteryError}</span>
+                                </div>
+                            )}
+
                             <button 
-                                onClick={() => setMysteryReward(null)}
-                                disabled={(memberInfo?.points || 0) < MYSTERY_COST}
-                                className={`flex-1 h-12 rounded-full font-bold text-[13px] transition-all
+                                onClick={handlePlayMysteryBox}
+                                disabled={playingMysteryBox || (memberInfo?.points || 0) < MYSTERY_COST}
+                                className={`w-full h-14 rounded-full flex items-center justify-center gap-2 text-[14px] font-bold tracking-wider transition-all
                                     ${(memberInfo?.points || 0) >= MYSTERY_COST 
-                                        ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:scale-95' 
-                                        : 'bg-gray-50 text-gray-300 cursor-not-allowed'
+                                        ? 'bg-[#1A1A18] text-white shadow-xl shadow-black/10 active:scale-95' 
+                                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                     }`}
                             >
-                                เล่นอีกครั้ง
+                                {playingMysteryBox ? (
+                                    <>กำลังเปิดกล่อง...</>
+                                ) : (
+                                    <>
+                                        <Sparkles size={16} />
+                                        แลก {MYSTERY_COST} Pts เพื่อสุ่ม
+                                    </>
+                                )}
                             </button>
-                            <button 
-                                onClick={() => { setShowMysteryBox(false); setMysteryReward(null); }}
-                                className="flex-1 h-12 rounded-full bg-[#1A1A18] text-white font-bold text-[13px] active:scale-95 transition-all shadow-lg shadow-black/10"
+                        </motion.div>
+                    ) : (
+                        <motion.div 
+                            key="reward"
+                            initial={{ scale: 0.5, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            className="flex flex-col items-center w-full"
+                        >
+                            <motion.div 
+                                initial={{ rotate: -180, scale: 0 }}
+                                animate={{ rotate: 0, scale: 1 }}
+                                transition={{ type: "spring", bounce: 0.5 }}
+                                className="w-32 h-32 mb-6 relative"
                             >
-                                ตกลง
-                            </button>
-                        </div>
-                    </motion.div>
-                )}
-              </div>
+                                <div className="absolute inset-0 bg-gradient-to-br from-[#1A1A18] to-gray-800 rounded-[24px] shadow-xl shadow-black/20 flex items-center justify-center">
+                                    <div className="text-center text-white">
+                                        <p className="text-[11px] font-bold uppercase tracking-widest mb-1 opacity-80">ได้รับ</p>
+                                        <p className="text-[40px] font-black leading-none">+{mysteryReward}</p>
+                                    </div>
+                                </div>
+                                <motion.div animate={{ rotate: 360 }} transition={{ duration: 10, repeat: Infinity, ease: "linear" }} className="absolute -inset-8 -z-10">
+                                    <div className="absolute top-0 left-1/2 text-[#1A1A18] opacity-20"><Sparkles size={20} /></div>
+                                    <div className="absolute bottom-0 right-1/4 text-yellow-500"><Sparkles size={16} /></div>
+                                </motion.div>
+                            </motion.div>
+
+                            <div className="text-center mb-8">
+                                <h2 className="text-[18px] font-black text-gray-900 mb-2">ยินดีด้วย! 🎉</h2>
+                                <p className="text-gray-500 text-[13px]">คะแนนโบนัสถูกเพิ่มเข้าบัญชีของคุณเรียบร้อยแล้ว</p>
+                            </div>
+
+                            <div className="flex gap-3 w-full">
+                                <button 
+                                    onClick={() => setMysteryReward(null)}
+                                    disabled={(memberInfo?.points || 0) < MYSTERY_COST}
+                                    className={`flex-1 h-12 rounded-full font-bold text-[13px] transition-all
+                                        ${(memberInfo?.points || 0) >= MYSTERY_COST 
+                                            ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:scale-95' 
+                                            : 'bg-gray-50 text-gray-300 cursor-not-allowed'
+                                        }`}
+                                >
+                                    เล่นอีกครั้ง
+                                </button>
+                                <button 
+                                    onClick={() => { setShowMysteryBox(false); setMysteryReward(null); }}
+                                    className="flex-1 h-12 rounded-full bg-[#1A1A18] text-white font-bold text-[13px] active:scale-95 transition-all shadow-lg shadow-black/10"
+                                >
+                                    ตกลง
+                                </button>
+                            </div>
+                        </motion.div>
+                    )}
+                  </div>
+                </motion.div>
             </motion.div>
           </>
         )}
