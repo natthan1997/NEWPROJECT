@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-  ChevronRight, Info, X, Gift, Phone, Globe, Facebook, MessageCircle, QrCode
+  ChevronRight, ChevronLeft, Info, X, Gift, Phone, Globe, Facebook, MessageCircle, QrCode
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
@@ -31,7 +31,7 @@ export default function LiffMemberPage() {
   const t = {
     th: {
       loading: 'กำลังโหลดข้อมูล...',
-      title: 'XYL STUDIO',
+      title: 'คะแนนสะสมของคุณ',
       points: 'พอยท์ปัจจุบัน',
       pts: 'พอยท์',
       benefitsTitle: 'สิทธิประโยชน์',
@@ -180,8 +180,17 @@ export default function LiffMemberPage() {
     <div className="min-h-screen bg-[#FAFAFA] text-[#1A1A18] font-sans pb-24">
       
       {/* 📱 Header */}
-      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-xl px-6 py-4 flex items-center justify-center border-b border-gray-100">
-        <h1 className="text-[14px] font-bold tracking-widest text-[#7B8B7B] uppercase">{dict.title}</h1>
+      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-xl px-4 py-4 flex items-center justify-between border-b border-gray-100">
+        <button 
+            onClick={() => router.back()} 
+            className="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full active:scale-95 transition-transform text-gray-600"
+        >
+            <ChevronLeft size={20} />
+        </button>
+        <div className="flex flex-col items-center flex-1">
+            <h1 className="text-[14px] font-bold tracking-widest text-[#1A1A18]">{dict.title}</h1>
+        </div>
+        <div className="w-10 h-10"></div>
       </header>
 
       <main className="px-5 pt-6 relative z-10 max-w-lg mx-auto flex flex-col gap-8">
