@@ -39,7 +39,7 @@ export default function RegistrationForm({ lineProfile, onSubmit, isSubmitting }
       {/* Header */}
       <header className="sticky top-0 z-40 bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between">
         <div className="w-6"></div>
-        <h1 className="text-[16px] font-bold tracking-widest text-[#6C8DA3] uppercase">Blue Coffee</h1>
+        <h1 className="text-[16px] font-bold tracking-widest text-gray-900 uppercase">XYL STUDIO</h1>
         <button className="text-gray-400">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </button>
@@ -79,7 +79,7 @@ export default function RegistrationForm({ lineProfile, onSubmit, isSubmitting }
               value={firstName} 
               onChange={e => setFirstName(e.target.value)} 
               placeholder="ชื่อ" 
-              className="w-full bg-white border border-gray-200 rounded-[8px] px-4 py-3 text-[15px] focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder:text-gray-400" 
+              className="w-full bg-white border border-gray-200 rounded-[8px] px-4 py-3 text-[15px] focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none transition-all placeholder:text-gray-400" 
             />
           </div>
 
@@ -93,7 +93,7 @@ export default function RegistrationForm({ lineProfile, onSubmit, isSubmitting }
               value={lastName} 
               onChange={e => setLastName(e.target.value)} 
               placeholder="นามสกุล" 
-              className="w-full bg-white border border-gray-200 rounded-[8px] px-4 py-3 text-[15px] focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder:text-gray-400" 
+              className="w-full bg-white border border-gray-200 rounded-[8px] px-4 py-3 text-[15px] focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none transition-all placeholder:text-gray-400" 
             />
           </div>
 
@@ -112,7 +112,7 @@ export default function RegistrationForm({ lineProfile, onSubmit, isSubmitting }
                 value={phone} 
                 onChange={e => setPhone(e.target.value)} 
                 placeholder="หมายเลขโทรศัพท์" 
-                className="w-full bg-white border border-gray-200 rounded-[8px] px-4 py-3 text-[15px] focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder:text-gray-400" 
+                className="w-full bg-white border border-gray-200 rounded-[8px] px-4 py-3 text-[15px] focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none transition-all placeholder:text-gray-400" 
               />
             </div>
           </div>
@@ -130,7 +130,7 @@ export default function RegistrationForm({ lineProfile, onSubmit, isSubmitting }
                 type="date" 
                 value={dob} 
                 onChange={e => setDob(e.target.value)} 
-                className="w-full bg-white border border-gray-200 rounded-[8px] px-4 py-3 text-[15px] focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all text-gray-900" 
+                className="w-full bg-white border border-gray-200 rounded-[8px] px-4 py-3 text-[15px] focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none transition-all text-gray-900" 
               />
             </div>
           </div>
@@ -147,8 +147,8 @@ export default function RegistrationForm({ lineProfile, onSubmit, isSubmitting }
           <div className="space-y-4">
             {['ชาย', 'หญิง', 'ไม่ระบุ'].map(g => (
               <label key={g} className="flex items-center gap-3 cursor-pointer">
-                <div className={`w-[22px] h-[22px] rounded-full border flex items-center justify-center ${gender === g ? 'border-blue-500' : 'border-gray-300'}`}>
-                  {gender === g && <div className="w-[12px] h-[12px] bg-blue-500 rounded-full"></div>}
+                <div className={`w-[22px] h-[22px] rounded-full border flex items-center justify-center ${gender === g ? 'border-gray-900' : 'border-gray-300'}`}>
+                  {gender === g && <div className="w-[12px] h-[12px] bg-gray-900 rounded-full"></div>}
                 </div>
                 <span className="text-[15px] text-gray-800">{g}</span>
                 <input 
@@ -177,7 +177,7 @@ export default function RegistrationForm({ lineProfile, onSubmit, isSubmitting }
               const isChecked = favoriteMenu.includes(menu);
               return (
                 <label key={menu} className="flex items-center gap-3 cursor-pointer">
-                  <div className={`w-[22px] h-[22px] rounded-[4px] border flex items-center justify-center ${isChecked ? 'bg-blue-500 border-blue-500' : 'border-gray-300 bg-white'}`}>
+                  <div className={`w-[22px] h-[22px] rounded-[4px] border flex items-center justify-center ${isChecked ? 'bg-gray-900 border-gray-900' : 'border-gray-300 bg-white'}`}>
                     {isChecked && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>}
                   </div>
                   <span className="text-[15px] text-gray-800">{menu}</span>
@@ -205,15 +205,15 @@ export default function RegistrationForm({ lineProfile, onSubmit, isSubmitting }
         {/* Consent */}
         <div className="space-y-6">
           <label className="flex items-start gap-3 cursor-pointer">
-            <div className={`mt-0.5 w-[22px] h-[22px] shrink-0 rounded-[4px] border flex items-center justify-center transition-colors ${consent ? 'bg-blue-500 border-blue-500' : 'border-gray-300 bg-white'}`}>
+            <div className={`mt-0.5 w-[22px] h-[22px] shrink-0 rounded-[4px] border flex items-center justify-center transition-colors ${consent ? 'bg-gray-900 border-gray-900' : 'border-gray-300 bg-white'}`}>
               {consent && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>}
             </div>
             <div className="text-[14px] leading-relaxed text-gray-700 select-none">
               <span>ข้าพเจ้ายอมรับ </span>
-              <span className="text-[#3b5998] font-medium">ข้อกำหนดการใช้บริการ Blue Coffee</span>
+              <span className="text-gray-900 font-bold underline decoration-gray-300 underline-offset-2">ข้อกำหนดการใช้บริการ XYL Studio</span>
               <span> และรับทราบ </span>
-              <span className="text-[#3b5998] font-medium">นโยบายความเป็นส่วนตัว</span>
-              <span> และตกลงเพิ่มบัญชีทางการ Blue Coffee ("ร้านค้า") เป็นเพื่อน หรือยกเลิกการปิดกั้นบัญชีทางการร้านโดยอัตโนมัติ เพื่อการใช้สะสมแต้มกับร้านค้า</span>
+              <span className="text-gray-900 font-bold underline decoration-gray-300 underline-offset-2">นโยบายความเป็นส่วนตัว</span>
+              <span> และตกลงเพิ่มบัญชีทางการ XYL Studio ("ร้านค้า") เป็นเพื่อน หรือยกเลิกการปิดกั้นบัญชีทางการร้านโดยอัตโนมัติ เพื่อการใช้สะสมแต้มกับร้านค้า</span>
             </div>
             <input 
               type="checkbox" 
@@ -224,9 +224,9 @@ export default function RegistrationForm({ lineProfile, onSubmit, isSubmitting }
           </label>
 
           <p className="text-[12px] text-gray-500 leading-[1.6]">
-            ข้อปฏิเสธความรับผิด: ในการส่งแบบฟอร์มนี้ (แบบฟอร์มลงทะเบียน) ข้าพเจ้ารับทราบว่าข้อมูลตัวบ่งชี้ภายในที่กำหนดโดย LINE ของข้าพเจ้าและข้อมูลโปรไฟล์ LINE จะถูกแบ่งปันให้แก่ร้านค้า Blue Coffee เพื่อวัตถุประสงค์ในการลงทะเบียนสมาชิกของร้านค้า Blue Coffee
+            ข้อปฏิเสธความรับผิด: ในการส่งแบบฟอร์มนี้ (แบบฟอร์มลงทะเบียน) ข้าพเจ้ารับทราบว่าข้อมูลตัวบ่งชี้ภายในที่กำหนดโดย LINE ของข้าพเจ้าและข้อมูลโปรไฟล์ LINE จะถูกแบ่งปันให้แก่ร้านค้า XYL Studio เพื่อวัตถุประสงค์ในการลงทะเบียนสมาชิกของร้านค้า XYL Studio
             <br/><br/>
-            นอกจากนี้ ข้าพเจ้ารับทราบว่าข้อมูลส่วนบุคคลของข้าพเจ้า (เช่น ชื่อ นามสกุล เบอร์โทรศัพท์มือถือ อีเมล์ วันเดือนปีเกิด เพศ และที่อยู่) ที่ถูกเก็บรวบรวมอาจถูกเก็บรักษาโดย Blue Coffee ได้ แม้ว่าข้าพเจ้าจะบล็อกบัญชีทางการนี้แล้วก็ตาม
+            นอกจากนี้ ข้าพเจ้ารับทราบว่าข้อมูลส่วนบุคคลของข้าพเจ้า (เช่น ชื่อ นามสกุล เบอร์โทรศัพท์มือถือ อีเมล์ วันเดือนปีเกิด เพศ และที่อยู่) ที่ถูกเก็บรวบรวมอาจถูกเก็บรักษาโดย XYL Studio ได้ แม้ว่าข้าพเจ้าจะบล็อกบัญชีทางการนี้แล้วก็ตาม
           </p>
         </div>
       </main>
@@ -239,8 +239,8 @@ export default function RegistrationForm({ lineProfile, onSubmit, isSubmitting }
             disabled={!isFormValid || isSubmitting}
             className={`w-full py-3.5 rounded-[8px] font-medium text-[16px] flex justify-center items-center transition-colors ${
               isFormValid 
-                ? 'bg-[#E6E6E6] hover:bg-blue-600 text-[#8C8C8C] hover:text-white' // Match design default gray state until valid maybe? No, let's make it standard: blue if valid, gray if invalid.
-                : 'bg-[#E6E6E6] text-white cursor-not-allowed'
+                ? 'bg-gray-900 text-white hover:bg-black' 
+                : 'bg-[#E6E6E6] text-gray-400 cursor-not-allowed'
             }`}
           >
             {isSubmitting ? <Loader2 size={18} className="animate-spin text-gray-400" /> : 'สมัครสมาชิก'}
@@ -248,13 +248,6 @@ export default function RegistrationForm({ lineProfile, onSubmit, isSubmitting }
         </div>
       </div>
       
-      {/* Dynamic CSS override for button color when valid to match standard LINE styling or just use blue */}
-      <style jsx>{`
-        button:not(:disabled) {
-          background-color: #06C755; /* LINE Green or Blue depending on theme, design uses a light gray, let's use a nice blue/green, but the image button is light gray because it's disabled. I'll use blue-600 */
-          color: white;
-        }
-      `}</style>
     </div>
   );
 }
