@@ -275,14 +275,36 @@ export default function LiffMemberPage() {
                         )}
                     </div>
                     <div>
-                        <div className="text-[14px] font-medium leading-tight">
-                            {memberInfo?.nickname || memberInfo?.name || lineProfile?.displayName || 'Member'}
+                        <div className="flex items-center gap-2 mb-1">
+                            <div className="text-[15px] font-medium leading-tight">
+                                {memberInfo?.nickname || memberInfo?.name || lineProfile?.displayName || 'Member'}
+                            </div>
+                            {activeTitle && (
+                                <button 
+                                  onClick={() => setShowCatalog(true)}
+                                  className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide flex items-center gap-0.5 shadow-sm active:scale-95 transition-transform"
+                                  style={{ backgroundColor: activeTitle.bgHex || '#F5F5F5', color: activeTitle.textHex || '#1A1A18' }}
+                                >
+                                  {activeTitle.name}
+                                  <ChevronRight size={10} className="opacity-60" />
+                                </button>
+                            )}
                         </div>
-                        <div className="flex items-center gap-1 opacity-80 mt-0.5">
-                            <span className="w-3 h-3 rounded-full bg-white flex items-center justify-center">
-                                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: currentTier.textHex }}></span>
-                            </span>
-                            <span className="text-[12px]">{currentTier.name}</span>
+                        <div className="flex items-center gap-2 opacity-90 mt-0.5">
+                            <div className="flex items-center gap-1">
+                                <span className="w-3 h-3 rounded-full bg-white flex items-center justify-center">
+                                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: currentTier.textHex }}></span>
+                                </span>
+                                <span className="text-[12px] font-medium">{currentTier.name}</span>
+                            </div>
+                            {!activeTitle && (
+                                <>
+                                    <span className="text-white/40 text-[10px]">|</span>
+                                    <button onClick={() => setShowCatalog(true)} className="text-[11px] font-medium text-white hover:text-white transition-colors underline decoration-white/40 underline-offset-2">
+                                        ดูฉายา
+                                    </button>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -491,6 +513,99 @@ export default function LiffMemberPage() {
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* 👑 Clean Bottom Sheet - Catalog */}
+      <AnimatePresence>
+        {showCatalog && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setShowCatalog(false)}
+              className="fixed inset-0 z-[60] bg-gray-900/20 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-[32px] max-h-[90vh] overflow-y-auto pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.05)]"
+            >
+              <div className="sticky top-0 bg-white/90 backdrop-blur-xl z-10 px-6 py-5 flex items-center justify-between border-b border-gray-100">
+                <h3 className="text-[15px] font-black text-gray-900">ฉายาของคุณ</h3>
+                <button onClick={() => setShowCatalog(false)} className="text-gray-400 hover:text-gray-900 p-1 bg-gray-50 rounded-full">
+                  <X size={18} strokeWidth={2.5} />
+                </button>
+              </div>
+
+              <div className="p-6">
+                <div className="grid grid-cols-2 gap-4">
+                  {titles.map((tier, idx) => (
+                    <motion.div 
+                      whileTap={{ scale: 0.98 }}
+                      key={idx} 
+                      onClick={() => setSelectedBadge(tier)}
+                      className={`bg-white border p-5 rounded-[20px] flex flex-col items-center cursor-pointer ${tier.isUnlocked ? 'border-gray-200 shadow-sm' : 'border-gray-100 opacity-60 grayscale'}`}
+                    >
+                      <div className="w-12 h-12 rounded-full flex items-center justify-center text-[16px] font-bold mb-3 shadow-sm" style={{ backgroundColor: tier.bgHex, color: tier.textHex }}>
+                        {tier.name[0]}
+                      </div>
+                      <h4 className="text-[13px] font-black text-gray-900 mb-1">{tier.name}</h4>
+                      
+                      {!tier.isUnlocked && (
+                        <div className="w-full mt-2 h-[4px] bg-gray-100 rounded-full overflow-hidden">
+                          <div className="h-full bg-gray-300" style={{ width: `${tier.progress}%` }}></div>
+                        </div>
+                      )}
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* 🏆 Clean Badge Modal */}
+      <AnimatePresence>
+        {selectedBadge && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-5">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setSelectedBadge(null)}
+              className="absolute inset-0 bg-gray-900/20 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 10 }} 
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative w-full max-w-sm bg-white rounded-[24px] overflow-hidden shadow-2xl"
+            >
+              <div className="h-24 w-full flex items-start justify-end p-4 relative" style={{ backgroundColor: selectedBadge.bgHex }}>
+                <div className="w-16 h-16 rounded-full flex items-center justify-center text-[24px] font-black bg-white shadow-md absolute -bottom-8 left-1/2 -translate-x-1/2" style={{ color: selectedBadge.textHex }}>
+                  {selectedBadge.name[0]}
+                </div>
+                <button onClick={() => setSelectedBadge(null)} className="text-black/30 hover:text-black/60 transition-colors z-10 bg-white/30 rounded-full p-1">
+                  <X size={18} strokeWidth={2.5} />
+                </button>
+              </div>
+
+              <div className="pt-12 pb-6 px-6 text-center">
+                <h3 className="text-[18px] font-black text-gray-900 mb-1">{selectedBadge.name}</h3>
+                
+                <div className="text-[11px] font-bold text-gray-400 tracking-wider uppercase mb-6">
+                  {selectedBadge.isUnlocked ? 'Unlocked' : 'Locked'}
+                </div>
+
+                <div className="text-left bg-gray-50 rounded-[16px] p-5">
+                  <h4 className="text-[11px] text-gray-500 uppercase tracking-widest font-bold mb-3">เงื่อนไขการรับฉายา</h4>
+                  <div className="flex items-start gap-3 text-[13px] font-medium text-gray-900">
+                    <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center shrink-0 mt-0.5">
+                        <span className="w-2 h-2 rounded-full bg-gray-400"></span>
+                    </div>
+                    <span className="leading-relaxed">ยอดสะสมครบ {selectedBadge.minPoints.toLocaleString()} Pts</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
