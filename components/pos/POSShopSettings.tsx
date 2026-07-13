@@ -5,7 +5,7 @@ import { PrinterSocket } from 'custom-printer-plugin'
 import { printCustomerReceipt, printKitchenTicket } from '@/lib/printerUtils'
 import { 
   Plus, Loader2, Save, X, Settings, Clock,
-  Bell, Info, Image as ImageIcon, Star,
+  Bell, Info, Image as ImageIcon, Star, Gift,
   ChevronDown, ChevronUp, Upload, Trash2, Menu as MenuIcon, ChevronRight, ArrowLeft, ShieldCheck, QrCode,
   MapPin, Printer, Truck
 } from 'lucide-react'
@@ -157,6 +157,13 @@ export default function POSShopSettings({
                 loyalty_redeem_thb: data.opening_hours?.loyalty_redeem_thb !== undefined ? data.opening_hours.loyalty_redeem_thb : (data.opening_hours?.loyalty_points_per_thb || 10),
                 delivery_gp: data.opening_hours?.delivery_gp || { grab: 32.1, lineman: 32.1, shopee: 32.1, foodpanda: 32.1, robinhood: 0 },
                 active_delivery_platforms: data.opening_hours?.active_delivery_platforms || ['grab', 'shopee', 'lineman', 'foodpanda', 'robinhood'],
+                mystery_box_cost: data.opening_hours?.mystery_box_cost !== undefined ? data.opening_hours.mystery_box_cost : 50,
+                mystery_box_prizes: data.opening_hours?.mystery_box_prizes || [
+                    { chance: 60, points: 20 },
+                    { chance: 25, points: 50 },
+                    { chance: 10, points: 100 },
+                    { chance: 5, points: 500 }
+                ],
             })
         } else {
             setSettings((prev: any) => ({ ...prev, branch_id: branchId }))

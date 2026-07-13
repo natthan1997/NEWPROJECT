@@ -6,8 +6,6 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const COST_TO_PLAY = 50;
-
 export async function POST(req: NextRequest) {
   try {
     const { userId } = await req.json()
@@ -26,22 +24,47 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Member not found' }, { status: 404 })
     }
 
-    if ((member.points || 0) < COST_TO_PLAY) {
+    // Fetch shop settings for mystery box configuration
+    const { data: shopSettings } = await supabase
+      .from('pos_shop_settings')
+      .select('opening_hours')
+      .limit(1)
+      .single()
+
+    const costToPlay = shopSettings?.opening_hours?.mystery_box_cost !== undefined 
+      ? shopSettings.opening_hours.mystery_box_cost 
+      : 50;
+      
+    const prizes = shopSettings?.opening_hours?.mystery_box_prizes || [
+        { chance: 60, points: 20 },
+        { chance: 25, points: 50 },
+        { chance: 10, points: 100 },
+        { chance: 5, points: 500 }
+    ];
+
+    if ((member.points || 0) < costToPlay) {
       return NextResponse.json({ error: 'Not enough points' }, { status: 400 })
     }
 
-    // 2. Randomize reward
-    const rand = Math.random();
-    let wonPoints = 20; // 60% chance
-    if (rand > 0.95) {
-      wonPoints = 500; // 5% chance
-    } else if (rand > 0.85) {
-      wonPoints = 100; // 10% chance
-    } else if (rand > 0.60) {
-      wonPoints = 50; // 25% chance
+    // 2. Randomize reward based on probabilities
+    const rand = Math.random() * 100;
+    let wonPoints = 0;
+    let cumulativeChance = 0;
+    
+    for (const prize of prizes) {
+        cumulativeChance += Number(prize.chance);
+        if (rand <= cumulativeChance) {
+            wonPoints = Number(prize.points);
+            break;
+        }
+    }
+    
+    // Fallback if loop didn't set wonPoints (e.g. chances don't sum to 100)
+    if (wonPoints === 0 && prizes.length > 0) {
+        wonPoints = Number(prizes[0].points);
     }
 
-    const netPointsChange = wonPoints - COST_TO_PLAY;
+    const netPointsChange = wonPoints - costToPlay;
     const newPoints = (member.points || 0) + netPointsChange;
 
     // 3. Perform database updates
@@ -56,8 +79,8 @@ export async function POST(req: NextRequest) {
     // Insert history for deduction
     await supabase.from('pos_points_history').insert({
       member_id: member.id,
-      points_change: -COST_TO_PLAY,
-      points: COST_TO_PLAY,
+      points_change: -costToPlay,
+      points: costToPlay,
       type: 'redeem',
       description: 'เล่นกล่องสุ่ม',
     })

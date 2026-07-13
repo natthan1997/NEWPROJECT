@@ -34,7 +34,7 @@ export default function LiffMemberPage() {
   const [playingMysteryBox, setPlayingMysteryBox] = useState(false);
   const [mysteryReward, setMysteryReward] = useState<number | null>(null);
   const [mysteryError, setMysteryError] = useState<string | null>(null);
-  const MYSTERY_COST = 50;
+  const [mysteryBoxCost, setMysteryBoxCost] = useState(50);
 
   const t = {
     th: {
@@ -108,8 +108,13 @@ export default function LiffMemberPage() {
       if (!isBackgroundSync) setLoading(true);
       const { data: member } = await supabase.from('pos_members').select('*').eq('line_user_id', userId).maybeSingle();
       const { data: shopSettings } = await supabase.from('pos_shop_settings').select('opening_hours').order('updated_at', { ascending: false }).limit(1).maybeSingle();
-      if (shopSettings && shopSettings.opening_hours && shopSettings.opening_hours.loyalty_earn_rate) {
-        setEarnRate(shopSettings.opening_hours.loyalty_earn_rate);
+      if (shopSettings && shopSettings.opening_hours) {
+        if (shopSettings.opening_hours.loyalty_earn_rate) {
+          setEarnRate(shopSettings.opening_hours.loyalty_earn_rate);
+        }
+        if (shopSettings.opening_hours.mystery_box_cost !== undefined) {
+          setMysteryBoxCost(shopSettings.opening_hours.mystery_box_cost);
+        }
       }
       if (member) {
         setMemberInfo(member);
@@ -737,7 +742,7 @@ export default function LiffMemberPage() {
                             </motion.div>
 
                             <div className="text-center mb-6">
-                                <p className="text-gray-700 font-medium text-[13px] leading-relaxed">ใช้ {MYSTERY_COST} คะแนน เพื่อลุ้นรับคะแนน<br/>โบนัสสูงสุดถึง 500 Pts!</p>
+                                <p className="text-gray-700 font-medium text-[13px] leading-relaxed">ใช้ {mysteryBoxCost} คะแนน เพื่อลุ้นรับคะแนน<br/>โบนัสสูงสุดถึง 500 Pts!</p>
                             </div>
 
                             {mysteryError && (
