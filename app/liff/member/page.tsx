@@ -299,15 +299,30 @@ export default function LiffMemberPage() {
                 const icon = campaign.icon || '🎁';
                 
                 const isMysteryBox = campaign.title.includes('กล่องสุ่ม');
-                const clickableProps = isMysteryBox ? {
-                    onClick: () => router.push('/liff/mystery-box'),
-                    className: `min-w-[280px] h-[160px] snap-center rounded-[20px] p-5 flex flex-col justify-end relative overflow-hidden shadow-sm bg-gradient-to-br ${bgFrom} ${bgTo} cursor-pointer active:scale-95 transition-transform`,
-                } : {
-                    className: `min-w-[280px] h-[160px] snap-center rounded-[20px] p-5 flex flex-col justify-end relative overflow-hidden shadow-sm bg-gradient-to-br ${bgFrom} ${bgTo}`,
-                };
+                if (isMysteryBox) {
+                    return (
+                        <Link href="/liff/mystery-box" key={campaign.id} className={`min-w-[280px] h-[160px] snap-center rounded-[20px] p-5 flex flex-col justify-end relative overflow-hidden shadow-sm bg-gradient-to-br ${bgFrom} ${bgTo} cursor-pointer active:scale-95 transition-transform block`}>
+                            <div className="absolute top-0 right-0 p-4 opacity-20 text-[80px] leading-none">
+                                {icon}
+                            </div>
+                            <div className="relative z-10">
+                                <span className={`inline-block px-2 py-1 bg-white/20 ${tagCol} text-[10px] font-bold tracking-widest uppercase rounded mb-2 backdrop-blur-sm`}>
+                                    {campaign.type_tag || 'PROMO'}
+                                </span>
+                                <h4 className={`${textCol} text-[18px] font-semibold leading-tight mb-1`}>{campaign.title}</h4>
+                                <p className={`${textCol} opacity-80 text-[12px]`}>
+                                    {campaign.description}
+                                </p>
+                            </div>
+                            <div className="absolute right-4 bottom-4 text-white/50">
+                                <ChevronRight size={20} />
+                            </div>
+                        </Link>
+                    );
+                }
 
                 return (
-                    <div key={campaign.id} {...clickableProps}>
+                    <div key={campaign.id} className={`min-w-[280px] h-[160px] snap-center rounded-[20px] p-5 flex flex-col justify-end relative overflow-hidden shadow-sm bg-gradient-to-br ${bgFrom} ${bgTo}`}>
                         <div className="absolute top-0 right-0 p-4 opacity-20 text-[80px] leading-none">
                             {icon}
                         </div>
@@ -320,11 +335,6 @@ export default function LiffMemberPage() {
                                 {campaign.description}
                             </p>
                         </div>
-                        {isMysteryBox && (
-                            <div className="absolute right-4 bottom-4 text-white/50">
-                                <ChevronRight size={20} />
-                            </div>
-                        )}
                     </div>
                 );
             }) : (
