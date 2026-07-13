@@ -10,7 +10,7 @@ import XYLLoader from '@/components/loaders/XYLLoader';
 
 export default function MysteryBoxPage() {
     const router = useRouter();
-    const { isReady, lineProfile } = useLiff();
+    const { isDataReady, lineProfile } = useLiff();
     const supabase = createClient();
     
     const [loading, setLoading] = useState(true);
@@ -22,7 +22,7 @@ export default function MysteryBoxPage() {
     const COST = 50;
 
     useEffect(() => {
-        if (!isReady) return;
+        if (!isDataReady) return;
         if (!lineProfile?.userId) {
             setLoading(false);
             return;
@@ -47,7 +47,7 @@ export default function MysteryBoxPage() {
         };
 
         fetchPoints();
-    }, [isReady, lineProfile]);
+    }, [isDataReady, lineProfile]);
 
     const handlePlay = async () => {
         if (points < COST) return;
@@ -82,7 +82,7 @@ export default function MysteryBoxPage() {
         }
     };
 
-    if (!isReady || loading) {
+    if (!isDataReady || loading) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <XYLLoader />
