@@ -9,6 +9,7 @@ import {
 import { supabase } from '@/lib/supabaseClient'
 import { useI18n } from "@/lib/I18nContext";
 import CrmSettingsPage from '@/app/dashboard/admin/pos-settings/crm/page';
+import POSMysteryBoxSettings from './POSMysteryBoxSettings';
 
 interface Customer {
     id: string
@@ -69,6 +70,7 @@ export default function POSMemberManager({
     const [editData, setEditData] = useState<Partial<Customer>>({})
     const [searchTerm, setSearchTerm] = useState('')
     const [showCrmSettings, setShowCrmSettings] = useState(false)
+    const [showMysteryBoxSettings, setShowMysteryBoxSettings] = useState(false)
 
     useEffect(() => {
         fetchMembers()
@@ -260,6 +262,9 @@ export default function POSMemberManager({
                                  <span className="text-[8px] font-black text-sage-600 bg-sage-50 px-2 py-1 uppercase tracking-widest">{customers.length} {locale === 'en' ? ' ท่าน' : locale === 'zh' ? ' ท่าน' : ' ท่าน'}</span>
                                  <button onClick={() => setShowCrmSettings(true)} className="p-1 text-gray-400 hover:text-[#1A1A18] transition-colors" title="ตั้งค่า CRM & Loyalty">
                                      <Settings size={14} />
+                                 </button>
+                                 <button onClick={() => setShowMysteryBoxSettings(true)} className="p-1 text-yellow-500 hover:text-yellow-600 transition-colors" title="ตั้งค่ากล่องสุ่ม">
+                                     <Sparkles size={14} />
                                  </button>
                              </div>
                         </div>

@@ -32,7 +32,7 @@ export default function LiffMemberPage() {
   // Mystery Box State
   const [showMysteryBox, setShowMysteryBox] = useState(false);
   const [playingMysteryBox, setPlayingMysteryBox] = useState(false);
-  const [mysteryReward, setMysteryReward] = useState<number | null>(null);
+  const [mysteryReward, setMysteryReward] = useState<any>(null);
   const [mysteryError, setMysteryError] = useState<string | null>(null);
   const MYSTERY_COST = 50;
 
@@ -183,7 +183,7 @@ export default function LiffMemberPage() {
 
           // Simulate suspense for animation
           setTimeout(() => {
-              setMysteryReward(data.wonPoints);
+              setMysteryReward(data);
               setMemberInfo({ ...memberInfo, points: data.newTotal });
               setPlayingMysteryBox(false);
           }, 2000);
@@ -764,14 +764,14 @@ export default function LiffMemberPage() {
                                 <div className="absolute inset-0 bg-[#1A1A18] rounded-[24px] shadow-lg flex items-center justify-center">
                                     <div className="text-center text-white">
                                         <p className="text-[11px] font-bold uppercase tracking-widest mb-1 opacity-80">ได้รับ</p>
-                                        <p className="text-[40px] font-black leading-none">+{mysteryReward}</p>
+                                        <p className="text-[20px] font-black leading-tight px-2">{mysteryReward?.prizeName || `+${mysteryReward?.wonPoints}`}</p>
                                     </div>
                                 </div>
                             </motion.div>
 
                             <div className="text-center mb-8">
                                 <h2 className="text-[20px] font-black text-gray-900 mb-2">ยินดีด้วย! 🎉</h2>
-                                <p className="text-gray-500 text-[13px] font-medium">คะแนนโบนัสถูกเพิ่มเข้าบัญชีของคุณเรียบร้อยแล้ว</p>
+                                <p className="text-gray-500 text-[13px] font-medium">รางวัลถูกเพิ่มเข้าบัญชีของคุณเรียบร้อยแล้ว</p>
                             </div>
 
                             <div className="flex gap-3 w-full">
