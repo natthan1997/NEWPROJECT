@@ -182,7 +182,7 @@ export default function LiffMemberPage() {
       {/* 📱 Header */}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-xl px-4 py-4 flex items-center justify-between border-b border-gray-100">
         <button 
-            onClick={() => router.back()} 
+            onClick={() => router.push('/liff/menu')} 
             className="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full active:scale-95 transition-transform text-gray-600"
         >
             <ChevronLeft size={20} />
