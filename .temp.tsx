@@ -108,7 +108,7 @@ export default function LiffMemberPage() {
       }
       
       try {
-        const { data: campaignsData } = await supabase.from('pos_campaigns').select('*').eq('is_active', true).order('sort_order', { ascending: true });
+        const { data: campaignsData } = await supabase.from('pos_loyalty_campaigns').select('*').eq('is_active', true).order('created_at', { ascending: false });
         if (campaignsData) setCampaigns(campaignsData);
       } catch (err) {
         console.error('Failed to load campaigns', err);
@@ -264,6 +264,9 @@ export default function LiffMemberPage() {
             <Link href="/liff/point-history" className="text-[13px] font-medium text-[#7B8B7B] flex items-center gap-1 py-2 px-4 bg-white/50 rounded-full hover:bg-white transition-colors shadow-sm">
                 ดูประวัติพอยท์ <ChevronRight size={14} />
             </Link>
+            <Link href="/liff/history" className="text-[13px] font-medium text-[#7B8B7B] flex items-center gap-1 py-2 px-4 bg-white/50 rounded-full hover:bg-white transition-colors shadow-sm">
+                ประวัติการสั่งซื้อ <ChevronRight size={14} />
+            </Link>
             <Link href="/liff/my-rewards" className="text-[13px] font-medium text-[#7B8B7B] flex items-center gap-1 py-2 px-4 bg-white/50 rounded-full hover:bg-white transition-colors shadow-sm">
                 คูปองของฉัน <ChevronRight size={14} />
             </Link>
@@ -282,48 +285,60 @@ export default function LiffMemberPage() {
           <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory px-5" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             <style jsx>{`div::-webkit-scrollbar { display: none; }`}</style>
             
-            {campaigns.length > 0 ? campaigns.map((campaign, idx) => {
-                const bgFrom = campaign.bg_gradient_from || 'from-[#1A1A18]';
-                const bgTo = campaign.bg_gradient_to || 'to-gray-800';
-                const textCol = campaign.text_color || 'text-white';
-                const tagCol = campaign.tag_color || 'text-white';
-                const icon = campaign.icon || '🎁';
-                
-                const isMysteryBox = campaign.title.includes('กล่องสุ่ม');
-                const clickableProps = isMysteryBox ? {
-                    onClick: () => router.push('/liff/mystery-box'),
-                    className: `min-w-[280px] h-[160px] snap-center rounded-[20px] p-5 flex flex-col justify-end relative overflow-hidden shadow-sm bg-gradient-to-br ${bgFrom} ${bgTo} cursor-pointer active:scale-95 transition-transform`,
-                } : {
-                    className: `min-w-[280px] h-[160px] snap-center rounded-[20px] p-5 flex flex-col justify-end relative overflow-hidden shadow-sm bg-gradient-to-br ${bgFrom} ${bgTo}`,
-                };
+            {/* Dynamic Campaigns */}
+            {campaigns.length > 0 && campaigns.map((campaign, idx) => {
+                const gradients = [
+                    'from-[#1A1A18] to-gray-800',
+                    'from-[#7B8B7B] to-[#5C6E5C]',
+                    'from-[#A3B1A3] to-[#8A988A]',
+                    'from-[#C8B6A6] to-[#A99787]'
+                ];
+                const bgGradient = gradients[idx % gradients.length];
 
                 return (
-                    <div key={campaign.id} {...clickableProps}>
-                        <div className="absolute top-0 right-0 p-4 opacity-20 text-[80px] leading-none">
-                            {icon}
+                    <div key={campaign.id} className="min-w-[280px] h-[160px] snap-center rounded-[20px] p-5 flex flex-col justify-end relative overflow-hidden shadow-sm">
+                        <div className={`absolute inset-0 bg-gradient-to-br ${bgGradient}`}></div>
+                        <div className="absolute top-0 right-0 p-4 opacity-20">
+                            <Gift size={80} className="text-white" />
                         </div>
                         <div className="relative z-10">
-                            <span className={`inline-block px-2 py-1 bg-white/20 ${tagCol} text-[10px] font-bold tracking-widest uppercase rounded mb-2 backdrop-blur-sm`}>
-                                {campaign.type_tag || 'PROMO'}
+                            <span className="inline-block px-2 py-1 bg-white/20 text-white text-[10px] font-bold tracking-widest uppercase rounded mb-2 backdrop-blur-sm">
+                                {campaign.multiplier ? `X${campaign.multiplier} POINTS` : 'PROMO'}
                             </span>
-                            <h4 className={`${textCol} text-[18px] font-semibold leading-tight mb-1`}>{campaign.title}</h4>
-                            <p className={`${textCol} opacity-80 text-[12px]`}>
-                                {campaign.description}
+                            <h4 className="text-white text-[18px] font-semibold leading-tight mb-1">{campaign.name}</h4>
+                            <p className="text-white/80 text-[12px]">
+                                {campaign.start_date && campaign.end_date ? `${new Date(campaign.start_date).toLocaleDateString()} - ${new Date(campaign.end_date).toLocaleDateString()}` : 'แคมเปญพิเศษสำหรับคุณ'}
                             </p>
                         </div>
-                        {isMysteryBox && (
-                            <div className="absolute right-4 bottom-4 text-white/50">
-                                <ChevronRight size={20} />
-                            </div>
-                        )}
                     </div>
                 );
-            }) : (
-                <div className="min-w-[280px] h-[160px] snap-center rounded-[20px] p-5 flex flex-col justify-center items-center relative overflow-hidden shadow-sm border border-gray-100 bg-gray-50">
-                    <Gift size={32} className="text-gray-300 mb-2" />
-                    <p className="text-[13px] font-medium text-gray-500">รอพบกับแคมเปญใหม่ๆ เร็วๆนี้</p>
+            })}
+            
+            {/* Card: Rewards */}
+            <Link href="/liff/rewards" className="min-w-[280px] h-[160px] snap-center rounded-[20px] p-5 flex flex-col justify-end relative overflow-hidden shadow-sm">
+                <div className="absolute inset-0 bg-gradient-to-br from-[#1A1A18] to-gray-800"></div>
+                <div className="absolute top-0 right-0 p-4 opacity-20">
+                    <Gift size={80} className="text-white" />
                 </div>
-            )}
+                <div className="relative z-10">
+                    <span className="inline-block px-2 py-1 bg-white/20 text-white text-[10px] font-bold tracking-widest uppercase rounded mb-2 backdrop-blur-sm">REWARDS</span>
+                    <h4 className="text-white text-[18px] font-semibold leading-tight mb-1">แลกของรางวัล</h4>
+                    <p className="text-gray-300 text-[12px]">ใช้พอยท์แลกรับส่วนลดและสิทธิพิเศษมากมาย</p>
+                </div>
+            </Link>
+
+            {/* Card: My Coupons */}
+            <Link href="/liff/my-rewards" className="min-w-[280px] h-[160px] snap-center rounded-[20px] p-5 flex flex-col justify-end relative overflow-hidden shadow-sm">
+                <div className="absolute inset-0 bg-gradient-to-br from-[#7B8B7B] to-[#5C6E5C]"></div>
+                <div className="absolute top-0 right-0 p-4 opacity-20">
+                    <MessageCircle size={80} className="text-white" />
+                </div>
+                <div className="relative z-10">
+                    <span className="inline-block px-2 py-1 bg-white/20 text-white text-[10px] font-bold tracking-widest uppercase rounded mb-2 backdrop-blur-sm">MY COUPONS</span>
+                    <h4 className="text-white text-[18px] font-semibold leading-tight mb-1">คูปองของฉัน</h4>
+                    <p className="text-[#E3E8E3] text-[12px]">ดูคูปองส่วนลดที่คุณมีและพร้อมใช้งาน</p>
+                </div>
+            </Link>
           </div>
         </motion.section>
 
