@@ -49,10 +49,6 @@ export default function RegistrationForm({ lineProfile, onSubmit, isSubmitting }
       <main className="px-5 pt-8 max-w-lg mx-auto">
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-[24px] font-medium tracking-tight text-gray-900">สมัครสมาชิก</h2>
-          <div className="flex items-center gap-2 text-[12px] font-medium tracking-wider text-gray-500 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100">
-            <span>TH</span>
-            <ChevronDown size={14} />
-          </div>
         </div>
 
         {/* Profile Picture */}
