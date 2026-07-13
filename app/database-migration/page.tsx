@@ -370,6 +370,36 @@ ALTER TABLE pos_menu_items ADD COLUMN IF NOT EXISTS in_stock BOOLEAN DEFAULT tru
             </p>
           </div>
 
+          {/* Feature: Point Transactions */}
+          <div className="border border-green-200 rounded-lg p-4 bg-green-50 mt-4">
+            <h2 className="text-lg font-semibold text-green-800 mb-3">
+              🪙 ระบบประวัติพอยท์ (Point Transactions)
+            </h2>
+            <p className="text-green-700 text-sm mb-3">
+              รันคำสั่งนี้เพื่อสร้างตารางเก็บประวัติการได้รับและใช้พอยท์ สำหรับหน้าประวัติพอยท์ใน LIFF:
+            </p>
+            <div className="bg-gray-900 text-green-400 p-3 rounded text-sm font-mono overflow-x-auto whitespace-pre-wrap">
+{`-- Create pos_point_transactions table
+CREATE TABLE IF NOT EXISTS public.pos_point_transactions (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    member_id UUID REFERENCES public.pos_members(id) ON DELETE CASCADE,
+    type TEXT NOT NULL,
+    points INTEGER NOT NULL,
+    description TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    expires_at TIMESTAMPTZ
+);
+
+ALTER TABLE public.pos_point_transactions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow all for point_transactions" ON public.pos_point_transactions;
+CREATE POLICY "Allow all for point_transactions" ON public.pos_point_transactions FOR ALL USING (true) WITH CHECK (true);
+`}
+            </div>
+            <p className="text-green-600 text-xs mt-2">
+              ✅ เมื่อรันเสร็จ ระบบจะสามารถบันทึกประวัติแต้มและแสดงผลให้สมาชิกดูได้
+            </p>
+          </div>
+
           {/* Feature: Loyalty Rules Engine */}
           <div className="border border-yellow-200 rounded-lg p-4 bg-yellow-50 mt-4">
             <h2 className="text-lg font-semibold text-yellow-800 mb-3">
