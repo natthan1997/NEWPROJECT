@@ -100,11 +100,11 @@ export default function LiffMemberPage() {
     }
   };
   
-  const fetchData = async () => {
+  const fetchData = async (isBackgroundSync = false) => {
     const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
     if (!userId) return;
     try {
-      setLoading(true);
+      if (!isBackgroundSync) setLoading(true);
       const { data: member } = await supabase.from('pos_members').select('*').eq('line_user_id', userId).maybeSingle();
       const { data: shopSettings } = await supabase.from('pos_shop_settings').select('opening_hours').order('updated_at', { ascending: false }).limit(1).maybeSingle();
       if (shopSettings && shopSettings.opening_hours && shopSettings.opening_hours.loyalty_earn_rate) {
@@ -146,7 +146,7 @@ export default function LiffMemberPage() {
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+      if (!isBackgroundSync) setLoading(false);
     }
   };
 
@@ -185,11 +185,11 @@ export default function LiffMemberPage() {
   };
 
   useEffect(() => {
-    if (!liffLoading) fetchData();
+    if (!liffLoading) fetchData(false);
     
     const channel = supabase.channel('member_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_members' }, () => {
-        fetchData();
+        fetchData(true); // Background sync
       })
       .subscribe();
       
@@ -495,16 +495,16 @@ export default function LiffMemberPage() {
                   animate={{ opacity: 1, scale: 1, y: 0 }} 
                   exit={{ opacity: 0, scale: 0.95, y: 20 }} 
                   transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                  className="bg-white rounded-[32px] w-full max-w-sm max-h-[85vh] overflow-y-auto shadow-2xl relative"
+                  className="bg-white/40 backdrop-blur-3xl border border-white/60 rounded-[32px] w-full max-w-sm max-h-[85vh] overflow-y-auto shadow-[0_8px_30px_rgb(0,0,0,0.12)] relative"
                   onClick={(e) => e.stopPropagation()} // Prevent clicking inside from closing it
                 >
-                  <div className="sticky top-0 bg-white/90 backdrop-blur-xl z-10 px-6 py-5 flex items-center justify-between border-b border-gray-50 rounded-t-[32px]">
+                  <div className="sticky top-0 bg-white/40 backdrop-blur-2xl z-10 px-6 py-5 flex items-center justify-between border-b border-white/50 rounded-t-[32px]">
                     <div className="flex flex-col">
-                        <h3 className="text-[16px] font-black text-gray-900 tracking-tight">กล่องสุ่มหรรษา</h3>
-                        <span className="text-[11px] text-gray-400 font-bold tracking-wide">ลุ้นรับคะแนนพิเศษ</span>
+                        <h3 className="text-[16px] font-black text-gray-900 tracking-tight drop-shadow-sm">กล่องสุ่มหรรษา</h3>
+                        <span className="text-[11px] text-gray-600 font-bold tracking-wide">ลุ้นรับคะแนนพิเศษ</span>
                     </div>
                     {!playingMysteryBox && (
-                        <button onClick={() => { setShowMysteryBox(false); setMysteryReward(null); }} className="text-gray-400 hover:text-gray-900 p-1.5 bg-gray-50 rounded-full active:scale-95 transition-transform">
+                        <button onClick={() => { setShowMysteryBox(false); setMysteryReward(null); }} className="text-gray-500 hover:text-gray-900 p-1.5 bg-white/50 border border-white/60 shadow-sm rounded-full active:scale-95 transition-all">
                             <X size={18} strokeWidth={2.5} />
                         </button>
                     )}
@@ -544,11 +544,11 @@ export default function LiffMemberPage() {
                             </motion.div>
 
                             <div className="text-center mb-6">
-                                <p className="text-gray-500 text-[13px] leading-relaxed">ใช้ {MYSTERY_COST} คะแนน เพื่อลุ้นรับคะแนน<br/>โบนัสสูงสุดถึง 500 Pts!</p>
+                                <p className="text-gray-700 font-medium text-[13px] leading-relaxed">ใช้ {MYSTERY_COST} คะแนน เพื่อลุ้นรับคะแนน<br/>โบนัสสูงสุดถึง 500 Pts!</p>
                             </div>
 
                             {mysteryError && (
-                                <div className="mb-6 px-4 py-3 bg-red-50 text-red-600 rounded-xl text-[12px] font-medium flex items-center gap-2 w-full">
+                                <div className="mb-6 px-4 py-3 bg-red-500/10 backdrop-blur-sm border border-red-500/20 text-red-600 rounded-xl text-[12px] font-bold flex items-center gap-2 w-full">
                                     <AlertCircle size={16} className="shrink-0" />
                                     <span>{mysteryError}</span>
                                 </div>
@@ -559,8 +559,8 @@ export default function LiffMemberPage() {
                                 disabled={playingMysteryBox || (memberInfo?.points || 0) < MYSTERY_COST}
                                 className={`w-full h-14 rounded-full flex items-center justify-center gap-2 text-[14px] font-bold tracking-wider transition-all
                                     ${(memberInfo?.points || 0) >= MYSTERY_COST 
-                                        ? 'bg-[#1A1A18] text-white shadow-xl shadow-black/10 active:scale-95' 
-                                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                        ? 'bg-[#1A1A18]/90 backdrop-blur-md text-white shadow-[0_4px_12px_rgba(0,0,0,0.15)] active:scale-95 border border-[#1A1A18]' 
+                                        : 'bg-white/40 text-gray-400 cursor-not-allowed border border-white/50'
                                     }`}
                             >
                                 {playingMysteryBox ? (
@@ -599,8 +599,8 @@ export default function LiffMemberPage() {
                             </motion.div>
 
                             <div className="text-center mb-8">
-                                <h2 className="text-[18px] font-black text-gray-900 mb-2">ยินดีด้วย! 🎉</h2>
-                                <p className="text-gray-500 text-[13px]">คะแนนโบนัสถูกเพิ่มเข้าบัญชีของคุณเรียบร้อยแล้ว</p>
+                                <h2 className="text-[20px] font-black text-gray-900 mb-2 drop-shadow-sm">ยินดีด้วย! 🎉</h2>
+                                <p className="text-gray-600 text-[13px] font-medium">คะแนนโบนัสถูกเพิ่มเข้าบัญชีของคุณเรียบร้อยแล้ว</p>
                             </div>
 
                             <div className="flex gap-3 w-full">
@@ -609,8 +609,8 @@ export default function LiffMemberPage() {
                                     disabled={(memberInfo?.points || 0) < MYSTERY_COST}
                                     className={`flex-1 h-12 rounded-full font-bold text-[13px] transition-all
                                         ${(memberInfo?.points || 0) >= MYSTERY_COST 
-                                            ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:scale-95' 
-                                            : 'bg-gray-50 text-gray-300 cursor-not-allowed'
+                                            ? 'bg-white/60 text-gray-700 hover:bg-white/80 active:scale-95 border border-white/80 shadow-sm' 
+                                            : 'bg-white/30 text-gray-400 cursor-not-allowed border border-white/40'
                                         }`}
                                 >
                                     เล่นอีกครั้ง
