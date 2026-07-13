@@ -343,21 +343,21 @@ export default function LiffMemberPage() {
                 if (isMysteryBox) {
                     return (
                         <div onClick={() => setShowMysteryBox(true)} key={campaign.id} className={`min-w-[280px] h-[160px] snap-center rounded-[20px] p-5 flex flex-col justify-end relative overflow-hidden shadow-sm bg-gradient-to-br ${bgFrom} ${bgTo} cursor-pointer active:scale-95 transition-transform block`}>
-                            <div className="absolute top-2 right-2 opacity-90 scale-75 origin-top-right">
-                                <div className="relative w-[100px] h-[100px] flex items-center justify-center">
-                                    <div className="absolute inset-0 bg-gradient-to-tr from-yellow-200 to-amber-500 rounded-full blur-2xl opacity-40"></div>
-                                    <div className="absolute bottom-2 w-[70px] h-[52px] bg-gradient-to-br from-[#FCF7E8] to-[#E5DFD5] rounded-md shadow-[0_8px_16px_rgba(0,0,0,0.1)] border border-white/80">
-                                        <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-[14px] bg-gradient-to-b from-[#A4856A] to-[#8C6D53] shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)]"></div>
-                                    </div>
-                                    <div className="absolute top-[22px] w-[80px] h-[22px] bg-gradient-to-br from-[#FFFFFF] to-[#F2ECE4] rounded-md shadow-[0_4px_10px_rgba(0,0,0,0.15)] border border-white z-10 flex overflow-hidden">
-                                        <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-[14px] bg-gradient-to-b from-[#B6967A] to-[#9C7D63] shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)]"></div>
-                                    </div>
-                                    <div className="absolute top-[3px] left-1/2 -translate-x-1/2 flex justify-center items-end z-20">
-                                        <div className="w-[26px] h-[20px] bg-gradient-to-tr from-[#8C6D53] to-[#C8A98C] rounded-[10px_2px_10px_10px] transform -rotate-12 translate-x-1.5 shadow-md border border-[#FCF7E8]/30"></div>
-                                        <div className="w-[26px] h-[20px] bg-gradient-to-tl from-[#8C6D53] to-[#C8A98C] rounded-[2px_10px_10px_10px] transform rotate-12 -translate-x-1.5 shadow-md border border-[#FCF7E8]/30"></div>
-                                        <div className="absolute w-[12px] h-[12px] bg-gradient-to-br from-[#D9BC9F] to-[#8C6D53] rounded-full shadow-md z-30 -bottom-1 border border-[#FCF7E8]/50"></div>
-                                    </div>
-                                </div>
+                            <div className="absolute top-4 right-4 opacity-90 w-16 h-16">
+                                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-md">
+                                    <rect x="20" y="45" width="60" height="45" fill="#F2ECE4" />
+                                    <rect x="15" y="30" width="70" height="15" fill="#FCF7E8" />
+                                    <rect x="42" y="30" width="16" height="60" fill="#E3D9C3" />
+                                    <rect x="20" y="45" width="60" height="45" stroke="#1A1A18" strokeWidth="4" strokeLinejoin="round" />
+                                    <rect x="15" y="30" width="70" height="15" stroke="#1A1A18" strokeWidth="4" strokeLinejoin="round" />
+                                    <line x1="42" y1="30" x2="42" y2="90" stroke="#1A1A18" strokeWidth="4" strokeLinejoin="round" />
+                                    <line x1="58" y1="30" x2="58" y2="90" stroke="#1A1A18" strokeWidth="4" strokeLinejoin="round" />
+                                    <path d="M50 30C50 30 25 15 35 30Z" fill="#F2ECE4" stroke="#1A1A18" strokeWidth="4" strokeLinejoin="round" />
+                                    <path d="M50 30C50 30 25 10 40 25C45 30 50 30 50 30Z" fill="#E3D9C3" stroke="#1A1A18" strokeWidth="4" strokeLinejoin="round" />
+                                    <path d="M50 30C50 30 75 15 65 30Z" fill="#F2ECE4" stroke="#1A1A18" strokeWidth="4" strokeLinejoin="round" />
+                                    <path d="M50 30C50 30 75 10 60 25C55 30 50 30 50 30Z" fill="#E3D9C3" stroke="#1A1A18" strokeWidth="4" strokeLinejoin="round" />
+                                    <circle cx="50" cy="30" r="5" fill="#FCF7E8" stroke="#1A1A18" strokeWidth="4" />
+                                </svg>
                             </div>
                             <div className="relative z-10">
                                 <span className={`inline-block px-2 py-1 bg-white/20 ${tagCol} text-[10px] font-bold tracking-widest uppercase rounded mb-2 backdrop-blur-sm`}>
@@ -497,27 +497,28 @@ export default function LiffMemberPage() {
       {/* 🎁 Bottom Sheet - Mystery Box */}
       <AnimatePresence>
         {showMysteryBox && (
-          <>
-            <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }}
               onClick={() => { if (!playingMysteryBox && !mysteryReward) setShowMysteryBox(false); }}
-              className="fixed inset-0 z-[60] bg-[#1A1A18]/60 backdrop-blur-md flex items-center justify-center p-4"
+              className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
             >
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.95, y: 20 }} 
                   animate={{ opacity: 1, scale: 1, y: 0 }} 
                   exit={{ opacity: 0, scale: 0.95, y: 20 }} 
                   transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                  className="bg-white/40 backdrop-blur-3xl border border-white/60 rounded-[32px] w-full max-w-sm max-h-[85vh] overflow-y-auto shadow-[0_8px_30px_rgb(0,0,0,0.12)] relative"
-                  onClick={(e) => e.stopPropagation()} // Prevent clicking inside from closing it
+                  className="bg-white rounded-[28px] w-full max-w-sm max-h-[85vh] overflow-y-auto shadow-2xl relative"
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="sticky top-0 bg-white/40 backdrop-blur-2xl z-10 px-6 py-5 flex items-center justify-between border-b border-white/50 rounded-t-[32px]">
+                  <div className="sticky top-0 bg-white z-10 px-6 py-5 flex items-center justify-between border-b border-gray-100 rounded-t-[28px]">
                     <div className="flex flex-col">
-                        <h3 className="text-[16px] font-black text-gray-900 tracking-tight drop-shadow-sm">กล่องสุ่มหรรษา</h3>
-                        <span className="text-[11px] text-gray-600 font-bold tracking-wide">ลุ้นรับคะแนนพิเศษ</span>
+                        <h3 className="text-[16px] font-black text-gray-900 tracking-tight">กล่องสุ่มหรรษา</h3>
+                        <span className="text-[11px] text-gray-500 font-bold tracking-wide">ลุ้นรับคะแนนพิเศษ</span>
                     </div>
                     {!playingMysteryBox && (
-                        <button onClick={() => { setShowMysteryBox(false); setMysteryReward(null); }} className="text-gray-500 hover:text-gray-900 p-1.5 bg-white/50 border border-white/60 shadow-sm rounded-full active:scale-95 transition-all">
+                        <button onClick={() => { setShowMysteryBox(false); setMysteryReward(null); }} className="text-gray-400 hover:text-gray-900 p-1.5 bg-gray-50 rounded-full active:scale-95 transition-all">
                             <X size={18} strokeWidth={2.5} />
                         </button>
                     )}
@@ -551,33 +552,20 @@ export default function LiffMemberPage() {
                                 }}
                                 className="w-32 h-32 mb-6 relative flex items-center justify-center"
                             >
-                                {/* Handcrafted Premium 3D Gift Box */}
-                                <div className="relative w-[100px] h-[100px] flex items-center justify-center">
-                                    {/* Ambient Glow */}
-                                    <div className="absolute inset-0 bg-gradient-to-tr from-yellow-200 to-amber-500 rounded-full blur-2xl opacity-40"></div>
-                                    
-                                    {/* Main Box Body */}
-                                    <div className="absolute bottom-2 w-[70px] h-[52px] bg-gradient-to-br from-[#FCF7E8] to-[#E5DFD5] rounded-md shadow-[0_8px_16px_rgba(0,0,0,0.1)] border border-white/80">
-                                        {/* Vertical Ribbon */}
-                                        <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-[14px] bg-gradient-to-b from-[#A4856A] to-[#8C6D53] shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)]"></div>
-                                    </div>
-
-                                    {/* Box Lid */}
-                                    <div className="absolute top-[22px] w-[80px] h-[22px] bg-gradient-to-br from-[#FFFFFF] to-[#F2ECE4] rounded-md shadow-[0_4px_10px_rgba(0,0,0,0.15)] border border-white z-10 flex overflow-hidden">
-                                        {/* Lid Vertical Ribbon */}
-                                        <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-[14px] bg-gradient-to-b from-[#B6967A] to-[#9C7D63] shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)]"></div>
-                                    </div>
-
-                                    {/* Bow */}
-                                    <div className="absolute top-[3px] left-1/2 -translate-x-1/2 flex justify-center items-end z-20">
-                                        {/* Left loop */}
-                                        <div className="w-[26px] h-[20px] bg-gradient-to-tr from-[#8C6D53] to-[#C8A98C] rounded-[10px_2px_10px_10px] transform -rotate-12 translate-x-1.5 shadow-md border border-[#FCF7E8]/30"></div>
-                                        {/* Right loop */}
-                                        <div className="w-[26px] h-[20px] bg-gradient-to-tl from-[#8C6D53] to-[#C8A98C] rounded-[2px_10px_10px_10px] transform rotate-12 -translate-x-1.5 shadow-md border border-[#FCF7E8]/30"></div>
-                                        {/* Center knot */}
-                                        <div className="absolute w-[12px] h-[12px] bg-gradient-to-br from-[#D9BC9F] to-[#8C6D53] rounded-full shadow-md z-30 -bottom-1 border border-[#FCF7E8]/50"></div>
-                                    </div>
-                                </div>
+                                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-sm">
+                                    <rect x="20" y="45" width="60" height="45" fill="#F2ECE4" />
+                                    <rect x="15" y="30" width="70" height="15" fill="#FCF7E8" />
+                                    <rect x="42" y="30" width="16" height="60" fill="#E3D9C3" />
+                                    <rect x="20" y="45" width="60" height="45" stroke="#1A1A18" strokeWidth="4" strokeLinejoin="round" />
+                                    <rect x="15" y="30" width="70" height="15" stroke="#1A1A18" strokeWidth="4" strokeLinejoin="round" />
+                                    <line x1="42" y1="30" x2="42" y2="90" stroke="#1A1A18" strokeWidth="4" strokeLinejoin="round" />
+                                    <line x1="58" y1="30" x2="58" y2="90" stroke="#1A1A18" strokeWidth="4" strokeLinejoin="round" />
+                                    <path d="M50 30C50 30 25 15 35 30Z" fill="#F2ECE4" stroke="#1A1A18" strokeWidth="4" strokeLinejoin="round" />
+                                    <path d="M50 30C50 30 25 10 40 25C45 30 50 30 50 30Z" fill="#E3D9C3" stroke="#1A1A18" strokeWidth="4" strokeLinejoin="round" />
+                                    <path d="M50 30C50 30 75 15 65 30Z" fill="#F2ECE4" stroke="#1A1A18" strokeWidth="4" strokeLinejoin="round" />
+                                    <path d="M50 30C50 30 75 10 60 25C55 30 50 30 50 30Z" fill="#E3D9C3" stroke="#1A1A18" strokeWidth="4" strokeLinejoin="round" />
+                                    <circle cx="50" cy="30" r="5" fill="#FCF7E8" stroke="#1A1A18" strokeWidth="4" />
+                                </svg>
                             </motion.div>
 
                             <div className="text-center mb-6">
@@ -585,7 +573,7 @@ export default function LiffMemberPage() {
                             </div>
 
                             {mysteryError && (
-                                <div className="mb-6 px-4 py-3 bg-red-500/10 backdrop-blur-sm border border-red-500/20 text-red-600 rounded-xl text-[12px] font-bold flex items-center gap-2 w-full">
+                                <div className="mb-6 px-4 py-3 bg-red-50 text-red-600 rounded-xl text-[12px] font-medium flex items-center gap-2 w-full">
                                     <AlertCircle size={16} className="shrink-0" />
                                     <span>{mysteryError}</span>
                                 </div>
@@ -596,8 +584,8 @@ export default function LiffMemberPage() {
                                 disabled={playingMysteryBox || (memberInfo?.points || 0) < MYSTERY_COST}
                                 className={`w-full h-14 rounded-full flex items-center justify-center gap-2 text-[14px] font-bold tracking-wider transition-all
                                     ${(memberInfo?.points || 0) >= MYSTERY_COST 
-                                        ? 'bg-[#1A1A18]/90 backdrop-blur-md text-white shadow-[0_4px_12px_rgba(0,0,0,0.15)] active:scale-95 border border-[#1A1A18]' 
-                                        : 'bg-white/40 text-gray-400 cursor-not-allowed border border-white/50'
+                                        ? 'bg-[#1A1A18] text-white shadow-md hover:bg-black active:scale-95' 
+                                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                     }`}
                             >
                                 {playingMysteryBox ? (
@@ -623,21 +611,17 @@ export default function LiffMemberPage() {
                                 transition={{ type: "spring", bounce: 0.5 }}
                                 className="w-32 h-32 mb-6 relative"
                             >
-                                <div className="absolute inset-0 bg-gradient-to-br from-[#1A1A18] to-gray-800 rounded-[24px] shadow-xl shadow-black/20 flex items-center justify-center">
+                                <div className="absolute inset-0 bg-[#1A1A18] rounded-[24px] shadow-lg flex items-center justify-center">
                                     <div className="text-center text-white">
                                         <p className="text-[11px] font-bold uppercase tracking-widest mb-1 opacity-80">ได้รับ</p>
                                         <p className="text-[40px] font-black leading-none">+{mysteryReward}</p>
                                     </div>
                                 </div>
-                                <motion.div animate={{ rotate: 360 }} transition={{ duration: 10, repeat: Infinity, ease: "linear" }} className="absolute -inset-8 -z-10">
-                                    <div className="absolute top-0 left-1/2 text-[#1A1A18] opacity-20"><Sparkles size={20} /></div>
-                                    <div className="absolute bottom-0 right-1/4 text-yellow-500"><Sparkles size={16} /></div>
-                                </motion.div>
                             </motion.div>
 
                             <div className="text-center mb-8">
-                                <h2 className="text-[20px] font-black text-gray-900 mb-2 drop-shadow-sm">ยินดีด้วย! 🎉</h2>
-                                <p className="text-gray-600 text-[13px] font-medium">คะแนนโบนัสถูกเพิ่มเข้าบัญชีของคุณเรียบร้อยแล้ว</p>
+                                <h2 className="text-[20px] font-black text-gray-900 mb-2">ยินดีด้วย! 🎉</h2>
+                                <p className="text-gray-500 text-[13px] font-medium">คะแนนโบนัสถูกเพิ่มเข้าบัญชีของคุณเรียบร้อยแล้ว</p>
                             </div>
 
                             <div className="flex gap-3 w-full">
@@ -646,8 +630,8 @@ export default function LiffMemberPage() {
                                     disabled={(memberInfo?.points || 0) < MYSTERY_COST}
                                     className={`flex-1 h-12 rounded-full font-bold text-[13px] transition-all
                                         ${(memberInfo?.points || 0) >= MYSTERY_COST 
-                                            ? 'bg-white/60 text-gray-700 hover:bg-white/80 active:scale-95 border border-white/80 shadow-sm' 
-                                            : 'bg-white/30 text-gray-400 cursor-not-allowed border border-white/40'
+                                            ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:scale-95' 
+                                            : 'bg-gray-50 text-gray-300 cursor-not-allowed'
                                         }`}
                                 >
                                     เล่นอีกครั้ง
