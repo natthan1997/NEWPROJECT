@@ -343,8 +343,21 @@ export default function LiffMemberPage() {
                 if (isMysteryBox) {
                     return (
                         <div onClick={() => setShowMysteryBox(true)} key={campaign.id} className={`min-w-[280px] h-[160px] snap-center rounded-[20px] p-5 flex flex-col justify-end relative overflow-hidden shadow-sm bg-gradient-to-br ${bgFrom} ${bgTo} cursor-pointer active:scale-95 transition-transform block`}>
-                            <div className="absolute top-0 right-0 p-4 opacity-20 text-[80px] leading-none">
-                                {icon}
+                            <div className="absolute top-2 right-2 opacity-90 scale-75 origin-top-right">
+                                <div className="relative w-[100px] h-[100px] flex items-center justify-center">
+                                    <div className="absolute inset-0 bg-gradient-to-tr from-yellow-200 to-amber-500 rounded-full blur-2xl opacity-40"></div>
+                                    <div className="absolute bottom-2 w-[70px] h-[52px] bg-gradient-to-br from-[#FCF7E8] to-[#E5DFD5] rounded-md shadow-[0_8px_16px_rgba(0,0,0,0.1)] border border-white/80">
+                                        <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-[14px] bg-gradient-to-b from-[#A4856A] to-[#8C6D53] shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)]"></div>
+                                    </div>
+                                    <div className="absolute top-[22px] w-[80px] h-[22px] bg-gradient-to-br from-[#FFFFFF] to-[#F2ECE4] rounded-md shadow-[0_4px_10px_rgba(0,0,0,0.15)] border border-white z-10 flex overflow-hidden">
+                                        <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-[14px] bg-gradient-to-b from-[#B6967A] to-[#9C7D63] shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)]"></div>
+                                    </div>
+                                    <div className="absolute top-[3px] left-1/2 -translate-x-1/2 flex justify-center items-end z-20">
+                                        <div className="w-[26px] h-[20px] bg-gradient-to-tr from-[#8C6D53] to-[#C8A98C] rounded-[10px_2px_10px_10px] transform -rotate-12 translate-x-1.5 shadow-md border border-[#FCF7E8]/30"></div>
+                                        <div className="w-[26px] h-[20px] bg-gradient-to-tl from-[#8C6D53] to-[#C8A98C] rounded-[2px_10px_10px_10px] transform rotate-12 -translate-x-1.5 shadow-md border border-[#FCF7E8]/30"></div>
+                                        <div className="absolute w-[12px] h-[12px] bg-gradient-to-br from-[#D9BC9F] to-[#8C6D53] rounded-full shadow-md z-30 -bottom-1 border border-[#FCF7E8]/50"></div>
+                                    </div>
+                                </div>
                             </div>
                             <div className="relative z-10">
                                 <span className={`inline-block px-2 py-1 bg-white/20 ${tagCol} text-[10px] font-bold tracking-widest uppercase rounded mb-2 backdrop-blur-sm`}>
@@ -536,10 +549,34 @@ export default function LiffMemberPage() {
                                     repeat: Infinity,
                                     ease: "easeInOut"
                                 }}
-                                className="w-32 h-32 mb-6 relative"
+                                className="w-32 h-32 mb-6 relative flex items-center justify-center"
                             >
-                                <div className="absolute inset-0 bg-gradient-to-br from-[#FCF7E8] to-[#F5E6C4] rounded-[24px] shadow-lg shadow-[#F5E6C4]/50 flex items-center justify-center border border-[#F5E6C4]">
-                                    <Gift size={60} className="text-[#8B651B]" />
+                                {/* Handcrafted Premium 3D Gift Box */}
+                                <div className="relative w-[100px] h-[100px] flex items-center justify-center">
+                                    {/* Ambient Glow */}
+                                    <div className="absolute inset-0 bg-gradient-to-tr from-yellow-200 to-amber-500 rounded-full blur-2xl opacity-40"></div>
+                                    
+                                    {/* Main Box Body */}
+                                    <div className="absolute bottom-2 w-[70px] h-[52px] bg-gradient-to-br from-[#FCF7E8] to-[#E5DFD5] rounded-md shadow-[0_8px_16px_rgba(0,0,0,0.1)] border border-white/80">
+                                        {/* Vertical Ribbon */}
+                                        <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-[14px] bg-gradient-to-b from-[#A4856A] to-[#8C6D53] shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)]"></div>
+                                    </div>
+
+                                    {/* Box Lid */}
+                                    <div className="absolute top-[22px] w-[80px] h-[22px] bg-gradient-to-br from-[#FFFFFF] to-[#F2ECE4] rounded-md shadow-[0_4px_10px_rgba(0,0,0,0.15)] border border-white z-10 flex overflow-hidden">
+                                        {/* Lid Vertical Ribbon */}
+                                        <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-[14px] bg-gradient-to-b from-[#B6967A] to-[#9C7D63] shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)]"></div>
+                                    </div>
+
+                                    {/* Bow */}
+                                    <div className="absolute top-[3px] left-1/2 -translate-x-1/2 flex justify-center items-end z-20">
+                                        {/* Left loop */}
+                                        <div className="w-[26px] h-[20px] bg-gradient-to-tr from-[#8C6D53] to-[#C8A98C] rounded-[10px_2px_10px_10px] transform -rotate-12 translate-x-1.5 shadow-md border border-[#FCF7E8]/30"></div>
+                                        {/* Right loop */}
+                                        <div className="w-[26px] h-[20px] bg-gradient-to-tl from-[#8C6D53] to-[#C8A98C] rounded-[2px_10px_10px_10px] transform rotate-12 -translate-x-1.5 shadow-md border border-[#FCF7E8]/30"></div>
+                                        {/* Center knot */}
+                                        <div className="absolute w-[12px] h-[12px] bg-gradient-to-br from-[#D9BC9F] to-[#8C6D53] rounded-full shadow-md z-30 -bottom-1 border border-[#FCF7E8]/50"></div>
+                                    </div>
                                 </div>
                             </motion.div>
 
