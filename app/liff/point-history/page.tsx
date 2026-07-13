@@ -48,7 +48,7 @@ export default function LiffPointHistoryPage() {
       if (member) {
         setMemberInfo(member);
         
-        // Fetch transactions for this member
+        // Fetch point transactions
         const { data: txs, error: txsError } = await supabase
           .from('pos_point_transactions')
           .select('*')
@@ -56,11 +56,30 @@ export default function LiffPointHistoryPage() {
           .order('created_at', { ascending: false })
           .limit(50);
           
-        if (txsError) {
-          console.error("No table or error fetching points:", txsError);
-        } else {
-          setTransactions(txs || []);
+        // Fetch past orders that earned points
+        let orderQuery = supabase.from('pos_orders').select('id, order_number, total_amount, points_earned, created_at, status').gt('points_earned', 0);
+        if (currentUserId && phone) {
+            orderQuery = orderQuery.or(`line_user_id.eq.${currentUserId},reference_name.eq.${phone}`);
+        } else if (currentUserId) {
+            orderQuery = orderQuery.eq('line_user_id', currentUserId);
+        } else if (phone) {
+            orderQuery = orderQuery.eq('reference_name', phone);
         }
+        const { data: ordersData } = await orderQuery.in('status', ['completed', 'delivered']).order('created_at', { ascending: false }).limit(50);
+
+        // Map orders into transactions format
+        const orderTxs = (ordersData || []).map(order => ({
+            id: order.id,
+            type: 'earn',
+            points: order.points_earned,
+            description: `จากการสั่งซื้อ #${order.order_number || order.id.slice(0,8).toUpperCase()}`,
+            created_at: order.created_at,
+            expires_at: null // Assuming standard annual expiry handled globally
+        }));
+
+        const combinedTxs = [...(txs || []), ...orderTxs].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 50);
+
+        setTransactions(combinedTxs);
       }
     } catch (err) {
       console.error('Points History fetch failed:', err);
@@ -76,45 +95,45 @@ export default function LiffPointHistoryPage() {
   if (liffLoading && !hasSeenLoader) return <XYLLoader tagline={locale === 'en' ? 'Loading points...' : locale === 'zh' ? 'Loading points...' : 'กำลังโหลดประวัติพอยท์...'} />;
 
   return (
-    <div className="min-h-screen bg-[#F5F5F7] pb-20 font-sans">
+    <div className="min-h-screen bg-[#fcfcf9] pb-20 font-sans">
       {/* 🏛️ Header */}
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-4 py-4">
-        <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-800 active:scale-95 transition-transform">
+        <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-400 active:scale-95 transition-transform">
           <ChevronLeft size={24} />
         </button>
         <div className="flex-1 text-center">
-          <h1 className="text-[16px] font-bold text-[#1A1A18]">Blue Coffee</h1>
-          <p className="text-[10px] tracking-[0.2em] text-[#7BA4C7] font-bold uppercase mt-0.5">BLUE COFFEE</p>
+          <h1 className="text-[12px] font-black uppercase text-[#1A1A18] tracking-[0.2em]">XYL STUDIO</h1>
+          <p className="text-[7px] tracking-[0.3em] text-emerald-500 font-black uppercase mt-0.5">POINT HISTORY</p>
         </div>
-        <button onClick={() => router.back()} className="p-2 -mr-2 text-gray-800">
+        <button onClick={() => router.back()} className="p-2 -mr-2 text-gray-400">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
         </button>
       </header>
 
       <main>
         {/* Top Section */}
-        <div className="bg-white px-5 pt-6 pb-6 shadow-sm mb-2">
-          <h2 className="text-[20px] font-bold text-[#1A1A18] mb-1">ประวัติพอยท์</h2>
-          <p className="text-[#64748B] text-[14px] mb-6">สามารถดูข้อมูลย้อนหลังได้ 2 ปี</p>
+        <div className="bg-white px-5 pt-6 pb-6 shadow-sm mb-2 border-b border-gray-100">
+          <h2 className="text-[14px] font-black uppercase text-[#1A1A18] tracking-widest mb-1">{locale === 'en' ? 'Points History' : locale === 'zh' ? 'Points History' : 'ประวัติพอยท์'}</h2>
+          <p className="text-gray-400 text-[10px] mb-6 tracking-wide">สามารถดูข้อมูลย้อนหลังได้ 2 ปี</p>
 
-          <div className="bg-[#F8F9FA] rounded-xl p-5 border border-gray-100/50">
+          <div className="bg-gray-50 rounded-none p-5 border border-gray-100">
             <div className="flex items-center gap-1 mb-2">
-              <span className="text-[14px] font-medium text-[#64748B]">พอยท์ปัจจุบัน</span>
-              <HelpCircle size={14} className="text-[#94A3B8]" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">พอยท์ปัจจุบัน</span>
+              <HelpCircle size={12} className="text-gray-300" />
             </div>
-            <div className="text-[24px] font-bold text-[#1A1A18]">
+            <div className="text-[32px] font-black tracking-tighter text-emerald-500">
               {memberInfo ? (memberInfo.points || 0).toLocaleString() : '0'}
             </div>
           </div>
         </div>
 
         {/* History List Section */}
-        <div className="bg-[#F5F5F7] px-5 py-4">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-[16px] font-bold text-[#1A1A18]">ประวัติพอยท์</h3>
-            <div className="flex items-center gap-4 text-[#64748B]">
-              <button className="active:scale-95 transition-transform"><ArrowUpDown size={20} /></button>
-              <button className="active:scale-95 transition-transform"><SlidersHorizontal size={20} /></button>
+        <div className="px-5 py-6">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-[12px] font-black uppercase tracking-widest text-[#1A1A18]">รายการล่าสุด</h3>
+            <div className="flex items-center gap-4 text-gray-400">
+              <button className="active:scale-95 transition-transform"><ArrowUpDown size={16} /></button>
+              <button className="active:scale-95 transition-transform"><SlidersHorizontal size={16} /></button>
             </div>
           </div>
 
@@ -122,20 +141,20 @@ export default function LiffPointHistoryPage() {
             {fetchLoading ? (
                <motion.div key="skeleton" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
                  {[1,2,3].map(i => (
-                   <div key={i} className="bg-white rounded-xl p-5 h-32 animate-pulse border border-gray-100 shadow-sm"></div>
+                   <div key={i} className="bg-white rounded-none p-5 h-28 animate-pulse border border-gray-100 shadow-sm"></div>
                  ))}
                </motion.div>
             ) : transactions.length === 0 ? (
                <motion.div 
                  key="empty"
                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                 className="flex flex-col items-center justify-center py-20 text-center bg-white rounded-xl shadow-sm border border-gray-100 mt-2"
+                 className="flex flex-col items-center justify-center py-20 text-center bg-white rounded-none shadow-sm border border-gray-100"
                >
-                 <div className="w-16 h-16 bg-[#F8F9FA] rounded-full flex items-center justify-center mb-4 text-[#94A3B8]">
+                 <div className="w-16 h-16 bg-gray-50 rounded-none flex items-center justify-center mb-4 text-gray-300">
                    <Gift size={28} />
                  </div>
-                 <h2 className="text-[15px] font-bold text-[#1A1A18] mb-1">ยังไม่มีประวัติพอยท์</h2>
-                 <p className="text-[13px] text-[#64748B]">เริ่มต้นสะสมพอยท์จากการสั่งซื้อได้เลย</p>
+                 <h2 className="text-[12px] font-black uppercase tracking-widest text-[#1A1A18] mb-1">ยังไม่มีประวัติพอยท์</h2>
+                 <p className="text-[10px] text-gray-400">เริ่มต้นสะสมพอยท์จากการสั่งซื้อได้เลย</p>
                </motion.div>
             ) : (
                <motion.div 
@@ -148,7 +167,7 @@ export default function LiffPointHistoryPage() {
                    const isRefund = tx.type === 'refund';
                    const isPositive = isEarn || isRefund;
                    const pointsText = isPositive ? `+${tx.points}` : `-${tx.points}`;
-                   const pointsColor = isPositive ? 'text-[#10B981]' : 'text-[#EF4444]';
+                   const pointsColor = isPositive ? 'text-emerald-500' : 'text-red-500';
                    const title = isEarn ? 'เพิ่มพอยท์' : isRefund ? 'คืนพอยท์' : 'ใช้พอยท์';
                    
                    return (
@@ -157,34 +176,37 @@ export default function LiffPointHistoryPage() {
                        initial={{ opacity: 0, y: 10 }}
                        animate={{ opacity: 1, y: 0 }}
                        transition={{ delay: idx * 0.05 }}
-                       className="bg-white rounded-xl p-5 shadow-sm border border-gray-100/80"
+                       className="bg-white rounded-none p-5 shadow-sm border border-gray-100 flex flex-col gap-3 relative overflow-hidden"
                      >
-                       <div className="flex justify-between items-start mb-4">
-                         <h4 className="text-[16px] font-bold text-[#1A1A18]">{title}</h4>
-                         <span className={`text-[16px] font-bold ${pointsColor}`}>{pointsText}</span>
+                       {/* Left accent border */}
+                       <div className={`absolute left-0 top-0 bottom-0 w-1 ${isPositive ? 'bg-emerald-500' : 'bg-red-500'}`} />
+
+                       <div className="flex justify-between items-start">
+                         <h4 className="text-[12px] font-black uppercase tracking-widest text-[#1A1A18]">{title}</h4>
+                         <span className={`text-[16px] font-black tracking-tighter ${pointsColor}`}>{pointsText}</span>
                        </div>
                        
-                       <div className="space-y-2">
-                         <div className="flex items-start text-[13px] text-[#64748B]">
-                           <span className="w-[100px] shrink-0 font-medium">วันที่ทำรายการ:</span>
-                           <span>
+                       <div className="space-y-1">
+                         <div className="flex items-start text-[9px] font-bold text-gray-400 uppercase tracking-widest">
+                           <span className="w-[80px] shrink-0">วันที่ทำรายการ:</span>
+                           <span className="text-gray-600">
                              {new Date(tx.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })} เวลา {new Date(tx.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.
                            </span>
                          </div>
                          
                          {tx.expires_at && (
-                           <div className="flex items-start text-[13px] text-[#64748B]">
-                             <span className="w-[100px] shrink-0 font-medium">วันหมดอายุ:</span>
-                             <span>
+                           <div className="flex items-start text-[9px] font-bold text-gray-400 uppercase tracking-widest">
+                             <span className="w-[80px] shrink-0">วันหมดอายุ:</span>
+                             <span className="text-emerald-600">
                                {new Date(tx.expires_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })} เวลา {new Date(tx.expires_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.
                              </span>
                            </div>
                          )}
                          
                          {tx.description && (
-                           <div className="flex items-start text-[13px] text-[#64748B]">
-                             <span className="w-[100px] shrink-0 font-medium">หมายเหตุ:</span>
-                             <span>{tx.description}</span>
+                           <div className="flex items-start text-[9px] font-bold text-gray-400 uppercase tracking-widest">
+                             <span className="w-[80px] shrink-0">หมายเหตุ:</span>
+                             <span className="text-gray-600">{tx.description}</span>
                            </div>
                          )}
                        </div>
