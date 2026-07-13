@@ -23,6 +23,8 @@ export default function LiffPointHistoryPage() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [memberInfo, setMemberInfo] = useState<any>(null);
   const [fetchLoading, setFetchLoading] = useState(true);
+  const [availableMonths, setAvailableMonths] = useState<string[]>([]);
+  const [selectedMonth, setSelectedMonth] = useState<string>('');
 
   const fetchPointHistory = async () => {
     const currentUserId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
@@ -59,7 +61,16 @@ export default function LiffPointHistoryPage() {
         if (txsError) {
           console.error("Error fetching points:", txsError);
         } else {
-          setTransactions(txs || []);
+          const loadedTxs = txs || [];
+          setTransactions(loadedTxs);
+          
+          if (loadedTxs.length > 0) {
+            const months = Array.from(new Set(loadedTxs.map(tx => 
+              new Date(tx.created_at).toLocaleDateString('th-TH', { month: 'long', year: 'numeric' })
+            )));
+            setAvailableMonths(months);
+            if (months.length > 0) setSelectedMonth(months[0]);
+          }
         }
       }
     } catch (err) {
@@ -109,9 +120,26 @@ export default function LiffPointHistoryPage() {
         </div>
 
         {/* History List Section */}
+        {availableMonths.length > 0 && (
+          <div className="bg-white px-5 py-3 border-b border-gray-100">
+            <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              <style jsx>{`div::-webkit-scrollbar { display: none; }`}</style>
+              {availableMonths.map(m => (
+                <button 
+                  key={m} 
+                  onClick={() => setSelectedMonth(m)}
+                  className={`whitespace-nowrap px-4 py-1.5 rounded-full text-[11px] font-bold tracking-wider transition-colors ${selectedMonth === m ? 'bg-emerald-500 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                >
+                  {m}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        
         <div className="px-5 py-6">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-[12px] font-black uppercase tracking-widest text-[#1A1A18]">รายการล่าสุด</h3>
+            <h3 className="text-[12px] font-black uppercase tracking-widest text-[#1A1A18]">{selectedMonth ? `รายการของ ${selectedMonth}` : 'รายการล่าสุด'}</h3>
             <div className="flex items-center gap-4 text-gray-400">
               <button className="active:scale-95 transition-transform"><ArrowUpDown size={16} /></button>
               <button className="active:scale-95 transition-transform"><SlidersHorizontal size={16} /></button>
@@ -141,73 +169,62 @@ export default function LiffPointHistoryPage() {
                <motion.div 
                  key="list"
                  initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                 className="space-y-8"
+                 className="space-y-3"
                >
-                 {Object.entries(
-                   transactions.reduce((acc, tx) => {
-                     const date = new Date(tx.created_at);
-                     const monthYear = date.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' });
-                     if (!acc[monthYear]) acc[monthYear] = [];
-                     acc[monthYear].push(tx);
-                     return acc;
-                   }, {} as Record<string, any[]>)
-                 ).map(([monthYear, monthTxs], groupIdx) => (
-                   <div key={monthYear} className="space-y-3">
-                     <h4 className="text-[12px] font-black text-gray-400 tracking-widest pl-1 sticky top-20 bg-[#fcfcf9] py-2 z-10">{monthYear}</h4>
-                     {(monthTxs as any[]).map((tx, idx) => {
-                       const isEarn = tx.type === 'earn';
-                       const isRefund = tx.type === 'refund';
-                       const isPositive = tx.points_change > 0 || isEarn || isRefund;
-                       const pointsAmount = tx.points || Math.abs(tx.points_change) || 0;
-                       const pointsText = isPositive ? `+${pointsAmount}` : `-${pointsAmount}`;
-                       const pointsColor = isPositive ? 'text-emerald-500' : 'text-red-500';
-                       const title = isPositive ? 'เพิ่มพอยท์' : 'ใช้พอยท์';
-                       
-                       return (
-                         <motion.div 
-                           key={tx.id}
-                           initial={{ opacity: 0, y: 10 }}
-                           animate={{ opacity: 1, y: 0 }}
-                           transition={{ delay: (groupIdx * 0.1) + (idx * 0.05) }}
-                           className="bg-white rounded-none p-5 shadow-sm border border-gray-100 flex flex-col gap-3 relative overflow-hidden"
-                         >
-                           {/* Left accent border */}
-                           <div className={`absolute left-0 top-0 bottom-0 w-1 ${isPositive ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                 {transactions
+                   .filter(tx => new Date(tx.created_at).toLocaleDateString('th-TH', { month: 'long', year: 'numeric' }) === selectedMonth)
+                   .map((tx, idx) => {
+                     const isEarn = tx.type === 'earn';
+                     const isRefund = tx.type === 'refund';
+                     const isPositive = tx.points_change > 0 || isEarn || isRefund;
+                     const pointsAmount = tx.points || Math.abs(tx.points_change) || 0;
+                     const pointsText = isPositive ? `+${pointsAmount}` : `-${pointsAmount}`;
+                     const pointsColor = isPositive ? 'text-emerald-500' : 'text-red-500';
+                     const title = isPositive ? 'เพิ่มพอยท์' : 'ใช้พอยท์';
+                     
+                     return (
+                       <motion.div 
+                         key={tx.id}
+                         initial={{ opacity: 0, y: 10 }}
+                         animate={{ opacity: 1, y: 0 }}
+                         transition={{ delay: idx * 0.05 }}
+                         className="bg-white rounded-none p-5 shadow-sm border border-gray-100 flex flex-col gap-3 relative overflow-hidden"
+                       >
+                         {/* Left accent border */}
+                         <div className={`absolute left-0 top-0 bottom-0 w-1 ${isPositive ? 'bg-emerald-500' : 'bg-red-500'}`} />
 
-                           <div className="flex justify-between items-start">
-                             <h4 className="text-[12px] font-black uppercase tracking-widest text-[#1A1A18]">{title}</h4>
-                             <span className={`text-[16px] font-black tracking-tighter ${pointsColor}`}>{pointsText}</span>
+                         <div className="flex justify-between items-start">
+                           <h4 className="text-[12px] font-black uppercase tracking-widest text-[#1A1A18]">{title}</h4>
+                           <span className={`text-[16px] font-black tracking-tighter ${pointsColor}`}>{pointsText}</span>
+                         </div>
+                         
+                         <div className="space-y-1">
+                           <div className="flex items-start text-[9px] font-bold text-gray-400 uppercase tracking-widest">
+                             <span className="w-[80px] shrink-0">วันที่ทำรายการ:</span>
+                             <span className="text-gray-600">
+                               {new Date(tx.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })} เวลา {new Date(tx.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.
+                             </span>
                            </div>
                            
-                           <div className="space-y-1">
+                           {tx.expires_at && (
                              <div className="flex items-start text-[9px] font-bold text-gray-400 uppercase tracking-widest">
-                               <span className="w-[80px] shrink-0">วันที่ทำรายการ:</span>
-                               <span className="text-gray-600">
-                                 {new Date(tx.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })} เวลา {new Date(tx.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.
+                               <span className="w-[80px] shrink-0">วันหมดอายุ:</span>
+                               <span className="text-emerald-600">
+                                 {new Date(tx.expires_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })} เวลา {new Date(tx.expires_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.
                                </span>
                              </div>
-                             
-                             {tx.expires_at && (
-                               <div className="flex items-start text-[9px] font-bold text-gray-400 uppercase tracking-widest">
-                                 <span className="w-[80px] shrink-0">วันหมดอายุ:</span>
-                                 <span className="text-emerald-600">
-                                   {new Date(tx.expires_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })} เวลา {new Date(tx.expires_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.
-                                 </span>
-                               </div>
-                             )}
-                             
-                             {tx.description && (
-                               <div className="flex items-start text-[9px] font-bold text-gray-400 uppercase tracking-widest">
-                                 <span className="w-[80px] shrink-0">หมายเหตุ:</span>
-                                 <span className="text-gray-600">{tx.description}</span>
-                               </div>
-                             )}
-                           </div>
-                         </motion.div>
-                       );
-                     })}
-                   </div>
-                 ))}
+                           )}
+                           
+                           {tx.description && (
+                             <div className="flex items-start text-[9px] font-bold text-gray-400 uppercase tracking-widest">
+                               <span className="w-[80px] shrink-0">หมายเหตุ:</span>
+                               <span className="text-gray-600">{tx.description}</span>
+                             </div>
+                           )}
+                         </div>
+                       </motion.div>
+                     );
+                 })}
                </motion.div>
             )}
           </AnimatePresence>
