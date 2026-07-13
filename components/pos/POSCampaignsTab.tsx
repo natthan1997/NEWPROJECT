@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit2, Save, X, GripVertical } from 'lucide-react';
-import { useI18n } from '@/app/providers/I18nProvider';
+import { useI18n } from '@/lib/I18nContext';
 import { supabase } from '@/lib/supabaseClient';
 
 export default function POSCampaignsTab() {
