@@ -27,6 +27,7 @@ export default function LiffMemberPage() {
   const [showCatalog, setShowCatalog] = useState(false);
   const [selectedBadge, setSelectedBadge] = useState<any>(null);
   const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [quickRewards, setQuickRewards] = useState<any[]>([]);
 
   // Mystery Box State
   const [showMysteryBox, setShowMysteryBox] = useState(false);
@@ -119,6 +120,13 @@ export default function LiffMemberPage() {
         if (campaignsData) setCampaigns(campaignsData);
       } catch (err) {
         console.error('Failed to load campaigns', err);
+      }
+
+      try {
+        const { data: rewardsData } = await supabase.from('pos_loyalty_coupons').select('*').eq('is_active', true).order('cost_points', { ascending: true }).limit(5);
+        if (rewardsData) setQuickRewards(rewardsData);
+      } catch (err) {
+        console.error('Failed to load rewards', err);
       }
       
       try {
@@ -436,14 +444,26 @@ export default function LiffMemberPage() {
           <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory px-5" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             <style jsx>{`div::-webkit-scrollbar { display: none; }`}</style>
             
-            {/* Placeholder for Quick Rewards/Badges */}
-            <div className="min-w-[280px] h-[140px] snap-center bg-gray-100 rounded-[20px] flex items-center justify-center relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-white"></div>
-                <div className="relative z-10 text-center">
-                    <Gift size={32} className="text-[#1A1A18] mx-auto mb-2" />
-                    <p className="text-[14px] text-[#1A1A18] font-medium">ไปที่หน้าของรางวัลเพื่อดูสิทธิพิเศษ</p>
+            {quickRewards.length > 0 ? quickRewards.map((reward) => (
+                <div key={reward.id} onClick={() => router.push('/liff/rewards')} className="min-w-[160px] h-[120px] snap-center bg-white border border-gray-100 rounded-[20px] flex flex-col p-4 shadow-sm relative cursor-pointer active:scale-95 transition-transform">
+                    <div className="absolute top-3 right-3 bg-gray-50 border border-gray-100 px-2 py-0.5 rounded-full text-[9px] font-bold text-[#1A1A18] uppercase tracking-wider">
+                        REDEEM
+                    </div>
+                    <Gift size={24} className="text-gray-400 mb-2" />
+                    <h4 className="text-[13px] font-bold text-[#1A1A18] leading-tight mb-1 line-clamp-2 pr-4">
+                        {reward.discount_type === 'percent' ? `ส่วนลด ${reward.discount_value}%` : reward.discount_type === 'free_item' ? `ฟรี ${reward.discount_value}` : `ส่วนลด ฿${reward.discount_value}`}
+                    </h4>
+                    <p className="text-[12px] text-gray-500 mt-auto font-medium tracking-tight">ใช้ {reward.cost_points.toLocaleString()} พอยท์</p>
                 </div>
-            </div>
+            )) : (
+                <div onClick={() => router.push('/liff/rewards')} className="min-w-[280px] h-[140px] snap-center bg-gray-100 rounded-[20px] flex items-center justify-center relative overflow-hidden cursor-pointer active:scale-95 transition-transform">
+                    <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-white"></div>
+                    <div className="relative z-10 text-center">
+                        <Gift size={32} className="text-[#1A1A18] mx-auto mb-2" />
+                        <p className="text-[14px] text-[#1A1A18] font-medium">ไปที่หน้าของรางวัลเพื่อดูสิทธิพิเศษ</p>
+                    </div>
+                </div>
+            )}
             
           </div>
         </motion.section>
