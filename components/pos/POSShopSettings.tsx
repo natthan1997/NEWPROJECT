@@ -7,10 +7,11 @@ import {
   Plus, Loader2, Save, X, Settings, Clock,
   Bell, Info, Image as ImageIcon, Star, Gift,
   ChevronDown, ChevronUp, Upload, Trash2, Menu as MenuIcon, ChevronRight, ArrowLeft, ShieldCheck, QrCode,
-  MapPin, Printer, Truck
+  MapPin, Printer, Truck, Flag
 } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
+import POSCampaignsTab from './POSCampaignsTab'
 import AddressMapInput from '@/components/AddressMapInput'
 import { useI18n } from "@/lib/I18nContext";
 
@@ -412,6 +413,7 @@ export default function POSShopSettings({
                             { id: 'receipt', icon: Printer, label: 'ตั้งค่าใบเสร็จ', desc: 'หัวบิล, โลโก้, ท้ายบิล' },
                             { id: 'kitchen', icon: MenuIcon, label: 'ห้องครัว', desc: 'ฟอนต์, ออเดอร์' },
                             { id: 'hardware', icon: Settings, label: 'เครื่องปริ้น', desc: 'จัดการอุปกรณ์เสริม' },
+                            { id: 'campaigns', icon: Flag, label: 'แคมเปญหน้าแอป', desc: 'กิจกรรมหน้าหลักลูกค้า' },
                             { id: 'advanced', icon: Star, label: 'ระบบจ่ายเงิน & สมาชิก', desc: 'QR, พอยท์สะสม' },
                             { id: 'permissions', icon: ShieldCheck, label: 'สิทธิ์การใช้งาน', desc: 'ผู้จัดการ, พนักงาน' }
                         ].map(tab => {
@@ -1390,6 +1392,8 @@ export default function POSShopSettings({
                         )}
                     </div>
                 </div>
+
+                {activeTab === 'campaigns' && <POSCampaignsTab />}
 
                 {/* BOTTOM SAVE BUTTON */}
                 <div className="fixed bottom-0 left-0 right-0 p-6 sm:p-8 bg-white/90 backdrop-blur-md border-t border-gray-100 flex justify-end z-50">
