@@ -327,7 +327,8 @@ export default function LiffMemberPage() {
                   initial={{ width: 0 }}
                   animate={{ width: `${Math.max(2, progressPercent)}%` }}
                   transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
-                  className="h-full rounded-full bg-[#1A1A18]" 
+                  className="h-full rounded-full" 
+                  style={{ backgroundColor: currentTier.textHex }}
                 />
             </div>
           </div>
