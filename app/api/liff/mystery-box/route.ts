@@ -30,38 +30,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Not enough points' }, { status: 400 })
     }
 
-    // 2. Fetch mystery box config
-    const { data: settings } = await supabase
-      .from('pos_shop_settings')
-      .select('mystery_box_config')
-      .limit(1)
-      .single();
-
-    let prizes = [
-      { id: 1, name: '500 คะแนน', type: 'points', value: 500, probability: 5 },
-      { id: 2, name: '100 คะแนน', type: 'points', value: 100, probability: 10 },
-      { id: 3, name: '50 คะแนน', type: 'points', value: 50, probability: 25 },
-      { id: 4, name: '20 คะแนน', type: 'points', value: 20, probability: 60 }
-    ];
-
-    if (settings?.mystery_box_config && Array.isArray(settings.mystery_box_config) && settings.mystery_box_config.length > 0) {
-      prizes = settings.mystery_box_config;
+    // 2. Randomize reward
+    const rand = Math.random();
+    let wonPoints = 20; // 60% chance
+    if (rand > 0.95) {
+      wonPoints = 500; // 5% chance
+    } else if (rand > 0.85) {
+      wonPoints = 100; // 10% chance
+    } else if (rand > 0.60) {
+      wonPoints = 50; // 25% chance
     }
 
-    // 3. Randomize reward
-    const rand = Math.random() * 100;
-    let cumulative = 0;
-    let wonPrize = prizes[prizes.length - 1];
-
-    for (const prize of prizes) {
-      cumulative += Number(prize.probability);
-      if (rand <= cumulative) {
-        wonPrize = prize;
-        break;
-      }
-    }
-
-    const wonPoints = Number(wonPrize.value) || 0;
     const netPointsChange = wonPoints - COST_TO_PLAY;
     const newPoints = (member.points || 0) + netPointsChange;
 
@@ -89,13 +68,12 @@ export async function POST(req: NextRequest) {
       points_change: wonPoints,
       points: wonPoints,
       type: 'earn',
-      description: `รางวัลจากกล่องสุ่ม: ${wonPrize.name}`,
+      description: 'รางวัลจากกล่องสุ่ม',
     })
 
     return NextResponse.json({
       success: true,
       wonPoints,
-      prizeName: wonPrize.name,
       newTotal: newPoints
     })
   } catch (error: any) {
