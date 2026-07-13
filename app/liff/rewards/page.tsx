@@ -77,7 +77,7 @@ export default function RewardsPage() {
         <button onClick={() => router.push('/liff/member')} className="text-gray-400 hover:text-gray-900 transition-colors p-1 -ml-1">
           <ChevronLeft size={24} strokeWidth={2} />
         </button>
-        <h1 className="text-[14px] font-bold tracking-widest text-[#7B8B7B] uppercase">XYL STUDIO</h1>
+        <h1 className="text-[14px] font-bold tracking-widest text-[#1A1A18] uppercase">XYL STUDIO</h1>
         <div className="w-6"></div>
       </header>
 
@@ -107,10 +107,10 @@ export default function RewardsPage() {
                 key={reward.id} 
                 className="bg-white border border-gray-100 rounded-[20px] overflow-hidden flex flex-col shadow-sm"
               >
-                <div className="h-32 bg-[#A3B1A3]/20 flex items-center justify-center relative">
-                    <Gift size={32} className="text-[#A3B1A3]" />
-                    {/* Floating Redeem Badge */}
-                    <div className="absolute top-2 right-2 bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full text-[9px] font-bold text-[#7B8B7B] uppercase tracking-wider shadow-sm">
+                <div className="h-32 bg-gray-100 flex items-center justify-center relative">
+                    <Gift size={32} className="text-gray-400" />
+                    
+                    <div className="absolute top-2 right-2 bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full text-[9px] font-bold text-[#1A1A18] uppercase tracking-wider shadow-sm">
                         REDEEM
                     </div>
                 </div>
@@ -119,7 +119,7 @@ export default function RewardsPage() {
                     <p className="text-[11px] text-gray-500 mb-3">คูปองใช้กับทางร้าน</p>
                     
                     <div className="mt-auto pt-2 border-t border-gray-50 flex items-center justify-between">
-                        <span className={`text-[15px] font-bold ${canRedeem ? 'text-[#7B8B7B]' : 'text-gray-400'}`}>
+                        <span className={`text-[15px] font-bold ${canRedeem ? 'text-[#1A1A18]' : 'text-gray-400'}`}>
                             {reward.cost_points.toLocaleString()} <span className="text-[10px] font-medium">พอยท์</span>
                         </span>
                     </div>

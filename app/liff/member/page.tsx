@@ -241,7 +241,7 @@ export default function LiffMemberPage() {
           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
           className="w-full flex flex-col"
         >
-          <div className={`p-7 rounded-[24px] relative flex flex-col overflow-hidden shadow-sm ${currentTier.cardBg || 'bg-[#A3B1A3]'}`}>
+          <div className={`p-7 rounded-[24px] relative flex flex-col overflow-hidden shadow-sm ${currentTier.cardBg || 'bg-[#1A1A18]'}`}>
             {/* Background Graphic Accent */}
             <div className="absolute -right-10 -bottom-10 opacity-30 pointer-events-none">
                 <svg width="200" height="200" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
@@ -319,7 +319,7 @@ export default function LiffMemberPage() {
                     <button onClick={() => setShowBenefits(true)}><Info size={14} className="text-gray-400" /></button>
                 </span>
                 <span className="text-[13px] font-semibold">
-                    <span className="text-[#7B8B7B]">{totalAccumulated}</span> <span className="text-gray-400 font-normal">/ {nextTier ? nextTier.minPoints : 'Max'}</span>
+                    <span className="text-[#1A1A18]">{totalAccumulated}</span> <span className="text-gray-400 font-normal">/ {nextTier ? nextTier.minPoints : 'Max'}</span>
                 </span>
             </div>
             <div className="w-full h-[6px] rounded-full overflow-hidden bg-gray-200">
@@ -327,16 +327,16 @@ export default function LiffMemberPage() {
                   initial={{ width: 0 }}
                   animate={{ width: `${Math.max(2, progressPercent)}%` }}
                   transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
-                  className="h-full rounded-full bg-[#7B8B7B]" 
+                  className="h-full rounded-full bg-[#1A1A18]" 
                 />
             </div>
           </div>
           
           <div className="flex justify-center mt-6 relative z-20 gap-3">
-            <Link href="/liff/point-history" className="text-[13px] font-medium text-[#7B8B7B] flex items-center gap-1 py-2 px-4 bg-white/50 rounded-full hover:bg-white transition-colors shadow-sm">
+            <Link href="/liff/point-history" className="text-[13px] font-medium text-[#1A1A18] flex items-center gap-1 py-2 px-4 bg-white/50 rounded-full hover:bg-white transition-colors shadow-sm">
                 ดูประวัติพอยท์ <ChevronRight size={14} />
             </Link>
-            <Link href="/liff/my-rewards" className="text-[13px] font-medium text-[#7B8B7B] flex items-center gap-1 py-2 px-4 bg-white/50 rounded-full hover:bg-white transition-colors shadow-sm">
+            <Link href="/liff/my-rewards" className="text-[13px] font-medium text-[#1A1A18] flex items-center gap-1 py-2 px-4 bg-white/50 rounded-full hover:bg-white transition-colors shadow-sm">
                 คูปองของฉัน <ChevronRight size={14} />
             </Link>
           </div>
@@ -429,7 +429,7 @@ export default function LiffMemberPage() {
         >
           <div className="px-5 mb-4 flex justify-between items-baseline">
             <h3 className="text-[16px] font-semibold text-gray-900 tracking-tight">แลกของรางวัล</h3>
-            <Link href="/liff/rewards" className="text-[12px] text-[#7B8B7B] font-medium">ดูทั้งหมด</Link>
+            <Link href="/liff/rewards" className="text-[12px] text-[#1A1A18] font-medium">ดูทั้งหมด</Link>
           </div>
           
           <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory px-5" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
@@ -437,10 +437,10 @@ export default function LiffMemberPage() {
             
             {/* Placeholder for Quick Rewards/Badges */}
             <div className="min-w-[280px] h-[140px] snap-center bg-gray-100 rounded-[20px] flex items-center justify-center relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-[#E3E8E3] to-white"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-white"></div>
                 <div className="relative z-10 text-center">
-                    <Gift size={32} className="text-[#A3B1A3] mx-auto mb-2" />
-                    <p className="text-[14px] text-[#7B8B7B] font-medium">ไปที่หน้าของรางวัลเพื่อดูสิทธิพิเศษ</p>
+                    <Gift size={32} className="text-[#1A1A18] mx-auto mb-2" />
+                    <p className="text-[14px] text-[#1A1A18] font-medium">ไปที่หน้าของรางวัลเพื่อดูสิทธิพิเศษ</p>
                 </div>
             </div>
             

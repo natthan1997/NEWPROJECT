@@ -50,7 +50,7 @@ export default function MyRewardsPage() {
         <button onClick={() => router.push('/liff/member')} className="text-gray-400 hover:text-gray-900 transition-colors p-1 -ml-1">
           <ChevronLeft size={24} strokeWidth={2} />
         </button>
-        <h1 className="text-[14px] font-bold tracking-widest text-[#7B8B7B] uppercase">รางวัลของฉัน</h1>
+        <h1 className="text-[14px] font-bold tracking-widest text-[#1A1A18] uppercase">รางวัลของฉัน</h1>
         <div className="w-6"></div>
       </header>
 
@@ -62,7 +62,7 @@ export default function MyRewardsPage() {
             key={voucher.id} 
             className={`flex border rounded-[20px] overflow-hidden bg-white shadow-sm ${voucher.status !== 'active' ? 'border-gray-100 opacity-60 grayscale' : 'border-gray-200'}`}
           >
-            <div className={`w-[90px] border-r border-dashed border-gray-200 flex flex-col items-center justify-center p-4 ${voucher.status === 'active' ? 'bg-[#A3B1A3]/10 text-[#7B8B7B]' : 'bg-gray-50 text-gray-500'}`}>
+            <div className={`w-[90px] border-r border-dashed border-gray-200 flex flex-col items-center justify-center p-4 ${voucher.status === 'active' ? 'bg-gray-100 text-[#1A1A18]' : 'bg-gray-50 text-gray-500'}`}>
               <Ticket size={24} className="mb-2 opacity-50" />
               <span className="text-xl font-bold leading-none tracking-tight">
                 {voucher.discount_type === 'percent' ? voucher.discount_value : voucher.discount_type === 'free_item' ? 'FREE' : voucher.discount_value}
@@ -85,7 +85,7 @@ export default function MyRewardsPage() {
                 <button 
                   disabled={voucher.status !== 'active'}
                   className={`text-[11px] font-bold px-4 py-1.5 rounded-full uppercase tracking-wider ${
-                    voucher.status !== 'active' ? 'bg-gray-100 text-gray-400' : 'bg-[#7B8B7B] text-white shadow-sm'
+                    voucher.status !== 'active' ? 'bg-gray-100 text-gray-400' : 'bg-[#1A1A18] text-white shadow-sm'
                   }`}
                 >
                   {voucher.status !== 'active' ? 'Used' : 'Ready'}
