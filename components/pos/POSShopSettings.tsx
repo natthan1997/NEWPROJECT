@@ -213,6 +213,8 @@ export default function POSShopSettings({
         loyalty_redeem_thb: settings.loyalty_redeem_thb,
         delivery_gp: settings.delivery_gp,
         active_delivery_platforms: settings.active_delivery_platforms,
+        mystery_box_cost: settings.mystery_box_cost,
+        mystery_box_prizes: settings.mystery_box_prizes,
       },
       is_open: settings.status === 'open',
       updated_at: new Date().toISOString()
@@ -234,6 +236,8 @@ export default function POSShopSettings({
     delete payload.address;
     delete payload.delivery_gp;
     delete payload.active_delivery_platforms;
+    delete payload.mystery_box_cost;
+    delete payload.mystery_box_prizes;
 
     try {
         let result;
@@ -920,19 +924,55 @@ export default function POSShopSettings({
                                         {(settings.mystery_box_prizes || []).map((prize: any, idx: number) => (
                                             <div key={idx} className="flex items-center gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100 flex-wrap">
                                                 <div className="flex-1 min-w-[120px]">
-                                                    <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest block mb-1">แต้มที่จะได้รับ</label>
-                                                    <input 
-                                                        type="number" 
-                                                        value={prize.points}
+                                                    <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest block mb-1">ประเภทรางวัล</label>
+                                                    <select 
+                                                        value={prize.type || 'points'}
                                                         onChange={e => {
                                                             const newPrizes = [...(settings.mystery_box_prizes || [])];
-                                                            newPrizes[idx].points = parseInt(e.target.value) || 0;
+                                                            newPrizes[idx].type = e.target.value;
+                                                            if (e.target.value === 'coupon') {
+                                                                newPrizes[idx].points = 0;
+                                                            }
                                                             setSettings({...settings, mystery_box_prizes: newPrizes});
                                                         }}
-                                                        className="w-full bg-white border border-gray-200 focus:border-[#1A1A18] rounded-lg py-2 px-3 font-bold outline-none" 
-                                                    />
+                                                        className="w-full bg-white border border-gray-200 focus:border-[#1A1A18] rounded-lg py-2 px-3 font-bold outline-none mb-2"
+                                                    >
+                                                        <option value="points">ได้คะแนน (Points)</option>
+                                                        <option value="coupon">ได้คูปอง (Coupon)</option>
+                                                    </select>
+                                                    
+                                                    {(!prize.type || prize.type === 'points') ? (
+                                                        <>
+                                                            <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest block mb-1">แต้มที่จะได้รับ</label>
+                                                            <input 
+                                                                type="number" 
+                                                                value={prize.points || 0}
+                                                                onChange={e => {
+                                                                    const newPrizes = [...(settings.mystery_box_prizes || [])];
+                                                                    newPrizes[idx].points = parseInt(e.target.value) || 0;
+                                                                    setSettings({...settings, mystery_box_prizes: newPrizes});
+                                                                }}
+                                                                className="w-full bg-white border border-gray-200 focus:border-[#1A1A18] rounded-lg py-2 px-3 font-bold outline-none" 
+                                                            />
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest block mb-1">ชื่อคูปองที่จะได้รับ</label>
+                                                            <input 
+                                                                type="text" 
+                                                                placeholder="เช่น ฟรีเครื่องดื่ม 1 แก้ว"
+                                                                value={prize.coupon_name || ''}
+                                                                onChange={e => {
+                                                                    const newPrizes = [...(settings.mystery_box_prizes || [])];
+                                                                    newPrizes[idx].coupon_name = e.target.value;
+                                                                    setSettings({...settings, mystery_box_prizes: newPrizes});
+                                                                }}
+                                                                className="w-full bg-white border border-gray-200 focus:border-[#1A1A18] rounded-lg py-2 px-3 font-bold outline-none" 
+                                                            />
+                                                        </>
+                                                    )}
                                                 </div>
-                                                <div className="flex-1 min-w-[120px]">
+                                                <div className="flex-1 min-w-[120px] self-end">
                                                     <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest block mb-1">โอกาสสุ่มได้ (%)</label>
                                                     <div className="flex items-center gap-2">
                                                         <input 
@@ -961,7 +1001,7 @@ export default function POSShopSettings({
                                         ))}
                                         <button 
                                             onClick={() => {
-                                                const newPrizes = [...(settings.mystery_box_prizes || []), { points: 0, chance: 0 }];
+                                                const newPrizes = [...(settings.mystery_box_prizes || []), { type: 'points', points: 0, chance: 0 }];
                                                 setSettings({...settings, mystery_box_prizes: newPrizes});
                                             }}
                                             className="w-full py-3 border-2 border-dashed border-gray-200 rounded-xl text-gray-500 font-bold hover:border-gray-300 hover:text-gray-600 transition-colors flex items-center justify-center gap-2"

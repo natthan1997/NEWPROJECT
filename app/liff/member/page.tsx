@@ -33,6 +33,7 @@ export default function LiffMemberPage() {
   const [showMysteryBox, setShowMysteryBox] = useState(false);
   const [playingMysteryBox, setPlayingMysteryBox] = useState(false);
   const [mysteryReward, setMysteryReward] = useState<number | null>(null);
+  const [mysteryCouponReward, setMysteryCouponReward] = useState<string | null>(null);
   const [mysteryError, setMysteryError] = useState<string | null>(null);
   const [mysteryBoxCost, setMysteryBoxCost] = useState(50);
 
@@ -205,11 +206,17 @@ export default function LiffMemberPage() {
           }
 
           // Simulate suspense for animation
-          setTimeout(() => {
-              setMysteryReward(data.wonPoints);
-              setMemberInfo({ ...memberInfo, points: data.newTotal });
-              setPlayingMysteryBox(false);
-          }, 2000);
+        if (!data.success) {
+            throw new Error(data.error || 'เกิดข้อผิดพลาด');
+        }
+        
+        // Simulate suspense for animation
+        setTimeout(() => {
+          setMysteryReward(data.wonPoints);
+          setMysteryCouponReward(data.wonCoupon || null);
+          setMemberInfo(prev => prev ? {...prev, points: data.newTotal} : null);
+          setPlayingMysteryBox(false);
+        }, 2000);
 
       } catch (err: any) {
           setMysteryError(err.message);
@@ -754,9 +761,9 @@ export default function LiffMemberPage() {
 
                             <button 
                                 onClick={handlePlayMysteryBox}
-                                disabled={playingMysteryBox || (memberInfo?.points || 0) < MYSTERY_COST}
+                                disabled={playingMysteryBox || (memberInfo?.points || 0) < mysteryBoxCost}
                                 className={`w-full h-14 rounded-full flex items-center justify-center gap-2 text-[14px] font-bold tracking-wider transition-all
-                                    ${(memberInfo?.points || 0) >= MYSTERY_COST 
+                                    ${(memberInfo?.points || 0) >= mysteryBoxCost 
                                         ? 'bg-[#1A1A18] text-white shadow-md hover:bg-black active:scale-95' 
                                         : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                     }`}
@@ -766,7 +773,7 @@ export default function LiffMemberPage() {
                                 ) : (
                                     <>
                                         <Sparkles size={16} />
-                                        แลก {MYSTERY_COST} Pts เพื่อสุ่ม
+                                        แลก {mysteryBoxCost} Pts เพื่อสุ่ม
                                     </>
                                 )}
                             </button>
@@ -785,9 +792,13 @@ export default function LiffMemberPage() {
                                 className="w-32 h-32 mb-6 relative"
                             >
                                 <div className="absolute inset-0 bg-[#1A1A18] rounded-[24px] shadow-lg flex items-center justify-center">
-                                    <div className="text-center text-white">
+                                    <div className="text-center text-white p-2">
                                         <p className="text-[11px] font-bold uppercase tracking-widest mb-1 opacity-80">ได้รับ</p>
-                                        <p className="text-[40px] font-black leading-none">+{mysteryReward}</p>
+                                        {mysteryCouponReward ? (
+                                          <p className="text-[16px] font-black leading-tight text-center">{mysteryCouponReward}</p>
+                                        ) : (
+                                          <p className="text-[40px] font-black leading-none">+{mysteryReward}</p>
+                                        )}
                                     </div>
                                 </div>
                             </motion.div>

@@ -48,21 +48,23 @@ export async function POST(req: NextRequest) {
 
     // 2. Randomize reward based on probabilities
     const rand = Math.random() * 100;
-    let wonPoints = 0;
+    let wonPrize: any = null;
     let cumulativeChance = 0;
     
     for (const prize of prizes) {
         cumulativeChance += Number(prize.chance);
         if (rand <= cumulativeChance) {
-            wonPoints = Number(prize.points);
+            wonPrize = prize;
             break;
         }
     }
     
-    // Fallback if loop didn't set wonPoints (e.g. chances don't sum to 100)
-    if (wonPoints === 0 && prizes.length > 0) {
-        wonPoints = Number(prizes[0].points);
+    if (!wonPrize && prizes.length > 0) {
+        wonPrize = prizes[0];
     }
+
+    const isCoupon = wonPrize?.type === 'coupon';
+    const wonPoints = isCoupon ? 0 : Number(wonPrize?.points || 0);
 
     const netPointsChange = wonPoints - costToPlay;
     const newPoints = (member.points || 0) + netPointsChange;
@@ -85,18 +87,29 @@ export async function POST(req: NextRequest) {
       description: 'เล่นกล่องสุ่ม',
     })
 
-    // Insert history for earning
-    await supabase.from('pos_points_history').insert({
-      member_id: member.id,
-      points_change: wonPoints,
-      points: wonPoints,
-      type: 'earn',
-      description: 'รางวัลจากกล่องสุ่ม',
-    })
+    if (!isCoupon && wonPoints > 0) {
+        // Insert history for earning
+        await supabase.from('pos_points_history').insert({
+            member_id: member.id,
+            points_change: wonPoints,
+            points: wonPoints,
+            type: 'earn',
+            description: 'รางวัลจากกล่องสุ่ม',
+        })
+    } else if (isCoupon && wonPrize.coupon_name) {
+        // Give coupon to member
+        await supabase.from('pos_member_coupons').insert({
+            member_id: member.id,
+            coupon_type: 'loyalty',
+            coupon_name: wonPrize.coupon_name,
+            status: 'active'
+        });
+    }
 
     return NextResponse.json({
       success: true,
       wonPoints,
+      wonCoupon: isCoupon ? wonPrize.coupon_name : null,
       newTotal: newPoints
     })
   } catch (error: any) {
