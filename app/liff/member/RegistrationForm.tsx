@@ -168,9 +168,9 @@ export default function RegistrationForm({ lineProfile, onSubmit, isSubmitting }
             </div>
             <div className="text-[13px] leading-[1.8] text-gray-600 select-none">
               <span>ข้าพเจ้ายอมรับ </span>
-              <button type="button" onClick={(e) => { e.preventDefault(); setShowTerms(true); }} className="text-gray-900 font-medium underline decoration-gray-300 underline-offset-4 hover:decoration-gray-900 transition-colors">ข้อกำหนดการใช้บริการ</button>
+              <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowTerms(true); }} className="text-gray-900 font-medium underline decoration-gray-300 underline-offset-4 hover:decoration-gray-900 transition-colors">ข้อกำหนดการใช้บริการ</button>
               <span> และ </span>
-              <button type="button" onClick={(e) => { e.preventDefault(); setShowPrivacy(true); }} className="text-gray-900 font-medium underline decoration-gray-300 underline-offset-4 hover:decoration-gray-900 transition-colors">นโยบายความเป็นส่วนตัว</button>
+              <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowPrivacy(true); }} className="text-gray-900 font-medium underline decoration-gray-300 underline-offset-4 hover:decoration-gray-900 transition-colors">นโยบายความเป็นส่วนตัว</button>
               <span> ของ XYL Studio และตกลงเพิ่มบัญชีทางการเป็นเพื่อน เพื่อสะสมแต้ม</span>
             </div>
             <input 
@@ -219,7 +219,7 @@ export default function RegistrationForm({ lineProfile, onSubmit, isSubmitting }
               <p>การแจ้งเตือนผ่าน LINE มีวัตถุประสงค์เพื่ออำนวยความสะดวกให้แก่ท่าน ทางเราขอสงวนสิทธิ์ในการระงับบัญชีหากพบการใช้งานที่ผิดปกติ</p>
             </div>
             <div className="p-5 border-t border-gray-100">
-              <button onClick={() => setShowTerms(false)} className="w-full py-4 bg-gray-900 text-white rounded-[12px] font-medium">เข้าใจและยอมรับ</button>
+              <button onClick={() => { setShowTerms(false); setConsent(true); }} className="w-full py-4 bg-gray-900 text-white rounded-[12px] font-medium">เข้าใจและยอมรับ</button>
             </div>
           </div>
         </div>
@@ -242,7 +242,7 @@ export default function RegistrationForm({ lineProfile, onSubmit, isSubmitting }
               <p>เรามีมาตรการป้องกันและรักษาความปลอดภัยของข้อมูลส่วนบุคคลของท่าน เพื่อมิให้ข้อมูลรั่วไหลหรือถูกเข้าถึงโดยไม่ได้รับอนุญาต</p>
             </div>
             <div className="p-5 border-t border-gray-100">
-              <button onClick={() => setShowPrivacy(false)} className="w-full py-4 bg-gray-900 text-white rounded-[12px] font-medium">เข้าใจและยอมรับ</button>
+              <button onClick={() => { setShowPrivacy(false); setConsent(true); }} className="w-full py-4 bg-gray-900 text-white rounded-[12px] font-medium">เข้าใจและยอมรับ</button>
             </div>
           </div>
         </div>
