@@ -365,7 +365,7 @@ const fetchData = async () => {
       
       {/* 📱 Ultra Clean Header */}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-xl px-6 py-4 flex items-center justify-between border-b border-gray-100">
-        <button onClick={() => router.back()} className="text-gray-400 hover:text-gray-900 transition-colors p-1 -ml-1">
+        <button onClick={handleBack} className="text-gray-400 hover:text-gray-900 transition-colors p-1 -ml-1">
           <ChevronLeft size={24} strokeWidth={2} />
         </button>
         <div className="flex flex-col items-center">
