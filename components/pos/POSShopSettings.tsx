@@ -46,6 +46,7 @@ export default function POSShopSettings({
     const { locale } = useI18n();
   const [loading, setLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [availableCoupons, setAvailableCoupons] = useState<any[]>([])
   const [activeTab, setActiveTab] = useState<string>('general')
   const [previewStoryIndex, setPreviewStoryIndex] = useState<number>(0)
   
@@ -171,6 +172,9 @@ export default function POSShopSettings({
 
         const { data: catData } = await supabase.from('pos_menu_categories').select('*').order('order_index')
         if (catData) setCategories(catData)
+        
+        const { data: couponData } = await supabase.from('pos_loyalty_coupons').select('id, name, is_active').eq('is_active', true).order('created_at', { ascending: false })
+        if (couponData) setAvailableCoupons(couponData)
     } catch (err) {
         console.error('Fetch settings error:', err)
     } finally {
@@ -957,10 +961,8 @@ export default function POSShopSettings({
                                                         </>
                                                     ) : (
                                                         <>
-                                                            <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest block mb-1">ชื่อคูปองที่จะได้รับ</label>
-                                                            <input 
-                                                                type="text" 
-                                                                placeholder="เช่น ฟรีเครื่องดื่ม 1 แก้ว"
+                                                            <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest block mb-1">เลือกคูปอง</label>
+                                                            <select 
                                                                 value={prize.coupon_name || ''}
                                                                 onChange={e => {
                                                                     const newPrizes = [...(settings.mystery_box_prizes || [])];
@@ -968,7 +970,12 @@ export default function POSShopSettings({
                                                                     setSettings({...settings, mystery_box_prizes: newPrizes});
                                                                 }}
                                                                 className="w-full bg-white border border-gray-200 focus:border-[#1A1A18] rounded-lg py-2 px-3 font-bold outline-none" 
-                                                            />
+                                                            >
+                                                                <option value="">-- เลือกคูปอง --</option>
+                                                                {availableCoupons.map(c => (
+                                                                    <option key={c.id} value={c.name}>{c.name}</option>
+                                                                ))}
+                                                            </select>
                                                         </>
                                                     )}
                                                 </div>
