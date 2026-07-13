@@ -60,10 +60,10 @@ export default function LiffMemberPage() {
   const [titles, setTitles] = useState<any[]>([]);
   const [activeTitle, setActiveTitle] = useState<any>(null);
   const tiers = React.useMemo(() => [
-    { name: 'Bronze', minPoints: 0, bgHex: '#F2ECE4', textHex: '#8C6D53', benefits: [`อัตราสะสมคะแนน ${earnRate} บาท = 1 คะแนน`] },
-    { name: 'Silver', minPoints: 500, bgHex: '#F0F2F5', textHex: '#64748B', benefits: ['อัตราสะสมคะแนน x1.2', 'เครื่องดื่มพิเศษในเดือนเกิด'] },
-    { name: 'Gold', minPoints: 2000, bgHex: '#FCF7E8', textHex: '#B48529', benefits: ['อัตราสะสมคะแนน x1.5', 'ส่วนลด 5% ทุกออเดอร์'] },
-    { name: 'Platinum', minPoints: 5000, bgHex: '#EBF1F5', textHex: '#3E6578', benefits: ['อัตราสะสมคะแนน x2.0', 'ส่วนลด 10% ทุกออเดอร์'] }
+    { name: 'Bronze', minPoints: 0, bgHex: '#F2ECE4', textHex: '#8C6D53', cardBg: 'bg-gradient-to-br from-[#B89F89] to-[#8C6D53]', benefits: [`อัตราสะสมคะแนน ${earnRate} บาท = 1 คะแนน`] },
+    { name: 'Silver', minPoints: 500, bgHex: '#F0F2F5', textHex: '#64748B', cardBg: 'bg-gradient-to-br from-[#94A3B8] to-[#64748B]', benefits: ['อัตราสะสมคะแนน x1.2', 'เครื่องดื่มพิเศษในเดือนเกิด'] },
+    { name: 'Gold', minPoints: 2000, bgHex: '#FCF7E8', textHex: '#B48529', cardBg: 'bg-gradient-to-br from-[#D4AF37] to-[#B48529]', benefits: ['อัตราสะสมคะแนน x1.5', 'ส่วนลด 5% ทุกออเดอร์'] },
+    { name: 'Platinum', minPoints: 5000, bgHex: '#EBF1F5', textHex: '#3E6578', cardBg: 'bg-gradient-to-br from-[#3E6578] to-[#1E3A47]', benefits: ['อัตราสะสมคะแนน x2.0', 'ส่วนลด 10% ทุกออเดอร์'] }
   ], [earnRate]);
   
   const handleRegistrationSubmit = async (data: any) => {
@@ -241,7 +241,7 @@ export default function LiffMemberPage() {
           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
           className="w-full flex flex-col"
         >
-          <div className="p-7 rounded-[24px] relative flex flex-col overflow-hidden shadow-sm bg-[#A3B1A3]">
+          <div className={`p-7 rounded-[24px] relative flex flex-col overflow-hidden shadow-sm ${currentTier.cardBg || 'bg-[#A3B1A3]'}`}>
             {/* Background Graphic Accent */}
             <div className="absolute -right-10 -bottom-10 opacity-30 pointer-events-none">
                 <svg width="200" height="200" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
