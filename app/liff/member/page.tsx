@@ -10,6 +10,7 @@ import { createClient } from '@/utils/supabase/client';
 import { useLiff } from '@/components/liff/LiffProvider';
 import XYLLoader from '@/components/loaders/XYLLoader';
 import { useI18n } from "@/lib/I18nContext";
+import RegistrationForm from './RegistrationForm';
 
 export default function LiffMemberPage() {
   const { locale } = useI18n();
@@ -26,10 +27,6 @@ export default function LiffMemberPage() {
   const [mysteryBoxState, setMysteryBoxState] = useState<'idle' | 'opening' | 'result'>('idle');
   const [mysteryBoxResult, setMysteryBoxResult] = useState(0);
   const [isPlayingBox, setIsPlayingBox] = useState(false);
-  const [showPhoneModal, setShowPhoneModal] = useState(false);
-  const [phoneInput, setPhoneInput] = useState('');
-  const [nicknameInput, setNicknameInput] = useState('');
-  const [dobInput, setDobInput] = useState('');
   const [isLinkingPhone, setIsLinkingPhone] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showBenefits, setShowBenefits] = useState(false);
@@ -155,17 +152,7 @@ export default function LiffMemberPage() {
     }
   };
   
-  const handleLinkPhone = async () => {
-    if (!nicknameInput.trim()) {
-        alert(dict.locale === 'en' ? 'Please enter your nickname or name' : 'กรุณากรอกชื่อเล่นหรือชื่อเรียก');
-        document.getElementById('nickname-input-modal')?.focus();
-        return;
-    }
-    if (phoneInput.length < 9) {
-        alert(dict.locale === 'en' ? 'Invalid phone number' : 'กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง');
-        document.getElementById('phone-input-modal')?.focus();
-        return;
-    }
+  const handleRegistrationSubmit = async (data: any) => {
     const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
     if (!userId) return;
 
@@ -174,16 +161,24 @@ export default function LiffMemberPage() {
         const res = await fetch('/api/liff/member/link-phone', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ lineUserId: userId, phone: phoneInput, fullName: nicknameInput, dateOfBirth: dobInput || null })
+            body: JSON.stringify({ 
+              lineUserId: userId, 
+              phone: data.phone,
+              fullName: `${data.firstName} ${data.lastName}`,
+              firstName: data.firstName,
+              lastName: data.lastName,
+              dateOfBirth: data.dateOfBirth,
+              gender: data.gender,
+              favoriteMenu: data.favoriteMenu,
+              pdpaConsent: data.pdpaConsent
+            })
         });
-        const data = await res.json();
+        const result = await res.json();
         
-        if (data.success) {
-            alert(dict.locale === 'en' ? 'Phone number linked successfully!' : 'เชื่อมต่อเบอร์โทรศัพท์สำเร็จ!');
-            setShowPhoneModal(false);
+        if (result.success) {
             fetchData();
         } else {
-            alert(data.error || 'Failed to link phone');
+            alert(result.error || 'Failed to register');
         }
     } catch (e) {
         alert('Error linking phone');
@@ -322,6 +317,11 @@ const fetchData = async () => {
   }, [lineProfile, liffLoading]);
 
   if (liffLoading && !hasSeenLoader) return <XYLLoader tagline={dict.loading} />;
+  if (loading) return <XYLLoader tagline={dict.loading} />;
+
+  if (!memberInfo || !memberInfo.phone || !memberInfo.pdpa_consent) {
+    return <RegistrationForm lineProfile={lineProfile} onSubmit={handleRegistrationSubmit} isSubmitting={isLinkingPhone} />;
+  }
 
   const totalAccumulated = memberInfo?.total_accumulated_points || memberInfo?.points || 0;
   let currentTierIndex = 0;
@@ -408,18 +408,9 @@ const fetchData = async () => {
             </div>
             
             <div className="flex items-center gap-2">
-              {memberInfo?.phone ? (
-                <span className="text-[13px] text-gray-500 font-mono tracking-wide">
-                  {memberInfo.phone.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3')}
-                </span>
-              ) : (
-                <button 
-                  onClick={() => setShowPhoneModal(true)}
-                  className="text-[12px] font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded"
-                >
-                  Add Phone
-                </button>
-              )}
+              <span className="text-[13px] text-gray-500 font-mono tracking-wide">
+                {memberInfo?.phone ? memberInfo.phone.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3') : ''}
+              </span>
               {!activeTitle && (
                 <>
                   <span className="text-gray-300">|</span>
@@ -943,66 +934,7 @@ const fetchData = async () => {
         )}
       </AnimatePresence>
 
-      {/* 📱 Clean Phone Modal */}
-      <AnimatePresence>
-        {showPhoneModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-5">
-            <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setShowPhoneModal(false)}
-              className="absolute inset-0 bg-gray-900/20 backdrop-blur-sm"
-            />
-            <motion.div 
-              initial={{ scale: 0.95, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 10 }}
-              className="relative bg-white w-full max-w-sm rounded-[24px] p-8 z-10 text-center"
-            >
-              <h3 className="text-[18px] font-medium text-gray-900 mb-2">Link Phone Number</h3>
-              <p className="text-[13px] text-gray-500 mb-6">Earn points automatically from POS orders.</p>
-              
-              <div className="mb-6 space-y-3">
-                <input 
-                  type="text" 
-                  value={nicknameInput} 
-                  onChange={e => setNicknameInput(e.target.value)} 
-                  placeholder="Name" 
-                  className="w-full bg-[#FAFAFA] border border-gray-100 rounded-[16px] p-4 text-[14px] text-center focus:border-gray-300 outline-none transition-all placeholder:text-gray-400" 
-                />
-                <input 
-                  type="tel" 
-                  value={phoneInput} 
-                  onChange={e => setPhoneInput(e.target.value)} 
-                  placeholder="08X-XXX-XXXX" 
-                  className="w-full bg-[#FAFAFA] border border-gray-100 rounded-[16px] p-4 text-[16px] tracking-wide text-center focus:border-gray-300 outline-none transition-all placeholder:text-gray-400" 
-                />
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[11px] font-bold text-gray-400 uppercase tracking-widest">
-                    {locale === 'en' ? 'Birthday' : 'วันเกิด (รับคูปอง)'}
-                  </span>
-                  <input 
-                    type="date" 
-                    value={dobInput} 
-                    onChange={e => setDobInput(e.target.value)} 
-                    className="w-full bg-[#FAFAFA] border border-gray-100 rounded-[16px] p-4 pl-32 text-[14px] text-center focus:border-gray-300 outline-none transition-all text-gray-700" 
-                  />
-                </div>
-              </div>
 
-              <div className="flex gap-3">
-                <button onClick={() => setShowPhoneModal(false)} className="flex-1 py-3.5 bg-gray-50 text-gray-500 rounded-[16px] font-medium text-[13px] hover:bg-gray-100">
-                  Cancel
-                </button>
-                <button
-                  onClick={handleLinkPhone}
-                  disabled={isLinkingPhone || phoneInput.length < 9 || !nicknameInput.trim()}
-                  className="flex-1 py-3.5 bg-gray-900 text-white rounded-[16px] font-medium text-[13px] hover:bg-black disabled:opacity-30 disabled:hover:bg-gray-900 flex justify-center items-center"
-                >
-                  {isLinkingPhone ? <Loader2 size={16} className="animate-spin" /> : 'Save'}
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
     </div>
   );
