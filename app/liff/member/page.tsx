@@ -26,6 +26,7 @@ export default function LiffMemberPage() {
   const [earnRate, setEarnRate] = useState(100);
   const [showCatalog, setShowCatalog] = useState(false);
   const [selectedBadge, setSelectedBadge] = useState<any>(null);
+  const [campaigns, setCampaigns] = useState<any[]>([]);
 
   const t = {
     th: {
@@ -104,6 +105,13 @@ export default function LiffMemberPage() {
       }
       if (member) {
         setMemberInfo(member);
+      }
+      
+      try {
+        const { data: campaignsData } = await supabase.from('pos_loyalty_campaigns').select('*').eq('is_active', true).order('created_at', { ascending: false });
+        if (campaignsData) setCampaigns(campaignsData);
+      } catch (err) {
+        console.error('Failed to load campaigns', err);
       }
       
       try {
@@ -252,9 +260,12 @@ export default function LiffMemberPage() {
             </div>
           </div>
           
-          <div className="flex justify-center mt-6 relative z-20">
-            <Link href="/liff/history" className="text-[14px] font-medium text-[#7B8B7B] flex items-center gap-1 py-2 px-4 bg-white/50 rounded-full hover:bg-white transition-colors">
-                ดูประวัติพอยท์ <ChevronRight size={16} />
+          <div className="flex justify-center mt-6 relative z-20 gap-3">
+            <Link href="/liff/history" className="text-[13px] font-medium text-[#7B8B7B] flex items-center gap-1 py-2 px-4 bg-white/50 rounded-full hover:bg-white transition-colors shadow-sm">
+                ประวัติการสั่งซื้อ <ChevronRight size={14} />
+            </Link>
+            <Link href="/liff/my-rewards" className="text-[13px] font-medium text-[#7B8B7B] flex items-center gap-1 py-2 px-4 bg-white/50 rounded-full hover:bg-white transition-colors shadow-sm">
+                คูปองของฉัน <ChevronRight size={14} />
             </Link>
           </div>
         </motion.section>
@@ -271,31 +282,38 @@ export default function LiffMemberPage() {
           <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory px-5" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             <style jsx>{`div::-webkit-scrollbar { display: none; }`}</style>
             
-            {/* Card 1: Rewards */}
-            <Link href="/liff/rewards" className="min-w-[280px] h-[160px] snap-center rounded-[20px] p-5 flex flex-col justify-end relative overflow-hidden shadow-sm">
-                <div className="absolute inset-0 bg-gradient-to-br from-[#1A1A18] to-gray-800"></div>
-                <div className="absolute top-0 right-0 p-4 opacity-20">
-                    <Gift size={80} className="text-white" />
-                </div>
-                <div className="relative z-10">
-                    <span className="inline-block px-2 py-1 bg-white/20 text-white text-[10px] font-bold tracking-widest uppercase rounded mb-2 backdrop-blur-sm">REWARDS</span>
-                    <h4 className="text-white text-[18px] font-semibold leading-tight mb-1">แลกของรางวัล</h4>
-                    <p className="text-gray-300 text-[12px]">ใช้พอยท์แลกรับส่วนลดและสิทธิพิเศษมากมาย</p>
-                </div>
-            </Link>
+            {campaigns.length > 0 ? campaigns.map((campaign, idx) => {
+                const gradients = [
+                    'from-[#1A1A18] to-gray-800',
+                    'from-[#7B8B7B] to-[#5C6E5C]',
+                    'from-[#A3B1A3] to-[#8A988A]',
+                    'from-[#C8B6A6] to-[#A99787]'
+                ];
+                const bgGradient = gradients[idx % gradients.length];
 
-            {/* Card 2: My Coupons */}
-            <Link href="/liff/my-rewards" className="min-w-[280px] h-[160px] snap-center rounded-[20px] p-5 flex flex-col justify-end relative overflow-hidden shadow-sm">
-                <div className="absolute inset-0 bg-gradient-to-br from-[#7B8B7B] to-[#5C6E5C]"></div>
-                <div className="absolute top-0 right-0 p-4 opacity-20">
-                    <MessageCircle size={80} className="text-white" />
+                return (
+                    <div key={campaign.id} className="min-w-[280px] h-[160px] snap-center rounded-[20px] p-5 flex flex-col justify-end relative overflow-hidden shadow-sm">
+                        <div className={`absolute inset-0 bg-gradient-to-br ${bgGradient}`}></div>
+                        <div className="absolute top-0 right-0 p-4 opacity-20">
+                            <Gift size={80} className="text-white" />
+                        </div>
+                        <div className="relative z-10">
+                            <span className="inline-block px-2 py-1 bg-white/20 text-white text-[10px] font-bold tracking-widest uppercase rounded mb-2 backdrop-blur-sm">
+                                {campaign.multiplier ? `X${campaign.multiplier} POINTS` : 'PROMO'}
+                            </span>
+                            <h4 className="text-white text-[18px] font-semibold leading-tight mb-1">{campaign.name}</h4>
+                            <p className="text-white/80 text-[12px]">
+                                {campaign.start_date && campaign.end_date ? `${new Date(campaign.start_date).toLocaleDateString()} - ${new Date(campaign.end_date).toLocaleDateString()}` : 'แคมเปญพิเศษสำหรับคุณ'}
+                            </p>
+                        </div>
+                    </div>
+                );
+            }) : (
+                <div className="min-w-[280px] h-[160px] snap-center rounded-[20px] p-5 flex flex-col justify-center items-center relative overflow-hidden shadow-sm border border-gray-100 bg-gray-50">
+                    <Gift size={32} className="text-gray-300 mb-2" />
+                    <p className="text-[13px] font-medium text-gray-500">รอพบกับแคมเปญใหม่ๆ เร็วๆนี้</p>
                 </div>
-                <div className="relative z-10">
-                    <span className="inline-block px-2 py-1 bg-white/20 text-white text-[10px] font-bold tracking-widest uppercase rounded mb-2 backdrop-blur-sm">MY COUPONS</span>
-                    <h4 className="text-white text-[18px] font-semibold leading-tight mb-1">คูปองของฉัน</h4>
-                    <p className="text-[#E3E8E3] text-[12px]">ดูคูปองส่วนลดที่คุณมีและพร้อมใช้งาน</p>
-                </div>
-            </Link>
+            )}
           </div>
         </motion.section>
 
