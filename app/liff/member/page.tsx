@@ -647,8 +647,7 @@ export default function LiffMemberPage() {
                     )}
                   </div>
                 </motion.div>
-            </motion.div>
-          </>
+          </motion.div>
         )}
       </AnimatePresence>
 
