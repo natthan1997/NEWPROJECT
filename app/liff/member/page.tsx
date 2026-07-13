@@ -116,7 +116,7 @@ export default function LiffMemberPage() {
       }
       
       try {
-        const { data: campaignsData } = await supabase.from('pos_campaigns').select('*').eq('is_active', true).order('sort_order', { ascending: true });
+        const { data: campaignsData } = await supabase.from('pos_loyalty_campaigns').select('*').eq('is_active', true).order('sort_order', { ascending: true });
         if (campaignsData) setCampaigns(campaignsData);
       } catch (err) {
         console.error('Failed to load campaigns', err);
