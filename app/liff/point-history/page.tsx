@@ -4,9 +4,9 @@ import { useRouter } from 'next/navigation';
 import { 
   ChevronLeft, 
   HelpCircle,
-  ArrowUpDown,
-  SlidersHorizontal,
-  Gift
+  Gift,
+  Calendar,
+  ChevronDown
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
@@ -120,30 +120,28 @@ export default function LiffPointHistoryPage() {
         </div>
 
         {/* History List Section */}
-        {availableMonths.length > 0 && (
-          <div className="bg-white px-5 py-3 border-b border-gray-100">
-            <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-              <style jsx>{`div::-webkit-scrollbar { display: none; }`}</style>
-              {availableMonths.map(m => (
-                <button 
-                  key={m} 
-                  onClick={() => setSelectedMonth(m)}
-                  className={`whitespace-nowrap px-4 py-1.5 rounded-full text-[11px] font-bold tracking-wider transition-colors ${selectedMonth === m ? 'bg-emerald-500 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
-                >
-                  {m}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-        
         <div className="px-5 py-6">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-[12px] font-black uppercase tracking-widest text-[#1A1A18]">{selectedMonth ? `รายการของ ${selectedMonth}` : 'รายการล่าสุด'}</h3>
-            <div className="flex items-center gap-4 text-gray-400">
-              <button className="active:scale-95 transition-transform"><ArrowUpDown size={16} /></button>
-              <button className="active:scale-95 transition-transform"><SlidersHorizontal size={16} /></button>
-            </div>
+            
+            {availableMonths.length > 0 && (
+              <div className="relative">
+                <select 
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                >
+                  {availableMonths.map(m => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+                <button className="flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-full border border-gray-200 text-gray-500 shadow-sm pointer-events-none">
+                  <Calendar size={14} className="text-emerald-500" />
+                  <span className="text-[10px] font-bold tracking-widest uppercase">{selectedMonth || 'เลือกเดือน'}</span>
+                  <ChevronDown size={12} className="text-gray-400" />
+                </button>
+              </div>
+            )}
           </div>
 
           <AnimatePresence mode="wait">
