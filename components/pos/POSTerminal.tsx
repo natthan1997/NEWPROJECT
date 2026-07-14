@@ -1872,11 +1872,6 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 	        referenceName: orderType === 'delivery' ? platformOrderId.trim() : '',
 	        newItems: newItemsForPrint,
 	      }
-    const redeemPts = Number(shopSettings?.opening_hours?.loyalty_redeem_pts !== undefined ? shopSettings.opening_hours.loyalty_redeem_pts : 1) || 1;
-    const redeemThb = Number(shopSettings?.opening_hours?.loyalty_redeem_thb !== undefined ? shopSettings.opening_hours.loyalty_redeem_thb : (shopSettings?.opening_hours?.loyalty_points_per_thb || 10)) || 10;
-    
-    // Calculate how much discount is allowed per point entered
-    const maxDiscountAllowed = Math.floor(pointsToUse / redeemPts) * redeemThb;
 
 	      resetOrderComposer()
 	      refreshPendingOrders()
