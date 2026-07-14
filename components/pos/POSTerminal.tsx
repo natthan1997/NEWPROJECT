@@ -1696,8 +1696,16 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         void (async () => {
             try {
                 if (kitchenPrinters.length > 0) {
+                    let debugInfo = `[ระบบวิเคราะห์] เริ่มทำงาน\nพบเครื่องปริ้นครัว: ${kitchenPrinters.length} เครื่อง\n`;
+                    let successCount = 0;
+                    
                     for (const printer of kitchenPrinters) {
-                        if (!printer.ip) continue;
+                        debugInfo += `\nเครื่อง: ${printer.type} | IP: ${printer.ip || 'ไม่มี IP'}\n`;
+                        
+                        if (!printer.ip) {
+                            debugInfo += `- ข้าม (ไม่มี IP)\n`;
+                            continue;
+                        }
                         
                         let itemsToPrint = printOrderData.items;
                         const printerCats = printer.categories || ['all'];
@@ -1705,20 +1713,39 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                            itemsToPrint = printOrderData.items.filter((i: any) => printerCats.includes(i.category_id));
                         }
                         
+                        debugInfo += `- รายการอาหารที่จะส่งปริ้น: ${itemsToPrint.length} รายการ\n`;
+                        
                         if (itemsToPrint.length > 0) {
                           const routedOrderData = { ...printOrderData, items: itemsToPrint };
-                          if (printer.encoding === 'graphic') {
-                              const { printGraphicModeKitchenTicket } = await import('@/lib/graphicPrinter');
-                              await printGraphicModeKitchenTicket(printer.ip, routedOrderData, shopData, printer.model, printer.encoding);
-                          } else {
-                              await printKitchenTicket(printer.ip, routedOrderData, shopData, printer.model, printer.encoding);
+                          try {
+                              if (printer.encoding === 'graphic') {
+                                  const { printGraphicModeKitchenTicket } = await import('@/lib/graphicPrinter');
+                                  await printGraphicModeKitchenTicket(printer.ip, routedOrderData, shopData, printer.model, printer.encoding);
+                              } else {
+                                  await printKitchenTicket(printer.ip, routedOrderData, shopData, printer.model, printer.encoding);
+                              }
+                              debugInfo += `- ส่งข้อมูลเข้า Network ของ IP ${printer.ip} [สำเร็จ]\n`;
+                              successCount++;
+                          } catch (e: any) {
+                              debugInfo += `- แจ้งเตือน Error: ${e.message || JSON.stringify(e)}\n`;
+                              throw e;
                           }
+                        } else {
+                          debugInfo += `- ข้าม (ไม่มีรายการอาหารหมวดหมู่นี้ในตะกร้า)\n`;
                         }
                     }
+                    
+                    if (successCount > 0) {
+                        alert(debugInfo + '\nสรุป: ระบบส่งข้อมูลเข้าเครื่องปริ้นครัวเสร็จสมบูรณ์แล้ว! (ถ้ากระดาษไม่ออก แปลว่าเครื่องปริ้นไม่ยอมรับข้อมูล หรือตั้งค่าผิด)');
+                    } else if (kitchenPrinters.some(p => !p.ip)) {
+                        alert(debugInfo + '\nสรุป: ไม่ได้ปริ้น เพราะไม่มีการใส่ IP Address ในการตั้งค่า!');
+                    } else if (kitchenPrinters.some(p => itemsToPrint?.length === 0)) {
+                        alert(debugInfo + '\nสรุป: ไม่ได้ปริ้น เพราะไม่มีรายการอาหารตรงกับหมวดหมู่ที่เครื่องปริ้นรับผิดชอบ');
+                    }
                 }
-            } catch (err) {
+            } catch (err: any) {
                 console.error('Background print error:', err);
-                alert('เกิดข้อผิดพลาดในการสั่งปริ้นเข้าครัว (Kitchen Printer): ' + (err.message || err));
+                alert(`เกิดข้อผิดพลาดในการสั่งปริ้นเข้าครัว (Kitchen Printer): ${err.message || JSON.stringify(err)}\n\n(ระบบจับ Error ได้แล้ว!)`);
             }
         })();
     } catch (error) {
