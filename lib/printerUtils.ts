@@ -528,7 +528,7 @@ export const printCanvasViaEscPos = async (ip: string, canvas: HTMLCanvasElement
     return await sendToPrinter(ip, hex);
   } catch (error: any) {
     console.error('Graphic Print Error:', error);
-    return error.message || 'Unknown Graphic Error';
+    throw error;
   }
 }
 
@@ -545,8 +545,8 @@ export const printOpenDrawer = async (ip: string, model = 'xprinter-xp-n160ii') 
     const hex = drawerBytes.map(b => b.toString(16).padStart(2, '0')).join('')
     return await sendToPrinter(ip, hex)
   } catch (error) {
-    console.error('Drawer Error:', error)
-    return false
+    console.error('Drawer Error:', error);
+    throw error;
   }
 }
 
@@ -673,8 +673,8 @@ export const printCustomerReceipt = async (
 
     return await sendToPrinter(ip, b.hex())
   } catch (error) {
-    console.error('Customer Receipt Print Error:', error)
-    return false
+    console.error('Customer Receipt Print Error:', error);
+    throw error;
   }
 }
 
@@ -832,8 +832,8 @@ export const printZReport = async (
 
     return await sendToPrinter(ip, b.hex())
   } catch (error) {
-    console.error('Z-Report Print Error:', error)
-    return false
+    console.error('Z-Report Print Error:', error);
+    throw error;
   }
 }
 
@@ -909,7 +909,7 @@ export const printPreReceipt = async (
 
     return await sendToPrinter(ip, b.hex())
   } catch (error) {
-    console.error('Pre-Receipt Print Error:', error)
-    return false
+    console.error('Pre-Receipt Print Error:', error);
+    throw error;
   }
 }
