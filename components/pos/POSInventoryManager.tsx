@@ -537,7 +537,8 @@ export default function POSInventoryManager({
         .insert({
             staff_id: profile.id,
             total_items_counted: auditedItemsList.length,
-            total_discrepancies: auditedItemsList.filter(i => i.discrepancy !== 0).length
+            total_discrepancies: auditedItemsList.filter(i => i.discrepancy !== 0).length,
+            notes: JSON.stringify({ audited_categories: auditCategory.length === 0 ? 'ALL' : auditCategory })
         })
         .select()
         .single()

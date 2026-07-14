@@ -45,6 +45,8 @@ export const AttendanceCheckIn: React.FC = () => {
   const [isEarlyCheckOut, setIsEarlyCheckOut] = useState(false)
   const [checkoutChecklistItems, setCheckoutChecklistItems] = useState<string[]>([])
   const [completedChecklist, setCompletedChecklist] = useState<string[]>([])
+  const [requiredAuditCategories, setRequiredAuditCategories] = useState<string[]>([])
+  const [missingAuditCategories, setMissingAuditCategories] = useState<any[]>([])
 
   const getTodayRange = () => {
     const start = new Date()
@@ -101,6 +103,9 @@ export const AttendanceCheckIn: React.FC = () => {
       if (settings?.opening_hours?.checkout_checklist) {
           setCheckoutChecklistItems(settings.opening_hours.checkout_checklist)
       }
+      if (settings?.opening_hours?.required_audit_categories) {
+          setRequiredAuditCategories(settings.opening_hours.required_audit_categories)
+      }
     }
   }
 
@@ -123,7 +128,7 @@ export const AttendanceCheckIn: React.FC = () => {
     }
   }
 
-  const initiateCheckInOut = () => {
+  const initiateCheckInOut = async () => {
     if (!profile?.id || !branchLocation) {
       setStatus({ type: 'error', message: 'ไม่พบพิกัดสาขาในการลงเวลา' })
       return
@@ -150,8 +155,64 @@ export const AttendanceCheckIn: React.FC = () => {
       } else {
         setIsEarlyCheckOut(false)
       }
+
+      // Check required audits
+      if (requiredAuditCategories.length > 0) {
+        setLoading(true)
+        const todayRange = getTodayRange()
+        const { data: sessions } = await supabase
+          .from('pos_inventory_audit_sessions')
+          .select('notes')
+          .eq('staff_id', profile.id)
+          .gte('created_at', todayRange.start)
+          .lte('created_at', todayRange.end)
+        
+        let allAudited = false
+        let auditedSet = new Set<string>()
+
+        if (sessions) {
+          for (const s of sessions) {
+            if (s.notes) {
+              try {
+                const parsed = JSON.parse(s.notes)
+                if (parsed.audited_categories === 'ALL') {
+                  allAudited = true
+                  break
+                }
+                if (Array.isArray(parsed.audited_categories)) {
+                  parsed.audited_categories.forEach((id: string) => auditedSet.add(id))
+                }
+              } catch (e) {}
+            }
+          }
+        }
+
+        if (!allAudited) {
+          const missingIds = requiredAuditCategories.filter(id => !auditedSet.has(id))
+          if (missingIds.length > 0) {
+            // Fetch category names
+            const { data: catData } = await supabase
+              .from('inventory_categories')
+              .select('id, name')
+              .in('id', missingIds)
+            if (catData) {
+              setMissingAuditCategories(catData)
+            } else {
+              setMissingAuditCategories(missingIds.map(id => ({ id, name: id })))
+            }
+          } else {
+            setMissingAuditCategories([])
+          }
+        } else {
+          setMissingAuditCategories([])
+        }
+        setLoading(false)
+      } else {
+        setMissingAuditCategories([])
+      }
     } else {
       setIsEarlyCheckOut(false)
+      setMissingAuditCategories([])
     }
 
     setEarlyReason('')
@@ -467,6 +528,26 @@ export const AttendanceCheckIn: React.FC = () => {
                   </div>
                 )}
 
+                {hasCheckedInToday && missingAuditCategories.length > 0 && (
+                  <div className="mb-8 border border-[#E54D2E] rounded-xl p-4 bg-[#FEF4F2]">
+                    <div className="flex items-center gap-2 mb-3 text-[#E54D2E]">
+                      <ExclamationTriangleIcon className="w-5 h-5" />
+                      <label className="block text-[12px] font-black uppercase tracking-widest">
+                        {locale === 'en' ? 'Required Audits Missing' : locale === 'zh' ? 'Required Audits Missing' : 'ยังไม่ได้นับสต็อกหมวดหมู่บังคับ *'}
+                      </label>
+                    </div>
+                    <div className="space-y-2">
+                      {missingAuditCategories.map((cat, index) => (
+                        <div key={index} className="flex items-start gap-2 text-[#E54D2E]">
+                          <span className="text-[14px] font-black">•</span>
+                          <span className="text-[12px] font-bold mt-0.5">{cat.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="mt-3 text-[10px] text-[#E54D2E] font-bold">กรุณาไปที่หน้านับสต็อก และทำการยืนยันการนับสต็อกหมวดหมู่เหล่านี้ก่อนลงเวลาออกงาน</p>
+                  </div>
+                )}
+
                 <div className="flex gap-3">
                   <button
                     disabled={loading}
@@ -478,7 +559,8 @@ export const AttendanceCheckIn: React.FC = () => {
                     disabled={
                         loading || 
                         (isEarlyCheckOut && !earlyReason.trim()) || 
-                        (hasCheckedInToday && checkoutChecklistItems.length > 0 && completedChecklist.length < checkoutChecklistItems.length)
+                        (hasCheckedInToday && checkoutChecklistItems.length > 0 && completedChecklist.length < checkoutChecklistItems.length) ||
+                        (hasCheckedInToday && missingAuditCategories.length > 0)
                     }
                     onClick={handleCheckInOut}
                     className="flex-1 py-4 bg-[#111111] text-white text-[10px] font-black uppercase tracking-widest hover:bg-black transition-colors disabled:opacity-20 flex items-center justify-center gap-2"

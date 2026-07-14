@@ -53,6 +53,7 @@ export default function POSShopSettings({
   
   const [banners, setBanners] = useState<any[]>([])
   const [categories, setCategories] = useState<any[]>([])
+  const [inventoryCategories, setInventoryCategories] = useState<any[]>([])
   const [isUploadingBanner, setIsUploadingBanner] = useState(false)
 
   const [settings, setSettings] = useState<any>({
@@ -176,6 +177,9 @@ export default function POSShopSettings({
         
         const { data: couponData } = await supabase.from('pos_loyalty_coupons').select('id, name, is_active').eq('is_active', true).order('created_at', { ascending: false })
         if (couponData) setAvailableCoupons(couponData)
+
+        const { data: invCatData } = await supabase.from('inventory_categories').select('id, name').order('order_index')
+        if (invCatData) setInventoryCategories(invCatData)
     } catch (err) {
         console.error('Fetch settings error:', err)
     } finally {
@@ -1123,6 +1127,46 @@ export default function POSShopSettings({
                                         >
                                             <Plus size={16} /> {locale === 'en' ? 'เพิ่มรายการตรวจสอบ' : locale === 'zh' ? 'เพิ่มรายการตรวจสอบ' : 'เพิ่มรายการตรวจสอบ'}
                                         </button>
+                                    </div>
+                                </div>
+
+                                {/* REQUIRED AUDIT CATEGORIES SETTINGS */}
+                                <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 mt-6">
+                                    <h3 className="text-xl font-black mb-2 flex items-center gap-3">
+                                        <ShieldCheck className="text-purple-500" size={24} /> {locale === 'en' ? 'บังคับนับสต็อกก่อนเลิกงาน (Required Daily Audits)' : locale === 'zh' ? 'บังคับนับสต็อกก่อนเลิกงาน (Required Daily Audits)' : 'บังคับนับสต็อกก่อนเลิกงาน (Required Daily Audits)'}
+                                    </h3>
+                                    <p className="text-[12px] text-gray-500 font-bold mb-8">
+                                        {locale === 'en' ? 'เลือกหมวดหมู่ที่บังคับให้พนักงานต้องนับสต็อกให้เสร็จสิ้นในแต่ละวันก่อนถึงจะลงเวลาออกงานได้' : locale === 'zh' ? 'เลือกหมวดหมู่ที่บังคับให้พนักงานต้องนับสต็อกให้เสร็จสิ้นในแต่ละวันก่อนถึงจะลงเวลาออกงานได้' : 'เลือกหมวดหมู่ที่บังคับให้พนักงานต้องนับสต็อกให้เสร็จสิ้นในแต่ละวันก่อนถึงจะลงเวลาออกงานได้'}
+                                    </p>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {inventoryCategories.map((cat: any) => {
+                                            const isRequired = (settings.opening_hours?.required_audit_categories || []).includes(cat.id);
+                                            return (
+                                                <div 
+                                                    key={cat.id} 
+                                                    className="flex items-center gap-3 cursor-pointer group p-3 rounded-xl hover:bg-gray-50 border border-transparent hover:border-gray-100 transition-all"
+                                                    onClick={() => {
+                                                        const current = settings.opening_hours?.required_audit_categories || [];
+                                                        const next = isRequired ? current.filter((id: string) => id !== cat.id) : [...current, cat.id];
+                                                        setSettings({
+                                                            ...settings,
+                                                            opening_hours: { ...settings.opening_hours, required_audit_categories: next }
+                                                        });
+                                                    }}
+                                                >
+                                                    <div className={`w-6 h-6 rounded border flex items-center justify-center transition-colors ${isRequired ? 'bg-purple-600 border-purple-600 text-white' : 'border-gray-300 bg-white group-hover:border-purple-400'}`}>
+                                                        {isRequired && <div className="w-2.5 h-2.5 bg-white rounded-sm" />}
+                                                    </div>
+                                                    <span className={`text-[13px] font-bold ${isRequired ? 'text-gray-900' : 'text-gray-600'}`}>{cat.name}</span>
+                                                </div>
+                                            );
+                                        })}
+                                        {inventoryCategories.length === 0 && (
+                                            <div className="col-span-full text-center py-6 text-gray-400 text-[12px] font-bold">
+                                                ไม่มีข้อมูลหมวดหมู่สินค้าในสต็อก
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>

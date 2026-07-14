@@ -1,9 +1,12 @@
 const fs = require('fs');
 const file = '/Users/chenchirawongpothisan/.gemini/antigravity-ide/brain/04f5fd2b-5073-408e-bd88-2d9b3c464b1b/task.md';
 let content = fs.readFileSync(file, 'utf8');
-content = content.replace('- `[/]` 2. Implement Checklist on Checkout', '- `[x]` 2. Implement Checklist on Checkout');
-content = content.replace('- `[ ]` Fetch `pos_shop_settings` in `components/dashboard/AttendanceCheckIn.tsx`.', '- `[x]` Fetch `pos_shop_settings` in `components/dashboard/AttendanceCheckIn.tsx`.');
-content = content.replace('- `[ ]` Display checklist in the Confirm Check Out modal.', '- `[x]` Display checklist in the Confirm Check Out modal.');
-content = content.replace('- `[ ]` Disable the confirm button until all items are checked.', '- `[x]` Disable the confirm button until all items are checked.');
-content = content.replace('- `[ ]` 3. Verification', '- `[/]` 3. Verification');
+content = content.replace('- `[/]` 3. Enforce Checklist in `AttendanceCheckIn.tsx`', '- `[x]` 3. Enforce Checklist in `AttendanceCheckIn.tsx`');
+content = content.replace('- `[ ]` Fetch `inventory_categories` to display category names.', '- `[x]` Fetch `inventory_categories` to display category names.');
+content = content.replace("- `[ ]` Fetch today's `pos_inventory_audit_sessions` for the current user.", "- `[x]` Fetch today's `pos_inventory_audit_sessions` for the current user.");
+content = content.replace('- `[ ]` Parse `notes` to determine which categories were audited today.', '- `[x]` Parse `notes` to determine which categories were audited today.');
+content = content.replace('- `[ ]` Verify if all `required_audit_categories` were audited.', '- `[x]` Verify if all `required_audit_categories` were audited.');
+content = content.replace('- `[ ]` Block the checkout button if requirements are not met and display a warning.', '- `[x]` Block the checkout button if requirements are not met and display a warning.');
+content = content.replace('- `[ ]` 4. Verification', '- `[/]` 4. Verification');
+content = content.replace('- `[ ]` Test settings UI.', '- `[x]` Test settings UI.');
 fs.writeFileSync(file, content);
