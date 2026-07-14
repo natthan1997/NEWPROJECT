@@ -760,7 +760,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     () =>
       pendingOrders.filter((order: any) => {
         if (isArchivedPendingOrder(order)) return false
-        return order?.order_type === 'delivery' || isLiffSourceOrder(order)
+        return isLiffSourceOrder(order)
       }),
     [pendingOrders]
   )
