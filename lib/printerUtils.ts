@@ -736,7 +736,7 @@ export const printKitchenTicket = async (
     return await sendToPrinter(ip, b.hex())
   } catch (error) {
     console.error('Kitchen Ticket Print Error:', error)
-    return false
+    throw error
   }
 }
 
