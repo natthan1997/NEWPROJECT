@@ -617,37 +617,37 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 
         const printJobs = targetPrinters.map(async (printer: any) => {
             if (!printer.ip) return;
-            try {
-              if (type === 'receipt') {
-                 if (printer.encoding === 'graphic') {
-                     const { printGraphicModeCustomerReceipt } = await import('@/lib/graphicPrinter');
-                     await printGraphicModeCustomerReceipt(printer.ip, printOrderData, printShopData, printer.model, printer.encoding, openDrawer);
-                 } else {
-                     await printCustomerReceipt(printer.ip, printOrderData, printShopData, printer.model, printer.encoding, openDrawer);
-                 }
-              } else {
-                 let itemsToPrint = printOrderData.items;
-                 const printerCats = printer.categories || [];
-                 
-                 if (!printerCats.includes('all') && printerCats.length > 0) {
-                    itemsToPrint = printOrderData.items.filter((i: any) => printerCats.includes(i.category_id));
-                 }
-                 
-                 if (itemsToPrint.length > 0) {
-                    const routedOrderData = { ...printOrderData, items: itemsToPrint };
-                    if (printer.encoding === 'graphic') {
-                        const { printGraphicModeKitchenTicket } = await import('@/lib/graphicPrinter');
-                        await printGraphicModeKitchenTicket(printer.ip, routedOrderData, printShopData, printer.model, printer.encoding);
-                    } else {
-                        await printKitchenTicket(printer.ip, routedOrderData, printShopData, printer.model, printer.encoding);
-                    }
-                 }
-              }
-            } catch (err) {
-              console.error('Printer job failed for', printer.ip, err);
+            if (type === 'receipt') {
+               if (printer.encoding === 'graphic') {
+                   const { printGraphicModeCustomerReceipt } = await import('@/lib/graphicPrinter');
+                   await printGraphicModeCustomerReceipt(printer.ip, printOrderData, printShopData, printer.model, printer.encoding, openDrawer);
+               } else {
+                   await printCustomerReceipt(printer.ip, printOrderData, printShopData, printer.model, printer.encoding, openDrawer);
+               }
+            } else {
+               let itemsToPrint = printOrderData.items;
+               const printerCats = printer.categories || [];
+               
+               if (!printerCats.includes('all') && printerCats.length > 0) {
+                  itemsToPrint = printOrderData.items.filter((i: any) => printerCats.includes(i.category_id));
+               }
+               
+               if (itemsToPrint.length > 0) {
+                  const routedOrderData = { ...printOrderData, items: itemsToPrint };
+                  if (printer.encoding === 'graphic') {
+                      const { printGraphicModeKitchenTicket } = await import('@/lib/graphicPrinter');
+                      await printGraphicModeKitchenTicket(printer.ip, routedOrderData, printShopData, printer.model, printer.encoding);
+                  } else {
+                      await printKitchenTicket(printer.ip, routedOrderData, printShopData, printer.model, printer.encoding);
+                  }
+               }
             }
         });
-        await Promise.allSettled(printJobs);
+        const results = await Promise.allSettled(printJobs);
+        const errors = results.filter(r => r.status === 'rejected').map((r: any) => r.reason?.message || r.reason);
+        if (errors.length > 0) {
+           throw new Error(errors.join(', '));
+        }
     } catch (e: any) {
         console.error(e);
         alert('Native print error: ' + (e?.message || JSON.stringify(e)));
@@ -2353,7 +2353,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
           if (method === 'cash') {
             const receiptPrinters = printers.filter((p: any) => p.type === 'receipt' || p.type === 'both')
             if (receiptPrinters.length > 0) {
-              Promise.allSettled(receiptPrinters.map(rp => rp.ip ? printOpenDrawer(rp.ip) : Promise.resolve())).catch(console.error);
+              Promise.all(receiptPrinters.map(rp => rp.ip ? printOpenDrawer(rp.ip) : Promise.resolve())).catch(console.error);
             } else {
               const fallbackIp = typeof window !== 'undefined' ? localStorage.getItem('xylem_printer_ip') : null
               if (fallbackIp) printOpenDrawer(fallbackIp).catch(console.error);
