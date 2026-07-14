@@ -449,7 +449,7 @@ const sendToPrinter = async (ip: string, hexData: string): Promise<boolean | str
     }
   } catch (error: any) {
     console.error('Printer Connection Error:', error)
-    return error.message || JSON.stringify(error) || 'Unknown TCP error'
+    throw new Error(error.message || JSON.stringify(error) || 'Unknown TCP error')
   }
 }
 
