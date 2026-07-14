@@ -2318,7 +2318,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             points: pointsEarned,
             points_change: pointsEarned,
             type: 'earn',
-            description: `Earned from POS Order`
+            description: `สะสมจากการสั่งซื้อ ${orderType === 'takeaway' ? 'Takeaway' : orderType === 'delivery' ? 'Delivery' : 'หน้าร้าน'} #${finalOrderNumber}`
           });
         }
       }

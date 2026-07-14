@@ -1,17 +1,16 @@
 const { createClient } = require('@supabase/supabase-js');
-const fs = require('fs');
+require('dotenv').config({ path: '.env.local' });
 
-const env = fs.readFileSync('.env.development.local', 'utf8').split('\n');
-let supabaseUrl = 'https://cdjbzyrflzckjgxbqjqb.supabase.co';
-let supabaseKey = '';
-env.forEach(line => {
-  if (line.startsWith('SUPABASE_SERVICE_ROLE_KEY=')) supabaseKey = line.split('=')[1].replace(/["\s\\]/g, '').replace('rn', '');
-});
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-async function test() {
-    const { data: shopSettings } = await supabase.from('pos_shop_settings').select('opening_hours').limit(1).maybeSingle();
-    console.log(shopSettings.opening_hours);
+async function main() {
+  const { data } = await supabase
+    .from('pos_shop_settings')
+    .select('opening_hours')
+    .limit(1)
+    .single();
+  
+  console.log("Earn Rate Settings:", data?.opening_hours?.loyalty_earn_rate, data?.opening_hours?.loyalty_earn_thb, data?.opening_hours?.loyalty_earn_pts);
 }
-test();
+
+main();

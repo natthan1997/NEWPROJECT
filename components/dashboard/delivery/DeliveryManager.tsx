@@ -172,7 +172,8 @@ export default function DeliveryManager({ unlockAudio, isAudioEnabled, variant =
         const oh = shopSettingsData?.opening_hours || {}
         const earnThb = oh.loyalty_earn_thb !== undefined ? oh.loyalty_earn_thb : (oh.loyalty_earn_rate || 100)
         const earnPts = oh.loyalty_earn_pts !== undefined ? oh.loyalty_earn_pts : 1
-        const totalAmount = finishModalOrder.net_total || finishModalOrder.total_amount || 0
+        const deliveryFee = finishModalOrder.delivery_fee || 0
+        const totalAmount = (finishModalOrder.net_total || finishModalOrder.total_amount || 0) - deliveryFee
         const pointsToEarn = earnThb > 0 ? Math.floor(totalAmount / earnThb) * earnPts : 0
 
         if (pointsToEarn > 0) {
@@ -199,8 +200,10 @@ export default function DeliveryManager({ unlockAudio, isAudioEnabled, variant =
               points: pointsToEarn,
               points_change: pointsToEarn,
               type: 'earn',
-              description: `Earned from Delivery #${finishModalOrder.order_number}`,
-            }).catch(() => {})
+              description: `สะสมจากการสั่งซื้อ ${finishModalOrder.order_type === 'takeaway' ? 'Takeaway' : finishModalOrder.order_type === 'delivery' ? 'Delivery' : 'หน้าร้าน'} #${finishModalOrder.order_number}`,
+            }).catch(err => {
+              console.error('Failed to insert points history:', err)
+            })
           }
         }
       } catch (err) {

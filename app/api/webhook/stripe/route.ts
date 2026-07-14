@@ -33,7 +33,9 @@ async function awardLoyaltyPointsOnce(supabase: ReturnType<typeof createSupabase
     console.error('Error fetching shop settings for stripe point accrual:', err)
   }
 
-  const pointsToEarn = earnThb > 0 ? Math.floor(Number(order.total_amount || 0) / earnThb) * earnPts : 0
+  const deliveryFee = Number(order.delivery_fee || 0)
+  const amountForPoints = Number(order.total_amount || order.net_total || 0) - deliveryFee
+  const pointsToEarn = earnThb > 0 ? Math.floor(amountForPoints / earnThb) * earnPts : 0
   if (pointsToEarn <= 0) return
 
   const { data: existingHistory } = await supabase
@@ -54,13 +56,21 @@ async function awardLoyaltyPointsOnce(supabase: ReturnType<typeof createSupabase
       points_to_add: pointsToEarn,
     })
 
+    let memberId = order.customer_id
+    if (!memberId && order.line_user_id) {
+      const { data: memberData } = await supabase.from('pos_members').select('id').eq('line_user_id', order.line_user_id).maybeSingle()
+      if (memberData?.id) memberId = memberData.id
+    }
+
+    if (!memberId) return // Cannot insert history without valid UUID
+
     const historyPayload = {
-      member_id: order.line_user_id,
+      member_id: memberId,
       order_id: order.id,
       points: pointsToEarn,
       points_change: pointsToEarn,
       type: 'earn',
-      description: `Earned from Order #${order.order_number}`,
+      description: `สะสมจากการสั่งซื้อ ${order.order_type === 'takeaway' ? 'Takeaway' : order.order_type === 'delivery' ? 'Delivery' : 'หน้าร้าน'} #${order.order_number}`,
     }
 
     const { error: historyError } = await supabase

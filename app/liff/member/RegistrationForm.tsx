@@ -12,8 +12,12 @@ interface RegistrationFormProps {
 
 export default function RegistrationForm({ lineProfile, onSubmit, isSubmitting, initialData }: RegistrationFormProps) {
   const router = useRouter();
-  const [firstName, setFirstName] = useState(initialData?.first_name || initialData?.firstName || '');
-  const [lastName, setLastName] = useState(initialData?.last_name || initialData?.lastName || '');
+  const parsedNameParts = (initialData?.display_name || lineProfile?.displayName || '').trim().split(/\s+/);
+  const defaultFirstName = initialData?.first_name || initialData?.firstName || parsedNameParts[0] || '';
+  const defaultLastName = initialData?.last_name || initialData?.lastName || parsedNameParts.slice(1).join(' ') || '';
+
+  const [firstName, setFirstName] = useState(defaultFirstName);
+  const [lastName, setLastName] = useState(defaultLastName);
   const [phone, setPhone] = useState(initialData?.phone || '');
   const [dob, setDob] = useState(initialData?.date_of_birth || initialData?.dateOfBirth || '');
   const [gender, setGender] = useState(initialData?.gender || '');

@@ -1,0 +1,2186 @@
+diff --git a/components/pos/POSTerminal.tsx b/components/pos/POSTerminal.tsx
+index 97a582054..ffebae450 100644
+--- a/components/pos/POSTerminal.tsx
++++ b/components/pos/POSTerminal.tsx
+@@ -53,11 +53,15 @@ import {
+   Tag,
+   Check,
+   Truck,
++  Utensils,
++  Bike,
+   AlertTriangle,
+   Delete,
++  Award,
+ } from 'lucide-react'
+ import { QRCodeSVG } from 'qrcode.react'
+ import { supabase, type Profile } from '@/lib/supabaseClient'
++import { db } from '@/lib/offlineDatabase'
+ import Link from 'next/link'
+ import { useRouter } from 'next/navigation'
+ import { Capacitor } from '@capacitor/core'
+@@ -270,6 +274,7 @@ export default function POSTerminal({
+   const router = useRouter()
+   const [items, setItems] = useState<MenuItem[]>([])
+   const [categories, setCategories] = useState<any[]>([])
++  const [activeCampaigns, setActiveCampaigns] = useState<any[]>([])
+   const [tables, setTables] = useState<POSTable[]>([])
+   const [successAudio, setSuccessAudio] = useState<HTMLAudioElement | null>(null)
+ 
+@@ -288,6 +293,7 @@ export default function POSTerminal({
+   const [discountRate, setDiscountRate] = useState(0) // For UI input
+   const [discountType, setDiscountType] = useState<'fixed' | 'percent'>('percent')
+   const [discountName, setDiscountName] = useState('')
++  const [appliedCouponId, setAppliedCouponId] = useState<string>('')
+ 
+   // --- BILL DISCOUNT MODAL STATE ---
+   const [showBillDiscountModal, setShowBillDiscountModal] = useState(false)
+@@ -336,6 +342,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+   const [paymentSuccessData, setPaymentSuccessData] = useState<{ received: number, change: number, orderId: string, orderNumber: string, queueNumber?: string, items: any[], subtotal: number, discount: number, tax: number, serviceCharge: number, total: number, paymentMethod: string, timestamp: string, deliveryPlatform?: string, referenceName?: string, tableNumber?: string, customerName?: string, orderType?: string, orderSource?: string, comment?: string, notes?: string, pickupTime?: string } | null>(null)
+   const [selectedStoryIndex, setSelectedStoryIndex] = useState<number>(-1)
+ 
++  const [selectedTableZone, setSelectedTableZone] = useState('All')
+   const [printMode, setPrintMode] = useState<'none' | 'receipt' | 'kitchen'>('none');
+ 
+   const [flyingItems, setFlyingItems] = useState<{id: string, x: number, y: number, imageUrl?: string}[]>([])
+@@ -350,6 +357,15 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+ 
+   const [showDeliveryCheckoutModal, setShowDeliveryCheckoutModal] = useState(false)
+ 
++  // Member Checkout Flow States
++  const [showMemberCheckoutFlow, setShowMemberCheckoutFlow] = useState(false)
++  const [memberCheckoutStep, setMemberCheckoutStep] = useState<'lookup' | 'points'>('lookup')
++  const [memberSearchQuery, setMemberSearchQuery] = useState('')
++  const [isSearchingMember, setIsSearchingMember] = useState(false)
++  const [redeemPointsAmount, setRedeemPointsAmount] = useState<string>('')
++  const [memberSearchResults, setMemberSearchResults] = useState<any[]>([])
++  const [memberTiers, setMemberTiers] = useState<any[]>([])
++
+   const openDeliveryPlatformModal = (platformOverride?: string) => {
+     // ผู้ใช้ต้องการให้ "กดคือต้องเลือกค่ายใหม่ทุกครั้ง" จึงบังคับเคลียร์ค่า draft เสมอ
+     setDraftDeliveryPlatform('')
+@@ -398,6 +414,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+     setDiscountRate(0)
+     setDiscountType('percent')
+     setDiscountName('')
++    setAppliedCouponId('')
+     
+     if (typeof window !== 'undefined') {
+       localStorage.removeItem('pos_saved_cart')
+@@ -598,35 +615,39 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+           receipt_stories: passStories
+         };
+ 
+-        for (const printer of targetPrinters) {
+-            if (!printer.ip) continue;
+-            
+-            if (type === 'receipt') {
+-               if (printer.encoding === 'graphic') {
+-                   const { printGraphicModeCustomerReceipt } = await import('@/lib/graphicPrinter');
+-                   await printGraphicModeCustomerReceipt(printer.ip, printOrderData, printShopData, printer.model, printer.encoding, openDrawer);
+-               } else {
+-                   await printCustomerReceipt(printer.ip, printOrderData, printShopData, printer.model, printer.encoding, openDrawer);
+-               }
+-            } else {
+-               let itemsToPrint = printOrderData.items;
+-               const printerCats = printer.categories || [];
+-               
+-               if (!printerCats.includes('all') && printerCats.length > 0) {
+-                  itemsToPrint = printOrderData.items.filter((i: any) => printerCats.includes(i.category_id));
+-               }
+-               
+-               if (itemsToPrint.length > 0) {
+-                  const routedOrderData = { ...printOrderData, items: itemsToPrint };
+-                  if (printer.encoding === 'graphic') {
+-                      const { printGraphicModeKitchenTicket } = await import('@/lib/graphicPrinter');
+-                      await printGraphicModeKitchenTicket(printer.ip, routedOrderData, printShopData, printer.model, printer.encoding);
+-                  } else {
+-                      await printKitchenTicket(printer.ip, routedOrderData, printShopData, printer.model, printer.encoding);
+-                  }
+-               }
++        const printJobs = targetPrinters.map(async (printer: any) => {
++            if (!printer.ip) return;
++            try {
++              if (type === 'receipt') {
++                 if (printer.encoding === 'graphic') {
++                     const { printGraphicModeCustomerReceipt } = await import('@/lib/graphicPrinter');
++                     await printGraphicModeCustomerReceipt(printer.ip, printOrderData, printShopData, printer.model, printer.encoding, openDrawer);
++                 } else {
++                     await printCustomerReceipt(printer.ip, printOrderData, printShopData, printer.model, printer.encoding, openDrawer);
++                 }
++              } else {
++                 let itemsToPrint = printOrderData.items;
++                 const printerCats = printer.categories || [];
++                 
++                 if (!printerCats.includes('all') && printerCats.length > 0) {
++                    itemsToPrint = printOrderData.items.filter((i: any) => printerCats.includes(i.category_id));
++                 }
++                 
++                 if (itemsToPrint.length > 0) {
++                    const routedOrderData = { ...printOrderData, items: itemsToPrint };
++                    if (printer.encoding === 'graphic') {
++                        const { printGraphicModeKitchenTicket } = await import('@/lib/graphicPrinter');
++                        await printGraphicModeKitchenTicket(printer.ip, routedOrderData, printShopData, printer.model, printer.encoding);
++                    } else {
++                        await printKitchenTicket(printer.ip, routedOrderData, printShopData, printer.model, printer.encoding);
++                    }
++                 }
++              }
++            } catch (err) {
++              console.error('Printer job failed for', printer.ip, err);
+             }
+-        }
++        });
++        await Promise.allSettled(printJobs);
+     } catch (e: any) {
+         console.error(e);
+         alert('Native print error: ' + (e?.message || JSON.stringify(e)));
+@@ -683,7 +704,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+       cart.reduce((acc, item) => {
+         const modsPrice =
+           item.selected_modifiers?.reduce(
+-            (ma: number, m: any) => ma + (m.price_adjustment || 0),
++            (ma: number, m: any) => ma + ((m.price_adjustment || 0) * (m.qty || 1)),
+             0
+           ) || 0
+ 
+@@ -793,15 +814,10 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+               
+               <button
+                 onClick={() => setShowPointModal(true)}
+-                className={`relative flex h-9 w-9 sm:h-10 sm:w-10 rounded-full items-center justify-center border font-bold transition-all ${selectedCustomer ? 'border-black bg-[#1A1A18] text-white shadow-lg' : 'border-[#F0F0E8] bg-white text-[#1A1A18] hover:border-black'}`}
+-                title={locale === 'en' ? 'สะสมแต้ม' : locale === 'zh' ? 'สะสมแต้ม' : 'สะสมแต้ม'}
++                className="relative flex h-9 w-9 sm:h-10 sm:w-10 rounded-full items-center justify-center border border-[#F0F0E8] bg-white text-[#1A1A18] hover:border-black font-bold transition-all"
++                title={locale === 'en' ? 'สะสมแต้ม' : locale === 'zh' ? 'สะสมแต้ม' : 'ให้แต้ม'}
+               >
+                 <QrCode size={16} />
+-                {selectedCustomer && (
+-                  <span className="absolute -right-0 -top-0 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-emerald-500 text-[7px] font-black text-white ring-1 ring-white">
+-                    ✓
+-                  </span>
+-                )}
+               </button>
+ 
+               <button
+@@ -954,6 +970,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+         branchId: shopSettings?.branch_id || activeShift?.branch_id || null,
+         shiftId: activeShift?.id || null,
+         existingOrderId: existingOrderId || null,
++        tableName: selectedTable ? String(selectedTable.name || `T${selectedTable.table_number || selectedTable.id}`).replace(/\s+/g, '') : null,
+       }),
+     })
+     const result = await response.json()
+@@ -992,6 +1009,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+         const orderToCancel = pendingOrders.find(o => o.id === id)
+         if (orderToCancel?.table_id) {
+           await supabase.from('pos_tables').update({ status: 'available' }).eq('id', orderToCancel.table_id)
++          await supabase.from('pos_tables').update({ parent_table_id: null }).eq('parent_table_id', orderToCancel.table_id)
+         }
+         
+         refreshPendingOrders()
+@@ -1007,73 +1025,87 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+         .from('pos_order_items')
+         .select(`*, item:pos_menu_items!item_id(*)`)
+         .eq('order_id', order.id)
++        .neq('status', 'cancelled')
+ 
+       if (itemsError) throw itemsError
+ 
+-	      if (directItems && directItems.length > 0) {
+-	        const fetchedItems = directItems.map((i: any) => ({
+-            id: i.item_id,
+-            name: i.item?.name || 'Unknown Item',
+-            image_url: i.item?.image_url || '',
+-            sale_price: i.unit_price,
+-            cost_price: i.cost_price || 0,
+-            quantity: i.quantity,
+-            selected_modifiers: i.selected_modifiers || [],
+-            category_id: i.item?.category_id || 'uncategorized',
+-            customer_name: i.customer_name || null,
+-            discount_amount: i.discount_amount || 0,
+-            discount_reason: i.discount_reason || null,
+-	        }));
+-	        const existingFingerprint = buildCartFingerprint(fetchedItems)
+-	        
+-	        if (mergeWithCurrentCart) {
+-	            const combinedCart = [...fetchedItems, ...cart];
+-	            setCart(combinedCart);
+-	            setHeldCartFingerprint(existingFingerprint)
+-	        } else {
+-	            setCart(fetchedItems);
+-	            setHeldCartFingerprint(existingFingerprint)
+-	        }
+-
+-        setEditingOrderId(order.id)
+-        setEditingOrderNumber(order.order_number)
+-        
+-        // Fetch existing payments
+-        const { data: payments } = await supabase
+-          .from('pos_order_payments')
+-          .select('amount')
+-          .eq('order_id', order.id)
+-          .eq('status', 'paid')
+-        
+-        if (payments && payments.length > 0) {
+-          const sumPaid = payments.reduce((sum, p) => sum + Number(p.amount), 0)
+-          setTotalPaid(sumPaid)
+-        } else {
+-          setTotalPaid(0)
+-        }
+-        const fetchedItemDiscountTotal = fetchedItems.reduce((acc: number, item: any) => acc + (item.discount_amount || 0), 0)
+-        const orderDiscountAmount = Number(order.discount_amount || 0)
+-        const billDiscount = orderDiscountAmount - fetchedItemDiscountTotal
+-
+-        if (billDiscount > 0) {
+-          setDiscountType('fixed')
+-          setDiscountValue(billDiscount)
+-          setDiscountName('ส่วนลด/โปรโมชั่นเดิม')
+-        } else {
+-          setDiscountType('percent')
+-          setDiscountValue(0)
+-          setDiscountName('')
+-        }
++      // Always map fetched items, even if empty
++      const fetchedItems = directItems && directItems.length > 0 ? directItems.map((i: any) => ({
++        id: i.item_id,
++        name: i.item?.name || 'Unknown Item',
++        image_url: i.item?.image_url || '',
++        sale_price: i.unit_price,
++        cost_price: i.cost_price || 0,
++        quantity: i.quantity,
++        selected_modifiers: i.selected_modifiers || [],
++        category_id: i.item?.category_id || 'uncategorized',
++        customer_name: i.customer_name || null,
++        discount_amount: i.discount_amount || 0,
++        discount_reason: i.discount_reason || null,
++      })) : [];
++      
++      const existingFingerprint = buildCartFingerprint(fetchedItems)
++      
++      if (mergeWithCurrentCart) {
++          const combinedCart = [...fetchedItems, ...cart];
++          setCart(combinedCart);
++          setHeldCartFingerprint(existingFingerprint)
++      } else {
++          setCart(fetchedItems);
++          setHeldCartFingerprint(existingFingerprint)
++      }
+ 
+-        setOrderType(order.order_type)
+-        setDeliveryPlatform(order.delivery_platform || '')
+-        setPlatformOrderId(order.reference_name || '')
+-        setSelectedTable(tables.find(t => t.id === order.table_id) || (order.table_id ? ({ id: order.table_id, table_number: order.table_number } as any) : null))
+-        setShowPendingModal(false)
+-        setShowTableModal(false)
+-        setIsCartExpanded(true)
++      setEditingOrderId(order.id)
++      setEditingOrderNumber(order.order_number)
++
++      // Customer Logic
++      let customerToSet = null
++      if (order.customer_id) {
++          const { data } = await supabase.from('pos_members').select('*').eq('id', order.customer_id).maybeSingle()
++          if (data) customerToSet = data
++      } else if (order.line_user_id) {
++          const { data } = await supabase.from('pos_members').select('*').eq('line_user_id', order.line_user_id).maybeSingle()
++          if (data) customerToSet = data
++      }
++      setSelectedCustomer(customerToSet)
++      
++      // Fetch existing payments
++      const { data: payments } = await supabase
++        .from('pos_order_payments')
++        .select('amount')
++        .eq('order_id', order.id)
++        .eq('status', 'paid')
++      
++      if (payments && payments.length > 0) {
++        const sumPaid = payments.reduce((sum, p) => sum + Number(p.amount), 0)
++        setTotalPaid(sumPaid)
+       } else {
+-        alert('ไม่พบรายการสินค้าในบิลนี้ในระบบ')
++        setTotalPaid(0)
++      }
++      const fetchedItemDiscountTotal = fetchedItems.reduce((acc: number, item: any) => acc + (item.discount_amount || 0), 0)
++      const orderDiscountAmount = Number(order.discount_amount || 0)
++      const billDiscount = orderDiscountAmount - fetchedItemDiscountTotal
++
++      if (billDiscount > 0) {
++        setDiscountType('fixed')
++        setDiscountValue(billDiscount)
++        setDiscountName('ส่วนลด/โปรโมชั่นเดิม')
++      } else {
++        setDiscountType('percent')
++        setDiscountValue(0)
++        setDiscountName('')
++      }
++
++      setOrderType(order.order_type)
++      setDeliveryPlatform(order.delivery_platform || '')
++      setPlatformOrderId(order.reference_name || '')
++      setSelectedTable(tables.find(t => t.id === order.table_id) || (order.table_id ? ({ id: order.table_id, table_number: order.table_number } as any) : null))
++      setShowPendingModal(false)
++      setShowTableModal(false)
++      setIsCartExpanded(true)
++
++      if (fetchedItems.length === 0) {
++        alert('ออเดอร์นี้ไม่มีรายการสินค้าเหลืออยู่ (ถูกยกเลิกหมดแล้ว) คุณสามารถเพิ่มรายการใหม่หรือยกเลิกบิลนี้ได้ครับ')
+       }
+     } catch (e: any) {
+       console.error('Resume Order Error:', e)
+@@ -1130,6 +1162,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+         .from('pos_order_items')
+         .select(`*, item:pos_menu_items!item_id(*)`)
+         .eq('order_id', editingOrderId)
++        .neq('status', 'cancelled')
+       if (cancelled || !data) return
+       const existingItems = data.map((row: any) => ({
+         id: row.item_id,
+@@ -1182,6 +1215,30 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+   }, [selectedTable]);
+ 
+   // --- INITIALIZATION ---
++  useEffect(() => {
++    const handleApplyCoupon = (e: any) => {
++      const coupon = e.detail;
++      setDiscountType(coupon.discount_type === 'percent' ? 'percent' : 'fixed');
++      if (coupon.discount_type === 'free_item') {
++        // Find the lowest priced item in cart
++        if (cart.length > 0) {
++          const sorted = [...cart].sort((a, b) => (a.price || 0) - (b.price || 0));
++          setDiscountValue(sorted[0].price || 0);
++        } else {
++          setDiscountValue(0);
++        }
++      } else {
++        setDiscountValue(coupon.discount_value || 0);
++        if (coupon.discount_type === 'percent') setDiscountRate(coupon.discount_value || 0);
++      }
++      setDiscountName(coupon.coupon_name);
++      setAppliedCouponId(coupon.id);
++    };
++
++    window.addEventListener('applyPOSCoupon', handleApplyCoupon);
++    return () => window.removeEventListener('applyPOSCoupon', handleApplyCoupon);
++  }, [cart]);
++
+   useEffect(() => {
+     initData()
+   }, [profile?.id, activeShift?.id])
+@@ -1204,7 +1261,25 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+   }, [syncPulse])
+ 
+   const initData = async () => {
+-    await Promise.all([fetchItems(), fetchTables(), refreshPendingOrders()])
++    await Promise.all([fetchItems(), fetchTables(), refreshPendingOrders(), fetchCampaigns(), fetchTiers()])
++  }
++
++  const fetchTiers = async () => {
++    try {
++      const { data } = await supabase.from('pos_member_tiers').select('*').order('min_points', { ascending: true });
++      if (data) setMemberTiers(data);
++    } catch (e) {
++      console.error(e);
++    }
++  }
++
++  const fetchCampaigns = async () => {
++    try {
++      const { data } = await supabase.from('pos_loyalty_campaigns').select('*').eq('is_active', true);
++      if (data) setActiveCampaigns(data);
++    } catch (e) {
++      console.error(e);
++    }
+   }
+ 
+   // Sync totalPaid when editingOrderId changes
+@@ -1254,30 +1329,38 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+ 
+   const fetchItems = async () => {
+     try {
+-      const branchId = shopSettings?.branch_id
+-      let catQuery = supabase.from('pos_menu_categories').select('*').order('order_index')
+-      if (branchId) {
+-        catQuery = catQuery.eq('branch_id', branchId)
+-      } else {
+-        catQuery = catQuery.is('branch_id', null)
++      if (typeof window !== 'undefined' && !navigator.onLine) {
++        console.log('Fetching menu from local DB (Offline Mode)')
++        const localCats = await db.menu_categories.toArray()
++        setCategories(localCats.sort((a, b) => a.order_index - b.order_index))
++        
++        const localItems = await db.menu_items.toArray()
++        const localLinks = await db.item_modifier_links.toArray()
++        
++        const mappedItems = localItems.map(item => {
++           const cat = localCats.find(c => c.id === item.category_id)
++           const links = localLinks.filter(l => l.item_id === item.id)
++           return {
++              ...item,
++              category: cat ? { name: cat.name } : undefined,
++              modifiers: links.map(l => ({ group_id: l.group_id }))
++           }
++        })
++        setItems(sortMenuItemsByOrder(mappedItems as any[]))
++        return
+       }
+-      const { data: catData, error: catError } = await catQuery
+-      if (catError) throw catError
+-      if (catData) setCategories(catData)
+-
+-      let itemQuery = supabase
+-        .from('pos_menu_items')
+-        .select(`*, platform_prices, category:pos_menu_categories(name), modifiers:pos_item_modifier_links(group_id)`)
+-        .eq('is_active', true)
+-        .order('name', { ascending: true })
+-      if (branchId) {
+-        itemQuery = itemQuery.eq('branch_id', branchId)
+-      } else {
+-        itemQuery = itemQuery.is('branch_id', null)
++
++      const branchId = shopSettings?.branch_id
++      const url = branchId ? `/api/cache/menu?branchId=${branchId}` : '/api/cache/menu';
++
++      const response = await fetch(url);
++      if (!response.ok) throw new Error('Failed to fetch menu cache');
++      const json = await response.json();
++
++      if (json.data) {
++        if (json.data.categories) setCategories(json.data.categories);
++        if (json.data.items) setItems(sortMenuItemsByOrder(json.data.items as any[]));
+       }
+-      const { data, error } = await itemQuery
+-      if (error) throw error
+-      if (data) setItems(sortMenuItemsByOrder(data as any[]))
+     } catch (e) {
+       console.error('XYL STUDIO POS Data Error:', e)
+     }
+@@ -1320,6 +1403,40 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+     }
+   }, [paymentSuccessData])
+ 
++  useEffect(() => {
++    if (selectedCustomer && memberTiers.length > 0) {
++      const totalPoints = selectedCustomer.total_accumulated_points ?? selectedCustomer.points ?? 0;
++      // 1. Calculated Tier
++      let calculatedTierIndex = 0;
++      for (let i = memberTiers.length - 1; i >= 0; i--) {
++        if (totalPoints >= memberTiers[i].min_points) {
++          calculatedTierIndex = i;
++          break;
++        }
++      }
++      
++      // 2. Retained Tier
++      let retainedTierIndex = 0;
++      if (selectedCustomer.member_tier && typeof selectedCustomer.member_tier === 'string') {
++        const foundIndex = memberTiers.findIndex(t => t.name.toLowerCase() === selectedCustomer.member_tier.toLowerCase());
++        if (foundIndex !== -1) retainedTierIndex = foundIndex;
++      }
++      
++      const effectiveTierIndex = Math.max(calculatedTierIndex, retainedTierIndex);
++      const appliedTier = memberTiers[effectiveTierIndex];
++      
++      if (appliedTier && appliedTier.discount_rate > 0) {
++        setDiscountType('percent');
++        setDiscountRate(appliedTier.discount_rate);
++        setDiscountName(`ส่วนลดสมาชิกระดับ ${appliedTier.name}`);
++      }
++    } else if (!selectedCustomer && discountName.includes('ส่วนลดสมาชิกระดับ')) {
++      setDiscountType('percent');
++      setDiscountRate(0);
++      setDiscountName('');
++    }
++  }, [selectedCustomer, memberTiers]);
++
+   const fetchTables = async () => {
+     const branchId = shopSettings?.branch_id
+     let query = supabase.from('pos_tables').select('*').order('table_number')
+@@ -1337,6 +1454,8 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+     if (!shouldClear) return
+ 
+     await supabase.from('pos_tables').update({ status: 'available' }).eq('id', table.id)
++    await supabase.from('pos_tables').update({ parent_table_id: null }).eq('parent_table_id', table.id)
++    await supabase.from('pos_tables').update({ parent_table_id: null }).eq('id', table.id)
+ 
+     if (selectedTable?.id === table.id) {
+       setSelectedTable(null)
+@@ -1345,13 +1464,13 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+     await fetchTables()
+   }
+ 
+-  const addToCart = async (item: MenuItem, modifiers: any[] = [], qty: number = 1) => {
++  const addToCart = async (item: MenuItem, modifiers: any[] = [], qty: number = 1, fromModal: boolean = false) => {
+     if (!activeShift) {
+       onOpenShiftModal()
+       return
+     }
+ 
+-    if (item.modifiers && item.modifiers.length > 0 && modifiers.length === 0) {
++    if (item.modifiers && item.modifiers.length > 0 && !fromModal && modifiers.length === 0) {
+       const groupIds = item.modifiers.map((m: any) => m.group_id)
+       const { data: groups } = await supabase
+         .from('pos_menu_modifier_groups')
+@@ -1406,7 +1525,63 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+     )
+   }
+ 
+-  const removeFromCart = (id: string, modifiers: any[] = []) => {
++  const removeFromCart = async (id: string, modifiers: any[] = []) => {
++    // If we are editing an existing order, confirm and delete from DB immediately
++    if (editingOrderId) {
++      const confirmDelete = window.confirm(locale === 'en' ? 'Are you sure you want to cancel this item? It will be removed from the order immediately.' : 'คุณแน่ใจหรือไม่ที่จะยกเลิกรายการนี้? (ระบบจะลบออกจากออเดอร์และหน้าครัวทันที)');
++      if (!confirmDelete) return;
++
++      try {
++        // Find existing items in the order
++        const { data: existingItems } = await supabase
++          .from('pos_order_items')
++          .select('id, selected_modifiers')
++          .eq('order_id', editingOrderId)
++          .eq('item_id', id);
++
++        if (existingItems && existingItems.length > 0) {
++          // Try to match exact modifiers if possible
++          const itemToCancel = existingItems.find((dbItem: any) => JSON.stringify(dbItem.selected_modifiers || []) === JSON.stringify(modifiers));
++          if (itemToCancel) {
++            await supabase.from('pos_order_items').update({ status: 'cancelled' }).eq('id', itemToCancel.id);
++          } else {
++            // Fallback: cancel the first one that matches item_id
++            await supabase.from('pos_order_items').update({ status: 'cancelled' }).eq('id', existingItems[0].id);
++          }
++          
++          const newCart = cart.filter((i: any) => !(i.id === id && JSON.stringify(i.selected_modifiers) === JSON.stringify(modifiers)));
++          const newRawCartSubTotal = newCart.reduce((acc: number, item: any) => {
++            const modsPrice = item.selected_modifiers?.reduce((ma: number, m: any) => ma + ((m.price_adjustment || 0) * (m.qty || 1)), 0) || 0;
++            const basePrice = Number(orderType === 'delivery' && deliveryPlatform ? (item.platform_price || item.sale_price || item.price || 0) : (item.sale_price || item.price || 0));
++            return acc + ((basePrice + modsPrice) * item.quantity);
++          }, 0);
++          const newItemDiscountTotal = newCart.reduce((acc: number, item: any) => acc + (item.discount_amount || 0), 0);
++          const newCartSubTotal = newRawCartSubTotal - newItemDiscountTotal;
++          const newDiscountTotalValue = discountType === 'percent' ? newCartSubTotal * (discountRate / 100) : discountValue;
++          const newVatAmount = hasVat ? (newCartSubTotal - newDiscountTotalValue) * (vatRate / 100) : 0;
++          const newServiceChargeAmount = hasServiceCharge ? (newCartSubTotal - newDiscountTotalValue) * 0.1 : 0;
++          const newCartTotal = Math.max(0, Math.round(newCartSubTotal - newDiscountTotalValue + newVatAmount + newServiceChargeAmount));
++
++          const orderUpdatePayload = {
++            total_amount: newRawCartSubTotal,
++            net_total: newCartTotal,
++            tax_amount: newVatAmount,
++            service_charge_amount: newServiceChargeAmount,
++            discount_amount: newDiscountTotalValue + newItemDiscountTotal,
++            updated_at: new Date().toISOString()
++          };
++          
++          // Trigger a realtime update by modifying pos_orders
++          await supabase.from('pos_orders').update(orderUpdatePayload).eq('id', editingOrderId);
++          playAppSound('notification'); // Optional sound confirmation
++        }
++      } catch (err) {
++        console.error('Failed to cancel item from DB:', err);
++        alert(locale === 'en' ? 'Failed to cancel item' : 'ไม่สามารถยกเลิกรายการได้');
++        return;
++      }
++    }
++
+     setCart(prev =>
+       prev.filter(
+         i => !(i.id === id && JSON.stringify(i.selected_modifiers) === JSON.stringify(modifiers))
+@@ -1425,7 +1600,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+           if (!isNaN(val) && val > 0) {
+             if (itemDiscountType === 'percent') {
+               const basePrice = getEffectiveItemUnitPrice(i)
+-              const modsPrice = i.selected_modifiers?.reduce((a: number, m: any) => a + (m.price_adjustment || 0), 0) || 0
++              const modsPrice = i.selected_modifiers?.reduce((a: number, m: any) => a + ((m.price_adjustment || 0) * (m.qty || 1)), 0) || 0
+               calcDiscount = ((basePrice + modsPrice) * i.quantity) * (val / 100)
+             } else {
+               calcDiscount = val
+@@ -1562,6 +1737,11 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+     }
+     if (!ensureDeliveryDetailsReady()) return
+ 
++    if (typeof window !== 'undefined' && !navigator.onLine) {
++      alert('ไม่สามารถพักบิลในโหมด Offline ได้ กรุณาชำระเงินทันที');
++      return;
++    }
++
+     if (orderType === 'dine_in' && !selectedTable) {
+       alert('กรุณาเลือกโต๊ะก่อนพักบิลสำหรับ Dine-in ครับ')
+       setShowTableModal(true)
+@@ -1580,118 +1760,90 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+ 	      let existingComparableItems: any[] = []
+ 
+ 	      if (editingOrderId) {
+-	        const { data: existingRows, error: existingRowsError } = await supabase
+-	          .from('pos_order_items')
+-	          .select(`*, item:pos_menu_items!item_id(*)`)
+-	          .eq('order_id', editingOrderId)
+-	        if (existingRowsError) throw existingRowsError
+-	        existingComparableItems = (existingRows || []).map((row: any) => ({
+-	          id: row.item_id,
+-	          item_id: row.item_id,
+-	          name: row.item?.name || 'Unknown Item',
+-	          quantity: row.quantity,
+-	          selected_modifiers: row.selected_modifiers || [],
+-	          category_id: row.item?.category_id || 'uncategorized',
+-	        }))
+-
+-	        const newItems = computeNewCartItems(cart, existingComparableItems)
+-	        if (newItems.length === 0) {
+-	          throw new Error('บิลนี้พักไว้แล้ว กรุณาเพิ่มรายการใหม่ก่อนส่งออเดอร์เพิ่ม')
+-	        }
+-
+-	        const identity = await requestOrderIdentity(editingOrderId)
+-	        finalOrderNumber = identity.orderNumber
+-	        finalQueueNumber = identity.queueNumber
+-	        const orderUpdatePayload: any = {
+-	          total_amount: rawCartSubTotal,
+-          net_total: cartTotal,
+-          tax_amount: vatAmount,
+-          service_charge_amount: serviceChargeAmount,
+-          discount_amount: discountTotalValue + itemDiscountTotal,
+-          customer_id: selectedCustomer?.id,
+-          order_type: orderType,
+-          table_id: selectedTable?.id,
+-          table_number: selectedTable?.table_number,
+-	          queue_number: identity.queueNumber,
+-          delivery_platform: orderType === 'delivery' ? deliveryPlatform : null,
+-          reference_name: orderType === 'delivery' && platformOrderId ? platformOrderId.trim() : null,
+-          updated_at: new Date().toISOString(),
+-        }
+-        const { error: updateError } = await supabase
+-          .from('pos_orders')
+-          .update(orderUpdatePayload)
+-          .eq('id', editingOrderId)
+-        if (updateError) {
+-          if (isMissingQueueColumnError(updateError)) {
+-            const fallbackUpdatePayload = { ...orderUpdatePayload }
+-            delete fallbackUpdatePayload.queue_number
+-            const { error: fallbackUpdateError } = await supabase
+-              .from('pos_orders')
+-              .update(fallbackUpdatePayload)
+-              .eq('id', editingOrderId)
+-            if (fallbackUpdateError) throw fallbackUpdateError
+-          } else {
+-            throw updateError
++          const { data: existingRows, error: existingRowsError } = await supabase
++            .from('pos_order_items')
++            .select(`*, item:pos_menu_items!item_id(*)`)
++            .eq('order_id', editingOrderId)
++          if (existingRowsError) throw existingRowsError
++          existingComparableItems = (existingRows || []).map((row: any) => ({
++            id: row.item_id,
++            item_id: row.item_id,
++            name: row.item?.name || 'Unknown Item',
++            quantity: row.quantity,
++            selected_modifiers: row.selected_modifiers || [],
++            category_id: row.item?.category_id || 'uncategorized',
++          }))
++
++          const newItems = computeNewCartItems(cart, existingComparableItems)
++          if (newItems.length === 0) {
++            throw new Error('บิลนี้พักไว้แล้ว กรุณาเพิ่มรายการใหม่ก่อนส่งออเดอร์เพิ่ม')
+           }
++
++          const identity = await requestOrderIdentity(editingOrderId)
++          finalOrderNumber = identity.orderNumber
++          finalQueueNumber = identity.queueNumber
++        } else {
++          const identity = await requestOrderIdentity()
++          finalOrderNumber = identity.orderNumber
++          finalQueueNumber = identity.queueNumber
+         }
+-        await supabase.from('pos_order_items').delete().eq('order_id', editingOrderId)
+-		      } else {
+-		        const identity = await requestOrderIdentity()
+-		        finalOrderNumber = identity.orderNumber
+-		        finalQueueNumber = identity.queueNumber
+-		        const orderInsertPayload: any = {
+-		          order_number: identity.orderNumber,
+-          staff_id: profile?.id,
+-          shift_id: activeShift?.id,
+-          branch_id: shopSettings?.branch_id || activeShift?.branch_id || null,
+-          status: 'pending',
+-          total_amount: rawCartSubTotal,
+-          net_total: cartTotal,
+-          tax_amount: vatAmount,
+-          service_charge_amount: serviceChargeAmount,
+-          discount_amount: discountTotalValue + itemDiscountTotal,
+-          customer_id: selectedCustomer?.id,
+-          order_type: orderType,
+-          table_id: selectedTable?.id,
+-          table_number: selectedTable?.table_number,
+-	          queue_number: identity.queueNumber,
+-          order_source: 'pos',
+-          delivery_platform: orderType === 'delivery' ? deliveryPlatform : null,
+-          delivery_gp_amount: 0,
+-          reference_name: orderType === 'delivery' && platformOrderId ? platformOrderId.trim() : null,
++
++        const payload: any = {
++          order_action: editingOrderId ? 'update' : 'insert',
++          order_id: editingOrderId || undefined,
++          order: {
++            order_number: finalOrderNumber,
++            staff_id: profile?.id,
++            shift_id: activeShift?.id,
++            branch_id: shopSettings?.branch_id || activeShift?.branch_id || null,
++            status: 'pending',
++            total_amount: rawCartSubTotal,
++            net_total: cartTotal,
++            tax_amount: vatAmount,
++            service_charge_amount: serviceChargeAmount,
++            discount_amount: discountTotalValue + itemDiscountTotal,
++            customer_id: selectedCustomer?.id,
++            order_type: orderType,
++            table_id: selectedTable?.id,
++            table_number: selectedTable?.table_number,
++            queue_number: finalQueueNumber,
++            order_source: 'pos',
++            paid_at: null,
++            delivery_platform: orderType === 'delivery' ? deliveryPlatform : null,
++            delivery_gp_amount: 0,
++            reference_name: orderType === 'delivery' && platformOrderId ? platformOrderId.trim() : null,
++          },
++          order_items: cart.map(item => {
++            const modsPrice = item.selected_modifiers?.reduce((a: number, m: any) => a + ((m.price_adjustment || 0) * (m.qty || 1)), 0) || 0;
++            return {
++              item_id: item.id,
++              quantity: item.quantity,
++              unit_price: getEffectiveItemUnitPrice(item),
++              cost_price: item.cost_price || 0,
++              subtotal: ((getEffectiveItemUnitPrice(item) + modsPrice) * item.quantity) - (item.discount_amount || 0),
++              selected_modifiers: item.selected_modifiers,
++              customer_name: item.customer_name || 'ลูกค้า',
++              discount_amount: item.discount_amount || 0,
++              discount_reason: item.discount_reason || null,
++            }
++          })
++        };
++
++        const { data: rpcResult, error: rpcError } = await supabase.rpc('pos_checkout_order', { payload });
++        
++        if (rpcError) {
++          console.error('RPC HoldOrder Error:', rpcError);
++          throw rpcError;
+         }
+ 
+-        const { data: newOrder, error: insertError } = await supabase
+-          .from('pos_orders')
+-          .insert(orderInsertPayload)
+-          .select()
+-          .single()
+-
+-        if (insertError) {
+-          if (isMissingQueueColumnError(insertError)) {
+-            const fallbackInsertPayload = { ...orderInsertPayload }
+-            delete fallbackInsertPayload.queue_number
+-            const { data: fallbackNewOrder, error: fallbackInsertError } = await supabase
+-              .from('pos_orders')
+-              .insert(fallbackInsertPayload)
+-              .select()
+-              .single()
+-            if (fallbackInsertError) throw fallbackInsertError
+-            finalOrderId = fallbackNewOrder.id
+-          } else {
+-            throw insertError
+-          }
+-	        } else {
+-	          finalOrderId = newOrder.id
+-	        }
+-		      }
++        finalOrderId = rpcResult?.order_id || editingOrderId;
+ 
+ 	      const newItemsForPrint = editingOrderId
+ 	        ? computeNewCartItems(cart, existingComparableItems)
+ 	        : [...cart]
+ 
+ 	      const orderItems = cart.map(item => {
+-          const modsPrice = item.selected_modifiers?.reduce((a: number, m: any) => a + (m.price_adjustment || 0), 0) || 0;
++          const modsPrice = item.selected_modifiers?.reduce((a: number, m: any) => a + ((m.price_adjustment || 0) * (m.qty || 1)), 0) || 0;
+           return {
+ 	          order_id: finalOrderId,
+             item_id: item.id,
+@@ -1700,13 +1852,13 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+             cost_price: item.cost_price || 0,
+             subtotal: ((getEffectiveItemUnitPrice(item) + modsPrice) * item.quantity) - (item.discount_amount || 0),
+             selected_modifiers: item.selected_modifiers,
++            customer_name: item.customer_name || 'ลูกค้า',
+             discount_amount: item.discount_amount || 0,
+             discount_reason: item.discount_reason || null,
+           }
+         })
+ 
+-	      const { error: itemsError } = await supabase.from('pos_order_items').insert(orderItems)
+-	      if (itemsError) throw itemsError
++// pos_checkout_order handles pos_order_items automatically now
+ 
+ 	      setHeldCartFingerprint(buildCartFingerprint(cart))
+ 	      const savedPayload = {
+@@ -1732,6 +1884,99 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+ 	    }
+ 	  }
+ 
++
++  useEffect(() => {
++    const delayDebounceFn = setTimeout(async () => {
++      if (memberSearchQuery.trim().length >= 3) {
++        setIsSearchingMember(true)
++        try {
++          const { data } = await supabase
++            .from('pos_members')
++            .select('*')
++            .or(`phone.ilike.%${memberSearchQuery}%,full_name.ilike.%${memberSearchQuery}%,display_name.ilike.%${memberSearchQuery}%`)
++            .limit(5)
++          if (data) {
++            setMemberSearchResults(data)
++          } else {
++            setMemberSearchResults([])
++          }
++        } catch(e) {
++          console.error(e)
++        } finally {
++          setIsSearchingMember(false)
++        }
++      } else {
++        setMemberSearchResults([])
++      }
++    }, 300)
++    return () => clearTimeout(delayDebounceFn)
++  }, [memberSearchQuery])
++
++  const handleSearchMemberFlow = async () => {
++    if (!memberSearchQuery.trim()) return;
++    setIsSearchingMember(true);
++    try {
++      const { data, error } = await supabase
++        .from('pos_members')
++        .select('*')
++        .or(`phone.ilike.%${memberSearchQuery}%,full_name.ilike.%${memberSearchQuery}%,display_name.ilike.%${memberSearchQuery}%`)
++        .limit(1)
++        .maybeSingle();
++
++      if (memberSearchResults.length > 0) {
++        setSelectedCustomer(memberSearchResults[0]);
++        setMemberCheckoutStep('points');
++      } else if (data) {
++        setSelectedCustomer(data);
++        setMemberCheckoutStep('points');
++      } else {
++        alert(locale === 'en' ? 'Member not found' : 'ไม่พบข้อมูลสมาชิก');
++      }
++    } catch (e: any) {
++      alert('Error: ' + e.message);
++    } finally {
++      setIsSearchingMember(false);
++    }
++  };
++
++  const handleApplyPointsDiscount = () => {
++    const pointsToUse = parseInt(redeemPointsAmount) || 0;
++    if (pointsToUse <= 0 || !selectedCustomer) {
++      setShowMemberCheckoutFlow(false);
++      setShowPaymentModal(true);
++      return;
++    }
++    
++    const maxPoints = selectedCustomer.points || 0;
++    if (pointsToUse > maxPoints) {
++      alert(locale === 'en' ? 'Not enough points' : 'แต้มไม่เพียงพอ');
++      return;
++    }
++    
++    const valPerPoint = Number(shopSettings?.opening_hours?.loyalty_redeem_thb !== undefined ? shopSettings.opening_hours.loyalty_redeem_thb : (shopSettings?.opening_hours?.loyalty_points_per_thb || 10)) || 10;
++    const discountValue = Math.floor(pointsToUse / (Number(shopSettings?.opening_hours?.loyalty_redeem_pts !== undefined ? shopSettings.opening_hours.loyalty_redeem_pts : 1) || 1)) * valPerPoint;
++    const grossTotal = cartSubTotal + vatAmount + serviceChargeAmount;
++    
++    if (discountValue > grossTotal) {
++       alert(locale === 'en' ? 'Discount exceeds cart total' : 'ส่วนลดเกินยอดบิล');
++       return;
++    }
++    
++    setBillDiscountModalType('fixed');
++    setBillDiscountInput(String(discountValue));
++    setBillDiscountReason('แลกแต้มสมาชิก (' + pointsToUse + ' pts)');
++    
++    // Automatically apply it (we need to mimic applyBillDiscount, or just set it and let applyBillDiscount run)
++    // To be safe, we just set the states and then call applyBillDiscount logic manually:
++    setDiscountType('fixed');
++    setDiscountValue(discountValue);
++    setDiscountName('แลกแต้มสมาชิก (' + pointsToUse + ' pts)');
++    setShowBillDiscountModal(false);
++    
++    setShowMemberCheckoutFlow(false);
++    setShowPaymentModal(true);
++  };
++
+   const handleProcessPayment = async (method: string, amount?: number) => {
+     if (cart.length === 0 || isProcessing) return
+     if (!activeShift) {
+@@ -1743,6 +1988,85 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+ 
+     setIsProcessing(true)
+ 	    try {
++      if (typeof window !== 'undefined' && !navigator.onLine) {
++        console.log('Processing payment offline');
++        playAppSound('pay');
++        const offlineId = `OFF-${Date.now()}`;
++        const finalOrderNumber = `OFF-${Math.floor(Date.now() / 1000).toString().slice(-6)}`;
++        const amountToPay = amount !== undefined ? amount : remainingTotal;
++        
++        const payload = {
++          order: {
++            order_number: finalOrderNumber,
++            staff_id: profile?.id,
++            shift_id: activeShift?.id,
++            branch_id: activeShift?.branch_id || shopSettings?.branch_id || null,
++            status: 'completed',
++            total_amount: rawCartSubTotal,
++            net_total: cartTotal,
++            tax_amount: vatAmount,
++            service_charge_amount: serviceChargeAmount,
++            discount_amount: discountTotalValue + itemDiscountTotal,
++            customer_id: selectedCustomer?.id,
++            order_type: orderType,
++            table_id: selectedTable?.id,
++            table_number: selectedTable?.table_number,
++            payment_method: method,
++            order_source: 'pos',
++            paid_at: new Date().toISOString(),
++          },
++          items: cart.map(item => ({
++            item_id: item.id,
++            quantity: item.quantity,
++            unit_price: getEffectiveItemUnitPrice(item),
++            cost_price: item.cost_price || 0,
++            subtotal: ((getEffectiveItemUnitPrice(item) + (item.selected_modifiers?.reduce((a: number, m: any) => a + ((m.price_adjustment || 0) * (m.qty || 1)), 0) || 0)) * item.quantity) - (item.discount_amount || 0),
++            selected_modifiers: item.selected_modifiers,
++            customer_name: item.customer_name || 'ลูกค้า',
++            discount_amount: item.discount_amount || 0,
++            discount_reason: item.discount_reason || null,
++          })),
++          payments: [{
++            payment_method: method,
++            amount: amountToPay,
++            status: 'paid'
++          }]
++        };
++
++        await db.offline_orders.add({
++          id: offlineId,
++          payload,
++          createdAt: new Date().toISOString(),
++          syncStatus: 'pending'
++        });
++
++        const successData = {
++          received: method === 'cash' ? Number(cashReceived) || amountToPay : amountToPay,
++          change: method === 'cash' ? Math.max(0, (Number(cashReceived) || amountToPay) - cartTotal) : 0,
++          orderId: offlineId,
++          orderNumber: finalOrderNumber,
++          queueNumber: "99",
++          items: cart,
++          subtotal: cartSubTotal,
++          discount: discountTotalValue + itemDiscountTotal,
++          tax: vatAmount,
++          serviceCharge: serviceChargeAmount,
++          total: cartTotal,
++          paymentMethod: method,
++          timestamp: new Date().toISOString(),
++          deliveryPlatform: orderType === 'delivery' ? deliveryPlatform : '',
++          referenceName: orderType === 'delivery' && platformOrderId ? platformOrderId.trim() : '',
++          tableNumber: selectedTable?.table_number,
++          customerName: selectedCustomer?.full_name,
++          orderType: orderType,
++          orderSource: 'pos'
++        };
++        
++        setPaymentSuccessData(successData as any);
++        resetOrderComposer();
++        return;
++      }
++
+ 	      playAppSound('pay');
+ 	      let finalOrderId = editingOrderId
+ 	      let finalOrderNumber = editingOrderNumber || ''
+@@ -1795,49 +2119,11 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+ 	      finalOrderNumber = identity.orderNumber
+ 	      finalQueueNumber = identity.queueNumber
+ 
+-	      if (editingOrderId) {
+-	        const orderUpdatePayload: any = {
+-          status: newStatus,
+-          total_amount: rawCartSubTotal,
+-          net_total: cartTotal,
+-          tax_amount: vatAmount,
+-          service_charge_amount: serviceChargeAmount,
+-          discount_amount: discountTotalValue + itemDiscountTotal,
+-          customer_id: selectedCustomer?.id,
+-          order_type: orderType,
+-          table_id: selectedTable?.id,
+-          table_number: selectedTable?.table_number,
+-	          queue_number: identity.queueNumber,
+-          payment_method: method,
+-          paid_at: new Date().toISOString(),
+-          delivery_platform: orderType === 'delivery' ? deliveryPlatform : null,
+-          delivery_gp_amount: deliveryGpAmount,
+-          reference_name: orderType === 'delivery' && platformOrderId ? platformOrderId.trim() : null,
+-        }
+-        const { error: updateError } = await supabase
+-          .from('pos_orders')
+-          .update(orderUpdatePayload)
+-          .eq('id', editingOrderId)
+-
+-        if (updateError) {
+-          if (isMissingQueueColumnError(updateError)) {
+-            const fallbackUpdatePayload = { ...orderUpdatePayload }
+-            delete fallbackUpdatePayload.queue_number
+-            const { error: fallbackUpdateError } = await supabase
+-              .from('pos_orders')
+-              .update(fallbackUpdatePayload)
+-              .eq('id', editingOrderId)
+-            if (fallbackUpdateError) throw fallbackUpdateError
+-          } else {
+-            throw updateError
+-          }
+-        }
+-	        await supabase.from('pos_order_items').delete().eq('order_id', editingOrderId)
+-	      } else {
+-	        finalOrderNumber = identity.orderNumber
+-	        finalQueueNumber = identity.queueNumber
+-	        const orderInsertPayload: any = {
+-	          order_number: identity.orderNumber,
++	      const payload: any = {
++        order_action: editingOrderId ? 'update' : 'insert',
++        order_id: editingOrderId || undefined,
++        order: {
++          order_number: finalOrderNumber,
+           staff_id: profile?.id,
+           shift_id: activeShift?.id,
+           branch_id: activeShift?.branch_id || shopSettings?.branch_id || null,
+@@ -1851,170 +2137,161 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+           order_type: orderType,
+           table_id: selectedTable?.id,
+           table_number: selectedTable?.table_number,
+-	          queue_number: identity.queueNumber,
++          queue_number: finalQueueNumber,
+           payment_method: method,
+           order_source: 'pos',
+           paid_at: new Date().toISOString(),
+           delivery_platform: orderType === 'delivery' ? deliveryPlatform : null,
+           delivery_gp_amount: deliveryGpAmount,
+           reference_name: orderType === 'delivery' && platformOrderId ? platformOrderId.trim() : null,
+-        }
+-        const { data: order, error: orderError } = await supabase
+-          .from('pos_orders')
+-          .insert(orderInsertPayload)
+-          .select()
+-          .single()
+-
+-        if (orderError) {
+-          if (isMissingQueueColumnError(orderError)) {
+-            const fallbackInsertPayload = { ...orderInsertPayload }
+-            delete fallbackInsertPayload.queue_number
+-            const { data: fallbackOrder, error: fallbackOrderError } = await supabase
+-              .from('pos_orders')
+-              .insert(fallbackInsertPayload)
+-              .select()
+-              .single()
+-            if (fallbackOrderError) throw fallbackOrderError
+-            finalOrderId = fallbackOrder.id
+-          } else {
+-            throw orderError
++        },
++        order_items: cart.map(item => {
++          const modsPrice = item.selected_modifiers?.reduce((a: number, m: any) => a + ((m.price_adjustment || 0) * (m.qty || 1)), 0) || 0;
++          return {
++            item_id: item.id,
++            quantity: item.quantity,
++            unit_price: getEffectiveItemUnitPrice(item),
++            cost_price: item.cost_price || 0,
++            subtotal: ((getEffectiveItemUnitPrice(item) + modsPrice) * item.quantity) - (item.discount_amount || 0),
++            selected_modifiers: item.selected_modifiers,
++            customer_name: item.customer_name || 'ลูกค้า',
++            discount_amount: item.discount_amount || 0,
++            discount_reason: item.discount_reason || null,
+           }
+-        } else {
+-          finalOrderId = order.id
+-        }
+-      }
+-
+-      const orderItems = cart.map(item => {
+-        const modsPrice = item.selected_modifiers?.reduce((a: number, m: any) => a + (m.price_adjustment || 0), 0) || 0;
+-        return {
+-          order_id: finalOrderId,
+-          item_id: item.id,
+-          quantity: item.quantity,
+-          unit_price: getEffectiveItemUnitPrice(item),
+-          cost_price: item.cost_price || 0,
+-          subtotal: ((getEffectiveItemUnitPrice(item) + modsPrice) * item.quantity) - (item.discount_amount || 0),
+-          selected_modifiers: item.selected_modifiers,
+-          discount_amount: item.discount_amount || 0,
+-          discount_reason: item.discount_reason || null,
+-        }
+-      })
+-      const { error: itemsError } = await supabase.from('pos_order_items').insert(orderItems)
+-      if (itemsError) throw itemsError
++        }),
++        payments: [{
++          payment_method: method,
++          amount: amountToPay,
++          status: 'paid'
++        }]
++      };
+ 
+-      // Log inventory movements for recipes
+       try {
+         const movementsToInsert: any[] = []
+         for (const item of cart) {
+-          // 1. Menu Item Recipes
+           if (item.recipe_data && Array.isArray(item.recipe_data)) {
+             for (const ing of item.recipe_data) {
+-              if (ing.order_types && Array.isArray(ing.order_types) && !ing.order_types.includes(orderType)) {
+-                continue;
+-              }
++              if (ing.order_types && Array.isArray(ing.order_types) && !ing.order_types.includes(orderType)) continue;
+               const usage = Number(ing.quantity || 0) * Number(ing.factor || 1) * Number(item.quantity)
+               if (ing.ingredient_id && usage > 0) {
+-                const { data: invItem } = await supabase
+-                  .from('inventory_items')
+-                  .select('stock_quantity')
+-                  .eq('id', ing.ingredient_id)
+-                  .maybeSingle()
+-                
+-                movementsToInsert.push({
+-                  item_id: ing.ingredient_id,
+-                  change_amount: -usage,
+-                  new_quantity: invItem ? Number(invItem.stock_quantity) : 0,
+-                  reason: 'sale',
+-                  reference_id: finalOrderId
+-                })
++                const { data: invItem } = await supabase.from('inventory_items').select('stock_quantity').eq('id', ing.ingredient_id).maybeSingle()
++                if (invItem) {
++                  movementsToInsert.push({
++                    item_id: ing.ingredient_id,
++                    change_amount: -usage,
++                    new_quantity: Number(invItem.stock_quantity),
++                    reason: 'sale'
++                  })
++                }
+               }
+             }
+           }
+-
+-          // 2. Modifier Recipes
+           if (item.selected_modifiers && Array.isArray(item.selected_modifiers)) {
+             for (const mod of item.selected_modifiers) {
+               if (mod.recipe_data && Array.isArray(mod.recipe_data)) {
+                 for (const ing of mod.recipe_data) {
+-                  if (ing.order_types && Array.isArray(ing.order_types) && !ing.order_types.includes(orderType)) {
+-                    continue;
+-                  }
++                  if (ing.order_types && Array.isArray(ing.order_types) && !ing.order_types.includes(orderType)) continue;
+                   const usage = Number(ing.quantity || 0) * Number(ing.factor || 1) * Number(item.quantity)
+                   if (ing.ingredient_id && usage > 0) {
+-                    const { data: invItem } = await supabase
+-                      .from('inventory_items')
+-                      .select('stock_quantity')
+-                      .eq('id', ing.ingredient_id)
+-                      .maybeSingle()
+-                      
+-                    movementsToInsert.push({
+-                      item_id: ing.ingredient_id,
+-                      change_amount: -usage,
+-                      new_quantity: invItem ? Number(invItem.stock_quantity) : 0,
+-                      reason: 'sale',
+-                      reference_id: finalOrderId
+-                    })
++                    const { data: invItem } = await supabase.from('inventory_items').select('stock_quantity').eq('id', ing.ingredient_id).maybeSingle()
++                    if (invItem) {
++                      movementsToInsert.push({
++                        item_id: ing.ingredient_id,
++                        change_amount: -usage,
++                        new_quantity: Number(invItem.stock_quantity),
++                        reason: 'sale'
++                      })
++                    }
+                   }
+                 }
+               }
+             }
+           }
+         }
+-
+         if (movementsToInsert.length > 0) {
+-          await supabase.from('inventory_movements').insert(movementsToInsert)
++          payload.movements = movementsToInsert;
+         }
+       } catch (movErr) {
+-        console.error('Failed to log inventory movements:', movErr)
++        console.error('Failed to prepare inventory movements:', movErr)
+       }
+ 
+-      await supabase.from('pos_order_payments').insert({
+-        order_id: finalOrderId,
+-        payment_method: method,
+-        amount: amountToPay,
+-      })
+-
+       if (selectedCustomer?.id) {
+-        const earnRate = shopSettings?.loyalty_earn_rate || 100
+-        const pointsToEarn = Math.floor(cartTotal / earnRate)
+-        if (pointsToEarn > 0) {
+-          try {
+-            await supabase.rpc('increment_member_points', {
+-              user_id: selectedCustomer.id,
+-              points_to_add: pointsToEarn,
+-            })
+-            const historyObj: any = {
+-              member_id: selectedCustomer.id,
+-              order_id: finalOrderId,
+-              points: pointsToEarn,
+-              type: 'earn',
+-            }
++        payload.member_id = selectedCustomer.id;
++        payload.points_history = [];
++        
++        if (redeemPointsAmount && parseInt(redeemPointsAmount) > 0) {
++          const pts = parseInt(redeemPointsAmount);
++          payload.points_to_deduct = pts;
++          payload.points_history.push({
++            points: -pts,
++            points_change: -pts,
++            type: 'redeem',
++            description: `Redeemed ${pts} pts for POS Order`
++          });
++        }
++        
++        if (appliedCouponId) {
++          payload.coupon_id_to_mark_used = appliedCouponId;
++        }
+ 
+-            const { error: histErr } = await supabase.from('pos_points_history').insert({
+-              ...historyObj,
+-              description: `Earned from POS Order #${editingOrderNumber || (finalOrderId ? (finalOrderId as string).slice(0, 8) : 'NEW')}`,
+-            })
+-
+-            if (
+-              histErr &&
+-              histErr.message.includes(
+-                'column "description" of relation "pos_points_history" does not exist'
+-              )
+-            ) {
+-              await supabase.from('pos_points_history').insert(historyObj)
+-            }
+-          } catch (pErr) {
+-            console.error('Point Award Error:', pErr)
++        const earnThb = shopSettings?.opening_hours?.loyalty_earn_thb !== undefined ? shopSettings.opening_hours.loyalty_earn_thb : (shopSettings?.opening_hours?.loyalty_earn_rate || 100);
++        const earnPts = shopSettings?.opening_hours?.loyalty_earn_pts !== undefined ? shopSettings.opening_hours.loyalty_earn_pts : 1;
++        
++        let pointableAmount = amountToPay;
++        let pointsEarned = 0;
++        
++        if (pointableAmount > 0 && earnThb > 0) {
++          if (activeCampaigns && activeCampaigns.length > 0 && cart.length > 0) {
++            let totalMultiplierEffectiveAmount = 0;
++            const ratio = amountToPay / (cartTotal || 1);
++            
++            cart.forEach((item: any) => {
++              const itemEffectivePrice = ((item.price || 0) * (item.quantity || 1)) * ratio;
++              let multiplier = 1.0;
++              const catName = item.category?.name || '';
++              
++              activeCampaigns.forEach(camp => {
++                if (camp.applicable_categories && camp.applicable_categories.length > 0) {
++                  const match = camp.applicable_categories.find((c: string) => c.toLowerCase() === catName.toLowerCase());
++                  if (match) multiplier = Math.max(multiplier, camp.multiplier);
++                } else {
++                   multiplier = Math.max(multiplier, camp.multiplier);
++                }
++              });
++              totalMultiplierEffectiveAmount += (itemEffectivePrice * multiplier);
++            });
++            pointsEarned = Math.floor(totalMultiplierEffectiveAmount / earnThb) * earnPts;
++          } else {
++            pointsEarned = Math.floor(amountToPay / earnThb) * earnPts;
+           }
+         }
++        
++        if (pointsEarned > 0) {
++          payload.points_earned = pointsEarned;
++          payload.points_history.push({
++            points: pointsEarned,
++            points_change: pointsEarned,
++            type: 'earn',
++            description: `Earned from POS Order`
++          });
++        }
+       }
+ 
+       if (newStatus === 'completed' && selectedTable?.id) {
+-        try {
+-          await supabase.from('pos_tables').update({ status: 'available' }).eq('id', selectedTable.id)
+-          fetchTables()
+-        } catch (tableErr) {
+-          console.error('Failed to update table status:', tableErr)
+-        }
++        payload.table_id_to_clear = selectedTable.id;
++      }
++
++      const { data: rpcResult, error: rpcError } = await supabase.rpc('pos_checkout_order', { payload });
++      
++      if (rpcError) {
++        console.error('RPC Checkout Error:', rpcError);
++        throw rpcError;
++      }
++
++      finalOrderId = rpcResult?.order_id || editingOrderId;
++
++      if (newStatus === 'completed' && selectedTable?.id) {
++        fetchTables();
+       }
+ 
+       // --- Hardware Printing Logic ---
+@@ -2075,14 +2352,11 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+           // Only open drawer for cash payments - NO auto printing on payment confirm
+           if (method === 'cash') {
+             const receiptPrinters = printers.filter((p: any) => p.type === 'receipt' || p.type === 'both')
+-            for (const rp of receiptPrinters) {
+-               if (!rp.ip) continue;
+-               await printOpenDrawer(rp.ip)
+-            }
+-            // Fallback: if no printers in settings, try localStorage IP
+-            if (receiptPrinters.length === 0) {
++            if (receiptPrinters.length > 0) {
++              Promise.allSettled(receiptPrinters.map(rp => rp.ip ? printOpenDrawer(rp.ip) : Promise.resolve())).catch(console.error);
++            } else {
+               const fallbackIp = typeof window !== 'undefined' ? localStorage.getItem('xylem_printer_ip') : null
+-              if (fallbackIp) await printOpenDrawer(fallbackIp)
++              if (fallbackIp) printOpenDrawer(fallbackIp).catch(console.error);
+             }
+           }
+ 
+@@ -2176,6 +2450,8 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+                 </span>
+                 <ChevronDown size={14} className="ml-1 sm:ml-2 opacity-50" />
+               </button>
++              
++              
+             </div>
+ 
+             <div className="relative group w-full flex-1">
+@@ -2266,8 +2542,8 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+                           className={`relative overflow-hidden rounded-xl bg-gray-50 font-bold transition-all duration-500 shrink-0 ${viewMode === 'list' ? 'h-20 w-20' : 'mb-3 sm:mb-4 w-full aspect-[1/1] sm:aspect-[4/5]'}`}
+                         >
+                           {item.image_url ? (
+-                            <img
+-                              src={item.image_url}
++                            <img loading="lazy" crossOrigin="anonymous" 
++                              src={item.image_url || ''}
+                               className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                             />
+                           ) : (
+@@ -2345,19 +2621,20 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+               <div className="flex w-full bg-gray-100 p-1 font-bold">
+                 <button
+                   onClick={() => {
+-                    if (editingOrderId) {
++                    if (orderType === 'dine_in') {
++                        fetchTables();
++                        setShowTableModal(true);
++                    } else if (editingOrderId) {
+                         setPendingOrderTypeSwitch('dine_in');
+                     } else {
+                         setOrderType('dine_in');
+-                        if (!selectedTable) {
+-                            fetchTables()
+-                            setShowTableModal(true)
+-                        }
++                        fetchTables();
++                        setShowTableModal(true);
+                     }
+                   }}
+                   className={`flex h-12 flex-1 items-center justify-center gap-3 text-[10px] font-black uppercase tracking-widest transition-all ${orderType === 'dine_in' ? 'bg-[#1A1A18] text-white shadow-lg' : 'text-gray-400 hover:text-black'}`}
+                 >
+-                  <Users size={14} /> {locale === 'en' ? ' กินที่ร้าน / Dine-in                   ' : locale === 'zh' ? ' กินที่ร้าน / Dine-in                   ' : ' กินที่ร้าน / Dine-in                   '}{selectedTable && (
++                  <Utensils size={18} /> {selectedTable && (
+                     <span className="ml-2 bg-emerald-500 px-1.5 py-0.5 text-[8px] text-white">
+                       T-{selectedTable.table_number}
+                     </span>
+@@ -2374,7 +2651,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+                   }}
+                   className={`flex h-12 flex-1 items-center justify-center gap-3 text-[10px] font-black uppercase tracking-widest transition-all ${orderType === 'takeaway' ? 'bg-[#1A1A18] text-white shadow-lg' : 'text-gray-400 hover:text-black'}`}
+                 >
+-                  <ShoppingBag size={14} /> {locale === 'en' ? ' กลับบ้าน / Takeaway ' : locale === 'zh' ? ' 外带 / Takeaway ' : ' กลับบ้าน / Takeaway '}</button>
++                  <ShoppingBag size={18} /></button>
+                 <button
+                   onClick={() => {
+                     if (editingOrderId) {
+@@ -2387,7 +2664,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+                   }}
+                   className={`flex h-12 flex-1 items-center justify-center gap-3 text-[10px] font-black uppercase tracking-widest transition-all ${orderType === 'delivery' ? 'bg-[#1A1A18] text-white shadow-lg' : 'text-gray-400 hover:text-black'}`}
+                 >
+-                  <Truck size={14} /> {locale === 'en' ? ' เดลิเวอรี่ / Delivery ' : locale === 'zh' ? ' 外卖 / Delivery ' : ' เดลิเวอรี่ / Delivery '}
++                  <Bike size={18} />
+                 </button>
+               </div>
+               {orderType === 'delivery' && (
+@@ -2427,8 +2704,8 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+                   >
+                     <div className="relative h-24 w-20 overflow-hidden border border-gray-100 bg-gray-50 transition-all group-hover:shadow-lg">
+                       {item.image_url ? (
+-                        <img
+-                          src={item.image_url}
++                        <img loading="lazy" crossOrigin="anonymous" 
++                          src={item.image_url || ''}
+                           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                         />
+                       ) : (
+@@ -2500,7 +2777,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+                           <div className="flex items-center gap-2">
+                             {item.discount_amount && item.discount_amount > 0 ? (
+                               <span className="text-xs font-bold text-gray-400 line-through">
+-                                ฿ {((getEffectiveItemUnitPrice(item) + (item.selected_modifiers?.reduce((a: number, m: any) => a + (m.price_adjustment || 0), 0) || 0)) * item.quantity).toLocaleString()}
++                                ฿ {((getEffectiveItemUnitPrice(item) + (item.selected_modifiers?.reduce((a: number, m: any) => a + ((m.price_adjustment || 0) * (m.qty || 1)), 0) || 0)) * item.quantity).toLocaleString()}
+                               </span>
+                             ) : null}
+                             <span className="text-lg font-black text-black">
+@@ -2508,7 +2785,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+                               {(
+                                 ((getEffectiveItemUnitPrice(item) +
+                                   (item.selected_modifiers?.reduce(
+-                                    (a: number, m: any) => a + (m.price_adjustment || 0),
++                                    (a: number, m: any) => a + ((m.price_adjustment || 0) * (m.qty || 1)),
+                                     0
+                                   ) || 0)) *
+                                 item.quantity) - (item.discount_amount || 0)
+@@ -2538,7 +2815,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+                                   className="flex items-center gap-1.5 border border-gray-100 bg-gray-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-tight text-gray-600"
+                                 >
+                                   <div className="h-1 w-1 bg-emerald-400"></div>
+-                                  {m.name}
++                                  {m.qty > 1 ? `${m.qty}x ` : ''}{m.name}
+                                 </span>
+                               ))}
+                             </div>
+@@ -2695,28 +2972,56 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+                   disabled={isProcessing || cart.length === 0 || isHeldOrderBaselineLoading || (!!editingOrderId && !hasUnsavedOrderChanges)}
+                   className="flex h-16 flex-1 items-center justify-center gap-3 border border-[#1A1A18] text-[10px] font-black uppercase tracking-[0.3em] transition-all hover:bg-black hover:text-white disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400"
+                 >
+-                  <Printer size={16} /> {isHeldOrderBaselineLoading ? 'กำลังเช็กบิลพัก' : !!editingOrderId && !hasUnsavedOrderChanges ? 'พักแล้ว เพิ่มรายการใหม่' : locale === 'en' ? ' พักบิล / ส่งออเดอร์                 ' : locale === 'zh' ? ' พักบิล / ส่งออเดอร์                 ' : ' พักบิล / ส่งออเดอร์                 '}</button>
+-                <button
+-                  onClick={() => {
+-                    if (orderType === 'dine_in' && !selectedTable) {
+-                      fetchTables()
+-                      refreshPendingOrders()
+-                      setShowTableModal(true)
+-                      return
+-                    }
+-                    if (orderType === 'delivery') {
+-                      setShowDeliveryCheckoutModal(true)
+-                      return
+-                    }
+-                    setShowPaymentModal(true)
+-                  }}
+-                  className={`flex h-16 flex-[2] items-center justify-center gap-4 text-[11px] font-black uppercase tracking-[0.4em] text-white shadow-xl transition-all ${
+-                    orderType === 'delivery' ? 'bg-orange-500 hover:bg-orange-600' : 'bg-[#1A1A18] hover:bg-black'
+-                  }`}
+-                >
+-                  <span>{orderType === 'delivery' ? 'ยืนยันส่งออเดอร์' : locale === 'en' ? 'Checkout' : locale === 'zh' ? '结账' : 'ชำระเงิน'}</span>
+-                  <ArrowRight size={18} />
+-                </button>
++                  <Printer size={16} /> {isHeldOrderBaselineLoading ? 'กำลังเช็กบิลพัก' : !!editingOrderId && !hasUnsavedOrderChanges ? 'พักแล้ว เพิ่มรายการใหม่' : locale === 'en' ? 'พักบิล' : locale === 'zh' ? 'พักบิล' : 'พักบิล'}</button>
++                {!!editingOrderId && cart.length === 0 ? (
++                  <button
++                    onClick={() => {
++                      handleDeleteOrder(editingOrderId)
++                      setCart([])
++                      setEditingOrderId(null)
++                      setSelectedTable(null)
++                      setOrderType('takeaway')
++                    }}
++                    className="flex h-16 flex-[2] items-center justify-center gap-4 text-[11px] font-black uppercase tracking-[0.4em] text-white shadow-xl transition-all bg-red-600 hover:bg-red-700"
++                  >
++                    <span>เคลียร์โต๊ะ (ยกเลิกบิล)</span>
++                  </button>
++                ) : (
++                  <button
++                    onClick={() => {
++                      if (orderType === 'dine_in' && !selectedTable) {
++                        fetchTables()
++                        refreshPendingOrders()
++                        setShowTableModal(true)
++                        return
++                      }
++                      if (orderType === 'delivery') {
++                        setShowDeliveryCheckoutModal(true)
++                        return
++                      }
++                      if (typeof window !== 'undefined' && !navigator.onLine) {
++                        setShowPaymentModal(true)
++                        return
++                      }
++                      if (!selectedCustomer) {
++                        setMemberCheckoutStep('lookup')
++                        setMemberSearchQuery('')
++                        setShowMemberCheckoutFlow(true)
++                      } else {
++                        setMemberCheckoutStep('points')
++                        setRedeemPointsAmount('')
++                        setShowMemberCheckoutFlow(true)
++                      }
++                    }}
++                    disabled={cart.length === 0}
++                    className={`flex h-16 flex-[2] items-center justify-center gap-4 text-[11px] font-black uppercase tracking-[0.4em] text-white shadow-xl transition-all ${
++                      cart.length === 0 ? 'bg-gray-400 cursor-not-allowed' : orderType === 'delivery' ? 'bg-orange-500 hover:bg-orange-600' : 'bg-[#1A1A18] hover:bg-black'
++                    }`}
++                  >
++                    <span>{orderType === 'delivery' ? 'ยืนยันส่งออเดอร์' : locale === 'en' ? 'Checkout' : locale === 'zh' ? '结账' : 'ชำระเงิน'}</span>
++                    <ArrowRight size={18} />
++                  </button>
++                )}
+               </div>
+             </footer>
+         </div>
+@@ -2768,6 +3073,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+       )}
+ 
+       {/* 7. TABLE SELECTION MODAL */}
++      
+       {showTableModal && (
+         <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
+           <div
+@@ -2775,66 +3081,190 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+             onClick={() => setShowTableModal(false)}
+           ></div>
+           <div className="animate-in zoom-in-95 relative flex max-h-[90vh] w-full max-w-4xl flex-col bg-[#FDFDFB] font-bold shadow-2xl duration-200">
+-            <header className="flex items-center justify-between border-b border-gray-100 bg-white p-6 sm:p-8 font-bold">
+-              <div>
++            
++            <header className="flex flex-col border-b border-gray-100 bg-white">
++              <div className="flex items-center justify-between p-6 sm:p-8 pb-4">
+                 <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tighter text-black">
+-                  {locale === 'en' ? '                   เลือกโต๊ะ                 ' : locale === 'zh' ? '                   เลือกโต๊ะ                 ' : '                   เลือกโต๊ะ                 '}</h2>
++                  {locale === 'en' ? 'Select Table' : locale === 'zh' ? '选择桌子' : 'เลือกโต๊ะ'}
++                </h2>
++                <button onClick={() => setShowTableModal(false)} className="p-2">
++                  <X size={20} />
++                </button>
++              </div>
++              
++              {/* Zone Filter */}
++              <div className="px-6 sm:px-8 pb-4 flex items-center gap-2 overflow-x-auto hide-scrollbar">
++                {['All', ...Array.from(new Set(tables.map(t => t.zone || 'MAIN')))].map(zone => (
++                  <button
++                    key={zone}
++                    onClick={() => setSelectedTableZone(zone)}
++                    className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest whitespace-nowrap transition-all ${
++                      selectedTableZone === zone
++                        ? 'bg-black text-white shadow-md'
++                        : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
++                    }`}
++                  >
++                    {zone}
++                  </button>
++                ))}
+               </div>
+-              <button onClick={() => setShowTableModal(false)} className="p-2">
+-                <X size={20} />
+-              </button>
+             </header>
++
+             <div className="flex-1 overflow-y-auto p-4 sm:p-10">
+               <div className="grid grid-cols-4 gap-2 sm:gap-4 sm:grid-cols-6 lg:grid-cols-8">
+-                {tables.map(table => {
++                {tables.filter(t => selectedTableZone === 'All' || (t.zone || 'MAIN') === selectedTableZone).map(table => {
++                  const targetTable = table.parent_table_id ? tables.find(t => t.id === table.parent_table_id) || table : table;
++                  const childrenTables = tables.filter(t => t.parent_table_id === table.id);
++                  const isParent = childrenTables.length > 0;
++                  
+                   const pendingForThisTable = pendingOrders.filter(
+-                    o => o.table_id === table.id && o.status === 'pending'
++                    o => o.table_id === targetTable.id && o.status === 'pending'
+                   )
+-                  // Consider table occupied if there's a pending order OR if table status is occupied (customer scanned & entered name)
+-                  const isOccupied = pendingForThisTable.length > 0 || table.status === 'occupied'
+-                  const isIdleOccupied = table.status === 'occupied' && pendingForThisTable.length === 0
++                  const isOccupied = pendingForThisTable.length > 0 || targetTable.status === 'occupied'
++                  const isIdleOccupied = targetTable.status === 'occupied' && pendingForThisTable.length === 0
++                  
++                  const isSelected = selectedTable?.id === targetTable.id;
++                  
++                  // Text size logic
++                  const isShortName = table.table_number.length <= 3;
++                  const tableNumClass = isShortName 
++                    ? 'text-3xl sm:text-4xl font-black tracking-tighter' 
++                    : 'text-sm sm:text-base font-bold tracking-tight leading-tight break-words px-1';
+ 
+                   return (
+-                    <div key={table.id} className="relative aspect-square flex flex-col">
++                    <div key={table.id} className="relative aspect-square flex flex-col group">
+                       <button
+                         onClick={() => {
+-                          if (selectedTable?.id === table.id) {
++                          if (selectedTable?.id === targetTable.id) {
+                             resetOrderComposer()
+                             setTotalPaid(0)
+                             setShowTableModal(false)
+                           } else {
+                             if (pendingForThisTable.length > 0 && cart.length > 0 && !editingOrderId) {
+-                                setMergeTableTarget({ table, pendingOrder: pendingForThisTable[0] })
++                                setMergeTableTarget({ table: targetTable, pendingOrder: pendingForThisTable[0] })
+                             } else {
+-                                setSelectedTable(table)
++                                if (editingOrderId) {
++                                    if (isOccupied) {
++                                        if (confirm(`โต๊ะ ${targetTable.table_number} มีลูกค้าอยู่แล้ว ต้องการนำบิลของโต๊ะ ${selectedTable?.table_number || 'ปัจจุบัน'} ไปรวมบิลด้วยใช่หรือไม่?`)) {
++                                            setIsProcessing(true);
++                                            (async () => {
++                                                try {
++                                                    const targetOrder = pendingForThisTable[0];
++                                                    if (!targetOrder) throw new Error('ไม่พบออเดอร์ปลายทาง');
++                                                    
++                                                    const { data: oldOrderData } = await supabase.from('pos_orders').select('*').eq('id', editingOrderId).single();
++                                                    
++                                                    if (oldOrderData) {
++                                                        const newTotal = Number(targetOrder.total || 0) + Number(oldOrderData.total || 0);
++                                                        const newSubtotal = Number(targetOrder.subtotal || 0) + Number(oldOrderData.subtotal || 0);
++                                                        const newTax = Number(targetOrder.tax || 0) + Number(oldOrderData.tax || 0);
++                                                        const newServiceCharge = Number(targetOrder.service_charge || 0) + Number(oldOrderData.service_charge || 0);
++                                                        
++                                                        const mergedTableNumber = targetOrder.table_number?.includes(oldOrderData.table_number) 
++                                                            ? targetOrder.table_number 
++                                                            : (targetOrder.table_number + ' + ' + oldOrderData.table_number);
++
++                                                        await supabase.from('pos_orders').update({
++                                                            subtotal: newSubtotal,
++                                                            tax: newTax,
++                                                            service_charge: newServiceCharge,
++                                                            total: newTotal,
++                                                            table_number: mergedTableNumber
++                                                        }).eq('id', targetOrder.id);
++                                                    }
++
++                                                    const { data: currentItems } = await supabase.from('pos_order_items').select('*').eq('order_id', editingOrderId);
++                                                    
++                                                    if (currentItems && currentItems.length > 0) {
++                                                        const updatedItems = currentItems.map(item => {
++                                                            const mods = item.selected_modifiers || [];
++                                                            mods.push({ name: `[ย้ายมาจากโต๊ะ ${selectedTable?.table_number || 'เดิม'}]`, price_adjustment: 0, qty: 1 });
++                                                            return { ...item, order_id: targetOrder.id, selected_modifiers: mods };
++                                                        });
++                                                        await supabase.from('pos_order_items').upsert(updatedItems);
++                                                    }
++                                                    
++                                                    await supabase.from('pos_orders').update({ status: 'cancelled' }).eq('id', editingOrderId);
++                                                    
++                                                    if (selectedTable?.id) {
++                                                        await supabase.from('pos_tables').update({ parent_table_id: targetTable.id }).eq('id', selectedTable.id);
++                                                    }
++                                                    
++                                                    alert('รวมโต๊ะสำเร็จ! รายการอาหารถูกย้ายไปรวมในบิลของโต๊ะ ' + targetTable.table_number + ' เรียบร้อยแล้ว');
++                                                    
++                                                    fetchTables();
++                                                    refreshPendingOrders();
++                                                    resetDeliveryDraft();
++                                                    setShowTableModal(false);
++                                                } catch (err: any) {
++                                                    alert('Error merging tables: ' + err.message);
++                                                } finally {
++                                                    setIsProcessing(false);
++                                                }
++                                            })();
++                                        }
++                                        return;
++                                    }
++                                }
++
++                                setSelectedTable(targetTable)
+                                 setOrderType('dine_in')
+                                 resetDeliveryDraft()
+                                 setShowTableModal(false)
+                                 if (pendingForThisTable.length > 0) {
+                                     handleResumeOrder(pendingForThisTable[0])
+-                                } else {
+-                                    if (editingOrderId) {
+-                                        setCart([])
+-                                        setEditingOrderId(null)
+-                                        setEditingOrderNumber('')
+-                                        setTotalPaid(0)
+-                                    }
+                                 }
+                             }
+                           }
+                         }}
+-                        className={`flex-1 relative flex flex-col items-center justify-center overflow-hidden border-2 transition-all ${selectedTable?.id === table.id ? 'border-[#1A1A18] bg-[#1A1A18] text-white' : isOccupied ? 'group border-red-600 bg-red-500 text-white' : 'border-gray-100 bg-white text-black hover:border-black'}`}
++                        className={`w-full h-full relative flex flex-col items-center justify-center overflow-visible rounded-3xl transition-all duration-300 ease-out border-2 ${
++                          isSelected 
++                            ? 'bg-emerald-500 text-white border-emerald-500 shadow-xl shadow-emerald-500/20 scale-105 z-10' 
++                            : isOccupied 
++                              ? 'bg-[#1A1A18] text-white border-[#1A1A18] shadow-lg' 
++                              : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50 hover:shadow-md'
++                        }`}
+                       >
+-                        <span className="text-xl font-black">{table.table_number}</span>
+-                        <span className="mt-1 text-[7px] uppercase tracking-widest opacity-80">
+-                          {table.zone || 'Main'}
+-                        </span>
+-                        {isOccupied && (
+-                          <div className="absolute right-0 top-0 bg-red-700 px-1.5 py-0.5 text-[6px] font-black uppercase tracking-tighter text-white">
+-                            Occupied
++                        <div className="flex flex-col h-full w-full p-3 sm:p-4">
++                            {/* Top Row: Zone & Dot */}
++                            <div className="flex justify-end items-start w-full min-h-[16px]">
++                                {isOccupied && !isSelected && (
++                                <div className="relative flex items-center justify-center w-2 h-2 mt-0.5">
++                                    <div className="absolute w-full h-full rounded-full bg-emerald-400 animate-ping opacity-75"></div>
++                                    <div className="relative w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
++                                </div>
++                                )}
++                            </div>
++                            
++                            {/* Center: Table Name */}
++                            <div className="flex-1 flex items-center justify-center w-full">
++                                <span className={`${tableNumClass} text-center`}>
++                                {table.table_number}
++                                </span>
++                            </div>
++                        </div>
++
++                        {/* Linked Table Floating Pill */}
++                        {(table.parent_table_id || isParent) && (
++                          <div className={`absolute -bottom-3 inset-x-0 mx-auto w-max px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-md backdrop-blur-md transition-all z-20 ${
++                            isSelected
++                              ? 'bg-white text-emerald-600 border border-emerald-100'
++                              : isOccupied
++                                ? 'bg-white text-[#1A1A18] border border-gray-200'
++                                : 'bg-[#1A1A18] text-white border border-[#1A1A18]'
++                          }`}>
++                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
++                            <span className="text-[9px] font-black uppercase tracking-widest">
++                              {table.parent_table_id 
++                                ? `โต๊ะ ${targetTable.table_number}`
++                                : `+ โต๊ะ ${childrenTables.map(t => t.table_number).join(', ')}`
++                              }
++                            </span>
+                           </div>
+                         )}
+                       </button>
++                      
++                      {/* Idle Clear Button */}
+                       {isIdleOccupied && (
+                         <button
+                           type="button"
+@@ -2842,7 +3272,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+                             e.stopPropagation()
+                             handleClearIdleTable(table)
+                           }}
+-                          className="mt-2 border border-amber-300 bg-amber-50 px-2 py-1 text-[8px] font-black uppercase tracking-widest text-amber-700 transition-all hover:border-amber-500 hover:bg-amber-100"
++                          className="absolute -bottom-8 inset-x-0 mx-auto w-max z-20 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-amber-600 shadow-sm transition-all hover:border-amber-400 hover:bg-amber-100 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0"
+                         >
+                           เคลียร์โต๊ะ
+                         </button>
+@@ -3110,7 +3540,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+               <div className="flex items-center gap-5">
+                 <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-gray-50 shadow-sm border border-gray-100">
+                   {modifierModalItem.image_url ? (
+-                    <img src={modifierModalItem.image_url} className="h-full w-full object-cover" />
++                    <img loading="lazy" crossOrigin="anonymous"  src={modifierModalItem.image_url || ''} className="h-full w-full object-cover" />
+                   ) : (
+                     <ShoppingCart size={28} className="text-gray-300" />
+                   )}
+@@ -3144,8 +3574,9 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+                 const minReq = group.min_selection || group.min_select || 0
+                 const maxAllowed = group.max_selection || group.max_select || 99
+                 const selectedInGroup = tempSelectedModifiers.filter(m => m.group_id === group.id)
+-                const isComplete = selectedInGroup.length >= minReq
+-                const isAtMax = selectedInGroup.length >= maxAllowed
++                const totalQtyInGroup = selectedInGroup.reduce((sum, m) => sum + (m.qty || 1), 0)
++                const isComplete = totalQtyInGroup >= minReq
++                const isAtMax = totalQtyInGroup >= maxAllowed
+ 
+                 return (
+                   <div
+@@ -3180,7 +3611,9 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+                     </div>
+                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                       {group.options?.map((opt: any) => {
+-                        const isSelected = tempSelectedModifiers.some(m => m.id === opt.id)
++                        const existingOptIndex = tempSelectedModifiers.findIndex(m => m.id === opt.id)
++                        const isSelected = existingOptIndex > -1
++                        const optQty = isSelected ? (tempSelectedModifiers[existingOptIndex].qty || 1) : 0
+                         return (
+                           <button
+                             key={opt.id}
+@@ -3188,15 +3621,21 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+                             onClick={() => {
+                               let nextSelected = [...tempSelectedModifiers]
+                               if (isSelected) {
+-                                nextSelected = nextSelected.filter(m => m.id !== opt.id)
++                                if (maxAllowed === 1) {
++                                  nextSelected.splice(existingOptIndex, 1)
++                                } else {
++                                  if (!isAtMax) {
++                                    nextSelected[existingOptIndex] = { ...nextSelected[existingOptIndex], qty: optQty + 1 }
++                                  }
++                                }
+                               } else {
+                                 if (maxAllowed === 1) {
+                                   nextSelected = [
+                                     ...nextSelected.filter(m => m.group_id !== group.id),
+-                                    opt,
++                                    { ...opt, qty: 1 },
+                                   ]
+                                 } else {
+-                                  nextSelected = [...nextSelected, opt]
++                                  nextSelected = [...nextSelected, { ...opt, qty: 1 }]
+                                 }
+                               }
+                               setTempSelectedModifiers(nextSelected)
+@@ -3210,11 +3649,37 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+                             }`}
+                           >
+                             <div className="flex w-full items-start justify-between gap-2">
+-                              <div className={`text-sm font-black leading-tight ${isSelected ? 'text-emerald-900' : 'text-[#1A1A18]'}`}>
++                              <div className={`text-sm font-black leading-tight pr-8 ${isSelected ? 'text-emerald-900' : 'text-[#1A1A18]'}`}>
+                                 {opt.name}
+                               </div>
+-                              <div className={`flex-shrink-0 flex h-6 w-6 items-center justify-center rounded-full transition-all ${isSelected ? 'bg-emerald-500 text-white' : 'bg-gray-100 text-transparent group-hover:bg-gray-200'}`}>
+-                                <Check size={14} strokeWidth={3} />
++                              <div className="absolute right-3 top-3 z-10">
++                                {isSelected && maxAllowed > 1 ? (
++                                  <div className="flex items-center gap-1.5 bg-emerald-100 rounded-full shadow-sm border border-emerald-200 pr-1.5">
++                                    <div
++                                      onClick={(e) => {
++                                        e.stopPropagation();
++                                        let nextSelected = [...tempSelectedModifiers]
++                                        const idx = nextSelected.findIndex(m => m.id === opt.id)
++                                        if (idx > -1) {
++                                          if ((nextSelected[idx].qty || 1) > 1) {
++                                            nextSelected[idx] = { ...nextSelected[idx], qty: nextSelected[idx].qty - 1 }
++                                          } else {
++                                            nextSelected.splice(idx, 1)
++                                          }
++                                          setTempSelectedModifiers(nextSelected)
++                                        }
++                                      }}
++                                      className="w-6 h-6 rounded-full bg-white text-red-500 flex items-center justify-center hover:bg-red-50 cursor-pointer shadow-sm border border-emerald-50"
++                                    >
++                                      <Minus size={12} strokeWidth={4} />
++                                    </div>
++                                    <span className="text-[10px] font-black text-emerald-800">{optQty}</span>
++                                  </div>
++                                ) : (
++                                  <div className={`flex h-6 w-6 items-center justify-center rounded-full transition-all ${isSelected ? 'bg-emerald-500 text-white' : 'bg-gray-100 text-transparent group-hover:bg-gray-200'}`}>
++                                    <Check size={14} strokeWidth={3} />
++                                  </div>
++                                )}
+                               </div>
+                             </div>
+                             <div className="flex w-full items-end justify-between mt-2">
+@@ -3226,9 +3691,9 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+                                 }`}
+                               >
+                                 {opt.price_adjustment > 0
+-                                  ? `+ ฿${opt.price_adjustment}`
++                                  ? `+ ฿${opt.price_adjustment * Math.max(1, optQty)}`
+                                   : opt.price_adjustment < 0
+-                                    ? `- ฿${Math.abs(opt.price_adjustment)}`
++                                    ? `- ฿${Math.abs(opt.price_adjustment * Math.max(1, optQty))}`
+                                     : 'FREE'}
+                               </div>
+                             </div>
+@@ -3265,11 +3730,12 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+               </div>
+               {/* VALIDATION MESSAGE */}
+               {(() => {
+-                const incomplete = modifierGroups.filter(
+-                  g =>
+-                    tempSelectedModifiers.filter(m => m.group_id === g.id).length <
+-                    (g.min_selection || g.min_select || 0)
+-                )
++                const incomplete = modifierGroups.filter(g => {
++                  const minReq = Number(g.min_selection ?? g.min_select ?? 0);
++                  const selectedInGroup = tempSelectedModifiers.filter(m => m.group_id === g.id);
++                  const totalQtyInGroup = selectedInGroup.reduce((sum, m) => sum + (m.qty || 1), 0);
++                  return totalQtyInGroup < minReq;
++                })
+                 const canConfirm = incomplete.length === 0
+ 
+                 return (
+@@ -3296,7 +3762,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+                     <button
+                       disabled={!canConfirm}
+                       onClick={() => {
+-                        addToCart(modifierModalItem, tempSelectedModifiers, tempQuantity)
++                        addToCart(modifierModalItem, tempSelectedModifiers, tempQuantity, true)
+                       }}
+                       className={`relative flex h-[60px] w-full sm:w-auto sm:min-w-[200px] flex-1 items-center justify-center gap-3 rounded-[1.25rem] px-6 text-[14px] font-black uppercase tracking-widest transition-all overflow-hidden ${
+                         canConfirm 
+@@ -3525,6 +3991,231 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+           </div>
+         </div>
+       )}
++
++      {/* MEMBER CHECKOUT FLOW MODAL */}
++      <AnimatePresence>
++        {showMemberCheckoutFlow && (
++          <div className="fixed inset-0 z-[2550] flex items-center justify-center p-4">
++            <div
++              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
++              onClick={() => {
++                setShowMemberCheckoutFlow(false);
++                setShowPaymentModal(true);
++              }}
++            />
++            <motion.div
++              initial={{ opacity: 0, scale: 0.95, y: 10 }}
++              animate={{ opacity: 1, scale: 1, y: 0 }}
++              exit={{ opacity: 0, scale: 0.95, y: 10 }}
++              className="relative flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-3xl bg-white shadow-2xl"
++            >
++               {memberCheckoutStep === 'lookup' ? (
++                 <div className="p-8">
++                   <div className="w-16 h-16 bg-[#1A1A18] text-white rounded-2xl flex items-center justify-center mb-6 shadow-lg mx-auto">
++                     <QrCode size={32} />
++                   </div>
++                   <h2 className="text-3xl font-black mb-2 text-center text-[#1A1A18] tracking-tighter">
++                     {locale === 'en' ? 'MEMBER CHECK' : 'ตรวจสอบสมาชิก'}
++                   </h2>
++                   <p className="text-gray-500 text-center mb-6 text-xs font-bold uppercase tracking-widest">
++                     {locale === 'en' ? 'Enter phone number' : 'กรอกเบอร์โทรศัพท์ลูกค้า'}
++                   </p>
++                   
++                   <div className="relative mb-6">
++                     <div className="w-full bg-[#f8f8f8] border-2 border-transparent focus-within:border-[#1A1A18] rounded-2xl py-5 px-6 text-2xl font-black text-center tracking-[0.2em] transition-all bg-white min-h-[76px] flex items-center justify-center">
++                        {memberSearchQuery || <span className="text-gray-300">0XX-XXX-XXXX</span>}
++                     </div>
++                     {memberSearchResults.length > 0 && (
++                        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] border border-gray-100 overflow-hidden z-20 max-h-[250px] overflow-y-auto">
++                           {memberSearchResults.map((m) => (
++                              <button
++                                 key={m.id}
++                                 onClick={() => {
++                                    setSelectedCustomer(m);
++                                    setMemberCheckoutStep('points');
++                                    setMemberSearchResults([]);
++                                 }}
++                                 className="w-full text-left px-6 py-4 hover:bg-gray-50 flex items-center justify-between transition-colors group"
++                              >
++                                 <div>
++                                    <div className="font-black text-gray-800 text-lg group-hover:text-black transition-colors">{m.full_name || m.display_name || 'No Name'}</div>
++                                    <div className="text-xs text-gray-400 font-bold tracking-widest uppercase mt-1">{m.phone}</div>
++                                 </div>
++                                 <div className="text-[#1A1A18] font-black flex items-center gap-1 bg-gray-100 px-4 py-2 rounded-xl text-sm">
++                                    {m.points || 0} PTS
++                                 </div>
++                              </button>
++                           ))}
++                        </div>
++                     )}
++                   </div>
++                   
++                   <div className="grid grid-cols-3 gap-3 mb-6">
++                     {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
++                       <button
++                         key={num}
++                         onClick={() => setMemberSearchQuery(prev => prev + num)}
++                         className="h-14 bg-gray-50 hover:bg-gray-100 text-[#1A1A18] font-black text-xl rounded-2xl transition-all"
++                       >
++                         {num}
++                       </button>
++                     ))}
++                     <button
++                       onClick={() => setMemberSearchQuery('')}
++                       className="h-14 bg-red-50 hover:bg-red-100 text-red-500 font-black text-sm uppercase tracking-widest rounded-2xl transition-all"
++                     >
++                       CLR
++                     </button>
++                     <button
++                       onClick={() => setMemberSearchQuery(prev => prev + '0')}
++                       className="h-14 bg-gray-50 hover:bg-gray-100 text-[#1A1A18] font-black text-xl rounded-2xl transition-all"
++                     >
++                       0
++                     </button>
++                     <button
++                       onClick={() => setMemberSearchQuery(prev => prev.slice(0, -1))}
++                       className="h-14 bg-gray-100 hover:bg-gray-200 text-[#1A1A18] flex items-center justify-center rounded-2xl transition-all"
++                     >
++                       <Delete size={20} />
++                     </button>
++                   </div>
++                   
++                   <div className="flex gap-3">
++                     <button
++                       onClick={() => {
++                         setShowMemberCheckoutFlow(false);
++                         setShowPaymentModal(true);
++                       }}
++                       className="flex-1 py-5 bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-black font-black rounded-2xl transition-all uppercase tracking-widest text-[11px]"
++                     >
++                       {locale === 'en' ? 'Skip' : 'ข้าม (ไม่เป็นสมาชิก)'}
++                     </button>
++                     <button
++                       onClick={handleSearchMemberFlow}
++                       disabled={!memberSearchQuery.trim() || isSearchingMember}
++                       className="flex-[2] py-5 bg-[#1A1A18] hover:bg-black text-white font-black rounded-2xl transition-all uppercase tracking-widest text-[11px] flex items-center justify-center disabled:opacity-50"
++                     >
++                       {isSearchingMember ? <Loader2 className="animate-spin" size={18} /> : (locale === 'en' ? 'Search & Proceed' : 'ค้นหา')}
++                     </button>
++                   </div>
++                 </div>
++               ) : (
++                 <div className="p-8">
++                   <div className="flex items-center justify-between mb-8">
++                     <div>
++                       <h3 className="text-xl font-black text-[#1A1A18]">{selectedCustomer?.full_name || selectedCustomer?.display_name}</h3>
++                       <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">{selectedCustomer?.phone}</p>
++                     </div>
++                     <button 
++                       onClick={() => {
++                          setSelectedCustomer(null)
++                          setMemberSearchQuery('')
++                          setMemberCheckoutStep('lookup')
++                       }}
++                       className="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-[#1A1A18] bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-full transition-all"
++                     >
++                       {locale === 'en' ? 'Change' : 'เปลี่ยนลูกค้า'}
++                     </button>
++                   </div>
++
++                   <div className="bg-[#1A1A18] rounded-3xl p-8 mb-8 text-center text-white relative overflow-hidden shadow-2xl">
++                     <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -mr-10 -mt-10"></div>
++                     <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full blur-xl -ml-10 -mb-10"></div>
++                     
++                     <div className="text-xs font-black uppercase tracking-[0.3em] text-white/50 mb-2">Available Points</div>
++                     <div className="flex items-center justify-center gap-2">
++                       <span className="text-6xl font-black tracking-tighter">{selectedCustomer?.points || 0}</span>
++                       <span className="text-xl font-bold uppercase mt-4 text-white/70">PTS</span>
++                     </div>
++                     <div className="mt-4 inline-flex items-center gap-2 bg-white/10 px-4 py-2 rounded-full text-xs font-bold text-white/90">
++                       <Award size={14} />
++                       {shopSettings?.opening_hours?.loyalty_redeem_pts !== undefined ? shopSettings.opening_hours.loyalty_redeem_pts : 1} PTS = {shopSettings?.opening_hours?.loyalty_redeem_thb !== undefined ? shopSettings.opening_hours.loyalty_redeem_thb : (shopSettings?.opening_hours?.loyalty_points_per_thb || 10)} ฿
++                     </div>
++                   </div>
++                   
++                   <div className="mb-8">
++                     <div className="flex items-center justify-between mb-4">
++                       <label className="block text-xs font-black uppercase tracking-widest text-gray-400">
++                         {locale === 'en' ? 'Redeem Points' : 'ระบุแต้มที่ใช้'}
++                       </label>
++                       {redeemPointsAmount && parseInt(redeemPointsAmount) > 0 && (
++                         <div className="text-xs font-black text-emerald-500 uppercase tracking-widest bg-emerald-50 px-3 py-1 rounded-full">
++                           -{Math.floor(parseInt(redeemPointsAmount) / (shopSettings?.opening_hours?.loyalty_redeem_pts !== undefined ? shopSettings.opening_hours.loyalty_redeem_pts : 1)) * (shopSettings?.opening_hours?.loyalty_redeem_thb !== undefined ? shopSettings.opening_hours.loyalty_redeem_thb : (shopSettings?.opening_hours?.loyalty_points_per_thb || 10)).toLocaleString()} ฿
++                         </div>
++                       )}
++                     </div>
++                     
++                     <div className="grid grid-cols-4 gap-2 mb-4">
++                        {[50, 100, 200].map(pts => {
++                           const canUse = (selectedCustomer?.points || 0) >= pts;
++                           // also check if this discount is larger than cart total
++                           const valPerPoint = (shopSettings?.opening_hours?.loyalty_points_per_thb) || 10;
++                           const isOverBill = (pts * valPerPoint) > cartTotal;
++                           return (
++                              <button
++                                 key={pts}
++                                 disabled={!canUse || isOverBill}
++                                 onClick={() => setRedeemPointsAmount(String(pts))}
++                                 className="py-3 bg-gray-50 hover:bg-gray-100 text-[#1A1A18] font-black rounded-xl text-sm transition-all disabled:opacity-30"
++                              >
++                                 {pts}
++                              </button>
++                           )
++                        })}
++                        <button
++                           disabled={(selectedCustomer?.points || 0) === 0}
++                           onClick={() => {
++                              const valPerPoint = (shopSettings?.opening_hours?.loyalty_points_per_thb) || 10;
++                              // Max points they can use is min(their points, cartTotal / valPerPoint)
++                              const maxPtsForBill = Math.ceil(cartTotal / valPerPoint);
++                              const ptsToUse = Math.min(selectedCustomer?.points || 0, maxPtsForBill);
++                              setRedeemPointsAmount(String(ptsToUse));
++                           }}
++                           className="py-3 bg-[#1A1A18] hover:bg-black text-white font-black rounded-xl text-[10px] uppercase tracking-widest transition-all disabled:opacity-30"
++                        >
++                           MAX
++                        </button>
++                     </div>
++                     
++                     <div className="relative">
++                       <input
++                         type="number"
++                         value={redeemPointsAmount}
++                         onChange={(e) => setRedeemPointsAmount(e.target.value)}
++                         placeholder="0"
++                         className="w-full bg-gray-50 border-2 border-transparent focus:border-[#1A1A18] rounded-2xl py-4 px-6 text-xl font-black focus:outline-none focus:bg-white transition-all appearance-none"
++                       />
++                       <div className="absolute right-6 top-1/2 -translate-y-1/2 text-gray-300 font-bold uppercase tracking-widest text-sm">
++                         PTS
++                       </div>
++                     </div>
++                   </div>
++                   
++                   <div className="flex gap-3">
++                     <button
++                       onClick={() => {
++                         setShowMemberCheckoutFlow(false);
++                         setShowPaymentModal(true);
++                       }}
++                       className="flex-1 py-5 bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-black font-black rounded-2xl transition-all uppercase tracking-widest text-[11px]"
++                     >
++                       {locale === 'en' ? 'Skip' : 'ไม่ใช้แต้ม'}
++                     </button>
++                     <button
++                       onClick={handleApplyPointsDiscount}
++                       disabled={!redeemPointsAmount || parseInt(redeemPointsAmount) <= 0 || parseInt(redeemPointsAmount) > (selectedCustomer?.points || 0)}
++                       className="flex-[2] py-5 bg-[#1A1A18] hover:bg-black text-white font-black rounded-2xl transition-all uppercase tracking-widest text-[11px] disabled:opacity-50 shadow-xl"
++                     >
++                       {locale === 'en' ? 'Apply & Pay' : 'ใช้แต้ม & ชำระเงิน'}
++                     </button>
++                   </div>
++                 </div>
++               )}
++            </motion.div>
++          </div>
++        )}
++      </AnimatePresence>
++
+       {/* DELIVERY CHECKOUT MODAL */}
+       <AnimatePresence>
+         {showDeliveryCheckoutModal && (
+@@ -3666,7 +4357,17 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+                   
+                   // Auto-update db if editing
+                   if (editingOrderId) {
+-                      await supabase.from('pos_orders').update({ order_type: newType, table_id: newType !== 'dine_in' ? null : undefined }).eq('id', editingOrderId);
++                      if (newType !== 'dine_in') {
++                          await supabase.from('pos_orders').update({ order_type: newType, table_id: null, table_number: null }).eq('id', editingOrderId);
++                          if (selectedTable?.id) {
++                              await supabase.from('pos_tables').update({ status: 'available' }).eq('id', selectedTable.id);
++                          }
++                          fetchTables();
++                          refreshPendingOrders();
++                      } else {
++                          // They are switching to dine_in, open table modal to pick a table
++                          setShowTableModal(true);
++                      }
+                   }
+                 }}
+                 className="w-full rounded-2xl bg-red-500 py-4 text-[13px] font-black uppercase tracking-widest text-white transition-all hover:scale-[1.02] active:scale-[0.98]"
+@@ -3827,6 +4528,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+               {printMode === 'receipt' && (
+                 <POSReceipt
+                   orderNumber={paymentSuccessData.orderNumber}
++                  queueNumber={paymentSuccessData.queueNumber}
+                   orderType={paymentSuccessData.orderType || orderType}
+                   orderSource={paymentSuccessData.orderSource}
+                   deliveryPlatform={paymentSuccessData.deliveryPlatform}
+@@ -4254,7 +4956,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+               }}
+             >
+               {fi.imageUrl ? (
+-                <img src={fi.imageUrl} className="w-full h-full object-cover rounded-full" />
++                <img loading="lazy" crossOrigin="anonymous"  src={fi.imageUrl || ''} className="w-full h-full object-cover rounded-full" />
+               ) : (
+                 <div className="w-4 h-4 bg-black rounded-full" />
+               )}
