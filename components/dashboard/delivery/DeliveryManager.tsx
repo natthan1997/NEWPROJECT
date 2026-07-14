@@ -80,7 +80,7 @@ export default function DeliveryManager({ unlockAudio, isAudioEnabled, variant =
       .from('pos_orders')
       .select('*, items:pos_order_items(*, item:pos_menu_items!item_id(*))')
       .in('order_type', ['delivery', 'takeaway'])
-      .eq('order_source', 'liff')
+      .or('order_source.eq.liff,order_type.eq.delivery')
       .neq('status', 'completed')
       .neq('status', 'cancelled')
       .order('created_at', { ascending: false })

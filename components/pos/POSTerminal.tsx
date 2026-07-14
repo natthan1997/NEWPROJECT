@@ -1718,6 +1718,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                 }
             } catch (err) {
                 console.error('Background print error:', err);
+                alert('เกิดข้อผิดพลาดในการสั่งปริ้นเข้าครัว (Kitchen Printer): ' + (err.message || err));
             }
         })();
     } catch (error) {
