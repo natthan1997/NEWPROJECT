@@ -322,7 +322,7 @@ export const printGraphicModeCustomerReceipt = async (
     }
   } catch (error) {
     console.error(error);
-    return false;
+    throw error;
   }
 };
 
@@ -347,7 +347,7 @@ export const printGraphicModeKitchenTicket = async (
     }
   } catch (error) {
     console.error(error);
-    return false;
+    throw error;
   }
 };
 
@@ -373,6 +373,6 @@ export const printGraphicModeZReport = async (
     }
   } catch (error) {
     console.error(error);
-    return false;
+    throw error;
   }
 };
