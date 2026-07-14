@@ -43,6 +43,8 @@ export const AttendanceCheckIn: React.FC = () => {
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [earlyReason, setEarlyReason] = useState('')
   const [isEarlyCheckOut, setIsEarlyCheckOut] = useState(false)
+  const [checkoutChecklistItems, setCheckoutChecklistItems] = useState<string[]>([])
+  const [completedChecklist, setCompletedChecklist] = useState<string[]>([])
 
   const getTodayRange = () => {
     const start = new Date()
@@ -81,7 +83,7 @@ export const AttendanceCheckIn: React.FC = () => {
     if (branch) {
       const { data: settings } = await supabase
         .from('pos_shop_settings')
-        .select('check_in_radius, latitude, longitude')
+        .select('check_in_radius, latitude, longitude, opening_hours')
         .eq('branch_id', branch.id)
         .maybeSingle()
 
@@ -96,6 +98,9 @@ export const AttendanceCheckIn: React.FC = () => {
         id: branch.id,
         branch_id: branch.id
       })
+      if (settings?.opening_hours?.checkout_checklist) {
+          setCheckoutChecklistItems(settings.opening_hours.checkout_checklist)
+      }
     }
   }
 
@@ -214,7 +219,9 @@ export const AttendanceCheckIn: React.FC = () => {
           latitude,
           longitude,
           is_within_range: true,
-          reason: nextType === 'check_out' ? earlyReason : null
+          reason: nextType === 'check_out' 
+            ? `${earlyReason ? `[Early Checkout] ${earlyReason}\n` : ''}${completedChecklist.length > 0 ? `[Checklist] ${completedChecklist.join(', ')}` : ''}`.trim() || null
+            : null
         })
 
         if (error) {
@@ -433,6 +440,33 @@ export const AttendanceCheckIn: React.FC = () => {
                   </div>
                 )}
 
+                {hasCheckedInToday && checkoutChecklistItems.length > 0 && (
+                  <div className="mb-8 border border-[#EFEFEF] rounded-xl p-4 bg-[#FAFAFA]">
+                    <label className="block text-[11px] font-black uppercase tracking-widest text-[#111111] mb-4">
+                      {locale === 'en' ? 'รายการตรวจสอบก่อนเลิกงาน (Checklist) *' : locale === 'zh' ? 'รายการตรวจสอบก่อนเลิกงาน (Checklist) *' : 'รายการตรวจสอบก่อนเลิกงาน (Checklist) *'}
+                    </label>
+                    <div className="space-y-3">
+                      {checkoutChecklistItems.map((item, index) => {
+                          const isChecked = completedChecklist.includes(item);
+                          return (
+                              <div key={index} className="flex items-start gap-3 cursor-pointer group" onClick={() => {
+                                  if (isChecked) {
+                                      setCompletedChecklist(completedChecklist.filter(c => c !== item));
+                                  } else {
+                                      setCompletedChecklist([...completedChecklist, item]);
+                                  }
+                              }}>
+                                  <div className={`w-5 h-5 rounded border mt-0.5 flex items-center justify-center transition-colors ${isChecked ? 'bg-[#111111] border-[#111111]' : 'border-[#CCCCCC] bg-white group-hover:border-[#111111]'}`}>
+                                      {isChecked && <div className="w-2.5 h-2.5 bg-white rounded-sm" />}
+                                  </div>
+                                  <span className={`text-[12px] font-bold ${isChecked ? 'text-[#111111]' : 'text-[#666666]'}`}>{item}</span>
+                              </div>
+                          );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex gap-3">
                   <button
                     disabled={loading}
@@ -441,7 +475,11 @@ export const AttendanceCheckIn: React.FC = () => {
                   >
                     {locale === 'en' ? 'cancel' : locale === 'zh' ? '取消' : '                     ยกเลิก                   '}</button>
                   <button
-                    disabled={loading || (isEarlyCheckOut && !earlyReason.trim())}
+                    disabled={
+                        loading || 
+                        (isEarlyCheckOut && !earlyReason.trim()) || 
+                        (hasCheckedInToday && checkoutChecklistItems.length > 0 && completedChecklist.length < checkoutChecklistItems.length)
+                    }
                     onClick={handleCheckInOut}
                     className="flex-1 py-4 bg-[#111111] text-white text-[10px] font-black uppercase tracking-widest hover:bg-black transition-colors disabled:opacity-20 flex items-center justify-center gap-2"
                   >

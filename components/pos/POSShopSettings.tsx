@@ -1069,6 +1069,62 @@ export default function POSShopSettings({
                                         ))}
                                     </div>
                                 </div>
+
+                                {/* CHECKLIST SETTINGS */}
+                                <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 mt-6">
+                                    <h3 className="text-xl font-black mb-2 flex items-center gap-3">
+                                        <ShieldCheck className="text-blue-500" size={24} /> {locale === 'en' ? 'รายการตรวจสอบก่อนเลิกงาน (Checkout Checklist)' : locale === 'zh' ? 'รายการตรวจสอบก่อนเลิกงาน (Checkout Checklist)' : 'รายการตรวจสอบก่อนเลิกงาน (Checkout Checklist)'}
+                                    </h3>
+                                    <p className="text-[12px] text-gray-500 font-bold mb-8">
+                                        {locale === 'en' ? 'ตั้งค่ารายการที่พนักงานต้องทำและกดยืนยันให้ครบก่อนลงเวลาออกงาน' : locale === 'zh' ? 'ตั้งค่ารายการที่พนักงานต้องทำและกดยืนยันให้ครบก่อนลงเวลาออกงาน' : 'ตั้งค่ารายการที่พนักงานต้องทำและกดยืนยันให้ครบก่อนลงเวลาออกงาน'}
+                                    </p>
+
+                                    <div className="space-y-4">
+                                        {(settings.opening_hours?.checkout_checklist || []).map((item: string, index: number) => (
+                                            <div key={index} className="flex items-center gap-3">
+                                                <input
+                                                    type="text"
+                                                    value={item}
+                                                    onChange={(e) => {
+                                                        const newList = [...(settings.opening_hours?.checkout_checklist || [])]
+                                                        newList[index] = e.target.value
+                                                        setSettings({
+                                                            ...settings,
+                                                            opening_hours: { ...settings.opening_hours, checkout_checklist: newList }
+                                                        })
+                                                    }}
+                                                    className="flex-1 bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-[12px] font-bold outline-none focus:ring-2 focus:ring-blue-400"
+                                                    placeholder="เช่น ปิดเครื่องชงกาแฟ"
+                                                />
+                                                <button
+                                                    onClick={() => {
+                                                        const newList = (settings.opening_hours?.checkout_checklist || []).filter((_: any, i: number) => i !== index)
+                                                        setSettings({
+                                                            ...settings,
+                                                            opening_hours: { ...settings.opening_hours, checkout_checklist: newList }
+                                                        })
+                                                    }}
+                                                    className="w-11 h-11 flex items-center justify-center text-red-500 bg-red-50 rounded-xl hover:bg-red-100 transition-colors shrink-0"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
+                                        ))}
+
+                                        <button
+                                            onClick={() => {
+                                                const newList = [...(settings.opening_hours?.checkout_checklist || []), '']
+                                                setSettings({
+                                                    ...settings,
+                                                    opening_hours: { ...settings.opening_hours, checkout_checklist: newList }
+                                                })
+                                            }}
+                                            className="w-full py-4 border-2 border-dashed border-gray-200 rounded-xl text-gray-500 hover:text-gray-900 hover:border-gray-400 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 text-[12px] font-black uppercase tracking-widest mt-4"
+                                        >
+                                            <Plus size={16} /> {locale === 'en' ? 'เพิ่มรายการตรวจสอบ' : locale === 'zh' ? 'เพิ่มรายการตรวจสอบ' : 'เพิ่มรายการตรวจสอบ'}
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         )}
 
