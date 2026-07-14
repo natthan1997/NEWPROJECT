@@ -242,7 +242,7 @@ export default function LiffMemberPage() {
   if (loading) return <XYLLoader tagline={dict.loading} />;
 
   if (!memberInfo || !memberInfo.phone || !memberInfo.pdpa_consent) {
-    return <RegistrationForm lineProfile={lineProfile} onSubmit={handleRegistrationSubmit} isSubmitting={isLinkingPhone} />;
+    return <RegistrationForm lineProfile={lineProfile} onSubmit={handleRegistrationSubmit} isSubmitting={isLinkingPhone} initialData={memberInfo} />;
   }
 
   const totalAccumulated = memberInfo?.total_accumulated_points || memberInfo?.points || 0;

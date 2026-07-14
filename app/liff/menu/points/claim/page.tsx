@@ -22,7 +22,7 @@ function ClaimPointsContent() {
     const [showPopup, setShowPopup] = useState(false)
     const [requirePhone, setRequirePhone] = useState(false)
     const [phone, setPhone] = useState('')
-    const [nickname, setNickname] = useState('')
+    const [memberData, setMemberData] = useState<any>(null)
 
     useEffect(() => {
         const initLiff = async () => {
@@ -94,6 +94,14 @@ function ClaimPointsContent() {
             } else if (data.requirePhone) {
                 setRequirePhone(true)
                 if (data.currentPhone) setPhone(data.currentPhone);
+                setMemberData({
+                    phone: data.currentPhone || '',
+                    first_name: data.currentFirstName || '',
+                    last_name: data.currentLastName || '',
+                    date_of_birth: data.currentDob || '',
+                    gender: data.currentGender || '',
+                    pdpa_consent: data.currentPdpaConsent || false
+                });
                 setStatus('success') // Just to hide error overlay
             } else {
                 setStatus('error')
@@ -123,6 +131,7 @@ function ClaimPointsContent() {
         return (
             <RegistrationForm 
                 lineProfile={lineProfile}
+                initialData={memberData}
                 onSubmit={async (data: any) => {
                     await handleClaim(data.phone, {
                         firstName: data.firstName,

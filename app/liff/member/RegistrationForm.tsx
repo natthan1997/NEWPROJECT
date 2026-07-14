@@ -7,16 +7,17 @@ interface RegistrationFormProps {
   lineProfile: any;
   onSubmit: (data: any) => Promise<void>;
   isSubmitting: boolean;
+  initialData?: any;
 }
 
-export default function RegistrationForm({ lineProfile, onSubmit, isSubmitting }: RegistrationFormProps) {
+export default function RegistrationForm({ lineProfile, onSubmit, isSubmitting, initialData }: RegistrationFormProps) {
   const router = useRouter();
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [dob, setDob] = useState('');
-  const [gender, setGender] = useState('');
-  const [consent, setConsent] = useState(false);
+  const [firstName, setFirstName] = useState(initialData?.first_name || initialData?.firstName || '');
+  const [lastName, setLastName] = useState(initialData?.last_name || initialData?.lastName || '');
+  const [phone, setPhone] = useState(initialData?.phone || '');
+  const [dob, setDob] = useState(initialData?.date_of_birth || initialData?.dateOfBirth || '');
+  const [gender, setGender] = useState(initialData?.gender || '');
+  const [consent, setConsent] = useState(initialData?.pdpa_consent || initialData?.pdpaConsent || false);
 
   const handleSubmit = () => {
     if (!firstName.trim() || !lastName.trim() || phone.length < 9 || !dob || !gender || !consent) {
