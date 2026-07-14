@@ -168,10 +168,12 @@ export default function DeliveryManager({ unlockAudio, isAudioEnabled, variant =
 
       // 🎁 Award Loyalty Points
       try {
-        const { data: shopSettingsData } = await supabase.from('pos_shop_settings').select('loyalty_earn_rate').order('updated_at', { ascending: false }).limit(1).maybeSingle()
-        const earnRate = shopSettingsData?.loyalty_earn_rate || 100
+        const { data: shopSettingsData } = await supabase.from('pos_shop_settings').select('opening_hours').order('updated_at', { ascending: false }).limit(1).maybeSingle()
+        const oh = shopSettingsData?.opening_hours || {}
+        const earnThb = oh.loyalty_earn_thb !== undefined ? oh.loyalty_earn_thb : (oh.loyalty_earn_rate || 100)
+        const earnPts = oh.loyalty_earn_pts !== undefined ? oh.loyalty_earn_pts : 1
         const totalAmount = finishModalOrder.net_total || finishModalOrder.total_amount || 0
-        const pointsToEarn = Math.floor(totalAmount / earnRate)
+        const pointsToEarn = earnThb > 0 ? Math.floor(totalAmount / earnThb) * earnPts : 0
 
         if (pointsToEarn > 0) {
           let memberId = finishModalOrder.customer_id

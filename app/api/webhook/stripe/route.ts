@@ -15,7 +15,25 @@ function createSupabaseServiceClient() {
 async function awardLoyaltyPointsOnce(supabase: ReturnType<typeof createSupabaseServiceClient>, order: any) {
   if (!order?.line_user_id) return
 
-  const pointsToEarn = Math.floor(Number(order.total_amount || 0) / 100)
+  let earnThb = 100
+  let earnPts = 1
+
+  try {
+    const { data: shopSettings } = await supabase
+      .from('pos_shop_settings')
+      .select('opening_hours')
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      
+    const oh = shopSettings?.opening_hours || {}
+    earnThb = oh.loyalty_earn_thb !== undefined ? oh.loyalty_earn_thb : (oh.loyalty_earn_rate || 100)
+    earnPts = oh.loyalty_earn_pts !== undefined ? oh.loyalty_earn_pts : 1
+  } catch (err) {
+    console.error('Error fetching shop settings for stripe point accrual:', err)
+  }
+
+  const pointsToEarn = earnThb > 0 ? Math.floor(Number(order.total_amount || 0) / earnThb) * earnPts : 0
   if (pointsToEarn <= 0) return
 
   const { data: existingHistory } = await supabase
