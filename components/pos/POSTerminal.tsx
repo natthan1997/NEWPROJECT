@@ -1653,7 +1653,25 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     }
 
     const targetPrinters = shopSettings?.printers || [];
-    const kitchenPrinters = targetPrinters.filter((p: any) => p.type === 'kitchen' || p.type === 'both');
+    let kitchenPrinters = targetPrinters.filter((p: any) => p.type === 'kitchen' || p.type === 'both');
+    
+    // Fallback 1: If no kitchen printers configured, use receipt printers
+    if (kitchenPrinters.length === 0) {
+        kitchenPrinters = targetPrinters.filter((p: any) => p.type === 'receipt');
+    }
+    
+    // Fallback 2: If still no printers, fall back to LocalStorage IP
+    if (kitchenPrinters.length === 0) {
+        const fallbackIp = typeof window !== 'undefined' ? localStorage.getItem('xylem_printer_ip') : null;
+        if (fallbackIp) {
+            kitchenPrinters = [{
+                ip: fallbackIp,
+                type: 'both',
+                model: 'xprinter-xp-n160ii',
+                encoding: 'cp874'
+            }];
+        }
+    }
 
     const shopData = {
         name: shopSettings?.name || shopSettings?.shop_name || 'XYLEM LANDSCAPE',
