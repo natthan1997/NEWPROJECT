@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import XYLLoader from '@/components/loaders/XYLLoader'
 import { useI18n } from "@/lib/I18nContext";
+import RegistrationForm from '@/app/liff/member/RegistrationForm';
 
 function ClaimPointsContent() {
     const { locale } = useI18n();
@@ -56,7 +57,7 @@ function ClaimPointsContent() {
         }
     }, [isLiffReady, token, lineProfile])
 
-    const handleClaim = async (phoneToSubmit?: string) => {
+    const handleClaim = async (phoneToSubmit?: string, extraData?: any) => {
         try {
             setStatus('loading');
             setMessage('กำลังตรวจสอบสิทธิ์ของคุณ...');
@@ -69,7 +70,12 @@ function ClaimPointsContent() {
                     displayName: lineProfile.displayName,
                     avatarUrl: lineProfile.pictureUrl,
                     phone: phoneToSubmit || undefined,
-                    fullName: nickname || undefined
+                    firstName: extraData?.firstName || undefined,
+                    lastName: extraData?.lastName || undefined,
+                    fullName: extraData?.fullName || undefined,
+                    dateOfBirth: extraData?.dateOfBirth || undefined,
+                    gender: extraData?.gender || undefined,
+                    pdpaConsent: extraData?.pdpaConsent !== undefined ? extraData.pdpaConsent : undefined
                 })
             })
 
@@ -88,7 +94,6 @@ function ClaimPointsContent() {
             } else if (data.requirePhone) {
                 setRequirePhone(true)
                 if (data.currentPhone) setPhone(data.currentPhone);
-                if (data.currentFullName) setNickname(data.currentFullName);
                 setStatus('success') // Just to hide error overlay
             } else {
                 setStatus('error')
@@ -112,6 +117,25 @@ function ClaimPointsContent() {
         } catch (e) {
             router.push('/liff/member')
         }
+    }
+
+    if (requirePhone) {
+        return (
+            <RegistrationForm 
+                lineProfile={lineProfile}
+                onSubmit={async (data: any) => {
+                    await handleClaim(data.phone, {
+                        firstName: data.firstName,
+                        lastName: data.lastName,
+                        fullName: `${data.firstName} ${data.lastName}`,
+                        dateOfBirth: data.dateOfBirth,
+                        gender: data.gender,
+                        pdpaConsent: data.pdpaConsent
+                    })
+                }}
+                isSubmitting={status === 'loading'}
+            />
+        )
     }
 
     return (
@@ -143,54 +167,6 @@ function ClaimPointsContent() {
                         <div className="flex flex-col items-center space-y-8 py-6 animate-in zoom-in duration-500">
                             <CheckCircle2 size={64} className="text-emerald-500" />
                             <p className="text-sm font-black uppercase tracking-widest text-emerald-600">Claim Completed</p>
-                        </div>
-                    )}
-
-                    {requirePhone && (
-                        <div className="flex flex-col items-center space-y-6 py-4 animate-in fade-in duration-500 w-full">
-                            <div className="text-center space-y-2">
-                                <p className="text-lg font-black text-[#1A1A18] uppercase tracking-tighter">Register to Claim</p>
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                                    {locale === 'en' ? 'Please enter your phone number to register and claim your points' : 'กรุณากรอกเบอร์โทรศัพท์เพื่อสมัครสมาชิกและรับแต้ม'}
-                                </p>
-                            </div>
-                            <div className="w-full space-y-3">
-                                <input 
-                                    type="text" 
-                                    id="nickname-input"
-                                    value={nickname} 
-                                    onChange={(e) => setNickname(e.target.value)}
-                                    placeholder={locale === 'en' ? 'Nickname / Name' : 'ชื่อเล่น / ชื่อเรียก'}
-                                    className="w-full h-14 border-2 border-gray-200 focus:border-[#1A1A18] outline-none px-4 text-lg font-bold rounded-none transition-all placeholder:font-medium"
-                                />
-                                <input 
-                                    type="tel" 
-                                    id="phone-input"
-                                    value={phone} 
-                                    onChange={(e) => setPhone(e.target.value)}
-                                    placeholder="08x-xxx-xxxx"
-                                    className="w-full h-14 border-2 border-gray-200 focus:border-[#1A1A18] outline-none text-center text-xl font-black rounded-none transition-all tracking-[0.2em]"
-                                />
-                            </div>
-                            <button 
-                                onClick={() => {
-                                    if (!nickname.trim()) {
-                                        alert(locale === 'en' ? 'Please enter your nickname or name' : 'กรุณากรอกชื่อเล่นหรือชื่อเรียก');
-                                        document.getElementById('nickname-input')?.focus();
-                                        return;
-                                    }
-                                    if (phone.length < 9) {
-                                        alert(locale === 'en' ? 'Invalid phone number' : 'กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง');
-                                        document.getElementById('phone-input')?.focus();
-                                        return;
-                                    }
-                                    handleClaim(phone);
-                                }}
-                                disabled={phone.length < 9 || !nickname.trim()}
-                                className="w-full h-14 bg-[#1A1A18] text-white flex items-center justify-center gap-2 text-[12px] font-black uppercase tracking-[0.2em] hover:bg-black transition-all shadow-xl disabled:opacity-50"
-                            >
-                                {locale === 'en' ? 'Register & Claim' : 'ลงทะเบียนและรับแต้ม'} <ArrowRight size={16} />
-                            </button>
                         </div>
                     )}
 

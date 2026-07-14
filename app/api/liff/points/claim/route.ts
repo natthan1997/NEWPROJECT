@@ -17,7 +17,7 @@ const createSupabaseServiceClient = () => {
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json().catch(() => ({}))
-        const { token, lineUserId, displayName, avatarUrl } = body
+        const { token, lineUserId, displayName, avatarUrl, phone, firstName, lastName, fullName, dateOfBirth, gender, pdpaConsent } = body
 
         if (!token || !lineUserId) {
             return NextResponse.json({ error: 'Missing token or lineUserId' }, { status: 400 })
@@ -50,11 +50,11 @@ export async function POST(req: NextRequest) {
             .maybeSingle()
             
         // Check by phone if lineUserId not found, in case they registered at POS
-        if (!member && body.phone) {
+        if (!member && phone) {
             const { data: memberByPhone } = await supabase
                .from('pos_members')
                .select('*')
-               .eq('phone', body.phone)
+               .eq('phone', phone)
                .maybeSingle()
                
             if (memberByPhone) {
@@ -63,20 +63,29 @@ export async function POST(req: NextRequest) {
                     line_user_id: lineUserId,
                     display_name: memberByPhone.display_name || displayName,
                     avatar_url: memberByPhone.avatar_url || avatarUrl,
-                    full_name: memberByPhone.full_name || body.fullName || undefined
+                    first_name: memberByPhone.first_name || firstName || undefined,
+                    last_name: memberByPhone.last_name || lastName || undefined,
+                    full_name: memberByPhone.full_name || fullName || `${firstName} ${lastName}`.trim() || undefined,
+                    date_of_birth: memberByPhone.date_of_birth || dateOfBirth || undefined,
+                    gender: memberByPhone.gender || gender || undefined,
+                    pdpa_consent: pdpaConsent !== undefined ? pdpaConsent : memberByPhone.pdpa_consent
                 }).eq('id', memberByPhone.id)
                 member = memberByPhone
             }
         }
         
-        if (!member || !member.phone || !member.full_name) {
-            if (!body.phone || !body.fullName) {
+        if (!member || !member.phone || !member.first_name || !member.last_name || !member.pdpa_consent) {
+            if (!phone || !firstName || !lastName || pdpaConsent === undefined) {
                 return NextResponse.json({ 
                     success: false, 
                     requirePhone: true, 
-                    message: 'Please enter your phone number and nickname to proceed',
+                    message: 'Please complete your registration to claim points',
                     currentPhone: member?.phone || '',
-                    currentFullName: member?.full_name || ''
+                    currentFirstName: member?.first_name || '',
+                    currentLastName: member?.last_name || '',
+                    currentDob: member?.date_of_birth || '',
+                    currentGender: member?.gender || '',
+                    currentPdpaConsent: member?.pdpa_consent || false
                 })
             }
         }
@@ -84,10 +93,15 @@ export async function POST(req: NextRequest) {
         if (!member) {
             const { data: newMember } = await supabase.from('pos_members').insert({
                 line_user_id: lineUserId,
-                phone: body.phone,
-                full_name: body.fullName || undefined,
+                phone: phone,
+                first_name: firstName,
+                last_name: lastName,
+                full_name: fullName || `${firstName} ${lastName}`.trim(),
                 display_name: displayName,
                 avatar_url: avatarUrl,
+                date_of_birth: dateOfBirth || null,
+                gender: gender || null,
+                pdpa_consent: pdpaConsent,
                 points: 0,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
@@ -98,8 +112,8 @@ export async function POST(req: NextRequest) {
             const updates: any = {};
             let needsUpdate = false;
             
-            if (!member.phone && body.phone) {
-                updates.phone = body.phone;
+            if (!member.phone && phone) {
+                updates.phone = phone;
                 needsUpdate = true;
             }
             if (!member.display_name && displayName) {
@@ -110,17 +124,34 @@ export async function POST(req: NextRequest) {
                 updates.avatar_url = avatarUrl;
                 needsUpdate = true;
             }
-            if (!member.full_name && body.fullName) {
-                updates.full_name = body.fullName;
+            if (!member.first_name && firstName) {
+                updates.first_name = firstName;
+                needsUpdate = true;
+            }
+            if (!member.last_name && lastName) {
+                updates.last_name = lastName;
+                needsUpdate = true;
+            }
+            if (!member.full_name && fullName) {
+                updates.full_name = fullName;
+                needsUpdate = true;
+            }
+            if (!member.date_of_birth && dateOfBirth) {
+                updates.date_of_birth = dateOfBirth;
+                needsUpdate = true;
+            }
+            if (!member.gender && gender) {
+                updates.gender = gender;
+                needsUpdate = true;
+            }
+            if (member.pdpa_consent === false && pdpaConsent === true) {
+                updates.pdpa_consent = true;
                 needsUpdate = true;
             }
             
             if (needsUpdate) {
                 updates.updated_at = new Date().toISOString();
                 
-                // If adding a phone number, make sure we handle potential conflicts
-                // (e.g. phone already exists). A simple update is fine; if it fails, 
-                // it might be due to unique constraint, which means the phone is taken.
                 const { error: updateErr } = await supabase.from('pos_members').update(updates).eq('id', member.id);
                 if (updateErr) {
                     console.error('Update Member Profile Error:', updateErr);
