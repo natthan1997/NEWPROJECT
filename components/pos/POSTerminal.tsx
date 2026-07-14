@@ -1858,8 +1858,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
           }
         })
 
-	      const { error: itemsError } = await supabase.from('pos_order_items').insert(orderItems)
-	      if (itemsError) throw itemsError
+// pos_checkout_order handles pos_order_items automatically now
 
 	      setHeldCartFingerprint(buildCartFingerprint(cart))
 	      const savedPayload = {
@@ -2176,12 +2175,14 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
               const usage = Number(ing.quantity || 0) * Number(ing.factor || 1) * Number(item.quantity)
               if (ing.ingredient_id && usage > 0) {
                 const { data: invItem } = await supabase.from('inventory_items').select('stock_quantity').eq('id', ing.ingredient_id).maybeSingle()
-                movementsToInsert.push({
-                  item_id: ing.ingredient_id,
-                  change_amount: -usage,
-                  new_quantity: invItem ? Number(invItem.stock_quantity) : 0,
-                  reason: 'sale'
-                })
+                if (invItem) {
+                  movementsToInsert.push({
+                    item_id: ing.ingredient_id,
+                    change_amount: -usage,
+                    new_quantity: Number(invItem.stock_quantity),
+                    reason: 'sale'
+                  })
+                }
               }
             }
           }
@@ -2193,12 +2194,14 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                   const usage = Number(ing.quantity || 0) * Number(ing.factor || 1) * Number(item.quantity)
                   if (ing.ingredient_id && usage > 0) {
                     const { data: invItem } = await supabase.from('inventory_items').select('stock_quantity').eq('id', ing.ingredient_id).maybeSingle()
-                    movementsToInsert.push({
-                      item_id: ing.ingredient_id,
-                      change_amount: -usage,
-                      new_quantity: invItem ? Number(invItem.stock_quantity) : 0,
-                      reason: 'sale'
-                    })
+                    if (invItem) {
+                      movementsToInsert.push({
+                        item_id: ing.ingredient_id,
+                        change_amount: -usage,
+                        new_quantity: Number(invItem.stock_quantity),
+                        reason: 'sale'
+                      })
+                    }
                   }
                 }
               }
