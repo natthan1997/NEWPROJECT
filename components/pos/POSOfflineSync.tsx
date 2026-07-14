@@ -105,21 +105,15 @@ export default function POSOfflineSync({ isDark = false, className = '' }: { isD
         // does multiple inserts. We should wrap that logic in a unified API route, but for now:
         const { order: orderData, items, payments } = payload
         
-        // Insert Order
-        const { error: orderError } = await supabase.from('pos_orders').insert(orderData)
-        if (orderError) throw orderError
-
-        // Insert Items
-        if (items && items.length > 0) {
-          const { error: itemsError } = await supabase.from('pos_order_items').insert(items)
-          if (itemsError) throw itemsError
+        const rpcPayload = {
+          order_action: 'insert',
+          order: orderData,
+          order_items: items,
+          payments: payments
         }
-
-        // Insert Payments
-        if (payments && payments.length > 0) {
-          const { error: paymentsError } = await supabase.from('pos_order_payments').insert(payments)
-          if (paymentsError) throw paymentsError
-        }
+        
+        const { error: rpcError } = await supabase.rpc('pos_checkout_order', { payload: rpcPayload })
+        if (rpcError) throw rpcError
         
         // Mark as synced
         await db.offline_orders.update(order.id, { syncStatus: 'synced' })

@@ -1,12 +1,6 @@
 const fs = require('fs');
 const file = '/Users/chenchirawongpothisan/.gemini/antigravity-ide/brain/04f5fd2b-5073-408e-bd88-2d9b3c464b1b/task.md';
 let content = fs.readFileSync(file, 'utf8');
-content = content.replace('- `[/]` 3. Enforce Checklist in `AttendanceCheckIn.tsx`', '- `[x]` 3. Enforce Checklist in `AttendanceCheckIn.tsx`');
-content = content.replace('- `[ ]` Fetch `inventory_categories` to display category names.', '- `[x]` Fetch `inventory_categories` to display category names.');
-content = content.replace("- `[ ]` Fetch today's `pos_inventory_audit_sessions` for the current user.", "- `[x]` Fetch today's `pos_inventory_audit_sessions` for the current user.");
-content = content.replace('- `[ ]` Parse `notes` to determine which categories were audited today.', '- `[x]` Parse `notes` to determine which categories were audited today.');
-content = content.replace('- `[ ]` Verify if all `required_audit_categories` were audited.', '- `[x]` Verify if all `required_audit_categories` were audited.');
-content = content.replace('- `[ ]` Block the checkout button if requirements are not met and display a warning.', '- `[x]` Block the checkout button if requirements are not met and display a warning.');
-content = content.replace('- `[ ]` 4. Verification', '- `[/]` 4. Verification');
-content = content.replace('- `[ ]` Test settings UI.', '- `[x]` Test settings UI.');
+content = content.replace('- `[/]` 4. Verification', '- `[x]` 4. Verification');
+content = content.replace('- `[ ]` Build and deploy to Vercel.', '- `[x]` Build and deploy to Vercel.');
 fs.writeFileSync(file, content);

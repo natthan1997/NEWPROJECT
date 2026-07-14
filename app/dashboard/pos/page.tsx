@@ -50,6 +50,7 @@ import POSManagementUnified from '@/components/pos/POSManagementUnified'
 import POSMenuAppConfig from '@/components/pos/POSMenuAppConfig'
 import XYLLoader from '@/components/loaders/XYLLoader'
 import POSBranchSelectModal from '@/components/pos/POSBranchSelectModal'
+import POSErrorBoundary from '@/components/pos/POSErrorBoundary'
 import { useI18n } from "@/lib/I18nContext";
 
 type POSView =
@@ -1010,7 +1011,9 @@ function RestaurantOSPageContent() {
         branchName={shopSettings?.branch_name}
         onBranchClick={profile?.role === 'admin' ? () => setShowAdminBranchSelect(true) : undefined}
       >
-        {renderView()}
+        <POSErrorBoundary>
+          {renderView()}
+        </POSErrorBoundary>
 
         {/* ADMIN BRANCH SELECTION MODAL */}
         <POSBranchSelectModal

@@ -615,35 +615,39 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
           receipt_stories: passStories
         };
 
-        for (const printer of targetPrinters) {
-            if (!printer.ip) continue;
-            
-            if (type === 'receipt') {
-               if (printer.encoding === 'graphic') {
-                   const { printGraphicModeCustomerReceipt } = await import('@/lib/graphicPrinter');
-                   await printGraphicModeCustomerReceipt(printer.ip, printOrderData, printShopData, printer.model, printer.encoding, openDrawer);
-               } else {
-                   await printCustomerReceipt(printer.ip, printOrderData, printShopData, printer.model, printer.encoding, openDrawer);
-               }
-            } else {
-               let itemsToPrint = printOrderData.items;
-               const printerCats = printer.categories || [];
-               
-               if (!printerCats.includes('all') && printerCats.length > 0) {
-                  itemsToPrint = printOrderData.items.filter((i: any) => printerCats.includes(i.category_id));
-               }
-               
-               if (itemsToPrint.length > 0) {
-                  const routedOrderData = { ...printOrderData, items: itemsToPrint };
-                  if (printer.encoding === 'graphic') {
-                      const { printGraphicModeKitchenTicket } = await import('@/lib/graphicPrinter');
-                      await printGraphicModeKitchenTicket(printer.ip, routedOrderData, printShopData, printer.model, printer.encoding);
-                  } else {
-                      await printKitchenTicket(printer.ip, routedOrderData, printShopData, printer.model, printer.encoding);
-                  }
-               }
+        const printJobs = targetPrinters.map(async (printer: any) => {
+            if (!printer.ip) return;
+            try {
+              if (type === 'receipt') {
+                 if (printer.encoding === 'graphic') {
+                     const { printGraphicModeCustomerReceipt } = await import('@/lib/graphicPrinter');
+                     await printGraphicModeCustomerReceipt(printer.ip, printOrderData, printShopData, printer.model, printer.encoding, openDrawer);
+                 } else {
+                     await printCustomerReceipt(printer.ip, printOrderData, printShopData, printer.model, printer.encoding, openDrawer);
+                 }
+              } else {
+                 let itemsToPrint = printOrderData.items;
+                 const printerCats = printer.categories || [];
+                 
+                 if (!printerCats.includes('all') && printerCats.length > 0) {
+                    itemsToPrint = printOrderData.items.filter((i: any) => printerCats.includes(i.category_id));
+                 }
+                 
+                 if (itemsToPrint.length > 0) {
+                    const routedOrderData = { ...printOrderData, items: itemsToPrint };
+                    if (printer.encoding === 'graphic') {
+                        const { printGraphicModeKitchenTicket } = await import('@/lib/graphicPrinter');
+                        await printGraphicModeKitchenTicket(printer.ip, routedOrderData, printShopData, printer.model, printer.encoding);
+                    } else {
+                        await printKitchenTicket(printer.ip, routedOrderData, printShopData, printer.model, printer.encoding);
+                    }
+                 }
+              }
+            } catch (err) {
+              console.error('Printer job failed for', printer.ip, err);
             }
-        }
+        });
+        await Promise.allSettled(printJobs);
     } catch (e: any) {
         console.error(e);
         alert('Native print error: ' + (e?.message || JSON.stringify(e)));
@@ -1733,6 +1737,11 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     }
     if (!ensureDeliveryDetailsReady()) return
 
+    if (typeof window !== 'undefined' && !navigator.onLine) {
+      alert('ไม่สามารถพักบิลในโหมด Offline ได้ กรุณาชำระเงินทันที');
+      return;
+    }
+
     if (orderType === 'dine_in' && !selectedTable) {
       alert('กรุณาเลือกโต๊ะก่อนพักบิลสำหรับ Dine-in ครับ')
       setShowTableModal(true)
@@ -1751,111 +1760,83 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 	      let existingComparableItems: any[] = []
 
 	      if (editingOrderId) {
-	        const { data: existingRows, error: existingRowsError } = await supabase
-	          .from('pos_order_items')
-	          .select(`*, item:pos_menu_items!item_id(*)`)
-	          .eq('order_id', editingOrderId)
-	        if (existingRowsError) throw existingRowsError
-	        existingComparableItems = (existingRows || []).map((row: any) => ({
-	          id: row.item_id,
-	          item_id: row.item_id,
-	          name: row.item?.name || 'Unknown Item',
-	          quantity: row.quantity,
-	          selected_modifiers: row.selected_modifiers || [],
-	          category_id: row.item?.category_id || 'uncategorized',
-	        }))
+          const { data: existingRows, error: existingRowsError } = await supabase
+            .from('pos_order_items')
+            .select(`*, item:pos_menu_items!item_id(*)`)
+            .eq('order_id', editingOrderId)
+          if (existingRowsError) throw existingRowsError
+          existingComparableItems = (existingRows || []).map((row: any) => ({
+            id: row.item_id,
+            item_id: row.item_id,
+            name: row.item?.name || 'Unknown Item',
+            quantity: row.quantity,
+            selected_modifiers: row.selected_modifiers || [],
+            category_id: row.item?.category_id || 'uncategorized',
+          }))
 
-	        const newItems = computeNewCartItems(cart, existingComparableItems)
-	        if (newItems.length === 0) {
-	          throw new Error('บิลนี้พักไว้แล้ว กรุณาเพิ่มรายการใหม่ก่อนส่งออเดอร์เพิ่ม')
-	        }
-
-	        const identity = await requestOrderIdentity(editingOrderId)
-	        finalOrderNumber = identity.orderNumber
-	        finalQueueNumber = identity.queueNumber
-	        const orderUpdatePayload: any = {
-	          total_amount: rawCartSubTotal,
-          net_total: cartTotal,
-          tax_amount: vatAmount,
-          service_charge_amount: serviceChargeAmount,
-          discount_amount: discountTotalValue + itemDiscountTotal,
-          customer_id: selectedCustomer?.id,
-          order_type: orderType,
-          table_id: selectedTable?.id,
-          table_number: selectedTable?.table_number,
-	          queue_number: identity.queueNumber,
-          delivery_platform: orderType === 'delivery' ? deliveryPlatform : null,
-          reference_name: orderType === 'delivery' && platformOrderId ? platformOrderId.trim() : null,
-          updated_at: new Date().toISOString(),
-        }
-        const { error: updateError } = await supabase
-          .from('pos_orders')
-          .update(orderUpdatePayload)
-          .eq('id', editingOrderId)
-        if (updateError) {
-          if (isMissingQueueColumnError(updateError)) {
-            const fallbackUpdatePayload = { ...orderUpdatePayload }
-            delete fallbackUpdatePayload.queue_number
-            const { error: fallbackUpdateError } = await supabase
-              .from('pos_orders')
-              .update(fallbackUpdatePayload)
-              .eq('id', editingOrderId)
-            if (fallbackUpdateError) throw fallbackUpdateError
-          } else {
-            throw updateError
+          const newItems = computeNewCartItems(cart, existingComparableItems)
+          if (newItems.length === 0) {
+            throw new Error('บิลนี้พักไว้แล้ว กรุณาเพิ่มรายการใหม่ก่อนส่งออเดอร์เพิ่ม')
           }
-        }
-        await supabase.from('pos_order_items').delete().eq('order_id', editingOrderId).neq('status', 'cancelled')
-		      } else {
-		        const identity = await requestOrderIdentity()
-		        finalOrderNumber = identity.orderNumber
-		        finalQueueNumber = identity.queueNumber
-		        const orderInsertPayload: any = {
-		          order_number: identity.orderNumber,
-          staff_id: profile?.id,
-          shift_id: activeShift?.id,
-          branch_id: shopSettings?.branch_id || activeShift?.branch_id || null,
-          status: 'pending',
-          total_amount: rawCartSubTotal,
-          net_total: cartTotal,
-          tax_amount: vatAmount,
-          service_charge_amount: serviceChargeAmount,
-          discount_amount: discountTotalValue + itemDiscountTotal,
-          customer_id: selectedCustomer?.id,
-          order_type: orderType,
-          table_id: selectedTable?.id,
-          table_number: selectedTable?.table_number,
-	          queue_number: identity.queueNumber,
-          order_source: 'pos',
-          delivery_platform: orderType === 'delivery' ? deliveryPlatform : null,
-          delivery_gp_amount: 0,
-          reference_name: orderType === 'delivery' && platformOrderId ? platformOrderId.trim() : null,
+
+          const identity = await requestOrderIdentity(editingOrderId)
+          finalOrderNumber = identity.orderNumber
+          finalQueueNumber = identity.queueNumber
+        } else {
+          const identity = await requestOrderIdentity()
+          finalOrderNumber = identity.orderNumber
+          finalQueueNumber = identity.queueNumber
         }
 
-        const { data: newOrder, error: insertError } = await supabase
-          .from('pos_orders')
-          .insert(orderInsertPayload)
-          .select()
-          .single()
+        const payload: any = {
+          order_action: editingOrderId ? 'update' : 'insert',
+          order_id: editingOrderId || undefined,
+          order: {
+            order_number: finalOrderNumber,
+            staff_id: profile?.id,
+            shift_id: activeShift?.id,
+            branch_id: shopSettings?.branch_id || activeShift?.branch_id || null,
+            status: 'pending',
+            total_amount: rawCartSubTotal,
+            net_total: cartTotal,
+            tax_amount: vatAmount,
+            service_charge_amount: serviceChargeAmount,
+            discount_amount: discountTotalValue + itemDiscountTotal,
+            customer_id: selectedCustomer?.id,
+            order_type: orderType,
+            table_id: selectedTable?.id,
+            table_number: selectedTable?.table_number,
+            queue_number: finalQueueNumber,
+            order_source: 'pos',
+            paid_at: null,
+            delivery_platform: orderType === 'delivery' ? deliveryPlatform : null,
+            delivery_gp_amount: 0,
+            reference_name: orderType === 'delivery' && platformOrderId ? platformOrderId.trim() : null,
+          },
+          order_items: cart.map(item => {
+            const modsPrice = item.selected_modifiers?.reduce((a: number, m: any) => a + ((m.price_adjustment || 0) * (m.qty || 1)), 0) || 0;
+            return {
+              item_id: item.id,
+              quantity: item.quantity,
+              unit_price: getEffectiveItemUnitPrice(item),
+              cost_price: item.cost_price || 0,
+              subtotal: ((getEffectiveItemUnitPrice(item) + modsPrice) * item.quantity) - (item.discount_amount || 0),
+              selected_modifiers: item.selected_modifiers,
+              customer_name: item.customer_name || 'ลูกค้า',
+              discount_amount: item.discount_amount || 0,
+              discount_reason: item.discount_reason || null,
+            }
+          })
+        };
 
-        if (insertError) {
-          if (isMissingQueueColumnError(insertError)) {
-            const fallbackInsertPayload = { ...orderInsertPayload }
-            delete fallbackInsertPayload.queue_number
-            const { data: fallbackNewOrder, error: fallbackInsertError } = await supabase
-              .from('pos_orders')
-              .insert(fallbackInsertPayload)
-              .select()
-              .single()
-            if (fallbackInsertError) throw fallbackInsertError
-            finalOrderId = fallbackNewOrder.id
-          } else {
-            throw insertError
-          }
-	        } else {
-	          finalOrderId = newOrder.id
-	        }
-		      }
+        const { data: rpcResult, error: rpcError } = await supabase.rpc('pos_checkout_order', { payload });
+        
+        if (rpcError) {
+          console.error('RPC HoldOrder Error:', rpcError);
+          throw rpcError;
+        }
+
+        finalOrderId = rpcResult?.order_id || editingOrderId;
 
 	      const newItemsForPrint = editingOrderId
 	        ? computeNewCartItems(cart, existingComparableItems)
@@ -2144,49 +2125,11 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 	      finalOrderNumber = identity.orderNumber
 	      finalQueueNumber = identity.queueNumber
 
-	      if (editingOrderId) {
-	        const orderUpdatePayload: any = {
-          status: newStatus,
-          total_amount: rawCartSubTotal,
-          net_total: cartTotal,
-          tax_amount: vatAmount,
-          service_charge_amount: serviceChargeAmount,
-          discount_amount: discountTotalValue + itemDiscountTotal,
-          customer_id: selectedCustomer?.id,
-          order_type: orderType,
-          table_id: selectedTable?.id,
-          table_number: selectedTable?.table_number,
-	          queue_number: identity.queueNumber,
-          payment_method: method,
-          paid_at: new Date().toISOString(),
-          delivery_platform: orderType === 'delivery' ? deliveryPlatform : null,
-          delivery_gp_amount: deliveryGpAmount,
-          reference_name: orderType === 'delivery' && platformOrderId ? platformOrderId.trim() : null,
-        }
-        const { error: updateError } = await supabase
-          .from('pos_orders')
-          .update(orderUpdatePayload)
-          .eq('id', editingOrderId)
-
-        if (updateError) {
-          if (isMissingQueueColumnError(updateError)) {
-            const fallbackUpdatePayload = { ...orderUpdatePayload }
-            delete fallbackUpdatePayload.queue_number
-            const { error: fallbackUpdateError } = await supabase
-              .from('pos_orders')
-              .update(fallbackUpdatePayload)
-              .eq('id', editingOrderId)
-            if (fallbackUpdateError) throw fallbackUpdateError
-          } else {
-            throw updateError
-          }
-        }
-	        await supabase.from('pos_order_items').delete().eq('order_id', editingOrderId).neq('status', 'cancelled')
-	      } else {
-	        finalOrderNumber = identity.orderNumber
-	        finalQueueNumber = identity.queueNumber
-	        const orderInsertPayload: any = {
-	          order_number: identity.orderNumber,
+	      const payload: any = {
+        order_action: editingOrderId ? 'update' : 'insert',
+        order_id: editingOrderId || undefined,
+        order: {
+          order_number: finalOrderNumber,
           staff_id: profile?.id,
           shift_id: activeShift?.id,
           branch_id: activeShift?.branch_id || shopSettings?.branch_id || null,
@@ -2200,108 +2143,66 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
           order_type: orderType,
           table_id: selectedTable?.id,
           table_number: selectedTable?.table_number,
-	          queue_number: identity.queueNumber,
+          queue_number: finalQueueNumber,
           payment_method: method,
           order_source: 'pos',
           paid_at: new Date().toISOString(),
           delivery_platform: orderType === 'delivery' ? deliveryPlatform : null,
           delivery_gp_amount: deliveryGpAmount,
           reference_name: orderType === 'delivery' && platformOrderId ? platformOrderId.trim() : null,
-        }
-        const { data: order, error: orderError } = await supabase
-          .from('pos_orders')
-          .insert(orderInsertPayload)
-          .select()
-          .single()
-
-        if (orderError) {
-          if (isMissingQueueColumnError(orderError)) {
-            const fallbackInsertPayload = { ...orderInsertPayload }
-            delete fallbackInsertPayload.queue_number
-            const { data: fallbackOrder, error: fallbackOrderError } = await supabase
-              .from('pos_orders')
-              .insert(fallbackInsertPayload)
-              .select()
-              .single()
-            if (fallbackOrderError) throw fallbackOrderError
-            finalOrderId = fallbackOrder.id
-          } else {
-            throw orderError
+        },
+        order_items: cart.map(item => {
+          const modsPrice = item.selected_modifiers?.reduce((a: number, m: any) => a + ((m.price_adjustment || 0) * (m.qty || 1)), 0) || 0;
+          return {
+            item_id: item.id,
+            quantity: item.quantity,
+            unit_price: getEffectiveItemUnitPrice(item),
+            cost_price: item.cost_price || 0,
+            subtotal: ((getEffectiveItemUnitPrice(item) + modsPrice) * item.quantity) - (item.discount_amount || 0),
+            selected_modifiers: item.selected_modifiers,
+            customer_name: item.customer_name || 'ลูกค้า',
+            discount_amount: item.discount_amount || 0,
+            discount_reason: item.discount_reason || null,
           }
-        } else {
-          finalOrderId = order.id
-        }
-      }
+        }),
+        payments: [{
+          payment_method: method,
+          amount: amountToPay,
+          status: 'paid'
+        }]
+      };
 
-      const orderItems = cart.map(item => {
-        const modsPrice = item.selected_modifiers?.reduce((a: number, m: any) => a + ((m.price_adjustment || 0) * (m.qty || 1)), 0) || 0;
-        return {
-          order_id: finalOrderId,
-          item_id: item.id,
-          quantity: item.quantity,
-          unit_price: getEffectiveItemUnitPrice(item),
-          cost_price: item.cost_price || 0,
-          subtotal: ((getEffectiveItemUnitPrice(item) + modsPrice) * item.quantity) - (item.discount_amount || 0),
-          selected_modifiers: item.selected_modifiers,
-          customer_name: item.customer_name || 'ลูกค้า',
-          discount_amount: item.discount_amount || 0,
-          discount_reason: item.discount_reason || null,
-        }
-      })
-      const { error: itemsError } = await supabase.from('pos_order_items').insert(orderItems)
-      if (itemsError) throw itemsError
-
-      // Log inventory movements for recipes
       try {
         const movementsToInsert: any[] = []
         for (const item of cart) {
-          // 1. Menu Item Recipes
           if (item.recipe_data && Array.isArray(item.recipe_data)) {
             for (const ing of item.recipe_data) {
-              if (ing.order_types && Array.isArray(ing.order_types) && !ing.order_types.includes(orderType)) {
-                continue;
-              }
+              if (ing.order_types && Array.isArray(ing.order_types) && !ing.order_types.includes(orderType)) continue;
               const usage = Number(ing.quantity || 0) * Number(ing.factor || 1) * Number(item.quantity)
               if (ing.ingredient_id && usage > 0) {
-                const { data: invItem } = await supabase
-                  .from('inventory_items')
-                  .select('stock_quantity')
-                  .eq('id', ing.ingredient_id)
-                  .maybeSingle()
-                
+                const { data: invItem } = await supabase.from('inventory_items').select('stock_quantity').eq('id', ing.ingredient_id).maybeSingle()
                 movementsToInsert.push({
                   item_id: ing.ingredient_id,
                   change_amount: -usage,
                   new_quantity: invItem ? Number(invItem.stock_quantity) : 0,
-                  reason: 'sale',
-                  reference_id: finalOrderId
+                  reason: 'sale'
                 })
               }
             }
           }
-
-          // 2. Modifier Recipes
           if (item.selected_modifiers && Array.isArray(item.selected_modifiers)) {
             for (const mod of item.selected_modifiers) {
               if (mod.recipe_data && Array.isArray(mod.recipe_data)) {
                 for (const ing of mod.recipe_data) {
-                  if (ing.order_types && Array.isArray(ing.order_types) && !ing.order_types.includes(orderType)) {
-                    continue;
-                  }
+                  if (ing.order_types && Array.isArray(ing.order_types) && !ing.order_types.includes(orderType)) continue;
                   const usage = Number(ing.quantity || 0) * Number(ing.factor || 1) * Number(item.quantity)
                   if (ing.ingredient_id && usage > 0) {
-                    const { data: invItem } = await supabase
-                      .from('inventory_items')
-                      .select('stock_quantity')
-                      .eq('id', ing.ingredient_id)
-                      .maybeSingle()
-                      
+                    const { data: invItem } = await supabase.from('inventory_items').select('stock_quantity').eq('id', ing.ingredient_id).maybeSingle()
                     movementsToInsert.push({
                       item_id: ing.ingredient_id,
                       change_amount: -usage,
                       new_quantity: invItem ? Number(invItem.stock_quantity) : 0,
-                      reason: 'sale',
-                      reference_id: finalOrderId
+                      reason: 'sale'
                     })
                   }
                 }
@@ -2309,62 +2210,32 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             }
           }
         }
-
         if (movementsToInsert.length > 0) {
-          await supabase.from('inventory_movements').insert(movementsToInsert)
+          payload.movements = movementsToInsert;
         }
       } catch (movErr) {
-        console.error('Failed to log inventory movements:', movErr)
+        console.error('Failed to prepare inventory movements:', movErr)
       }
 
-      await supabase.from('pos_order_payments').insert({
-        order_id: finalOrderId,
-        payment_method: method,
-        amount: amountToPay,
-      })
-
       if (selectedCustomer?.id) {
-        // DEDUCT POINTS IF REDEEMED
+        payload.member_id = selectedCustomer.id;
+        payload.points_history = [];
+        
         if (redeemPointsAmount && parseInt(redeemPointsAmount) > 0) {
-          const pointsToDeduct = parseInt(redeemPointsAmount)
-          try {
-            const currentPoints = selectedCustomer.points || 0;
-            await supabase.from('pos_members').update({
-              points: currentPoints - pointsToDeduct
-            }).eq('id', selectedCustomer.id)
-            
-            const deductHistoryObj: any = {
-              member_id: selectedCustomer.id,
-              order_id: finalOrderId,
-              points: -pointsToDeduct,
-              points_change: -pointsToDeduct,
-              type: 'redeem',
-              description: `Redeemed ${pointsToDeduct} pts for POS Order #${editingOrderNumber || (finalOrderId ? (finalOrderId as string).slice(0, 8) : 'NEW')}`,
-            }
-            
-            const { error: dHistErr } = await supabase.from('pos_points_history').insert(deductHistoryObj)
-            if (dHistErr && dHistErr.message.includes('column "description"')) {
-              const { description, ...restObj } = deductHistoryObj;
-              await supabase.from('pos_points_history').insert(restObj)
-            }
-          } catch (dErr) {
-            console.error('Point Deduction Error:', dErr)
-          }
+          const pts = parseInt(redeemPointsAmount);
+          payload.points_to_deduct = pts;
+          payload.points_history.push({
+            points: -pts,
+            points_change: -pts,
+            type: 'redeem',
+            description: `Redeemed ${pts} pts for POS Order`
+          });
         }
         
-        // MARK COUPON AS USED
         if (appliedCouponId) {
-          try {
-            await supabase.from('pos_member_coupons').update({
-              status: 'used',
-              used_at: new Date().toISOString()
-            }).eq('id', appliedCouponId)
-          } catch (err) {
-            console.error('Coupon Use Error:', err)
-          }
+          payload.coupon_id_to_mark_used = appliedCouponId;
         }
 
-        // EARN NEW POINTS
         const earnThb = shopSettings?.opening_hours?.loyalty_earn_thb !== undefined ? shopSettings.opening_hours.loyalty_earn_thb : (shopSettings?.opening_hours?.loyalty_earn_rate || 100);
         const earnPts = shopSettings?.opening_hours?.loyalty_earn_pts !== undefined ? shopSettings.opening_hours.loyalty_earn_pts : 1;
         
@@ -2384,9 +2255,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
               activeCampaigns.forEach(camp => {
                 if (camp.applicable_categories && camp.applicable_categories.length > 0) {
                   const match = camp.applicable_categories.find((c: string) => c.toLowerCase() === catName.toLowerCase());
-                  if (match) {
-                    multiplier = Math.max(multiplier, camp.multiplier);
-                  }
+                  if (match) multiplier = Math.max(multiplier, camp.multiplier);
                 } else {
                    multiplier = Math.max(multiplier, camp.multiplier);
                 }
@@ -2400,50 +2269,31 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         }
         
         if (pointsEarned > 0) {
-          try {
-            const { data: memberData } = await supabase.from('pos_members').select('points, total_accumulated_points').eq('id', selectedCustomer.id).single();
-            const currentPoints = memberData?.points || 0;
-            const currentXP = memberData?.total_accumulated_points ?? memberData?.points ?? 0;
-            
-            await supabase.from('pos_members').update({
-              points: currentPoints + pointsEarned,
-              total_accumulated_points: currentXP + pointsEarned
-            }).eq('id', selectedCustomer.id)
-            const historyObj: any = {
-              member_id: selectedCustomer.id,
-              order_id: finalOrderId,
-              points: pointsEarned,
-              points_change: pointsEarned,
-              type: 'earn',
-            }
-
-            const { error: histErr } = await supabase.from('pos_points_history').insert({
-              ...historyObj,
-              description: `Earned from POS Order #${editingOrderNumber || (finalOrderId ? (finalOrderId as string).slice(0, 8) : 'NEW')}`,
-            })
-
-            if (
-              histErr &&
-              histErr.message.includes(
-                'column "description" of relation "pos_points_history" does not exist'
-              )
-            ) {
-              await supabase.from('pos_points_history').insert(historyObj)
-            }
-          } catch (pErr) {
-            console.error('Point Award Error:', pErr)
-          }
+          payload.points_earned = pointsEarned;
+          payload.points_history.push({
+            points: pointsEarned,
+            points_change: pointsEarned,
+            type: 'earn',
+            description: `Earned from POS Order`
+          });
         }
       }
 
       if (newStatus === 'completed' && selectedTable?.id) {
-        try {
-          await supabase.from('pos_tables').update({ status: 'available' }).eq('id', selectedTable.id)
-          await supabase.from('pos_tables').update({ parent_table_id: null }).eq('parent_table_id', selectedTable.id)
-          fetchTables()
-        } catch (tableErr) {
-          console.error('Failed to update table status:', tableErr)
-        }
+        payload.table_id_to_clear = selectedTable.id;
+      }
+
+      const { data: rpcResult, error: rpcError } = await supabase.rpc('pos_checkout_order', { payload });
+      
+      if (rpcError) {
+        console.error('RPC Checkout Error:', rpcError);
+        throw rpcError;
+      }
+
+      finalOrderId = rpcResult?.order_id || editingOrderId;
+
+      if (newStatus === 'completed' && selectedTable?.id) {
+        fetchTables();
       }
 
       // --- Hardware Printing Logic ---
@@ -2504,14 +2354,11 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
           // Only open drawer for cash payments - NO auto printing on payment confirm
           if (method === 'cash') {
             const receiptPrinters = printers.filter((p: any) => p.type === 'receipt' || p.type === 'both')
-            for (const rp of receiptPrinters) {
-               if (!rp.ip) continue;
-               await printOpenDrawer(rp.ip)
-            }
-            // Fallback: if no printers in settings, try localStorage IP
-            if (receiptPrinters.length === 0) {
+            if (receiptPrinters.length > 0) {
+              Promise.allSettled(receiptPrinters.map(rp => rp.ip ? printOpenDrawer(rp.ip) : Promise.resolve())).catch(console.error);
+            } else {
               const fallbackIp = typeof window !== 'undefined' ? localStorage.getItem('xylem_printer_ip') : null
-              if (fallbackIp) await printOpenDrawer(fallbackIp)
+              if (fallbackIp) printOpenDrawer(fallbackIp).catch(console.error);
             }
           }
 
@@ -3152,6 +2999,10 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                       }
                       if (orderType === 'delivery') {
                         setShowDeliveryCheckoutModal(true)
+                        return
+                      }
+                      if (typeof window !== 'undefined' && !navigator.onLine) {
+                        setShowPaymentModal(true)
                         return
                       }
                       if (!selectedCustomer) {
