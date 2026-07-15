@@ -224,6 +224,29 @@ interface POSTerminalProps {
   setOrderType: React.Dispatch<React.SetStateAction<'dine_in' | 'takeaway' | 'delivery'>>
   deliveryPlatform: string
   setDeliveryPlatform: React.Dispatch<React.SetStateAction<string>>
+  // Lifted Coupon States & Handlers
+  claimingCoupons: any[]
+  setClaimingCoupons: React.Dispatch<React.SetStateAction<any[]>>
+  activeCouponClaimRequest: any | null
+  setActiveCouponClaimRequest: React.Dispatch<React.SetStateAction<any | null>>
+  appliedCouponId: string
+  setAppliedCouponId: React.Dispatch<React.SetStateAction<string>>
+  activeCoupon: any | null
+  setActiveCoupon: React.Dispatch<React.SetStateAction<any | null>>
+  pendingModalTab: 'orders' | 'coupons'
+  setPendingModalTab: React.Dispatch<React.SetStateAction<'orders' | 'coupons'>>
+  activeCategoryId: string | null
+  setActiveCategoryId: React.Dispatch<React.SetStateAction<string | null>>
+  handleAcceptCouponClaim: (claim: any) => void
+  handleRejectCouponClaim: (claim: any) => Promise<void>
+  discountValue: number
+  setDiscountValue: React.Dispatch<React.SetStateAction<number>>
+  discountRate: number
+  setDiscountRate: React.Dispatch<React.SetStateAction<number>>
+  discountType: 'fixed' | 'percent'
+  setDiscountType: React.Dispatch<React.SetStateAction<'fixed' | 'percent'>>
+  discountName: string
+  setDiscountName: React.Dispatch<React.SetStateAction<string>>
 }
 
 export default function POSTerminal({
@@ -271,6 +294,28 @@ export default function POSTerminal({
   setOrderType,
   deliveryPlatform,
   setDeliveryPlatform,
+  claimingCoupons,
+  setClaimingCoupons,
+  activeCouponClaimRequest,
+  setActiveCouponClaimRequest,
+  appliedCouponId,
+  setAppliedCouponId,
+  activeCoupon,
+  setActiveCoupon,
+  pendingModalTab,
+  setPendingModalTab,
+  activeCategoryId,
+  setActiveCategoryId,
+  handleAcceptCouponClaim,
+  handleRejectCouponClaim,
+  discountValue,
+  setDiscountValue,
+  discountRate,
+  setDiscountRate,
+  discountType,
+  setDiscountType,
+  discountName,
+  setDiscountName,
 }: POSTerminalProps) {
   // --- INTERNAL STATES ---
   const router = useRouter()
@@ -281,7 +326,6 @@ export default function POSTerminal({
   const [successAudio, setSuccessAudio] = useState<HTMLAudioElement | null>(null)
   const [selectedRecipeItem, setSelectedRecipeItem] = useState<any | null>(null)
 
-  const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null)
 
   const { locale } = useI18n();
   const [showPointModal, setShowPointModal] = useState(false)
@@ -292,11 +336,7 @@ export default function POSTerminal({
   const [isProcessing, setIsProcessing] = useState(false)
 
   const [paymentSplits, setPaymentSplits] = useState<any[]>([])
-  const [discountValue, setDiscountValue] = useState(0) // Fixed amount or percentage
-  const [discountRate, setDiscountRate] = useState(0) // For UI input
-  const [discountType, setDiscountType] = useState<'fixed' | 'percent'>('percent')
-  const [discountName, setDiscountName] = useState('')
-  const [appliedCouponId, setAppliedCouponId] = useState<string>('')
+
 
   // --- BILL DISCOUNT MODAL STATE ---
   const [showBillDiscountModal, setShowBillDiscountModal] = useState(false)
@@ -339,8 +379,6 @@ const [isPinModalOpen, setIsPinModalOpen] = useState(false)
   const [pinTitle, setPinTitle] = useState('')
   const [pinDesc, setPinDesc] = useState('')
 
-  // --- REAL-TIME COUPONS STATES ---
-  const [claimingCoupons, setClaimingCoupons] = useState<any[]>([])
   const [couponSelectorCoupon, setCouponSelectorCoupon] = useState<any | null>(null)
 
   // Cash Payment Modal States
@@ -425,6 +463,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     setDiscountType('percent')
     setDiscountName('')
     setAppliedCouponId('')
+    setActiveCoupon(null)
     
     if (typeof window !== 'undefined') {
       localStorage.removeItem('pos_saved_cart')
@@ -871,23 +910,30 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
               </button>
 
               <button
-                onClick={() => setShowPendingModal(true)}
+                onClick={() => {
+                  if (claimingCoupons.filter(c => c.id !== appliedCouponId).length > 0 && qrIncomingOrders.length === 0) {
+                    setPendingModalTab('coupons');
+                  } else {
+                    setPendingModalTab('orders');
+                  }
+                  setShowPendingModal(true);
+                }}
                 className={`relative flex h-9 w-9 sm:h-10 sm:w-10 rounded-full flex-col items-center justify-center border font-bold transition-all ${
-                  qrIncomingOrders.length > 0 
+                  qrIncomingOrders.length > 0 || claimingCoupons.filter(c => c.id !== appliedCouponId).length > 0
                     ? 'border-orange-400 bg-orange-500 text-white shadow-lg animate-pulse hover:bg-orange-600' 
                     : suspendedOrders.length > 0 
                       ? 'border-orange-200 bg-orange-50 text-orange-600 shadow-sm hover:bg-orange-100' 
                       : 'border-[#F0F0E8] bg-white text-gray-300 hover:bg-gray-50'
                 }`}
-                title={locale === 'en' ? 'ออเดอร์รอดำเนินการ' : locale === 'zh' ? 'ออเดอร์รอดำเนินการ' : 'ออเดอร์รอดำเนินการ'}
+                title={locale === 'en' ? 'ออเดอร์และคูปองรอดำเนินการ' : locale === 'zh' ? 'ออเดอร์และคูปองรอดำเนินการ' : 'ออเดอร์และคูปองรอดำเนินการ'}
               >
-                {qrIncomingOrders.length > 0 
-                  ? <BellRing size={16} /> 
+                {qrIncomingOrders.length > 0 || claimingCoupons.filter(c => c.id !== appliedCouponId).length > 0
+                  ? <BellRing size={16} className={claimingCoupons.filter(c => c.id !== appliedCouponId).length > 0 ? "animate-bounce" : ""} /> 
                   : <History size={16} />
                 }
-                {suspendedOrders.length > 0 && (
+                {(suspendedOrders.length + claimingCoupons.filter(c => c.id !== appliedCouponId).length) > 0 && (
                   <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#FF5F1F] text-[8px] font-black text-white ring-1 ring-white">
-                    {suspendedOrders.length}
+                    {suspendedOrders.length + claimingCoupons.filter(c => c.id !== appliedCouponId).length}
                   </span>
                 )}
               </button>
@@ -1312,43 +1358,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     return () => window.removeEventListener('applyPOSCoupon', handleApplyCoupon);
   }, [cart]);
 
-  const handleAcceptCouponClaim = (claim: any) => {
-    if (claim.member) {
-      setSelectedCustomer(claim.member);
-    }
 
-    setDiscountType(claim.discount_type === 'percent' ? 'percent' : 'fixed');
-    if (claim.discount_type === 'free_item') {
-      if (cart.length > 0) {
-        const sorted = [...cart].sort((a, b) => (a.sale_price || 0) - (b.sale_price || 0));
-        setDiscountValue(sorted[0].sale_price || 0);
-      } else {
-        setDiscountValue(0);
-      }
-    } else {
-      setDiscountValue(Number(claim.discount_value) || 0);
-      if (claim.discount_type === 'percent') setDiscountRate(Number(claim.discount_value) || 0);
-    }
-    setDiscountName(claim.coupon_name);
-    setAppliedCouponId(claim.id);
-
-    setClaimingCoupons(prev => prev.filter(c => c.id !== claim.id));
-    alert(`นำคูปอง "${claim.coupon_name}" ไปประยุกต์ใช้กับสมาชิก "${claim.member?.display_name || claim.member?.full_name}" สำเร็จ!`);
-  };
-
-  const handleRejectCouponClaim = async (claim: any) => {
-    if (!confirm('ยืนยันที่จะปฏิเสธ/ยกเลิก การใช้คูปองนี้ใช่หรือไม่? คูปองจะถูกส่งกลับไปในหน้ารายการของลูกค้าตามปกติ')) return;
-    try {
-      const { error } = await supabase
-        .from('pos_member_coupons')
-        .update({ status: 'active' })
-        .eq('id', claim.id);
-      if (error) throw error;
-      setClaimingCoupons(prev => prev.filter(c => c.id !== claim.id));
-    } catch (err: any) {
-      alert("เกิดข้อผิดพลาดในการยกเลิก: " + err.message);
-    }
-  };
 
   useEffect(() => {
     initData()
@@ -1415,7 +1425,6 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     fetchTotalPaid()
   }, [editingOrderId])
 
-  // --- Realtime Tables Listener ---
   useEffect(() => {
     const channel = supabase
       .channel('pos_terminal_tables_watch')
@@ -1448,6 +1457,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       supabase.removeChannel(channel)
     }
   }, [])
+
 
 
   const fetchItems = async (forceRefresh = false) => {
@@ -1626,32 +1636,101 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     setIsCartBumping(true)
     setTimeout(() => setIsCartBumping(false), 400)
 
+    let discountAmount = 0;
+    let isFreeByCoupon = false;
+
+    if (activeCoupon && activeCoupon.discount_type === 'free_item') {
+      const appItems = activeCoupon.applicable_items || [];
+      const appCategories = activeCoupon.applicable_categories || [];
+
+      const matchesItem = appItems.length === 0 || appItems.includes(item.id);
+      const matchesCategory = appCategories.length === 0 || appCategories.includes(item.category_id);
+
+      const isApplicable = matchesItem && matchesCategory;
+
+      if (isApplicable) {
+        isFreeByCoupon = true;
+        const basePrice = getEffectiveItemUnitPrice(item);
+        const modsPrice = modifiers.reduce((ma: number, m: any) => ma + ((m.price_adjustment || 0) * (m.qty || 1)), 0) || 0;
+        const unitPrice = basePrice + modsPrice;
+        discountAmount = unitPrice * 1;
+        
+        // Clear activeCoupon so only the first added item is free!
+        setActiveCoupon(null);
+
+        // If quantity is more than 1, split it: add 1 free item, and add (qty - 1) paid items
+        if (qty > 1) {
+          const paidQty = qty - 1;
+          setCart(prev => {
+            const existingPaidIdx = prev.findIndex(
+              i => i.id === item.id && 
+                   JSON.stringify(i.selected_modifiers) === JSON.stringify(modifiers) &&
+                   !i.is_free_coupon_item
+            );
+            if (existingPaidIdx > -1) {
+              const copy = [...prev];
+              copy[existingPaidIdx].quantity += paidQty;
+              return copy;
+            }
+            return [...prev, {
+              ...item,
+              quantity: paidQty,
+              selected_modifiers: modifiers
+            }];
+          });
+          qty = 1;
+        }
+      }
+    }
+
     setCart(prev => {
       const existingIdx = prev.findIndex(
-        i => i.id === item.id && JSON.stringify(i.selected_modifiers) === JSON.stringify(modifiers)
+        i => i.id === item.id && 
+             JSON.stringify(i.selected_modifiers) === JSON.stringify(modifiers) &&
+             Boolean(i.is_free_coupon_item) === isFreeByCoupon
       )
       if (existingIdx > -1) {
         const copy = [...prev]
         copy[existingIdx].quantity += qty
+        if (isFreeByCoupon) {
+          const basePrice = getEffectiveItemUnitPrice(item);
+          const modsPrice = modifiers.reduce((ma: number, m: any) => ma + ((m.price_adjustment || 0) * (m.qty || 1)), 0) || 0;
+          const unitPrice = basePrice + modsPrice;
+          copy[existingIdx].discount_amount = unitPrice * 1;
+        }
         return copy
       }
-      return [...prev, { ...item, quantity: qty, selected_modifiers: modifiers }]
+      return [...prev, { 
+        ...item, 
+        quantity: qty, 
+        selected_modifiers: modifiers, 
+        discount_amount: discountAmount > 0 ? discountAmount : undefined,
+        is_free_coupon_item: isFreeByCoupon 
+      }]
     })
     setModifierModalItem(null)
   }
 
-  const updateQuantity = (id: string, change: number, modifiers: any[] = []) => {
+  const updateQuantity = (id: string, change: number, modifiers: any[] = [], isFreeCouponItem: boolean = false) => {
     setCart(prev =>
       prev.map(i => {
-        if (i.id === id && JSON.stringify(i.selected_modifiers) === JSON.stringify(modifiers)) {
-          return { ...i, quantity: Math.max(1, i.quantity + change) }
+        if (i.id === id && JSON.stringify(i.selected_modifiers) === JSON.stringify(modifiers) && Boolean(i.is_free_coupon_item) === isFreeCouponItem) {
+          const newQty = Math.max(1, i.quantity + change);
+          let newDiscount = i.discount_amount || 0;
+          if (i.is_free_coupon_item) {
+            const basePrice = getEffectiveItemUnitPrice(i);
+            const modsPrice = i.selected_modifiers?.reduce((ma: number, m: any) => ma + ((m.price_adjustment || 0) * (m.qty || 1)), 0) || 0;
+            const unitPrice = basePrice + modsPrice;
+            newDiscount = unitPrice * 1; // Only 1 free item!
+          }
+          return { ...i, quantity: newQty, discount_amount: newDiscount }
         }
         return i
       })
     )
   }
 
-  const removeFromCart = async (id: string, modifiers: any[] = []) => {
+  const removeFromCart = async (id: string, modifiers: any[] = [], isFreeCouponItem: boolean = false) => {
     // If we are editing an existing order, confirm and delete from DB immediately
     if (editingOrderId) {
       const confirmDelete = window.confirm(locale === 'en' ? 'Are you sure you want to cancel this item? It will be removed from the order immediately.' : 'คุณแน่ใจหรือไม่ที่จะยกเลิกรายการนี้? (ระบบจะลบออกจากออเดอร์และหน้าครัวทันที)');
@@ -1675,7 +1754,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             await supabase.from('pos_order_items').update({ status: 'cancelled' }).eq('id', existingItems[0].id);
           }
           
-          const newCart = cart.filter((i: any) => !(i.id === id && JSON.stringify(i.selected_modifiers) === JSON.stringify(modifiers)));
+          const newCart = cart.filter((i: any) => !(i.id === id && JSON.stringify(i.selected_modifiers) === JSON.stringify(modifiers) && Boolean(i.is_free_coupon_item) === isFreeCouponItem));
           const newRawCartSubTotal = newCart.reduce((acc: number, item: any) => {
             const modsPrice = item.selected_modifiers?.reduce((ma: number, m: any) => ma + ((m.price_adjustment || 0) * (m.qty || 1)), 0) || 0;
             const basePrice = Number(orderType === 'delivery' && deliveryPlatform ? (item.platform_price || item.sale_price || item.price || 0) : (item.sale_price || item.price || 0));
@@ -1710,7 +1789,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 
     setCart(prev =>
       prev.filter(
-        i => !(i.id === id && JSON.stringify(i.selected_modifiers) === JSON.stringify(modifiers))
+        i => !(i.id === id && JSON.stringify(i.selected_modifiers) === JSON.stringify(modifiers) && Boolean(i.is_free_coupon_item) === isFreeCouponItem)
       )
     )
   }
@@ -2865,45 +2944,6 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             </header>
 
             <div className="custom-scrollbar flex-1 space-y-6 overflow-y-auto bg-white p-6 transition-all sm:p-10">
-              {claimingCoupons.length > 0 && (
-                <div className="mb-6 space-y-3">
-                  <div className="text-[10px] font-black uppercase tracking-[0.25em] text-amber-600 flex items-center gap-1.5 animate-pulse">
-                    <span className="h-2 w-2 rounded-full bg-amber-500 animate-ping"></span>
-                    คูปองที่ลูกค้าส่งคำขอใช้ ({claimingCoupons.length})
-                  </div>
-                  <div className="space-y-2">
-                    {claimingCoupons.map((claim) => (
-                      <div key={claim.id} className="bg-amber-50/70 border border-amber-200/60 rounded-2xl p-4 flex flex-col gap-3 shadow-sm hover:border-amber-300 transition-all">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <span className="inline-block px-2 py-0.5 rounded-full text-[8px] font-bold bg-amber-200 text-amber-800 uppercase tracking-widest mb-1.5">
-                              {claim.discount_type === 'percent' ? `${claim.discount_value}% OFF` : claim.discount_type === 'free_item' ? 'FREE ITEM' : `฿${claim.discount_value} OFF`}
-                            </span>
-                            <h4 className="text-xs font-black text-amber-950 truncate">{claim.coupon_name}</h4>
-                            <p className="text-[10px] font-bold text-amber-700/80 mt-0.5 truncate">
-                              โดย: {claim.member?.display_name || claim.member?.full_name || 'ลูกค้าทั่วไป'} ({claim.member?.phone})
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleAcceptCouponClaim(claim)}
-                            className="flex-1 bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-black uppercase tracking-wider py-2 rounded-xl transition-all shadow-md active:scale-95"
-                          >
-                            ยอมรับและใช้
-                          </button>
-                          <button
-                            onClick={() => handleRejectCouponClaim(claim)}
-                            className="bg-white hover:bg-amber-100 text-amber-800 border border-amber-300 text-[10px] font-black uppercase tracking-wider px-3 py-2 rounded-xl transition-all active:scale-95"
-                          >
-                            ปฏิเสธ
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {cart.length > 0 ? (
                 cart.map((item, idx) => (
@@ -2961,7 +3001,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                               <Tag size={16} />
                             </button>
                             <button
-                              onClick={() => removeFromCart(item.id, item.selected_modifiers)}
+                              onClick={() => removeFromCart(item.id, item.selected_modifiers, item.is_free_coupon_item)}
                               className="p-1 text-red-400 transition-all hover:text-red-600 active:scale-95"
                               title={locale === 'en' ? 'ลบรายการ' : locale === 'zh' ? 'ลบรายการ' : 'ลบรายการ'}
                             >
@@ -2978,7 +3018,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                       <div className="mt-4 flex items-center justify-between">
                         <div className="flex items-center overflow-hidden border border-gray-100 bg-gray-50 font-bold">
                           <button
-                            onClick={() => updateQuantity(item.id, -1, item.selected_modifiers)}
+                            onClick={() => updateQuantity(item.id, -1, item.selected_modifiers, item.is_free_coupon_item)}
                             className="flex h-8 w-8 items-center justify-center border-r transition-all hover:bg-black hover:text-white"
                           >
                             <Minus size={12} />
@@ -2987,7 +3027,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                             {item.quantity}
                           </span>
                           <button
-                            onClick={() => updateQuantity(item.id, 1, item.selected_modifiers)}
+                            onClick={() => updateQuantity(item.id, 1, item.selected_modifiers, item.is_free_coupon_item)}
                             className="flex h-8 w-8 items-center justify-center border-l transition-all hover:bg-black hover:text-white"
                           >
                             <Plus size={12} />
@@ -3515,104 +3555,180 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setShowPendingModal(false)}
           ></div>
-          <div className="animate-in slide-in-from-bottom relative flex max-h-[90vh] w-full max-w-4xl flex-col bg-[#FDFDFB] font-bold shadow-2xl duration-300">
-            <header className="flex items-center justify-between border-b border-gray-100 bg-white p-6 sm:p-8">
-              <div className="flex items-center gap-3">
-                <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tighter text-black">
-                  {locale === 'en' ? '                   รายการออเดอร์                 ' : locale === 'zh' ? '                   รายการออเดอร์                 ' : '                   รายการออเดอร์                 '}</h2>
-                {qrIncomingOrders.length > 0 && (
-                  <span className="bg-orange-500 text-white px-2 py-1 text-[9px] font-black uppercase tracking-widest animate-pulse">
-                    {qrIncomingOrders.length} {locale === 'en' ? ' QR ใหม่!                   ' : locale === 'zh' ? ' QR ใหม่!                   ' : ' QR ใหม่!                   '}</span>
-                )}
+          <div className="animate-in slide-in-from-bottom relative flex max-h-[90vh] w-full max-w-4xl flex-col bg-[#FDFDFB] font-bold shadow-2xl duration-300 rounded-[2rem] overflow-hidden">
+            <header className="flex flex-col border-b border-gray-100 bg-white p-6 sm:p-8">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tighter text-black">
+                    ศูนย์แจ้งเตือนและรายการ
+                  </h2>
+                </div>
+                <button onClick={() => setShowPendingModal(false)} className="p-2 text-gray-400 hover:text-black transition-colors">
+                  <X size={20} />
+                </button>
               </div>
-              <button onClick={() => setShowPendingModal(false)} className="p-2">
-                <X size={20} />
-              </button>
+
+              {/* Tabs */}
+              <div className="flex gap-6 mt-6 border-b border-gray-100 pb-2">
+                <button
+                  onClick={() => setPendingModalTab('orders')}
+                  className={`text-sm font-black pb-2 px-1 relative transition-all ${
+                    pendingModalTab === 'orders' ? 'text-black' : 'text-gray-400 hover:text-black'
+                  }`}
+                >
+                  รายการออเดอร์ ({suspendedOrders.length})
+                  {qrIncomingOrders.length > 0 && (
+                    <span className="ml-1.5 inline-block bg-orange-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest animate-pulse">
+                      QR ใหม่
+                    </span>
+                  )}
+                  {pendingModalTab === 'orders' && (
+                    <motion.div layoutId="pendingModalTabUnderline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-black" />
+                  )}
+                </button>
+                <button
+                  onClick={() => setPendingModalTab('coupons')}
+                  className={`text-sm font-black pb-2 px-1 relative transition-all flex items-center gap-1.5 ${
+                    pendingModalTab === 'coupons' ? 'text-black' : 'text-gray-400 hover:text-black'
+                  }`}
+                >
+                  คำขอใช้คูปอง ({claimingCoupons.filter(c => c.id !== appliedCouponId).length})
+                  {claimingCoupons.filter(c => c.id !== appliedCouponId).length > 0 && (
+                    <span className="h-2 w-2 rounded-full bg-amber-500 animate-ping"></span>
+                  )}
+                  {pendingModalTab === 'coupons' && (
+                    <motion.div layoutId="pendingModalTabUnderline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-black" />
+                  )}
+                </button>
+              </div>
             </header>
             <div className="flex-1 space-y-3 overflow-y-auto p-4 sm:p-10">
-              {suspendedOrders
-                .sort((a, b) => {
-                  // QR orders (source='qr', status='pending') appear first
-                  if (a.source === 'qr' && b.source !== 'qr') return -1
-                  if (b.source === 'qr' && a.source !== 'qr') return 1
-                  return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-                })
-                .map(order => (
-                  <div
-                    key={order.id}
-                    onClick={() => handleResumeOrder(order)}
-                    className="group flex cursor-pointer flex-col items-center justify-between border bg-white p-6 transition-all hover:border-[#1A1A18] sm:flex-row"
-                  >
-                    <div className="flex items-center gap-8 font-bold">
-                      {order.source === 'qr' ? (
-                        <BellRing size={32} className="text-orange-400 animate-pulse group-hover:text-orange-500" />
-                      ) : (
-                        <History size={32} className="text-gray-200 group-hover:text-[#1A1A18]" />
-                      )}
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <div className="text-xs font-black uppercase tracking-widest text-[#1A1A18]">
-                            {order.order_number}
-                          </div>
-                          {order.source === 'qr' && (
-                            <span className="bg-orange-500 text-white px-1.5 py-0.5 text-[8px] font-black uppercase tracking-tighter animate-pulse">
-                              QR ORDER
-                            </span>
-                          )}
-                          {order.table_number && (
-                            <span className="bg-amber-100 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-tighter text-amber-700">
-                              Table {order.table_number}
-                            </span>
-                          )}
-                          {!order.source || order.source !== 'qr' ? (
-                            <span className="bg-gray-100 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-tighter text-gray-500">
-                              {order.order_type === 'dine_in'
-                                ? 'Dine In'
-                                : order.order_type === 'takeaway'
-                                  ? 'Take Away'
-                                  : 'Delivery'}
-                            </span>
-                          ) : null}
-                          {order.order_type === 'delivery' && order.delivery_platform && (
-                            <span className="bg-emerald-100 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-tighter text-emerald-700">
-                              {formatDeliveryPlatformLabel(order.delivery_platform)}
-                            </span>
-                          )}
-                          {order.order_type === 'delivery' && order.reference_name && (
-                            <span className="bg-[#1A1A18] px-1.5 py-0.5 text-[8px] font-black uppercase tracking-tighter text-white">
-                              {order.reference_name}
-                            </span>
-                          )}
-                        </div>
-                        <div className="mt-1 text-[10px] text-gray-400">
-                          {new Date(order.created_at).toLocaleTimeString()}
-                          {order.source === 'qr' && <span className="ml-2 text-orange-400 font-black">{locale === 'en' ? '• รายการใหม่จากลูกค้า' : locale === 'zh' ? '• รายการใหม่จากลูกค้า' : '• รายการใหม่จากลูกค้า'}</span>}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-10">
-                      <div className="flex flex-col items-end">
-                        <span className="text-lg font-black text-[#1A1A18]">
-                          {locale === 'en' ? '                           ฿ ' : locale === 'zh' ? '                           ฿ ' : '                           ฿ '}{order.total_amount.toLocaleString()}
-                        </span>
-                        {(order.pos_order_payments?.filter((p: any) => p.status === 'paid').reduce((sum: number, p: any) => sum + Number(p.amount), 0) || 0) > 0 && (
-                          <span className="text-[10px] font-black uppercase tracking-widest text-green-600 bg-green-50 px-1.5 py-0.5">
-                            {locale === 'en' ? '                             จ่ายแล้ว ฿ ' : locale === 'zh' ? '                             จ่ายแล้ว ฿ ' : '                             จ่ายแล้ว ฿ '}{(order.pos_order_payments?.filter((p: any) => p.status === 'paid').reduce((sum: number, p: any) => sum + Number(p.amount), 0)).toLocaleString()}
-                          </span>
-                        )}
-                      </div>
-                      <button
-                        onClick={e => {
-                          e.stopPropagation()
-                          handleDeleteOrder(order.id)
-                        }}
-                        className="p-2 text-red-200 hover:text-red-500"
+              {pendingModalTab === 'orders' ? (
+                suspendedOrders.length > 0 ? (
+                  suspendedOrders
+                    .sort((a, b) => {
+                      if (a.source === 'qr' && b.source !== 'qr') return -1
+                      if (b.source === 'qr' && a.source !== 'qr') return 1
+                      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                    })
+                    .map(order => (
+                      <div
+                        key={order.id}
+                        onClick={() => handleResumeOrder(order)}
+                        className="group flex cursor-pointer flex-col items-center justify-between border bg-white p-6 transition-all hover:border-[#1A1A18] sm:flex-row"
                       >
-                        <X size={20} />
-                      </button>
-                    </div>
+                        <div className="flex items-center gap-8 font-bold">
+                          {order.source === 'qr' ? (
+                            <BellRing size={32} className="text-orange-400 animate-pulse group-hover:text-orange-500" />
+                          ) : (
+                            <History size={32} className="text-gray-200 group-hover:text-[#1A1A18]" />
+                          )}
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <div className="text-xs font-black uppercase tracking-widest text-[#1A1A18]">
+                                {order.order_number}
+                              </div>
+                              {order.source === 'qr' && (
+                                <span className="bg-orange-500 text-white px-1.5 py-0.5 text-[8px] font-black uppercase tracking-tighter animate-pulse">
+                                  QR ORDER
+                                </span>
+                              )}
+                              {order.table_number && (
+                                <span className="bg-amber-100 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-tighter text-amber-700">
+                                  Table {order.table_number}
+                                </span>
+                              )}
+                              {!order.source || order.source !== 'qr' ? (
+                                <span className="bg-gray-100 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-tighter text-gray-500">
+                                  {order.order_type === 'dine_in'
+                                    ? 'Dine In'
+                                    : order.order_type === 'takeaway'
+                                      ? 'Take Away'
+                                      : 'Delivery'}
+                                </span>
+                              ) : null}
+                              {order.order_type === 'delivery' && order.delivery_platform && (
+                                <span className="bg-emerald-100 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-tighter text-emerald-700">
+                                  {formatDeliveryPlatformLabel(order.delivery_platform)}
+                                </span>
+                              )}
+                              {order.order_type === 'delivery' && order.reference_name && (
+                                <span className="bg-[#1A1A18] px-1.5 py-0.5 text-[8px] font-black uppercase tracking-tighter text-white">
+                                  {order.reference_name}
+                                </span>
+                              )}
+                            </div>
+                            <div className="mt-1 text-[10px] text-gray-400">
+                              {new Date(order.created_at).toLocaleTimeString()}
+                              {order.source === 'qr' && <span className="ml-2 text-orange-400 font-black">{locale === 'en' ? '• รายการใหม่จากลูกค้า' : locale === 'zh' ? '• รายการใหม่จากลูกค้า' : '• รายการใหม่จากลูกค้า'}</span>}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-10">
+                          <div className="flex flex-col items-end">
+                            <span className="text-lg font-black text-[#1A1A18]">
+                              {locale === 'en' ? '                           ฿ ' : locale === 'zh' ? '                           ฿ ' : '                           ฿ '}{order.total_amount.toLocaleString()}
+                            </span>
+                            {(order.pos_order_payments?.filter((p: any) => p.status === 'paid').reduce((sum: number, p: any) => sum + Number(p.amount), 0) || 0) > 0 && (
+                              <span className="text-[10px] font-black uppercase tracking-widest text-green-600 bg-green-50 px-1.5 py-0.5">
+                                {locale === 'en' ? '                             จ่ายแล้ว ฿ ' : locale === 'zh' ? '                             จ่ายแล้ว ฿ ' : '                             จ่ายแล้ว ฿ '}{(order.pos_order_payments?.filter((p: any) => p.status === 'paid').reduce((sum: number, p: any) => sum + Number(p.amount), 0)).toLocaleString()}
+                              </span>
+                            )}
+                          </div>
+                          <button
+                            onClick={e => {
+                              e.stopPropagation()
+                              handleDeleteOrder(order.id)
+                            }}
+                            className="p-2 text-red-200 hover:text-red-500"
+                          >
+                            <X size={20} />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                ) : (
+                  <div className="py-20 text-center text-gray-400 text-sm font-bold">
+                    ไม่มีออเดอร์รอดำเนินการ
                   </div>
-                ))}
+                )
+              ) : (
+                claimingCoupons.filter(c => c.id !== appliedCouponId).length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {claimingCoupons.filter(c => c.id !== appliedCouponId).map((claim) => (
+                      <div 
+                        key={claim.id} 
+                        onClick={() => {
+                          setShowPendingModal(false);
+                          setActiveCouponClaimRequest(claim);
+                        }}
+                        className="cursor-pointer bg-amber-50/70 border border-amber-200/60 rounded-[1.5rem] p-5 flex flex-col gap-4 shadow-sm hover:border-amber-400 hover:bg-amber-50 transition-all text-left"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <span className="inline-block px-2.5 py-0.5 rounded-full text-[9px] font-black bg-amber-200 text-amber-800 uppercase tracking-widest mb-2">
+                              {claim.discount_type === 'percent' ? `${claim.discount_value}% OFF` : claim.discount_type === 'free_item' ? 'FREE ITEM' : `฿${claim.discount_value} OFF`}
+                            </span>
+                            <h4 className="text-sm font-black text-amber-950 truncate leading-snug">{claim.coupon_name}</h4>
+                            <p className="text-[11px] font-bold text-amber-700/80 mt-1 truncate">
+                              โดย: {claim.member?.display_name || claim.member?.full_name || 'ลูกค้าทั่วไป'} ({claim.member?.phone})
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          className="w-full bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-black uppercase tracking-wider py-2.5 rounded-xl transition-all shadow-md active:scale-95 text-center mt-auto"
+                        >
+                          ดูรายละเอียดและสแกน
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-20 text-center text-gray-400 text-sm font-bold">
+                    ไม่มีคำขอใช้คูปองในขณะนี้
+                  </div>
+                )
+              )}
             </div>
           </div>
         </div>

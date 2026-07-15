@@ -26,9 +26,11 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/lib/supabaseClient'
+import { AnimatePresence, motion } from 'framer-motion'
 import Link from 'next/link'
 import POSShopStatusModal from '@/components/pos/POSShopStatusModal'
 import { printKitchenTicket } from '@/lib/printerUtils'
+import { playAppSound } from '@/lib/audioUtils'
 
 // XYL POS Components
 import POSLayout from '@/components/pos/POSLayout'
@@ -119,6 +121,14 @@ function RestaurantOSPageContent() {
   const [showCustomerModal, setShowCustomerModal] = useState(false)
   const [isCartExpanded, setIsCartExpanded] = useState(false)
   const [showPendingModal, setShowPendingModal] = useState(false)
+
+  // LIFTED STATES for Coupon Claims & Auto-Routing
+  const [claimingCoupons, setClaimingCoupons] = useState<any[]>([])
+  const [activeCouponClaimRequest, setActiveCouponClaimRequest] = useState<any | null>(null)
+  const [appliedCouponId, setAppliedCouponId] = useState<string>('')
+  const [activeCoupon, setActiveCoupon] = useState<any | null>(null)
+  const [pendingModalTab, setPendingModalTab] = useState<'orders' | 'coupons'>('orders')
+  const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null)
 
   // LIFTED STATES for POSTerminal persistence
   const [selectedTable, setSelectedTable] = useState<any | null>(null)
@@ -227,6 +237,7 @@ function RestaurantOSPageContent() {
       fetchShopSettings()
       fetchInventoryCategories()
       fetchPendingOrders()
+      fetchClaimingCoupons()
     }
     
     // Register PWA Service Worker strictly scoped to /dashboard/pos
@@ -405,6 +416,19 @@ function RestaurantOSPageContent() {
     if (data) setPendingOrders(data)
   }
 
+  const fetchClaimingCoupons = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('pos_member_coupons')
+        .select('*, member:pos_members(*)')
+        .eq('status', 'claiming')
+      if (error) throw error
+      setClaimingCoupons(data || [])
+    } catch (err) {
+      console.error('Error fetching claiming coupons:', err)
+    }
+  }
+
   const fetchShiftStats = async (_shiftId: string) => {
     const branchId = await getCurrentBranchId()
     const { start, end } = getLocalDayBounds()
@@ -541,6 +565,65 @@ function RestaurantOSPageContent() {
       })
       .subscribe()
 
+    const couponChannel = supabase
+      .channel('realtime_claiming_coupons_global')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'pos_member_coupons', filter: 'status=eq.claiming' },
+        async (payload) => {
+          const newRecord = payload.new as any
+          playAppSound('notification')
+          
+          let memberDetails = null
+          if (newRecord.member_id) {
+            const { data } = await supabase
+              .from('pos_members')
+              .select('*')
+              .eq('id', newRecord.member_id)
+              .maybeSingle()
+            memberDetails = data
+          }
+          
+          const fullClaim = { ...newRecord, member: memberDetails }
+          setClaimingCoupons(prev => {
+            if (prev.some(c => c.id === fullClaim.id)) return prev
+            return [...prev, fullClaim]
+          })
+          setActiveCouponClaimRequest(fullClaim)
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'pos_member_coupons' },
+        async (payload) => {
+          const newRecord = payload.new as any
+          if (newRecord.status === 'claiming') {
+            playAppSound('notification')
+            
+            let memberDetails = null
+            if (newRecord.member_id) {
+              const { data } = await supabase
+                .from('pos_members')
+                .select('*')
+                .eq('id', newRecord.member_id)
+                .maybeSingle()
+              memberDetails = data
+            }
+            
+            const fullClaim = { ...newRecord, member: memberDetails }
+            setClaimingCoupons(prev => {
+              if (prev.some(c => c.id === fullClaim.id)) return prev
+              return [...prev, fullClaim]
+            })
+            setActiveCouponClaimRequest(fullClaim)
+          } else {
+            setClaimingCoupons(prev => prev.filter(c => c.id !== newRecord.id))
+            setActiveCouponClaimRequest(prev => prev?.id === newRecord.id ? null : prev)
+          }
+        }
+      )
+      .subscribe()
+
     const handleShiftRefresh = (event: Event) => {
       const customEvent = event as CustomEvent<{ shiftId?: string }>
       const shiftId = customEvent.detail?.shiftId
@@ -555,6 +638,7 @@ function RestaurantOSPageContent() {
     return () => {
       supabase.removeChannel(channel)
       supabase.removeChannel(broadcastChannel)
+      supabase.removeChannel(couponChannel)
       window.removeEventListener('xyl-pos-shift-refresh', handleShiftRefresh as EventListener)
     }
   }, [profile, activeShift, shopSettings])
@@ -768,6 +852,63 @@ function RestaurantOSPageContent() {
     if (!error) fetchShopSettings()
   }
 
+  const handleAcceptCouponClaim = (claim: any) => {
+    if (claim.member) {
+      setSelectedCustomer(claim.member);
+    }
+
+    setDiscountName(claim.coupon_name);
+    setAppliedCouponId(claim.id);
+    setClaimingCoupons(prev => prev.filter(c => c.id !== claim.id));
+    setActiveCouponClaimRequest(null);
+
+    if (claim.discount_type === 'free_item') {
+      setActiveCoupon(claim);
+      setDiscountValue(0);
+      setDiscountRate(0);
+      setDiscountType('fixed');
+
+      setActiveView('terminal');
+      localStorage.setItem('xyl_pos_active_view', 'terminal');
+
+      if (claim.applicable_categories && claim.applicable_categories.length > 0) {
+        setActiveCategoryId(claim.applicable_categories[0]);
+        alert(`นำคูปอง "${claim.coupon_name}" ไปประยุกต์ใช้สำเร็จ! ระบบนำไปยังหมวดหมู่สินค้าแล้ว กรุณาเลือกสินค้าฟรีเข้าตะกร้า 1 รายการ`);
+      } else {
+        alert(`นำคูปอง "${claim.coupon_name}" ไปประยุกต์ใช้สำเร็จ! กรุณาเลือกสินค้าฟรีเข้าตะกร้า 1 รายการ`);
+      }
+    } else {
+      setActiveCoupon(null);
+      setDiscountType(claim.discount_type === 'percent' ? 'percent' : 'fixed');
+      setDiscountValue(Number(claim.discount_value) || 0);
+      if (claim.discount_type === 'percent') setDiscountRate(Number(claim.discount_value) || 0);
+
+      setActiveView('terminal');
+      localStorage.setItem('xyl_pos_active_view', 'terminal');
+
+      alert(`นำคูปอง "${claim.coupon_name}" ไปประยุกต์ใช้กับสมาชิก "${claim.member?.display_name || claim.member?.full_name}" สำเร็จ!`);
+    }
+  };
+
+  const handleRejectCouponClaim = async (claim: any) => {
+    if (!confirm('ยืนยันที่จะปฏิเสธ/ยกเลิก การใช้คูปองนี้ใช่หรือไม่? คูปองจะถูกส่งกลับไปในหน้ารายการของลูกค้าตามปกติ')) return;
+    try {
+      const { error } = await supabase
+        .from('pos_member_coupons')
+        .update({ status: 'active' })
+        .eq('id', claim.id);
+
+      if (error) throw error;
+
+      setClaimingCoupons(prev => prev.filter(c => c.id !== claim.id));
+      setActiveCouponClaimRequest(null);
+      alert('ปฏิเสธการขอใช้คูปองเรียบร้อยแล้ว');
+    } catch (err) {
+      console.error('Failed to reject coupon claim:', err);
+      alert('ทำรายการไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
+    }
+  };
+
   const unlockAudio = () => {
     if (audioRef.current) {
       const originalVolume = audioRef.current.volume || 0.8
@@ -945,6 +1086,28 @@ function RestaurantOSPageContent() {
     setOrderType,
     deliveryPlatform,
     setDeliveryPlatform,
+    claimingCoupons,
+    setClaimingCoupons,
+    activeCouponClaimRequest,
+    setActiveCouponClaimRequest,
+    appliedCouponId,
+    setAppliedCouponId,
+    activeCoupon,
+    setActiveCoupon,
+    pendingModalTab,
+    setPendingModalTab,
+    activeCategoryId,
+    setActiveCategoryId,
+    handleAcceptCouponClaim,
+    handleRejectCouponClaim,
+    discountValue,
+    setDiscountValue,
+    discountRate,
+    setDiscountRate,
+    discountType,
+    setDiscountType,
+    discountName,
+    setDiscountName,
   }
 
   const renderView = () => {
@@ -1044,6 +1207,118 @@ function RestaurantOSPageContent() {
           hasActiveShift={!!activeShift}
         />
       </POSLayout>
+
+      {/* REAL-TIME COUPON CLAIM MODAL (GLOBAL OVERLAY) */}
+      <AnimatePresence>
+        {activeCouponClaimRequest && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="w-full max-w-md overflow-hidden rounded-[2.5rem] bg-white shadow-2xl border border-amber-100/50"
+            >
+              <div className="p-6 sm:p-8">
+                {/* Header */}
+                <div className="flex items-start justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <span className="relative flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+                    </span>
+                    <div>
+                      <h3 className="text-lg font-black text-amber-950">
+                        มีคำขอใช้คูปองใหม่!
+                      </h3>
+                      <p className="text-xs font-bold text-amber-600/80 mt-0.5">
+                        ลูกค้ากำลังแสดงคูปองต่อหน้าคุณ
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setActiveCouponClaimRequest(null)}
+                    className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-500 transition-all hover:bg-gray-200 hover:text-black active:scale-95"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+
+                {/* Member Details */}
+                <div className="bg-amber-50/50 border border-amber-200/40 rounded-[1.5rem] p-4 mb-6 flex items-center gap-3">
+                  {activeCouponClaimRequest.member?.avatar_url ? (
+                    <img
+                      src={activeCouponClaimRequest.member.avatar_url}
+                      alt={activeCouponClaimRequest.member.display_name}
+                      className="h-12 w-12 rounded-full object-cover border-2 border-white shadow-sm"
+                    />
+                  ) : (
+                    <div className="h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 font-bold text-sm">
+                      {(activeCouponClaimRequest.member?.display_name || activeCouponClaimRequest.member?.full_name || 'U').substring(0, 2).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[9px] font-black text-amber-800/45 uppercase tracking-widest leading-none mb-1">
+                      สมาชิกผู้ขอใช้สิทธิ์
+                    </div>
+                    <div className="text-sm font-black text-amber-950 truncate">
+                      {activeCouponClaimRequest.member?.display_name || activeCouponClaimRequest.member?.full_name || 'ลูกค้าทั่วไป'}
+                    </div>
+                    <div className="text-xs font-bold text-amber-700/80 mt-0.5">
+                      เบอร์โทร: {activeCouponClaimRequest.member?.phone || 'ไม่ระบุ'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Coupon Info */}
+                <div className="border border-gray-100 rounded-[1.5rem] p-5 mb-6 bg-neutral-50/30 text-left">
+                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-2">
+                    รายละเอียดคูปอง
+                  </div>
+                  <span className="inline-block px-2.5 py-1 rounded-full text-[10px] font-black bg-amber-100 text-amber-800 uppercase tracking-widest mb-3">
+                    {activeCouponClaimRequest.discount_type === 'percent' 
+                      ? `${activeCouponClaimRequest.discount_value}% OFF` 
+                      : activeCouponClaimRequest.discount_type === 'free_item' 
+                      ? 'FREE ITEM' 
+                      : `฿${activeCouponClaimRequest.discount_value} OFF`}
+                  </span>
+                  <h4 className="text-base font-black text-gray-900 leading-snug">
+                    {activeCouponClaimRequest.coupon_name}
+                  </h4>
+                  {activeCouponClaimRequest.discount_type === 'free_item' && (
+                    <p className="text-xs font-semibold text-gray-400 mt-2">
+                      * เมื่อกดยอมรับ ระบบจะนำคุณไปยังหมวดหมู่ที่ใช้ได้ เพื่อให้พนักงานกดเลือกสินค้าฟรี 1 รายการ
+                    </p>
+                  )}
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3">
+                  <button
+                    onClick={async () => {
+                      const claim = activeCouponClaimRequest;
+                      setActiveCouponClaimRequest(null);
+                      await handleRejectCouponClaim(claim);
+                    }}
+                    className="flex-1 py-3.5 bg-white border border-gray-200 text-gray-700 text-xs font-black uppercase tracking-wider rounded-2xl hover:bg-gray-50 active:scale-95 transition-all"
+                  >
+                    ปฏิเสธคำขอ
+                  </button>
+                  <button
+                    onClick={() => {
+                      const claim = activeCouponClaimRequest;
+                      setActiveCouponClaimRequest(null);
+                      handleAcceptCouponClaim(claim);
+                    }}
+                    className="flex-1 py-3.5 bg-amber-600 text-white text-xs font-black uppercase tracking-wider rounded-2xl hover:bg-amber-700 active:scale-95 transition-all shadow-lg shadow-amber-600/10"
+                  >
+                    ยอมรับและใช้งาน
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Outfit:wght@200;300;400;500;900&family=Prompt:wght@200;300;400&display=swap');
