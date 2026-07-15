@@ -973,32 +973,8 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     }
   }
 
-  const activeQueueStatuses = new Set(['open', 'pending', 'payment_pending', 'accepted', 'preparing', 'shipping'])
   const getQueueNumberForOrder = (currentOrderId?: string | null) => {
-    const activeOrders = [...pendingOrders]
-      .filter((order: any) => activeQueueStatuses.has(String(order.status || '').toLowerCase()))
-      .sort((a: any, b: any) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime())
-
-    if (currentOrderId) {
-      const existingOrder = activeOrders.find((order: any) => order.id === currentOrderId)
-      if (existingOrder?.queue_number !== undefined && existingOrder?.queue_number !== null) {
-        const storedQueue = Number(existingOrder.queue_number)
-        if (Number.isFinite(storedQueue) && storedQueue > 0) return storedQueue
-      }
-
-      const existingIndex = activeOrders.findIndex((order: any) => order.id === currentOrderId)
-      if (existingIndex >= 0) return existingIndex + 1
-    }
-
-    const storedQueues = activeOrders
-      .map((order: any) => Number(order.queue_number))
-      .filter((queue: number) => Number.isFinite(queue) && queue > 0)
-
-    if (storedQueues.length > 0) {
-      return Math.max(...storedQueues) + 1
-    }
-
-    return activeOrders.length + 1
+    return 0
   }
 
   const activePrintData = useMemo(() => {
@@ -1059,30 +1035,24 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   }
 
   const requestOrderIdentity = async (existingOrderId?: string | null): Promise<POSOrderIdentity> => {
-    const fallbackQueue = getQueueNumberForOrder(existingOrderId)
-    const response = await fetch('/api/pos/order-identity', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        orderType,
-        branchId: shopSettings?.branch_id || activeShift?.branch_id || null,
-        shiftId: activeShift?.id || null,
-        existingOrderId: existingOrderId || null,
-        tableName: selectedTable ? String(selectedTable.name || `T${selectedTable.table_number || selectedTable.id}`).replace(/\s+/g, '') : null,
-      }),
-    })
-    const result = await response.json()
-
-    if (!response.ok || !result?.orderNumber || !result?.queueNumber) {
-      if (existingOrderId && editingOrderNumber) {
-        return { orderNumber: editingOrderNumber, queueNumber: fallbackQueue }
+    let orderNumber = editingOrderNumber || ''
+    if (!orderNumber) {
+      const prefix = orderType === 'dine_in' ? 'DIN' : orderType === 'delivery' ? 'DEL' : 'TAK'
+      if (orderType === 'dine_in' && selectedTable) {
+        orderNumber = selectedTable.name || `T${selectedTable.table_number || selectedTable.id}`
+      } else {
+        const now = new Date()
+        const datePart = [
+          String(now.getFullYear()).slice(-2),
+          String(now.getMonth() + 1).padStart(2, '0'),
+          String(now.getDate()).padStart(2, '0'),
+        ].join('')
+        orderNumber = `${prefix}#${datePart}-${String(Date.now()).slice(-4)}`
       }
-      throw new Error(result?.error || 'ไม่สามารถสร้างเลขบิลและเลขคิวได้')
     }
-
     return {
-      orderNumber: result.orderNumber,
-      queueNumber: Number(result.queueNumber),
+      orderNumber,
+      queueNumber: 0
     }
   }
 

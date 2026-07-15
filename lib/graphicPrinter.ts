@@ -197,8 +197,13 @@ const renderKitchenHtml = (order: PrintOrderData, shop: PrintShopData) => {
     html += `<div style="font-size: 72px; line-height: 0.95; word-break: break-word;">${escapeHtml(order.tableNumber || '-')}</div>`;
   } else {
     html += `<div style="font-size: 18px; letter-spacing: 0.16em; margin-bottom: 8px;">TAKEAWAY</div>`;
-    html += `<div style="font-size: 72px; line-height: 0.95; word-break: break-word;">${escapeHtml(order.queueNumber || '-')}</div>`;
-    html += `<div style="font-size: 22px; margin-top: 8px;">เลขคิว</div>`;
+    const qStr = String(order.queueNumber || '').trim();
+    if (qStr && qStr !== '0' && qStr !== 'null') {
+      html += `<div style="font-size: 72px; line-height: 0.95; word-break: break-word;">${escapeHtml(qStr)}</div>`;
+      html += `<div style="font-size: 22px; margin-top: 8px;">เลขคิว</div>`;
+    } else {
+      html += `<div style="font-size: 48px; line-height: 0.95; word-break: break-word;">-</div>`;
+    }
   }
   html += `</div>`;
   if (order.orderType !== 'delivery') {
