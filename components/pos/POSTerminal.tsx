@@ -549,7 +549,8 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   };
 
   const executeNativePrint = async (type: 'receipt' | 'kitchen', openDrawer: boolean = false) => {
-    if (!paymentSuccessData) return;
+    // allow manual print without paymentSuccessData
+    // if (!paymentSuccessData) return;
     const printers = shopSettings?.printers || [];
     let targetPrinters = printers.filter((p: any) => p.type === type || p.type === 'both');
     if (type === 'receipt' && targetPrinters.length === 0) {
@@ -568,29 +569,67 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     }
 
     try {
-        const printOrderData = {
-          orderNumber: paymentSuccessData.orderNumber,
-          queueNumber: paymentSuccessData.queueNumber,
-          date: new Date(paymentSuccessData.timestamp).toLocaleString(),
-          orderSource: paymentSuccessData.orderSource || 'pos',
-          tableNumber: paymentSuccessData.tableNumber,
-          orderType: paymentSuccessData.orderType || orderType,
-          staffName: profile?.full_name || 'Staff',
-          customerName: paymentSuccessData.customerName,
-          deliveryPlatform: paymentSuccessData.deliveryPlatform,
-          referenceName: paymentSuccessData.referenceName,
-          comment: paymentSuccessData.comment || paymentSuccessData.notes || '',
-          pickupTime: paymentSuccessData.pickupTime || '',
-          subtotal: paymentSuccessData.subtotal,
-          discount: paymentSuccessData.discount,
-          serviceCharge: paymentSuccessData.serviceCharge,
-          tax: paymentSuccessData.tax,
-          total: paymentSuccessData.total,
-          paymentMethod: paymentSuccessData.paymentMethod,
-          receivedAmount: paymentSuccessData.received,
-          changeAmount: paymentSuccessData.change,
-          items: paymentSuccessData.items
-        };
+        let currentPrintOrderData: any = null;
+        if (paymentSuccessData) {
+            currentPrintOrderData = {
+              orderNumber: paymentSuccessData.orderNumber,
+              queueNumber: paymentSuccessData.queueNumber,
+              date: new Date(paymentSuccessData.timestamp).toLocaleString(),
+              orderSource: paymentSuccessData.orderSource || 'pos',
+              tableNumber: paymentSuccessData.tableNumber,
+              orderType: paymentSuccessData.orderType || orderType,
+              staffName: profile?.full_name || 'Staff',
+              customerName: paymentSuccessData.customerName,
+              deliveryPlatform: paymentSuccessData.deliveryPlatform,
+              referenceName: paymentSuccessData.referenceName,
+              comment: paymentSuccessData.comment || paymentSuccessData.notes || '',
+              pickupTime: paymentSuccessData.pickupTime || '',
+              subtotal: paymentSuccessData.subtotal,
+              discount: paymentSuccessData.discount,
+              serviceCharge: paymentSuccessData.serviceCharge,
+              tax: paymentSuccessData.tax,
+              total: paymentSuccessData.total,
+              paymentMethod: paymentSuccessData.paymentMethod,
+              receivedAmount: paymentSuccessData.received,
+              changeAmount: paymentSuccessData.change,
+              items: paymentSuccessData.items
+            };
+        } else {
+            // Manual Print: Construct from current cart and state
+            const cartSubTotal = cart.reduce((total, item) => total + (item.cost_price || 0) * item.quantity, 0); // Not real subtotal but fallback
+            const cartTotal = rawCartSubTotal - discountTotalValue - itemDiscountTotal + serviceChargeAmount + vatAmount;
+            
+            currentPrintOrderData = {
+              orderNumber: editingOrderNumber || 'Draft',
+              queueNumber: editingOrderId ? String(getQueueNumberForOrder(editingOrderId) || '') : '',
+              date: new Date().toLocaleString(),
+              orderSource: 'pos',
+              tableNumber: selectedTable?.table_number || 'Unknown',
+              orderType: orderType,
+              staffName: profile?.full_name || 'Staff',
+              customerName: selectedCustomer?.display_name || selectedCustomer?.full_name || '',
+              deliveryPlatform: orderType === 'delivery' ? deliveryPlatform : '',
+              referenceName: orderType === 'delivery' ? platformOrderId : '',
+              comment: '',
+              pickupTime: '',
+              subtotal: rawCartSubTotal,
+              discount: discountTotalValue + itemDiscountTotal,
+              serviceCharge: serviceChargeAmount,
+              tax: vatAmount,
+              total: cartTotal,
+              paymentMethod: 'Unpaid',
+              receivedAmount: 0,
+              changeAmount: 0,
+              items: cart.map(i => ({
+                 name: i.name,
+                 quantity: i.quantity,
+                 modifiers: i.selected_modifiers?.map((m: any) => m.name) || [],
+                 selected_modifiers: i.selected_modifiers || [],
+                 category_id: i.category_id,
+                 sale_price: getEffectiveItemUnitPrice(i)
+              }))
+            };
+        }
         
         const storyMode = shopSettings?.receipt_story_mode || shopSettings?.opening_hours?.receipt_story_mode;
         const availableStories = shopSettings?.receipt_stories || shopSettings?.opening_hours?.receipt_stories || [];
