@@ -2842,16 +2842,13 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                             )}
                            </div>
                           <div className="flex items-center gap-1">
-                            {((item.recipe_data && item.recipe_data.length > 0) || 
-                              (item.selected_modifiers && item.selected_modifiers.some((mod: any) => mod.recipe_data && mod.recipe_data.length > 0))) && (
-                              <button
-                                onClick={() => setSelectedRecipeItem(item)}
-                                className="p-1 text-[#8C8A81] transition-all hover:text-black active:scale-95"
-                                title="ดูสูตรอาหาร"
-                              >
-                                <FlaskConical size={16} />
-                              </button>
-                            )}
+                            <button
+                              onClick={() => setSelectedRecipeItem(item)}
+                              className="p-1 text-[#8C8A81] transition-all hover:text-black active:scale-95"
+                              title="ดูสูตรอาหาร"
+                            >
+                              <FlaskConical size={16} />
+                            </button>
                             <button
                               onClick={() => setItemDiscountModalItem(item)}
                               className="p-1 text-emerald-400 transition-all hover:text-emerald-600 active:scale-95"

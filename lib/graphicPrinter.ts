@@ -5,6 +5,9 @@ import {
   PrintZReportData,
   printCanvasViaEscPos,
   printOpenDrawer,
+  printCustomerReceipt,
+  printKitchenTicket,
+  printZReport,
 } from './printerUtils';
 
 const escapeHtml = (value: string) =>
@@ -100,7 +103,7 @@ const printCaptureOptions = {
   useCORS: true,
   removeContainer: true,
   foreignObjectRendering: false,
-  imageTimeout: 0,
+  imageTimeout: 3000,
 } as const;
 
 const GRAPHIC_RECEIPT_WIDTH = 512;
@@ -171,7 +174,7 @@ const renderReceiptHtml = (order: PrintOrderData, shop: PrintShopData) => {
   if (shouldPrintReceiptPaymentQr(order, shop)) {
     html += `<div style="margin-top: 16px; border-top: 2px dashed #000; padding-top: 12px; text-align:center;">`;
     html += `<div style="font-size:20px; font-weight:900; margin-bottom: 8px; line-height:1.2;">สแกน QR ชำระเงิน</div>`;
-    html += `<div style="display:flex; justify-content:center;"><img src="${escapeHtml(shop.receiptPaymentQrImage || '')}" alt="Payment QR" style="width:220px; height:auto; display:block;" /></div>`;
+    html += `<div style="display:flex; justify-content:center;"><img src="${escapeHtml(shop.receiptPaymentQrImage || '')}" crossorigin="anonymous" alt="Payment QR" style="width:220px; height:auto; display:block;" /></div>`;
     html += `</div>`;
   }
   return html;
@@ -301,14 +304,14 @@ export const printGraphicModeCustomerReceipt = async (
   ip: string,
   order: PrintOrderData,
   shop: PrintShopData,
-  _model = 'xprinter-xp-n160ii',
-  _encoding = 'graphic',
+  model = 'xprinter-xp-n160ii',
+  encoding = 'graphic',
   openDrawer = false
 ) => {
   try {
     const html = renderReceiptHtml(order, shop);
     const div = document.createElement('div');
-    div.style.cssText = `position: fixed; left: -9999px; top: 0; background: white; color: black; font-family: 'Noto Sans Thai', 'Tahoma', 'Arial', sans-serif; width: ${GRAPHIC_RECEIPT_WIDTH}px; box-sizing: border-box; padding: 10px 12px; font-size: 20px; font-weight: bold; text-align: center; z-index: -100;`;
+    div.style.cssText = `position: fixed; left: 0; top: 0; opacity: 0.01; pointer-events: none; background: white; color: black; font-family: 'Noto Sans Thai', 'Tahoma', 'Arial', sans-serif; width: ${GRAPHIC_RECEIPT_WIDTH}px; box-sizing: border-box; padding: 10px 12px; font-size: 20px; font-weight: bold; text-align: center; z-index: -9999;`;
     div.innerHTML = html;
     document.body.appendChild(div);
     try {
@@ -321,8 +324,8 @@ export const printGraphicModeCustomerReceipt = async (
       if (document.body.contains(div)) document.body.removeChild(div);
     }
   } catch (error) {
-    console.error(error);
-    throw error;
+    console.error('Graphic Mode Receipt Print failed. Falling back to Text Mode:', error);
+    return await printCustomerReceipt(ip, order, shop, model, 'cp874', openDrawer);
   }
 };
 
@@ -330,12 +333,12 @@ export const printGraphicModeKitchenTicket = async (
   ip: string,
   order: PrintOrderData,
   shop: PrintShopData,
-  _model = 'xprinter-xp-n160ii',
-  _encoding = 'graphic'
+  model = 'xprinter-xp-n160ii',
+  encoding = 'graphic'
 ) => {
   try {
     const div = document.createElement('div');
-    div.style.cssText = `position: fixed; left: -9999px; top: 0; background: white; color: black; font-family: 'Noto Sans Thai', 'Tahoma', 'Arial', sans-serif; width: ${GRAPHIC_RECEIPT_WIDTH}px; box-sizing: border-box; padding: 12px 14px; font-size: 20px; font-weight: bold; text-align: left; z-index: -100;`;
+    div.style.cssText = `position: fixed; left: 0; top: 0; opacity: 0.01; pointer-events: none; background: white; color: black; font-family: 'Noto Sans Thai', 'Tahoma', 'Arial', sans-serif; width: ${GRAPHIC_RECEIPT_WIDTH}px; box-sizing: border-box; padding: 12px 14px; font-size: 20px; font-weight: bold; text-align: left; z-index: -9999;`;
     div.innerHTML = renderKitchenHtml(order, shop);
     document.body.appendChild(div);
     try {
@@ -346,8 +349,8 @@ export const printGraphicModeKitchenTicket = async (
       if (document.body.contains(div)) document.body.removeChild(div);
     }
   } catch (error) {
-    console.error(error);
-    throw error;
+    console.error('Graphic Mode Kitchen Ticket Print failed. Falling back to Text Mode:', error);
+    return await printKitchenTicket(ip, order, shop, model, 'cp874');
   }
 };
 
@@ -355,13 +358,13 @@ export const printGraphicModeZReport = async (
   ip: string,
   report: PrintZReportData,
   shop: PrintShopData,
-  _model = 'xprinter-xp-n160ii',
-  _encoding = 'graphic'
+  model = 'xprinter-xp-n160ii',
+  encoding = 'graphic'
 ) => {
   try {
     const html = renderZReportHtml(report, shop);
     const div = document.createElement('div');
-    div.style.cssText = `position: fixed; left: -9999px; top: 0; background: white; color: black; font-family: 'Noto Sans Thai', 'Tahoma', 'Arial', sans-serif; width: ${GRAPHIC_RECEIPT_WIDTH}px; box-sizing: border-box; padding: 12px 14px; font-size: 18px; font-weight: 700; text-align: left; z-index: -100;`;
+    div.style.cssText = `position: fixed; left: 0; top: 0; opacity: 0.01; pointer-events: none; background: white; color: black; font-family: 'Noto Sans Thai', 'Tahoma', 'Arial', sans-serif; width: ${GRAPHIC_RECEIPT_WIDTH}px; box-sizing: border-box; padding: 12px 14px; font-size: 18px; font-weight: 700; text-align: left; z-index: -9999;`;
     div.innerHTML = html;
     document.body.appendChild(div);
     try {
@@ -372,7 +375,7 @@ export const printGraphicModeZReport = async (
       if (document.body.contains(div)) document.body.removeChild(div);
     }
   } catch (error) {
-    console.error(error);
-    throw error;
+    console.error('Graphic Mode ZReport Print failed. Falling back to Text Mode:', error);
+    return await printZReport(ip, report, shop, model, 'cp874');
   }
 };
