@@ -1250,7 +1250,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   // Re-fetch menu items & tables when branch becomes known (shopSettings loads async after profile)
   useEffect(() => {
     if (shopSettings?.branch_id !== undefined) {
-      fetchItems()
+      fetchItems(true)
       fetchTables()
       fetchPromotions()
     }
@@ -1265,7 +1265,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   }, [syncPulse])
 
   const initData = async () => {
-    await Promise.all([fetchItems(), fetchTables(), refreshPendingOrders(), fetchCampaigns(), fetchTiers()])
+    await Promise.all([fetchItems(true), fetchTables(), refreshPendingOrders(), fetchCampaigns(), fetchTiers()])
   }
 
   const fetchTiers = async () => {
