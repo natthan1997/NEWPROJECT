@@ -11,18 +11,24 @@ import XYLLoader from '@/components/loaders/XYLLoader';
 export default function RewardsPage() {
   const router = useRouter();
   const supabase = createClient();
-  const { lineProfile, loading: liffLoading } = useLiff();
+  const { lineProfile, loading: liffLoading, memberInfo: ctxMemberInfo, isDataReady } = useLiff();
   
-  const [memberInfo, setMemberInfo] = useState<any>(null);
+  const [memberInfo, setMemberInfo] = useState<any>(ctxMemberInfo || null);
   const [rewards, setRewards] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!isDataReady);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const fetchData = async () => {
+  useEffect(() => {
+    if (ctxMemberInfo) {
+      setMemberInfo(ctxMemberInfo);
+    }
+  }, [ctxMemberInfo]);
+
+  const fetchData = async (isBackgroundSync = false) => {
     const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
     if (!userId) return;
     try {
-      setLoading(true);
+      if (!isBackgroundSync) setLoading(true);
       const { data: member } = await supabase.from('pos_members').select('*').eq('line_user_id', userId).maybeSingle();
       if (member) {
         setMemberInfo(member);
@@ -38,8 +44,8 @@ export default function RewardsPage() {
   };
 
   useEffect(() => {
-    if (!liffLoading) fetchData();
-  }, [lineProfile, liffLoading]);
+    if (!liffLoading) fetchData(isDataReady);
+  }, [lineProfile, liffLoading, isDataReady]);
 
   const handleRedeem = async (couponId: string) => {
     if (!confirm('ยืนยันการแลกคูปองนี้ใช่หรือไม่?')) return;
@@ -54,7 +60,7 @@ export default function RewardsPage() {
       const data = await res.json();
       if (data.success) {
         alert('แลกคูปองสำเร็จ! คูปองถูกเก็บไว้ในบัญชีของคุณแล้ว');
-        fetchData();
+        fetchData(true);
       } else {
         alert(data.error || 'Failed to redeem');
       }
@@ -65,7 +71,7 @@ export default function RewardsPage() {
     }
   };
 
-  if (liffLoading || loading) return <XYLLoader tagline="กำลังโหลดของรางวัล..." />;
+  if ((liffLoading || loading) && !isDataReady) return <XYLLoader tagline="กำลังโหลดของรางวัล..." />;
 
   const filteredRewards = rewards.filter(r => r.name.toLowerCase().includes(searchQuery.toLowerCase()));
 

@@ -17,11 +17,17 @@ export default function LiffMemberPage() {
   const { locale } = useI18n();
   const router = useRouter();
   const supabase = createClient();
-  const { lineProfile, loading: liffLoading, hasSeenLoader } = useLiff();
+  const { lineProfile, loading: liffLoading, memberInfo: ctxMemberInfo, isDataReady } = useLiff();
   
-  const [memberInfo, setMemberInfo] = useState<any>(null);
+  const [memberInfo, setMemberInfo] = useState<any>(ctxMemberInfo || null);
   const [isLinkingPhone, setIsLinkingPhone] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!isDataReady);
+
+  useEffect(() => {
+    if (ctxMemberInfo) {
+      setMemberInfo(ctxMemberInfo);
+    }
+  }, [ctxMemberInfo]);
   const [showBenefits, setShowBenefits] = useState(false);
   const [earnRate, setEarnRate] = useState(100);
   const [showCatalog, setShowCatalog] = useState(false);
@@ -272,7 +278,7 @@ export default function LiffMemberPage() {
   };
 
   useEffect(() => {
-    if (!liffLoading) fetchData(false);
+    if (!liffLoading) fetchData(isDataReady);
     
     const channel = supabase.channel('member_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_members' }, () => {
@@ -283,10 +289,10 @@ export default function LiffMemberPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [lineProfile, liffLoading]);
+  }, [lineProfile, liffLoading, isDataReady]);
 
-  if (liffLoading && !hasSeenLoader) return <XYLLoader tagline={dict.loading} />;
-  if (loading) return <XYLLoader tagline={dict.loading} />;
+  if (liffLoading && !isDataReady) return <XYLLoader tagline={dict.loading} />;
+  if (loading && !isDataReady) return <XYLLoader tagline={dict.loading} />;
 
   if (!memberInfo || !memberInfo.phone || !memberInfo.pdpa_consent) {
     return <RegistrationForm key={memberInfo?.id || 'new'} lineProfile={lineProfile} onSubmit={handleRegistrationSubmit} isSubmitting={isLinkingPhone} initialData={memberInfo} />;

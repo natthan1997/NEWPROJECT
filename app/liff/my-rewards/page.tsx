@@ -142,19 +142,29 @@ function VoucherItem({ voucher, onUse, onCancel }: VoucherItemProps) {
 export default function MyRewardsPage() {
   const router = useRouter();
   const supabase = createClient();
-  const { lineProfile, loading: liffLoading } = useLiff();
+  const { lineProfile, loading: liffLoading, memberInfo: ctxMemberInfo, isDataReady } = useLiff();
 
-  const [memberInfo, setMemberInfo] = useState<any>(null);
+  const [memberInfo, setMemberInfo] = useState<any>(ctxMemberInfo || null);
   const [vouchers, setVouchers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!isDataReady);
+  const [vouchersLoading, setVouchersLoading] = useState(true);
   const [usedVoucherNotification, setUsedVoucherNotification] = useState<any>(null);
   const [confirmingVoucher, setConfirmingVoucher] = useState<any>(null);
 
-  const fetchData = async () => {
+  useEffect(() => {
+    if (ctxMemberInfo) {
+      setMemberInfo(ctxMemberInfo);
+    }
+  }, [ctxMemberInfo]);
+
+  const fetchData = async (isBackgroundSync = false) => {
     const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
     if (!userId) return;
     try {
-      setLoading(true);
+      if (!isBackgroundSync) {
+        setLoading(true);
+        setVouchersLoading(true);
+      }
       const { data: member } = await supabase
         .from('pos_members')
         .select('*')
@@ -175,12 +185,13 @@ export default function MyRewardsPage() {
       console.error(err);
     } finally {
       setLoading(false);
+      setVouchersLoading(false);
     }
   };
 
   useEffect(() => {
-    if (!liffLoading) fetchData();
-  }, [lineProfile, liffLoading]);
+    if (!liffLoading) fetchData(isDataReady);
+  }, [lineProfile, liffLoading, isDataReady]);
 
   // Real-time subscription to update coupons status
   useEffect(() => {
@@ -247,7 +258,7 @@ export default function MyRewardsPage() {
     }
   };
 
-  if (liffLoading || loading) return <XYLLoader tagline="กำลังโหลดคูปองของคุณ..." />;
+  if ((liffLoading || loading) && !isDataReady) return <XYLLoader tagline="กำลังโหลดคูปองของคุณ..." />;
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-[#1A1A18] font-sans pb-24 relative overflow-hidden">
@@ -265,7 +276,12 @@ export default function MyRewardsPage() {
       </header>
 
       <main className="px-5 pt-6 relative z-10 max-w-lg mx-auto flex flex-col gap-4">
-        {vouchers.length > 0 ? (
+        {vouchersLoading ? (
+          <div className="py-20 flex flex-col items-center justify-center text-center">
+            <div className="w-8 h-8 border-4 border-gray-200 border-t-[#1A1A18] rounded-full animate-spin mb-3"></div>
+            <p className="text-[13px] text-gray-500">กำลังโหลดคูปองของคุณ...</p>
+          </div>
+        ) : vouchers.length > 0 ? (
           vouchers.map((voucher) => (
             <VoucherItem
               key={voucher.id}
