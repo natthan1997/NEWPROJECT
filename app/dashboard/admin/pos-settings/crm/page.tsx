@@ -46,24 +46,39 @@ export default function LoyaltySettingsPage() {
       catch(e) { parsedBenefits = parsedBenefits.split(',').map((s:string) => s.trim()).filter((s:string) => s); }
     }
     
-    const saveData = { ...data, benefits: parsedBenefits };
-    
-    if (id.startsWith('new-')) {
-      const { error } = await supabase.from('pos_member_tiers').insert([saveData]);
-      if(error) alert('Insert Error: ' + error.message);
-    } else {
-      const { error } = await supabase.from('pos_member_tiers').update(saveData).eq('id', id);
-      if(error) alert('Update Error: ' + error.message);
+    try {
+      const res = await fetch('/api/admin/crm/tiers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, ...data, benefits: parsedBenefits })
+      });
+      const result = await res.json();
+      if (!result.success) {
+        alert('Save Error: ' + (result.error || 'Unknown error'));
+      }
+    } catch (e: any) {
+      alert('Save Error: ' + e.message);
     }
     loadData();
   };
 
   const handleDeleteTier = async (id: string) => {
     if (!confirm('ยืนยันการลบ?')) return;
-    if (!id.startsWith('new-')) {
-      await supabase.from('pos_member_tiers').delete().eq('id', id);
+    try {
+      const res = await fetch('/api/admin/crm/tiers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete', id })
+      });
+      const result = await res.json();
+      if (!result.success) {
+        alert('Delete Error: ' + (result.error || 'Unknown error'));
+      }
+    } catch (e: any) {
+      alert('Delete Error: ' + e.message);
     }
     setTiers(tiers.filter(t => t.id !== id));
+    loadData();
   };
 
   const handleSaveTitle = async (title: any) => { console.log('Saving title:', title);

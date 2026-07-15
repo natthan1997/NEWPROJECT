@@ -139,16 +139,59 @@ export async function sendLineFlexNotification(to: string, data: { status: strin
   const statusText = statusLabels[s] || "ออเดอร์สถานะ: " + s;
   const showRating = s === "completed" || s === "delivered";
 
-  const itemRows: any[] = items.slice(0, 3).map(item => ({
-    type: "box",
-    layout: "horizontal",
-    contents: [
-      { type: "text", text: `${item.name} x ${item.quantity}`, size: "xs", color: "#8C8A81", flex: 4 },
-      { type: "text", text: `฿${(item.sale_price * item.quantity).toLocaleString()}`, size: "xs", color: "#1A1A18", align: "end", weight: "bold", flex: 2 }
-    ]
-  }));
+  const itemRows: any[] = [];
+  
+  items.slice(0, 10).forEach(item => {
+    // 1. Base item row (horizontal)
+    const baseRow = {
+      type: "box",
+      layout: "horizontal",
+      contents: [
+        { type: "text", text: `${item.name} x ${item.quantity}`, size: "xs", color: "#1A1A18", weight: "bold", flex: 4, wrap: true },
+        { type: "text", text: `฿${(item.sale_price * item.quantity).toLocaleString()}`, size: "xs", color: "#1A1A18", align: "end", weight: "bold", flex: 2 }
+      ]
+    };
+    
+    // 2. Modifiers rows
+    let modifierLines: any[] = [];
+    if (item.selected_modifiers && Array.isArray(item.selected_modifiers)) {
+      modifierLines = item.selected_modifiers
+        .map((m: any) => {
+          const valText = m.value && m.value !== 'true' && m.value !== 'yes' ? `: ${m.value}` : '';
+          return m.name + valText;
+        })
+        .filter(Boolean);
+    } else if (item.modifiers) {
+      const modsString = typeof item.modifiers === 'string' ? item.modifiers : Array.isArray(item.modifiers) ? item.modifiers.join(', ') : '';
+      if (modsString) {
+        modifierLines = modsString.split(',').map((s: string) => s.trim()).filter(Boolean);
+      }
+    }
+    
+    const itemBoxContents: any[] = [baseRow];
+    
+    if (modifierLines.length > 0) {
+      modifierLines.forEach(modText => {
+        itemBoxContents.push({
+          type: "box",
+          layout: "horizontal",
+          margin: "none",
+          contents: [
+            { type: "text", text: `   • ${modText}`, size: "xxs", color: "#8C8A81", flex: 1, wrap: true }
+          ]
+        });
+      });
+    }
+    
+    itemRows.push({
+      type: "box",
+      layout: "vertical",
+      spacing: "none",
+      contents: itemBoxContents
+    });
+  });
 
-  const hideItems = ["preparing", "shipping", "out_for_delivery"].includes(s);
+  const hideItems = false;
 
   const flexMessage: any = {
     type: "flex",

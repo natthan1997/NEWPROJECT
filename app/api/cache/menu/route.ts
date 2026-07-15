@@ -6,15 +6,18 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const branchId = searchParams.get('branchId') || 'main';
+    const bust = searchParams.get('bust') === 'true';
     const cacheKey = `cache:menu:${branchId}`;
 
-    // 1. Try to fetch from Redis Cache
-    const cachedData = await redis.get(cacheKey);
-    if (cachedData) {
-      return NextResponse.json({ 
-        source: 'redis', 
-        data: cachedData 
-      });
+    // 1. Try to fetch from Redis Cache (skip if bust=true)
+    if (!bust) {
+      const cachedData = await redis.get(cacheKey);
+      if (cachedData) {
+        return NextResponse.json({ 
+          source: 'redis', 
+          data: cachedData 
+        });
+      }
     }
 
     // 2. Cache Miss: Fetch from Supabase

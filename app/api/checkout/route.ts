@@ -60,6 +60,8 @@ export async function POST(req: Request) {
       phoneNumber, 
       notes,
       branchId,
+      isPreorder,
+      preorderTime,
     } = await req.json()
 
     const deliveryLatitude = typeof latitude === 'number' ? latitude : null
@@ -121,7 +123,7 @@ export async function POST(req: Request) {
         : false
     }
 
-    if (!isAcceptingOrders) {
+    if (!isAcceptingOrders && !isPreorder) {
       return NextResponse.json(
         { error: 'ขออภัย ขณะนี้ร้านปิดให้บริการ ไม่สามารถสั่งซื้อได้ในขณะนี้' },
         { status: 409 }
@@ -132,7 +134,7 @@ export async function POST(req: Request) {
     if (orderType === 'delivery' && requestedDeliveryFee === -1) {
       return NextResponse.json({ error: 'Out of delivery service area' }, { status: 400 });
     }
-    if (orderType === 'takeaway' && !pickupTimeText) {
+    if (orderType === 'takeaway' && !pickupTimeText && !preorderTime) {
       return NextResponse.json({ error: 'กรุณาระบุเวลาที่จะมารับออเดอร์' }, { status: 400 })
     }
     const deliveryFee = orderType === 'delivery' ? (requestedDeliveryFee ?? 50) : 0;
@@ -149,7 +151,11 @@ export async function POST(req: Request) {
     const paymentIntentId = null
     const initialStatus = 'pending'
     const combinedCommentParts = []
-    if (orderType === 'takeaway' && pickupTimeText) combinedCommentParts.push(`เวลารับ: ${pickupTimeText}`)
+    if (isPreorder && preorderTime) {
+      combinedCommentParts.push(`เวลารับ: ${preorderTime} (สั่งล่วงหน้าสำหรับวันพรุ่งนี้)`)
+    } else if (orderType === 'takeaway' && pickupTimeText) {
+      combinedCommentParts.push(`เวลารับ: ${pickupTimeText}`)
+    }
     if (orderComment) combinedCommentParts.push(orderComment)
     const combinedComment = combinedCommentParts.length > 0 ? combinedCommentParts.join('\n') : null
 

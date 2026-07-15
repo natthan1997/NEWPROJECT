@@ -254,6 +254,8 @@ export default function LiffMenuPage() {
   const [pickupTime, setPickupTime] = useState('');
   const [showPickupTimeModal, setShowPickupTimeModal] = useState(false);
   const [pickupTimeDraft, setPickupTimeDraft] = useState('');
+  const [showPreorderConfirmModal, setShowPreorderConfirmModal] = useState(false);
+  const [pendingPreorderAction, setPendingPreorderAction] = useState<(() => void) | null>(null);
   
   const [shopSettings, setShopSettings] = useState<any>({
     is_open: true,
@@ -270,6 +272,8 @@ export default function LiffMenuPage() {
   });
   const [allShopSettings, setAllShopSettings] = useState<any[]>([]);
   const [isShopEffectivelyOpen, setIsShopEffectivelyOpen] = useState(true);
+  const [isPreorderMode, setIsPreorderMode] = useState(false);
+  const [preorderTime, setPreorderTime] = useState<string>('');
   const [closeMessage, setCloseMessage] = useState<string>('');
   const [openingHoursText, setOpeningHoursText] = useState<string>('');
   const [isMounted, setIsMounted] = useState(false);
@@ -303,6 +307,34 @@ export default function LiffMenuPage() {
   const [banners, setBanners] = useState<any[]>([]);
   const [loading, setLoading] = useState(!isDataReady);
   const [activeBranch, setActiveBranch] = useState<any>(null);
+
+  const generateTimeOptions = () => {
+    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const tomorrowIndex = (new Date().getDay() + 1) % 7;
+    const tomorrowDayName = days[tomorrowIndex];
+    const tomorrowSettings = shopSettings?.opening_hours?.[tomorrowDayName];
+
+    if (!tomorrowSettings || tomorrowSettings.closed) {
+      return ['08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00'];
+    }
+
+    const [openH, openM] = (tomorrowSettings.open || '08:00').split(':').map(Number);
+    const [closeH, closeM] = (tomorrowSettings.close || '18:00').split(':').map(Number);
+    
+    const options = [];
+    let currentMinutes = openH * 60 + openM;
+    const endMinutes = closeH * 60 + closeM;
+
+    while (currentMinutes <= endMinutes) {
+      const h = Math.floor(currentMinutes / 60);
+      const m = currentMinutes % 60;
+      const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      options.push(timeStr);
+      currentMinutes += 30;
+    }
+
+    return options;
+  };
 
   // 🚀 Seed local states from global context immediately (no wait for DB calls)
   useEffect(() => {
@@ -1230,8 +1262,21 @@ export default function LiffMenuPage() {
   const handleReorderLatest = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!latestOrder || !latestOrder.items) return;
-    if (!isShopEffectivelyOpen) {
-       alert(closeMessage || 'ขออภัย ขณะนี้ร้านปิดให้บริการ');
+    if (!isShopEffectivelyOpen && !isPreorderMode) {
+       setPendingPreorderAction(() => () => {
+          let addedCount = 0;
+          latestOrder.items.forEach((orderItem: any) => {
+             const menuItem = items.find(i => i.id === orderItem.item_id);
+             if (menuItem && menuItem.in_stock !== false) {
+                addToCart(menuItem, orderItem.selected_modifiers || [], orderItem.quantity || 1);
+                addedCount++;
+             }
+          });
+          if (addedCount > 0) {
+             setIsCartOpen(true);
+          }
+       });
+       setShowPreorderConfirmModal(true);
        return;
     }
     
@@ -1253,8 +1298,11 @@ export default function LiffMenuPage() {
   };
 
   const addToCart = async (item: MenuItem, selectedModifiers: any[] = [], quantity: number = 1) => {
-    if (!isShopEffectivelyOpen) {
-       alert(closeMessage || 'ขออภัย ขณะนี้ร้านปิดให้บริการ');
+    if (!isShopEffectivelyOpen && !isPreorderMode) {
+       setPendingPreorderAction(() => () => {
+          addToCart(item, selectedModifiers, quantity);
+       });
+       setShowPreorderConfirmModal(true);
        return;
     }
 
@@ -1595,6 +1643,11 @@ export default function LiffMenuPage() {
   const handleCheckout = async () => {
     if (checkoutLockRef.current || isProcessing) return;
 
+    if (isPreorderMode && orderType === 'delivery' && !preorderTime) {
+       alert('กรุณาเลือกเวลารับสินค้าสำหรับวันพรุ่งนี้ก่อนครับ');
+       return;
+    }
+
     const checkoutLockKey = buildCheckoutLockKey();
     const previousLock = typeof window !== 'undefined' ? sessionStorage.getItem('xyl_liff_checkout_lock') : null;
     if (previousLock === checkoutLockKey) return;
@@ -1634,7 +1687,7 @@ export default function LiffMenuPage() {
         }
     }
 
-    if (!effectivelyOpen) {
+    if (!effectivelyOpen && !isPreorderMode) {
        alert('ขออภัย ร้านเปิดปิดรับออเดอร์กะทันหัน ไม่สามารถสั่งซื้อได้ในขณะนี้ครับ');
        setIsProcessing(false);
        setIsShopEffectivelyOpen(false);
@@ -1662,14 +1715,19 @@ export default function LiffMenuPage() {
           pickupTime: orderType === 'takeaway' ? pickupTime : '',
           notes, 
           paymentMethod,
-          branchId: activeBranch?.branch_id || shopSettings?.branch_id 
+          branchId: activeBranch?.branch_id || shopSettings?.branch_id,
+          isPreorder: isPreorderMode,
+          preorderTime: isPreorderMode ? (orderType === 'takeaway' ? pickupTime : preorderTime) : ''
         })
       });
       const responseData = await res.json();
       if (!res.ok) throw new Error(responseData.error || 'Failed to checkout');
       
       const { orderId, orderNumber, deduped } = responseData;
-      const calcTotal = cart.reduce((acc, it) => acc + (it.sale_price * it.quantity), 0) + (orderType === 'delivery' && deliveryFee > 0 ? deliveryFee : 0);
+      const calcTotal = cart.reduce((acc, it) => {
+        const modsPrice = it.selected_modifiers?.reduce((macc: number, m: any) => macc + (m.price_adjustment || m.price || 0), 0) || 0;
+        return acc + ((it.sale_price + modsPrice) * it.quantity);
+      }, 0) + (orderType === 'delivery' && deliveryFee > 0 ? deliveryFee : 0);
 
       if (!deduped) {
         // Broadcast to POS using the same channel/event as QR table orders
@@ -1715,12 +1773,15 @@ export default function LiffMenuPage() {
               orderId,
               totalAmount: calcTotal,
               deliveryFee: orderType === 'delivery' ? (deliveryFee > 0 ? deliveryFee : 0) : 0,
-              items: cart.map(it => ({ 
-                name: it.name, 
-                quantity: it.quantity, 
-                sale_price: it.sale_price,
-                modifiers: it.selected_modifiers?.map((m: any) => m.name).join(', ')
-              })),
+              items: cart.map(it => {
+                const modsPrice = it.selected_modifiers?.reduce((macc: number, m: any) => macc + (m.price_adjustment || m.price || 0), 0) || 0;
+                return { 
+                  name: it.name, 
+                  quantity: it.quantity, 
+                  sale_price: it.sale_price + modsPrice,
+                  selected_modifiers: it.selected_modifiers || []
+                }
+              }),
               silent: true
             }
           })
@@ -1760,17 +1821,17 @@ export default function LiffMenuPage() {
             <h1 className="text-[12px] font-black truncate uppercase tracking-tight leading-tight">{(addressShort && addressShort !== 'เลือกที่อยู่จัดส่ง' && addressShort !== ':') ? addressShort : 'กรุณาระบุที่อยู่จัดส่ง'}</h1>
             <div className="flex items-center min-h-[14px] overflow-hidden">
                 <AnimatePresence mode="wait">
-                  {isMounted && closeMessage && (
+                  {isMounted && (closeMessage || isPreorderMode) && (
                     <motion.span 
-                        key={closeMessage}
+                        key={isPreorderMode ? 'preorder' : closeMessage}
                         initial={{ opacity: 0, y: 5 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -5 }}
                         transition={{ duration: 0.2 }}
-                        className={`text-[9px] font-black uppercase tracking-[0.02em] leading-none ${!isShopEffectivelyOpen ? 'animate-pulse' : ''}`}
-                        style={{ color: openingHoursText }}
+                        className={`text-[9px] font-black uppercase tracking-[0.02em] leading-none ${(!isShopEffectivelyOpen && !isPreorderMode) ? 'animate-pulse' : ''}`}
+                        style={{ color: isPreorderMode ? '#f59e0b' : openingHoursText }}
                     >
-                        {closeMessage}
+                        {isPreorderMode ? '● สั่งซื้อล่วงหน้าสำหรับรับวันพรุ่งนี้' : closeMessage}
                     </motion.span>
                   )}
                 </AnimatePresence>
@@ -2436,7 +2497,8 @@ export default function LiffMenuPage() {
                       </motion.div>
                     </div>
                   )}
-                </AnimatePresence>
+
+                 </AnimatePresence>
 
                 <div className="p-4 rounded-2xl border border-neutral-100 bg-white mt-4">
                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 block mb-1">{t.notesLabel}</label>
@@ -2484,6 +2546,31 @@ export default function LiffMenuPage() {
 
                   {/* 🧧 INTEGRATED LOYALTY SECTION - GRAB STYLE */}
                   <div className="mt-8 mx-[-24px] border-t-[8px] border-[#F5F5F5] bg-white">
+                     
+                     {/* Pre-order Pick-up Time Row */}
+                      {isPreorderMode && orderType !== 'takeaway' && (
+                        <div className="px-6 py-4 border-b border-[#F5F5F5] bg-amber-50">
+                           <div className="flex flex-col gap-2">
+                              <span className="text-[12px] font-black text-amber-800 uppercase tracking-wider">
+                                 ⏰ สั่งล่วงหน้าสำหรับรับวันพรุ่งนี้
+                              </span>
+                              <div className="flex items-center gap-3">
+                                 <select
+                                    value={preorderTime}
+                                    onChange={(e) => setPreorderTime(e.target.value)}
+                                    className="flex-1 bg-white border border-gray-200 text-gray-900 rounded-lg px-3 py-2 text-[14px] focus:outline-none"
+                                 >
+                                    <option value="">-- เลือกเวลารับอาหารพรุ่งนี้ --</option>
+                                    {generateTimeOptions().map((time) => (
+                                       <option key={time} value={time}>
+                                          {time} น.
+                                       </option>
+                                    ))}
+                                 </select>
+                              </div>
+                           </div>
+                        </div>
+                     )}
                      
                      {/* Coupon Row */}
                      <div className="flex items-center justify-between px-6 py-4 border-b border-[#F5F5F5] active:bg-gray-50 cursor-pointer transition-colors" onClick={() => {
@@ -2560,13 +2647,19 @@ export default function LiffMenuPage() {
 
               {/* 🚀 STICKY FOOTER GRAB STYLE (BLACK THEME) */}
               <div className="flex-none bg-white border-t border-gray-100 p-4 pb-8 shadow-[0_-10px_20px_rgba(0,0,0,0.03)] z-[2100]">
-                 {!isShopEffectivelyOpen ? (
-                   <div className="p-4 bg-red-50 border-l-4 border-red-500 rounded-xl">
-                     <p className="text-[11px] font-black text-red-600 uppercase tracking-widest leading-loose">
-                       {closeMessage || 'CLOSED • TEMP. PAUSED'}
-                     </p>
-                   </div>
-                 ) : (
+                 {(!isShopEffectivelyOpen && !isPreorderMode) ? (
+                    <div className="p-4 bg-red-50 border-l-4 border-red-500 rounded-xl flex flex-col gap-3">
+                      <p className="text-[11px] font-black text-red-600 uppercase tracking-widest leading-loose">
+                        {closeMessage || 'CLOSED • TEMP. PAUSED'}
+                      </p>
+                      <button
+                        onClick={() => setIsPreorderMode(true)}
+                        className="w-full py-3 bg-black hover:bg-neutral-900 active:scale-95 transition-all text-white text-[12px] font-black uppercase tracking-[0.1em] rounded-xl flex items-center justify-center gap-2 shadow-md shadow-black/10"
+                      >
+                         สั่งอาหารล่วงหน้า (รับวันพรุ่งนี้)
+                      </button>
+                    </div>
+                  ) : (
                    <button 
                      onClick={validateAndCheckout} 
                      disabled={isProcessing}
@@ -3238,6 +3331,65 @@ export default function LiffMenuPage() {
                   )
                 })()}
               </footer>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showPreorderConfirmModal && (
+          <div className="fixed inset-0 z-[2600] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => {
+                setShowPreorderConfirmModal(false);
+                setPendingPreorderAction(null);
+              }}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative z-[1] w-[min(100%,340px)] overflow-hidden rounded-[2rem] bg-white p-6 shadow-2xl text-center"
+            >
+              <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4 text-amber-500 animate-bounce">
+                 <Clock size={32} strokeWidth={2.5} />
+              </div>
+              <h3 className="text-[18px] font-black text-[#1A1A18] leading-tight">
+                 ขณะนี้ร้านค้าปิดให้บริการ
+              </h3>
+              <p className="mt-2 text-[13px] font-bold text-gray-500 leading-relaxed px-2">
+                 คุณต้องการเข้าสู่โหมดสั่งอาหารล่วงหน้า เพื่อระบุเวลารับและรับอาหารในวันพรุ่งนี้หรือไม่?
+              </p>
+              <div className="mt-6 flex flex-col gap-2">
+                 <button
+                   type="button"
+                   onClick={() => {
+                     setIsPreorderMode(true);
+                     setShowPreorderConfirmModal(false);
+                     if (pendingPreorderAction) {
+                        pendingPreorderAction();
+                        setPendingPreorderAction(null);
+                     }
+                   }}
+                   className="w-full rounded-2xl bg-black py-3.5 text-[13px] font-black text-white hover:bg-neutral-900 transition-all active:scale-[0.98] shadow-md shadow-black/10"
+                 >
+                   สั่งอาหารล่วงหน้า
+                 </button>
+                 <button
+                   type="button"
+                   onClick={() => {
+                     setShowPreorderConfirmModal(false);
+                     setPendingPreorderAction(null);
+                   }}
+                   className="w-full py-2.5 text-[12px] font-bold text-gray-400 hover:text-gray-600 transition-all"
+                 >
+                   ยกเลิก
+                 </button>
+              </div>
             </motion.div>
           </div>
         )}

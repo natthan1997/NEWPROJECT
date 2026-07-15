@@ -10,7 +10,7 @@ import {
 import { supabase } from '@/lib/supabaseClient'
 import XYLLoader from '@/components/loaders/XYLLoader'
 
-export default function DeliveryManager({ unlockAudio, isAudioEnabled, variant = 'page', onClose, syncPulse }: any) {
+export default function DeliveryManager({ unlockAudio, isAudioEnabled, variant = 'page', onClose, syncPulse, onStatusChange }: any) {
   const isDrawer = variant === 'drawer'
   const [isLoading, setIsLoading] = useState(false)
   const [orders, setOrders] = useState<any[]>([])
@@ -137,16 +137,23 @@ export default function DeliveryManager({ unlockAudio, isAudioEnabled, variant =
             orderId: targetOrder.id,
             totalAmount: Number(targetOrder.net_total || targetOrder.total_amount || 0),
             deliveryFee: Number(targetOrder.delivery_fee || 0),
-            items: (targetOrder.items || []).map((item: any) => ({
-              name: item.item?.name || item.name || 'Item',
-              quantity: Number(item.quantity || 0),
-              sale_price: Number(item.unit_price || 0),
-            })),
+            items: (targetOrder.items || []).map((item: any) => {
+              const modsPrice = item.selected_modifiers?.reduce((a: number, m: any) => a + ((m.price_adjustment || m.price || 0) * (m.qty || 1)), 0) || 0;
+              return {
+                name: item.item?.name || item.name || 'Item',
+                quantity: Number(item.quantity || 0),
+                sale_price: Number(item.unit_price || 0) + modsPrice,
+                selected_modifiers: item.selected_modifiers || [],
+              }
+            }),
           },
         }),
       }).catch((error) => console.error('Delivery LINE notify failed:', error))
     }
     fetchData()
+    if (onStatusChange) {
+      onStatusChange(id, status)
+    }
   }
 
   const handleCompleteDelivery = async (method: 'cash' | 'transfer') => {
@@ -188,30 +195,43 @@ export default function DeliveryManager({ unlockAudio, isAudioEnabled, variant =
             const { data: memberData } = await supabase.from('pos_members').select('id').eq('phone', finishModalOrder.reference_name).maybeSingle()
             if (memberData?.id) memberId = memberData.id
           }
-
           if (memberId) {
-            await supabase.rpc('increment_member_points', {
+            const { error: rpcError } = await supabase.rpc('increment_member_points', {
               user_id: memberId,
               points_to_add: pointsToEarn,
             })
-            await supabase.from('pos_points_history').insert({
-              member_id: memberId,
-              order_id: finishModalOrder.id,
-              points: pointsToEarn,
-              points_change: pointsToEarn,
-              type: 'earn',
-              description: `สะสมจากการสั่งซื้อ ${finishModalOrder.order_type === 'takeaway' ? 'Takeaway' : finishModalOrder.order_type === 'delivery' ? 'Delivery' : 'หน้าร้าน'} #${finishModalOrder.order_number}`,
-            }).catch(err => {
-              console.error('Failed to insert points history:', err)
-            })
+            
+            if (rpcError) {
+              await supabase.from('pos_orders').update({ 
+                comment: `RPC Error: ${rpcError.message} (code: ${rpcError.code})` 
+              }).eq('id', finishModalOrder.id)
+            } else {
+              const { error: insError } = await supabase.from('pos_points_history').insert({
+                member_id: memberId,
+                order_id: finishModalOrder.id,
+                points: pointsToEarn,
+                points_change: pointsToEarn,
+                type: 'earn',
+                description: `สะสมจากการสั่งซื้อ ${finishModalOrder.order_type === 'takeaway' ? 'Takeaway' : finishModalOrder.order_type === 'delivery' ? 'Delivery' : 'หน้าร้าน'} #${finishModalOrder.order_number}`,
+              })
+              
+              if (insError) {
+                await supabase.from('pos_orders').update({ 
+                  comment: `Insert Error: ${insError.message} (code: ${insError.code})` 
+                }).eq('id', finishModalOrder.id)
+              }
+            }
           }
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to award points for delivery', err)
+        await supabase.from('pos_orders').update({ 
+          comment: `Catch Error: ${err.message || err}` 
+        }).eq('id', finishModalOrder.id)
       }
 
       await handleStatus(finishModalOrder.id, 'completed')
-    } catch (e) {
+    } catch (e: any) {
       console.error(e)
     } finally {
       setFinishModalOrder(null)

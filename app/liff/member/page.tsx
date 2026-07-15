@@ -61,12 +61,48 @@ export default function LiffMemberPage() {
 
   const [titles, setTitles] = useState<any[]>([]);
   const [activeTitle, setActiveTitle] = useState<any>(null);
-  const tiers = React.useMemo(() => [
-    { name: 'Bronze', minPoints: 0, bgHex: '#F2ECE4', textHex: '#8C6D53', cardBg: 'bg-gradient-to-br from-[#B89F89] to-[#8C6D53]', benefits: [`อัตราสะสมคะแนน ${earnRate} บาท = 1 คะแนน`] },
-    { name: 'Silver', minPoints: 500, bgHex: '#F0F2F5', textHex: '#64748B', cardBg: 'bg-gradient-to-br from-[#94A3B8] to-[#64748B]', benefits: ['อัตราสะสมคะแนน x1.2', 'เครื่องดื่มพิเศษในเดือนเกิด'] },
-    { name: 'Gold', minPoints: 2000, bgHex: '#FCF7E8', textHex: '#B48529', cardBg: 'bg-gradient-to-br from-[#D4AF37] to-[#B48529]', benefits: ['อัตราสะสมคะแนน x1.5', 'ส่วนลด 5% ทุกออเดอร์'] },
-    { name: 'Platinum', minPoints: 5000, bgHex: '#EBF1F5', textHex: '#3E6578', cardBg: 'bg-gradient-to-br from-[#3E6578] to-[#1E3A47]', benefits: ['อัตราสะสมคะแนน x2.0', 'ส่วนลด 10% ทุกออเดอร์'] }
-  ], [earnRate]);
+  const [dbTiers, setDbTiers] = useState<any[]>([]);
+
+  const tiers = React.useMemo(() => {
+    if (dbTiers && dbTiers.length > 0) {
+      return dbTiers.map(tier => {
+        let benefitsArray = [];
+        if (tier.benefits) {
+          if (Array.isArray(tier.benefits)) {
+            benefitsArray = tier.benefits;
+          } else if (typeof tier.benefits === 'string') {
+            try {
+              benefitsArray = JSON.parse(tier.benefits);
+            } catch (e) {
+              benefitsArray = tier.benefits.split(',').map((s: string) => s.trim()).filter(Boolean);
+            }
+          }
+        }
+        
+        let cardBg = 'bg-gradient-to-br from-[#B89F89] to-[#8C6D53]';
+        const nameLower = String(tier.name || '').toLowerCase();
+        if (nameLower.includes('silver')) cardBg = 'bg-gradient-to-br from-[#94A3B8] to-[#64748B]';
+        else if (nameLower.includes('gold')) cardBg = 'bg-gradient-to-br from-[#D4AF37] to-[#B48529]';
+        else if (nameLower.includes('platinum')) cardBg = 'bg-gradient-to-br from-[#3E6578] to-[#1E3A47]';
+        
+        return {
+          name: tier.name,
+          minPoints: tier.min_points,
+          bgHex: tier.bg_hex || '#F2ECE4',
+          textHex: tier.text_hex || '#8C6D53',
+          cardBg,
+          benefits: benefitsArray
+        };
+      });
+    }
+
+    return [
+      { name: 'Bronze', minPoints: 0, bgHex: '#F2ECE4', textHex: '#8C6D53', cardBg: 'bg-gradient-to-br from-[#B89F89] to-[#8C6D53]', benefits: [`อัตราสะสมคะแนน ${earnRate} บาท = 1 คะแนน`] },
+      { name: 'Silver', minPoints: 500, bgHex: '#F0F2F5', textHex: '#64748B', cardBg: 'bg-gradient-to-br from-[#94A3B8] to-[#64748B]', benefits: ['อัตราสะสมคะแนน x1.2', 'เครื่องดื่มพิเศษในเดือนเกิด'] },
+      { name: 'Gold', minPoints: 2000, bgHex: '#FCF7E8', textHex: '#B48529', cardBg: 'bg-gradient-to-br from-[#D4AF37] to-[#B48529]', benefits: ['อัตราสะสมคะแนน x1.5', 'ส่วนลด 5% ทุกออเดอร์'] },
+      { name: 'Platinum', minPoints: 5000, bgHex: '#EBF1F5', textHex: '#3E6578', cardBg: 'bg-gradient-to-br from-[#3E6578] to-[#1E3A47]', benefits: ['อัตราสะสมคะแนน x2.0', 'ส่วนลด 10% ทุกออเดอร์'] }
+    ];
+  }, [dbTiers, earnRate]);
   
   const handleRegistrationSubmit = async (data: any) => {
     const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
@@ -110,8 +146,10 @@ export default function LiffMemberPage() {
       const { data: member } = await supabase.from('pos_members').select('*').eq('line_user_id', userId).maybeSingle();
       const { data: shopSettings } = await supabase.from('pos_shop_settings').select('opening_hours').order('updated_at', { ascending: false }).limit(1).maybeSingle();
       if (shopSettings && shopSettings.opening_hours) {
-        if (shopSettings.opening_hours.loyalty_earn_rate) {
-          setEarnRate(shopSettings.opening_hours.loyalty_earn_rate);
+        if (shopSettings.opening_hours.loyalty_earn_thb) {
+          setEarnRate(Number(shopSettings.opening_hours.loyalty_earn_thb));
+        } else if (shopSettings.opening_hours.loyalty_earn_rate) {
+          setEarnRate(Number(shopSettings.opening_hours.loyalty_earn_rate));
         }
         if (shopSettings.opening_hours.mystery_box_cost !== undefined) {
           setMysteryBoxCost(shopSettings.opening_hours.mystery_box_cost);
@@ -119,6 +157,15 @@ export default function LiffMemberPage() {
       }
       if (member) {
         setMemberInfo(member);
+      }
+      
+      try {
+        const { data: dbTiersData } = await supabase.from('pos_member_tiers').select('*').order('min_points', { ascending: true });
+        if (dbTiersData && dbTiersData.length > 0) {
+          setDbTiers(dbTiersData);
+        }
+      } catch (err) {
+        console.error('Failed to load member tiers', err);
       }
       
       try {
@@ -483,7 +530,7 @@ export default function LiffMemberPage() {
                     </div>
                     <Gift size={24} className="text-gray-400 mb-2" />
                     <h4 className="text-[13px] font-bold text-[#1A1A18] leading-tight mb-1 line-clamp-2 pr-4">
-                        {reward.discount_type === 'percent' ? `ส่วนลด ${reward.discount_value}%` : reward.discount_type === 'free_item' ? `ฟรี ${reward.discount_value}` : `ส่วนลด ฿${reward.discount_value}`}
+                        {reward.name}
                     </h4>
                     <p className="text-[12px] text-gray-500 mt-auto font-medium tracking-tight">ใช้ {reward.cost_points.toLocaleString()} พอยท์</p>
                 </div>

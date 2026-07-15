@@ -553,20 +553,21 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         targetPrinters = printers.filter((p: any) => p.type === 'kitchen' || p.type === 'both');
     }
     
-    // Fallback if no printers configured in DB
-    if (targetPrinters.length === 0) {
-        let ip = localStorage.getItem('xylem_printer_ip');
+    // Fallback if no printers configured in DB or none of them have an IP
+    if (targetPrinters.length === 0 || targetPrinters.every((p: any) => !p.ip)) {
+        let ip = typeof window !== 'undefined' ? localStorage.getItem('xylem_printer_ip') : null;
         if (!ip) {
             ip = prompt('กรุณาระบุ IP Address ของเครื่องปริ้น (เช่น 192.168.1.100):', '192.168.1.100');
             if (ip) localStorage.setItem('xylem_printer_ip', ip);
             else return;
         }
-        targetPrinters = [{ ip, type, model: 'xprinter-xp-n160ii', categories: ['all'] }];
+        targetPrinters = [{ ip, type, model: 'xprinter-xp-n160ii', encoding: 'cp874', categories: ['all'] }];
     }
 
     try {
         const printOrderData = {
           orderNumber: paymentSuccessData.orderNumber,
+          queueNumber: paymentSuccessData.queueNumber,
           date: new Date(paymentSuccessData.timestamp).toLocaleString(),
           orderSource: paymentSuccessData.orderSource || 'pos',
           tableNumber: paymentSuccessData.tableNumber,
@@ -1312,7 +1313,19 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         fetchTables()
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_menu_items' }, () => {
-        fetchItems()
+        fetchItems(true)
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_menu_categories' }, () => {
+        fetchItems(true)
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_menu_modifiers' }, () => {
+        fetchItems(true)
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_menu_modifier_groups' }, () => {
+        fetchItems(true)
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_item_modifier_links' }, () => {
+        fetchItems(true)
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_promotions' }, () => {
         fetchPromotions()
@@ -1324,10 +1337,10 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [])
+  }, [shopSettings?.branch_id])
 
 
-  const fetchItems = async () => {
+  const fetchItems = async (forceRefresh = false) => {
     try {
       if (typeof window !== 'undefined' && !navigator.onLine) {
         console.log('Fetching menu from local DB (Offline Mode)')
@@ -1351,7 +1364,10 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       }
 
       const branchId = shopSettings?.branch_id
-      const url = branchId ? `/api/cache/menu?branchId=${branchId}` : '/api/cache/menu';
+      let url = branchId ? `/api/cache/menu?branchId=${branchId}` : '/api/cache/menu';
+      if (forceRefresh) {
+        url += url.includes('?') ? '&bust=true' : '?bust=true';
+      }
 
       const response = await fetch(url);
       if (!response.ok) throw new Error('Failed to fetch menu cache');
@@ -1660,8 +1676,8 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         kitchenPrinters = targetPrinters.filter((p: any) => p.type === 'receipt');
     }
     
-    // Fallback 2: If still no printers, fall back to LocalStorage IP
-    if (kitchenPrinters.length === 0) {
+    // Fallback 2: If still no printers or all configured printers have no IP, fall back to LocalStorage IP
+    if (kitchenPrinters.length === 0 || kitchenPrinters.every((p: any) => !p.ip)) {
         const fallbackIp = typeof window !== 'undefined' ? localStorage.getItem('xylem_printer_ip') : null;
         if (fallbackIp) {
             kitchenPrinters = [{
@@ -1757,7 +1773,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                         alert(debugInfo + '\nสรุป: ระบบส่งข้อมูลเข้าเครื่องปริ้นครัวเสร็จสมบูรณ์แล้ว! (ถ้ากระดาษไม่ออก แปลว่าเครื่องปริ้นไม่ยอมรับข้อมูล หรือตั้งค่าผิด)');
                     } else if (kitchenPrinters.some(p => !p.ip)) {
                         alert(debugInfo + '\nสรุป: ไม่ได้ปริ้น เพราะไม่มีการใส่ IP Address ในการตั้งค่า!');
-                    } else if (kitchenPrinters.some(p => itemsToPrint?.length === 0)) {
+                    } else {
                         alert(debugInfo + '\nสรุป: ไม่ได้ปริ้น เพราะไม่มีรายการอาหารตรงกับหมวดหมู่ที่เครื่องปริ้นรับผิดชอบ');
                     }
                 }
@@ -2432,7 +2448,8 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             quantity: item.quantity,
             subtotal: getEffectiveItemUnitPrice(item) * item.quantity,
             modifiers: item.selected_modifiers?.map((m: any) => m.name) || [],
-            selected_modifiers: item.selected_modifiers || []
+            selected_modifiers: item.selected_modifiers || [],
+            category_id: item.category_id || 'uncategorized'
         })),
         subtotal: rawCartSubTotal,
         discount: discountTotalValue + itemDiscountTotal,
@@ -3086,6 +3103,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
               variant="drawer"
               syncPulse={syncPulse}
               onClose={() => setShowDeliveryHub(false)}
+              onStatusChange={refreshPendingOrders}
             />
           </div>
         </div>

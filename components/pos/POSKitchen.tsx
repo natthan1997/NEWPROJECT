@@ -77,11 +77,15 @@ export default function POSKitchen({
             orderId: targetOrder.id,
             totalAmount: Number(targetOrder.net_total ?? targetOrder.total_amount ?? 0),
             deliveryFee: Number(targetOrder.delivery_fee || 0),
-            items: (targetOrder.items || []).map((item: any) => ({
-              name: item.item?.name || item.name || 'Item',
-              quantity: Number(item.quantity || 0),
-              sale_price: Number(item.unit_price || 0),
-            })),
+            items: (targetOrder.items || []).map((item: any) => {
+              const modsPrice = item.selected_modifiers?.reduce((a: number, m: any) => a + ((m.price_adjustment || m.price || 0) * (m.qty || 1)), 0) || 0;
+              return {
+                name: item.item?.name || item.name || 'Item',
+                quantity: Number(item.quantity || 0),
+                sale_price: Number(item.unit_price || 0) + modsPrice,
+                selected_modifiers: item.selected_modifiers || [],
+              }
+            }),
           },
         }),
       }).catch((error) => console.error('Kitchen LINE notify failed:', error))
@@ -129,6 +133,13 @@ export default function POSKitchen({
                             </div>
                         )}
                     </header>
+
+                    {order.comment && (
+                        <div className="px-8 py-3 bg-amber-500/10 border-b border-white/5 text-amber-400 text-xs font-black flex items-center gap-2">
+                            <Clock size={14} className="flex-shrink-0 animate-pulse text-amber-500" />
+                            <span className="leading-none">{order.comment}</span>
+                        </div>
+                    )}
 
                     {/* 📝 MENU ITEMS (Giant & Clear) */}
                     <div className="flex-1 p-8 space-y-8 overflow-y-auto no-scrollbar">
@@ -200,13 +211,17 @@ export default function POSKitchen({
                                        orderNumber: order.order_number,
                                        orderId: order.id,
                                        totalAmount: Number(order.net_total ?? order.total_amount ?? 0),
-                                       items: (order.items || []).map((item: any) => ({
-                                         name: item.item?.name || item.name || 'Item',
-                                         quantity: Number(item.quantity || 0),
-                                         sale_price: Number(item.unit_price || 0),
-                                       })),
-                                     },
-                                   }),
+                                        items: (order.items || []).map((item: any) => {
+                                          const modsPrice = item.selected_modifiers?.reduce((a: number, m: any) => a + ((m.price_adjustment || m.price || 0) * (m.qty || 1)), 0) || 0;
+                                          return {
+                                            name: item.item?.name || item.name || 'Item',
+                                            quantity: Number(item.quantity || 0),
+                                            sale_price: Number(item.unit_price || 0) + modsPrice,
+                                            selected_modifiers: item.selected_modifiers || [],
+                                          }
+                                        }),
+                                      },
+                                    }),
                                  }).catch((error) => console.error('Kitchen cancel LINE notify failed:', error))
                                }
                                fetchKitchenOrders();
