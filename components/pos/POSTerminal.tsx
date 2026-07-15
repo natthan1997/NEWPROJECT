@@ -1001,6 +1001,58 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     return activeOrders.length + 1
   }
 
+  const activePrintData = useMemo(() => {
+    if (paymentSuccessData) return paymentSuccessData;
+    const finalCartTotal = cartTotal;
+    return {
+      orderNumber: editingOrderNumber || 'Draft',
+      queueNumber: editingOrderId ? String(getQueueNumberForOrder(editingOrderId) || '') : '',
+      orderType: orderType,
+      orderSource: 'pos',
+      deliveryPlatform: orderType === 'delivery' ? deliveryPlatform : '',
+      referenceName: orderType === 'delivery' ? platformOrderId.trim() : '',
+      tableNumber: selectedTable?.table_number,
+      customerName: selectedCustomer?.full_name || selectedCustomer?.name || '',
+      items: cart.map(item => ({
+        name: item.name,
+        quantity: item.quantity,
+        subtotal: getEffectiveItemUnitPrice(item) * item.quantity,
+        modifiers: item.selected_modifiers?.map((m: any) => m.name) || [],
+        selected_modifiers: item.selected_modifiers || [],
+        category_id: item.category_id
+      })),
+      subtotal: rawCartSubTotal,
+      discount: discountTotalValue + itemDiscountTotal,
+      tax: vatAmount,
+      serviceCharge: serviceChargeAmount,
+      total: finalCartTotal,
+      paymentMethod: 'Unpaid',
+      received: 0,
+      change: 0,
+      timestamp: new Date().toISOString(),
+      comment: cart.map((item: any) => item.note).filter(Boolean).join('\n') || '',
+      notes: '',
+      pickupTime: ''
+    };
+  }, [
+    paymentSuccessData,
+    cart,
+    rawCartSubTotal,
+    discountTotalValue,
+    itemDiscountTotal,
+    serviceChargeAmount,
+    vatAmount,
+    cartTotal,
+    editingOrderNumber,
+    editingOrderId,
+    orderType,
+    deliveryPlatform,
+    platformOrderId,
+    selectedTable,
+    selectedCustomer,
+    pendingOrders
+  ]);
+
   const isMissingQueueColumnError = (error: any) => {
     const message = String(error?.message || error || '')
     return /queue_number/i.test(message) && /(does not exist|column)/i.test(message)
@@ -4642,45 +4694,45 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             </div>
             {/* Global Print Area */}
             <div id="print-area" className={printMode !== 'none' ? 'fixed left-[-9999px] top-[-9999px] print:static print:left-auto print:top-auto' : 'hidden'}>
-              {printMode === 'receipt' && (
+              {printMode === 'receipt' && activePrintData && (
                 <POSReceipt
-                  orderNumber={paymentSuccessData.orderNumber}
-                  queueNumber={paymentSuccessData.queueNumber}
-                  orderType={paymentSuccessData.orderType || orderType}
-                  orderSource={paymentSuccessData.orderSource}
-                  deliveryPlatform={paymentSuccessData.deliveryPlatform}
-                  referenceName={paymentSuccessData.referenceName}
+                  orderNumber={activePrintData.orderNumber}
+                  queueNumber={activePrintData.queueNumber}
+                  orderType={activePrintData.orderType || orderType}
+                  orderSource={activePrintData.orderSource}
+                  deliveryPlatform={activePrintData.deliveryPlatform}
+                  referenceName={activePrintData.referenceName}
                   receiptStoryMode={shopSettings?.receipt_story_mode || shopSettings?.opening_hours?.receipt_story_mode}
                   receiptStories={shopSettings?.receipt_stories || shopSettings?.opening_hours?.receipt_stories || []}
                   receiptFooter={shopSettings?.receipt_footer}
                   receiptPaymentQrImage={shopSettings?.opening_hours?.receipt_payment_qr_image || shopSettings?.receipt_payment_qr_image}
-                  tableNumber={paymentSuccessData.tableNumber}
-                  customerName={paymentSuccessData.customerName}
-                  items={paymentSuccessData.items}
-                  subtotal={paymentSuccessData.subtotal}
-                  discount={paymentSuccessData.discount}
-                  tax={paymentSuccessData.tax}
-                  serviceCharge={paymentSuccessData.serviceCharge}
-                  total={paymentSuccessData.total}
-                  paymentMethod={paymentSuccessData.paymentMethod}
-                  paidAmount={paymentSuccessData.received}
-                  change={paymentSuccessData.change}
-                  timestamp={paymentSuccessData.timestamp}
+                  tableNumber={activePrintData.tableNumber}
+                  customerName={activePrintData.customerName}
+                  items={activePrintData.items}
+                  subtotal={activePrintData.subtotal}
+                  discount={activePrintData.discount}
+                  tax={activePrintData.tax}
+                  serviceCharge={activePrintData.serviceCharge}
+                  total={activePrintData.total}
+                  paymentMethod={activePrintData.paymentMethod}
+                  paidAmount={activePrintData.received}
+                  change={activePrintData.change}
+                  timestamp={activePrintData.timestamp}
                   cashierName={profile?.display_name || profile?.first_name || 'Staff'}
                 />
               )}
-              {printMode === 'kitchen' && (
+              {printMode === 'kitchen' && activePrintData && (
                 <POSKitchenTicket
-                  orderNumber={paymentSuccessData.orderNumber}
-                  queueNumber={paymentSuccessData.queueNumber}
-                  orderType={paymentSuccessData.orderType || orderType}
-                  deliveryPlatform={paymentSuccessData.deliveryPlatform}
-                  referenceName={paymentSuccessData.referenceName}
-                  comment={paymentSuccessData.comment || paymentSuccessData.notes || ''}
-                  pickupTime={paymentSuccessData.pickupTime || ''}
-                  tableNumber={paymentSuccessData.tableNumber}
-                  items={paymentSuccessData.items}
-                  timestamp={paymentSuccessData.timestamp}
+                  orderNumber={activePrintData.orderNumber}
+                  queueNumber={activePrintData.queueNumber}
+                  orderType={activePrintData.orderType || orderType}
+                  deliveryPlatform={activePrintData.deliveryPlatform}
+                  referenceName={activePrintData.referenceName}
+                  comment={activePrintData.comment || activePrintData.notes || ''}
+                  pickupTime={activePrintData.pickupTime || ''}
+                  tableNumber={activePrintData.tableNumber}
+                  items={activePrintData.items}
+                  timestamp={activePrintData.timestamp}
                 />
               )}
             </div>
