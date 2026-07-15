@@ -308,6 +308,9 @@ export default function POSTerminal({
   const editingOrderIdRef = useRef(editingOrderId)
   useEffect(() => { editingOrderIdRef.current = editingOrderId }, [editingOrderId])
 
+  const branchIdRef = useRef(shopSettings?.branch_id)
+  useEffect(() => { branchIdRef.current = shopSettings?.branch_id }, [shopSettings?.branch_id])
+
   // MODIFIER STATES
   const [modifierModalItem, setModifierModalItem] = useState<MenuItem | null>(null)
   const [modifierGroups, setModifierGroups] = useState<any[]>([])
@@ -1337,7 +1340,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [shopSettings?.branch_id])
+  }, [])
 
 
   const fetchItems = async (forceRefresh = false) => {
@@ -1363,7 +1366,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         return
       }
 
-      const branchId = shopSettings?.branch_id
+      const branchId = branchIdRef.current || shopSettings?.branch_id
       let url = branchId ? `/api/cache/menu?branchId=${branchId}` : '/api/cache/menu';
       if (forceRefresh) {
         url += url.includes('?') ? '&bust=true' : '?bust=true';
@@ -1384,7 +1387,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 
   const fetchPromotions = async () => {
     try {
-      const branchId = shopSettings?.branch_id
+      const branchId = branchIdRef.current || shopSettings?.branch_id
       let query = supabase.from('pos_promotions').select('*').eq('is_active', true)
       if (branchId) {
         query = query.or(`branch_id.eq.${branchId},branch_id.is.null`)
