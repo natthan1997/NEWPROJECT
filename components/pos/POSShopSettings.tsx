@@ -7,7 +7,7 @@ import {
   Plus, Loader2, Save, X, Settings, Clock,
   Bell, Info, Image as ImageIcon, Star, Gift,
   ChevronDown, ChevronUp, Upload, Trash2, Menu as MenuIcon, ChevronRight, ArrowLeft, ShieldCheck, QrCode,
-  MapPin, Printer, Truck, Flag
+  MapPin, Printer, Truck, Flag, RefreshCw
 } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
@@ -364,6 +364,36 @@ export default function POSShopSettings({
     } catch (error) {
         console.error('Test print error:', error);
         alert('เกิดข้อผิดพลาดในการพิมพ์ทดสอบ: ' + (error as any).message);
+    } finally {
+        setIsSaving(false);
+    }
+  };
+
+  const handleDiagnosticPrint = async (index: number) => {
+    const printer = settings.printers[index];
+    if (!printer) return;
+    
+    setIsSaving(true);
+    try {
+        const dummyOrder = {
+            orderNumber: 'Q-01',
+            date: new Date().toLocaleString(),
+            queueNumber: '01',
+            orderType: 'dine_in',
+            tableNumber: 'T-01',
+            staffName: 'Demo',
+            total: 0,
+            subtotal: 0,
+            discount: 0,
+            tax: 0,
+            items: []
+        };
+        const { printCustomerReceipt } = await import('@/lib/printerUtils');
+        await printCustomerReceipt(printer.ip, dummyOrder, settings, printer.model, 'find-thai-page');
+        alert('ส่งคำสั่งพิมพ์ค้นหา Code Page สำเร็จ (กรุณาดูที่กระดาษ)');
+    } catch (error: any) {
+        console.error('Diagnostic print error:', error);
+        alert('เกิดข้อผิดพลาดในการพิมพ์: ' + error.message);
     } finally {
         setIsSaving(false);
     }
@@ -1315,7 +1345,7 @@ export default function POSShopSettings({
                                         <button 
                                             onClick={() => {
                                                 const p = [...(settings.printers || [])];
-                                                p.push({ ip: '', type: 'receipt', name: 'Printer ' + (p.length + 1), encoding: 'cp874', categories: ['all'] });
+                                                p.push({ ip: '', type: 'receipt', name: 'Printer ' + (p.length + 1), encoding: 'text-leveling-16', categories: ['all'] });
                                                 setSettings({...settings, printers: p});
                                             }}
                                             className="bg-black hover:bg-gray-800 text-white px-5 py-3 rounded-xl font-black text-[12px] uppercase tracking-wider flex items-center gap-2 transition-all shadow-md"
@@ -1396,12 +1426,11 @@ export default function POSShopSettings({
                                                         }}
                                                         className="w-full bg-white border border-gray-200 rounded-xl py-3.5 px-4 text-[13px] font-bold outline-none focus:ring-2 focus:ring-black transition-all appearance-none" 
                                                     >
-                                                        <option value="graphic">{locale === 'en' ? 'โหมดรูปภาพ (Graphic Mode) - สระไม่ลอย 100%' : locale === 'zh' ? 'โหมดรูปภาพ (Graphic Mode) - สระไม่ลอย 100%' : 'โหมดรูปภาพ (Graphic Mode) - สระไม่ลอย 100%'}</option>
-                                                        <option value="ku42">{locale === 'en' ? 'ภาษาไทย Xprinter (KU42 / CP27)' : locale === 'zh' ? 'ภาษาไทย Xprinter (KU42 / CP27)' : 'ภาษาไทย Xprinter (KU42 / CP27)'}</option>
-                                                        <option value="tis620">{locale === 'en' ? 'ภาษาไทย มาตรฐาน (TIS-620 / CP26)' : locale === 'zh' ? 'ภาษาไทย มาตรฐาน (TIS-620 / CP26)' : 'ภาษาไทย มาตรฐาน (TIS-620 / CP26)'}</option>
-                                                        <option value="cp874">{locale === 'en' ? 'ภาษาไทย Windows (CP874)' : locale === 'zh' ? 'ภาษาไทย Windows (CP874)' : 'ภาษาไทย Windows (CP874)'}</option>
+                                                        <option value="ku42">ภาษาไทย (Text Mode)</option>
+                                                        <option value="graphic">โหมดรูปภาพ (Graphic Mode)</option>
                                                     </select>
                                                 </div>
+
 
                                                 <div className="md:col-span-2 lg:col-span-3 space-y-3 mt-2">
                                                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">{locale === 'en' ? 'หน้าที่ของเครื่องพิมพ์นี้ (Role)' : locale === 'zh' ? 'หน้าที่ของเครื่องพิมพ์นี้ (Role)' : 'หน้าที่ของเครื่องพิมพ์นี้ (Role)'}</label>
@@ -1469,13 +1498,20 @@ export default function POSShopSettings({
                                                 )}
                                                 
                                                 {/* Test Buttons */}
-                                                <div className="md:col-span-2 lg:col-span-3 mt-4 pt-6 border-t border-gray-200 flex justify-end gap-3">
+                                                <div className="md:col-span-2 lg:col-span-3 mt-4 pt-6 border-t border-gray-200 flex flex-wrap justify-end gap-3">
+                                                    <button 
+                                                        onClick={() => handleDiagnosticPrint(index)}
+                                                        className="px-6 py-3 bg-red-50 border border-red-200 hover:border-red-400 text-red-600 font-black text-[12px] uppercase tracking-wider rounded-xl transition-all flex items-center gap-2"
+                                                    >
+                                                        <Printer size={14} /> 🛠️ พิมพ์ค้นหา Code Page (Diagnostic)
+                                                    </button>
                                                     <button 
                                                         onClick={() => handleTestPrint(index)}
                                                         className="px-6 py-3 bg-white border border-gray-300 hover:border-black text-black font-black text-[12px] uppercase tracking-wider rounded-xl transition-all flex items-center gap-2"
                                                     >
                                                         <Printer size={14} /> {locale === 'en' ? ' ทดสอบพิมพ์ใบเสร็จ (Test Print)                                                     ' : locale === 'zh' ? ' ทดสอบพิมพ์ใบเสร็จ (Test Print)                                                     ' : ' ทดสอบพิมพ์ใบเสร็จ (Test Print)                                                     '}</button>
                                                 </div>
+
                                             </div>
                                         </div>
                                     ))}
@@ -1496,7 +1532,30 @@ export default function POSShopSettings({
                 {activeTab === 'campaigns' && <POSCampaignsTab />}
 
                 {/* BOTTOM SAVE BUTTON */}
-                <div className="fixed bottom-0 left-0 right-0 p-6 sm:p-8 bg-white/90 backdrop-blur-md border-t border-gray-100 flex justify-end z-50">
+                <div className="fixed bottom-0 left-0 right-0 p-6 sm:p-8 bg-white/90 backdrop-blur-md border-t border-gray-100 flex justify-end gap-4 z-50">
+                    <button 
+                        type="button"
+                        onClick={() => {
+                            if (typeof window !== 'undefined') {
+                                if ('serviceWorker' in navigator) {
+                                    navigator.serviceWorker.getRegistrations().then((registrations) => {
+                                        for (let registration of registrations) {
+                                            registration.unregister();
+                                        }
+                                        window.location.reload();
+                                    }).catch(() => {
+                                        window.location.reload();
+                                    });
+                                } else {
+                                    window.location.reload();
+                                }
+                            }
+                        }}
+                        className="w-full sm:w-48 h-16 bg-gray-100 text-gray-800 hover:bg-gray-200 rounded-2xl flex items-center justify-center gap-3 font-black text-sm uppercase tracking-widest transition-all"
+                    >
+                        <RefreshCw size={20} />
+                        Reload App
+                    </button>
                     <button 
                         onClick={handleSave} 
                         disabled={isSaving}

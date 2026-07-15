@@ -103,7 +103,7 @@ const printCaptureOptions = {
   imageTimeout: 0,
 } as const;
 
-const GRAPHIC_RECEIPT_WIDTH = 576;
+const GRAPHIC_RECEIPT_WIDTH = 512;
 
 const renderReceiptHtml = (order: PrintOrderData, shop: PrintShopData) => {
   let html = '';

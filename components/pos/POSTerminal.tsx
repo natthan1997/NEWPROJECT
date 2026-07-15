@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react'
 
 import { POSReceipt } from './POSReceipt'
 import { POSKitchenTicket } from './POSKitchenTicket'
+import POSRecipeViewModal from './POSRecipeViewModal'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   ShoppingBag,
@@ -58,6 +59,7 @@ import {
   AlertTriangle,
   Delete,
   Award,
+  FlaskConical,
 } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import { supabase, type Profile } from '@/lib/supabaseClient'
@@ -277,6 +279,7 @@ export default function POSTerminal({
   const [activeCampaigns, setActiveCampaigns] = useState<any[]>([])
   const [tables, setTables] = useState<POSTable[]>([])
   const [successAudio, setSuccessAudio] = useState<HTMLAudioElement | null>(null)
+  const [selectedRecipeItem, setSelectedRecipeItem] = useState<any | null>(null)
 
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null)
 
@@ -1085,6 +1088,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         customer_name: i.customer_name || null,
         discount_amount: i.discount_amount || 0,
         discount_reason: i.discount_reason || null,
+        recipe_data: i.item?.recipe_data || [],
       })) : [];
       
       const existingFingerprint = buildCartFingerprint(fetchedItems)
@@ -2838,6 +2842,16 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                             )}
                            </div>
                           <div className="flex items-center gap-1">
+                            {((item.recipe_data && item.recipe_data.length > 0) || 
+                              (item.selected_modifiers && item.selected_modifiers.some((mod: any) => mod.recipe_data && mod.recipe_data.length > 0))) && (
+                              <button
+                                onClick={() => setSelectedRecipeItem(item)}
+                                className="p-1 text-[#8C8A81] transition-all hover:text-black active:scale-95"
+                                title="ดูสูตรอาหาร"
+                              >
+                                <FlaskConical size={16} />
+                              </button>
+                            )}
                             <button
                               onClick={() => setItemDiscountModalItem(item)}
                               className="p-1 text-emerald-400 transition-all hover:text-emerald-600 active:scale-95"
@@ -5070,6 +5084,13 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
           )
         })}
       </AnimatePresence>
+
+      <POSRecipeViewModal
+        isOpen={!!selectedRecipeItem}
+        onClose={() => setSelectedRecipeItem(null)}
+        item={selectedRecipeItem}
+        orderType={orderType}
+      />
     </div>
   )
 }
