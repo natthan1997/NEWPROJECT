@@ -539,14 +539,19 @@ export default function LiffMenuPage() {
       let dest = `/liff/track/${orderId}`;
       if (action) dest += `?action=${action}`;
       router.push(dest);
-    } else if (openCart === '1') {
-      try {
-        const storedCart = localStorage.getItem('xylem_cart');
-        if (storedCart) {
-          setCart(JSON.parse(storedCart));
-          setIsCartOpen(true);
-        }
-      } catch (e) {}
+    } else {
+      if (openCart === '1') {
+        try {
+          const storedCart = localStorage.getItem('xylem_cart');
+          if (storedCart) {
+            setCart(JSON.parse(storedCart));
+            setIsCartOpen(true);
+          }
+        } catch (e) {}
+      }
+      if (params.get('preorder') === '1') {
+        setIsPreorderMode(true);
+      }
     }
   }, [searchParams, router]);
 
@@ -1268,7 +1273,7 @@ export default function LiffMenuPage() {
           latestOrder.items.forEach((orderItem: any) => {
              const menuItem = items.find(i => i.id === orderItem.item_id);
              if (menuItem && menuItem.in_stock !== false) {
-                addToCart(menuItem, orderItem.selected_modifiers || [], orderItem.quantity || 1);
+                addToCart(menuItem, orderItem.selected_modifiers || [], orderItem.quantity || 1, true);
                 addedCount++;
              }
           });
@@ -1285,7 +1290,7 @@ export default function LiffMenuPage() {
     latestOrder.items.forEach((orderItem: any) => {
        const menuItem = items.find(i => i.id === orderItem.item_id);
        if (menuItem && menuItem.in_stock !== false) {
-          addToCart(menuItem, orderItem.selected_modifiers || [], orderItem.quantity || 1);
+          addToCart(menuItem, orderItem.selected_modifiers || [], orderItem.quantity || 1, isPreorderMode);
           addedCount++;
        }
     });
@@ -1297,10 +1302,10 @@ export default function LiffMenuPage() {
     }
   };
 
-  const addToCart = async (item: MenuItem, selectedModifiers: any[] = [], quantity: number = 1) => {
-    if (!isShopEffectivelyOpen && !isPreorderMode) {
+  const addToCart = async (item: MenuItem, selectedModifiers: any[] = [], quantity: number = 1, forcePreorder: boolean = false) => {
+    if (!isShopEffectivelyOpen && !isPreorderMode && !forcePreorder) {
        setPendingPreorderAction(() => () => {
-          addToCart(item, selectedModifiers, quantity);
+          addToCart(item, selectedModifiers, quantity, true);
        });
        setShowPreorderConfirmModal(true);
        return;

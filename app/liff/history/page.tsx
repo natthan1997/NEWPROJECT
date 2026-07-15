@@ -111,9 +111,13 @@ export default function LiffHistoryPage() {
         }
     }
 
+    let isPreorderRedirect = false;
     if (!isOpen) {
-        alert(settings?.status_message || 'ร้านปิดรับออเดอร์ชั่วคราว ไม่สามารถสั่งซื้อได้ครับ');
-        return;
+        const confirmPreorder = confirm(
+            'ขณะนี้ร้านปิดให้บริการสั่งด่วน คุณต้องการเลือกเป็นสั่งซื้อล่วงหน้า (Pre-order) หรือไม่?'
+        );
+        if (!confirmPreorder) return;
+        isPreorderRedirect = true;
     }
 
     const cartItems = items.map(item => ({
@@ -125,7 +129,7 @@ export default function LiffHistoryPage() {
       sweetness: '100%', // Default sweetness for reorder
     }));
     localStorage.setItem('xylem_cart', JSON.stringify(cartItems));
-    router.push('/liff/menu?openCart=1&t=' + Date.now()); // Add timestamp to force update/effect
+    router.push(`/liff/menu?openCart=1${isPreorderRedirect ? '&preorder=1' : ''}&t=${Date.now()}`); // Add timestamp to force update/effect
   };
 
   // Removed blocking loader for instant transition
