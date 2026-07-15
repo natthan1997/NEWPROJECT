@@ -663,20 +663,20 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             if (type === 'receipt') {
                if (printer.encoding === 'graphic') {
                    const { printGraphicModeCustomerReceipt } = await import('@/lib/graphicPrinter');
-                   await printGraphicModeCustomerReceipt(printer.ip, printOrderData, printShopData, printer.model, printer.encoding, openDrawer);
+                   await printGraphicModeCustomerReceipt(printer.ip, currentPrintOrderData, printShopData, printer.model, printer.encoding, openDrawer);
                } else {
-                   await printCustomerReceipt(printer.ip, printOrderData, printShopData, printer.model, printer.encoding, openDrawer);
+                   await printCustomerReceipt(printer.ip, currentPrintOrderData, printShopData, printer.model, printer.encoding, openDrawer);
                }
             } else {
-               let itemsToPrint = printOrderData.items;
+               let itemsToPrint = currentPrintOrderData.items;
                const printerCats = printer.categories || [];
                
                if (!printerCats.includes('all') && printerCats.length > 0) {
-                  itemsToPrint = printOrderData.items.filter((i: any) => printerCats.includes(i.category_id));
+                  itemsToPrint = currentPrintOrderData.items.filter((i: any) => printerCats.includes(i.category_id));
                }
                
                if (itemsToPrint.length > 0) {
-                  const routedOrderData = { ...printOrderData, items: itemsToPrint };
+                  const routedOrderData = { ...currentPrintOrderData, items: itemsToPrint };
                   if (printer.encoding === 'graphic') {
                       const { printGraphicModeKitchenTicket } = await import('@/lib/graphicPrinter');
                       await printGraphicModeKitchenTicket(printer.ip, routedOrderData, printShopData, printer.model, printer.encoding);
