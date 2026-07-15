@@ -339,6 +339,10 @@ const [isPinModalOpen, setIsPinModalOpen] = useState(false)
   const [pinTitle, setPinTitle] = useState('')
   const [pinDesc, setPinDesc] = useState('')
 
+  // --- REAL-TIME COUPONS STATES ---
+  const [claimingCoupons, setClaimingCoupons] = useState<any[]>([])
+  const [couponSelectorCoupon, setCouponSelectorCoupon] = useState<any | null>(null)
+
   // Cash Payment Modal States
 const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   const [totalPaid, setTotalPaid] = useState<number>(0)
@@ -1307,6 +1311,44 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     window.addEventListener('applyPOSCoupon', handleApplyCoupon);
     return () => window.removeEventListener('applyPOSCoupon', handleApplyCoupon);
   }, [cart]);
+
+  const handleAcceptCouponClaim = (claim: any) => {
+    if (claim.member) {
+      setSelectedCustomer(claim.member);
+    }
+
+    setDiscountType(claim.discount_type === 'percent' ? 'percent' : 'fixed');
+    if (claim.discount_type === 'free_item') {
+      if (cart.length > 0) {
+        const sorted = [...cart].sort((a, b) => (a.sale_price || 0) - (b.sale_price || 0));
+        setDiscountValue(sorted[0].sale_price || 0);
+      } else {
+        setDiscountValue(0);
+      }
+    } else {
+      setDiscountValue(Number(claim.discount_value) || 0);
+      if (claim.discount_type === 'percent') setDiscountRate(Number(claim.discount_value) || 0);
+    }
+    setDiscountName(claim.coupon_name);
+    setAppliedCouponId(claim.id);
+
+    setClaimingCoupons(prev => prev.filter(c => c.id !== claim.id));
+    alert(`นำคูปอง "${claim.coupon_name}" ไปประยุกต์ใช้กับสมาชิก "${claim.member?.display_name || claim.member?.full_name}" สำเร็จ!`);
+  };
+
+  const handleRejectCouponClaim = async (claim: any) => {
+    if (!confirm('ยืนยันที่จะปฏิเสธ/ยกเลิก การใช้คูปองนี้ใช่หรือไม่? คูปองจะถูกส่งกลับไปในหน้ารายการของลูกค้าตามปกติ')) return;
+    try {
+      const { error } = await supabase
+        .from('pos_member_coupons')
+        .update({ status: 'active' })
+        .eq('id', claim.id);
+      if (error) throw error;
+      setClaimingCoupons(prev => prev.filter(c => c.id !== claim.id));
+    } catch (err: any) {
+      alert("เกิดข้อผิดพลาดในการยกเลิก: " + err.message);
+    }
+  };
 
   useEffect(() => {
     initData()
@@ -2823,6 +2865,46 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             </header>
 
             <div className="custom-scrollbar flex-1 space-y-6 overflow-y-auto bg-white p-6 transition-all sm:p-10">
+              {claimingCoupons.length > 0 && (
+                <div className="mb-6 space-y-3">
+                  <div className="text-[10px] font-black uppercase tracking-[0.25em] text-amber-600 flex items-center gap-1.5 animate-pulse">
+                    <span className="h-2 w-2 rounded-full bg-amber-500 animate-ping"></span>
+                    คูปองที่ลูกค้าส่งคำขอใช้ ({claimingCoupons.length})
+                  </div>
+                  <div className="space-y-2">
+                    {claimingCoupons.map((claim) => (
+                      <div key={claim.id} className="bg-amber-50/70 border border-amber-200/60 rounded-2xl p-4 flex flex-col gap-3 shadow-sm hover:border-amber-300 transition-all">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <span className="inline-block px-2 py-0.5 rounded-full text-[8px] font-bold bg-amber-200 text-amber-800 uppercase tracking-widest mb-1.5">
+                              {claim.discount_type === 'percent' ? `${claim.discount_value}% OFF` : claim.discount_type === 'free_item' ? 'FREE ITEM' : `฿${claim.discount_value} OFF`}
+                            </span>
+                            <h4 className="text-xs font-black text-amber-950 truncate">{claim.coupon_name}</h4>
+                            <p className="text-[10px] font-bold text-amber-700/80 mt-0.5 truncate">
+                              โดย: {claim.member?.display_name || claim.member?.full_name || 'ลูกค้าทั่วไป'} ({claim.member?.phone})
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleAcceptCouponClaim(claim)}
+                            className="flex-1 bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-black uppercase tracking-wider py-2 rounded-xl transition-all shadow-md active:scale-95"
+                          >
+                            ยอมรับและใช้
+                          </button>
+                          <button
+                            onClick={() => handleRejectCouponClaim(claim)}
+                            className="bg-white hover:bg-amber-100 text-amber-800 border border-amber-300 text-[10px] font-black uppercase tracking-wider px-3 py-2 rounded-xl transition-all active:scale-95"
+                          >
+                            ปฏิเสธ
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {cart.length > 0 ? (
                 cart.map((item, idx) => (
                   <div
