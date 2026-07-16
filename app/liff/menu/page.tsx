@@ -1782,7 +1782,7 @@ export default function LiffMenuPage() {
       const calcTotal = cart.reduce((acc, it) => {
         const modsPrice = it.selected_modifiers?.reduce((macc: number, m: any) => macc + (m.price_adjustment || m.price || 0), 0) || 0;
         return acc + ((it.sale_price + modsPrice) * it.quantity);
-      }, 0) + (orderType === 'delivery' && deliveryFee > 0 ? deliveryFee : 0);
+      }, 0) + (orderType === 'delivery' && effectiveDeliveryFee > 0 ? effectiveDeliveryFee : 0);
 
       if (!deduped) {
         // Broadcast to POS using the same channel/event as QR table orders
@@ -1827,7 +1827,7 @@ export default function LiffMenuPage() {
               orderNumber,
               orderId,
               totalAmount: calcTotal,
-              deliveryFee: orderType === 'delivery' ? (deliveryFee > 0 ? deliveryFee : 0) : 0,
+              deliveryFee: orderType === 'delivery' ? (effectiveDeliveryFee > 0 ? effectiveDeliveryFee : 0) : 0,
               items: cart.map(it => {
                 const modsPrice = it.selected_modifiers?.reduce((macc: number, m: any) => macc + (m.price_adjustment || m.price || 0), 0) || 0;
                 return { 
@@ -1960,7 +1960,7 @@ export default function LiffMenuPage() {
                       </div>
                       <div className="flex flex-col gap-0.5">
                         <h4 className="text-[13px] font-black uppercase tracking-tighter text-[#1A1A18]">{activeOrders[0].order_type === 'dine_in' && activeOrders[0].table_number ? `โต๊ะ ${activeOrders[0].table_number}` : `#${String(activeOrders[0].queue_number || 0).padStart(3, '0')}`}</h4>
-                        <p className="text-[7px] font-bold text-gray-400 uppercase tracking-widest">Ref: {activeOrders[0].order_number}{activeOrders[0].order_type === 'dine_in' && activeOrders[0].table_number ? ` • คิว: #${String(activeOrders[0].queue_number || 0).padStart(3, '0')}` : ''}</p>
+                        <p className="text-[7px] font-bold text-gray-400 uppercase tracking-widest">{activeOrders[0].order_number}</p>
                       </div>
                       <p className="text-[9px] font-bold text-gray-400 uppercase mt-1 tracking-widest leading-relaxed">
                         {activeOrders[0].status === 'pending' ? (
