@@ -179,6 +179,7 @@ export default function LiffMenuPage() {
   const [lang, setLang] = useState<'th' | 'en'>('th');
 
   const [cart, setCart] = useState<any[]>([]);
+  const [addedItemName, setAddedItemName] = useState<string | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [orderType, setOrderType] = useState<'delivery' | 'takeaway'>('delivery');
   const [notes, setNotes] = useState('');
@@ -1401,6 +1402,12 @@ export default function LiffMenuPage() {
       return [...prev, { ...item, quantity: quantity, selected_modifiers: (selectedModifiers || []) }];
     });
 
+    setAddedItemName(item.name || item.item_name || 'รายการ');
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate(50);
+    }
+    setTimeout(() => setAddedItemName(null), 1500);
+
     setPendingItem(null);
     setModifierGroups([]);
     setTempQuantity(1);
@@ -2350,6 +2357,21 @@ export default function LiffMenuPage() {
           </button>
         </div>
       )}
+
+      {/* 🟢 Toast Notification */}
+      <AnimatePresence>
+        {addedItemName && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.9 }}
+            className="fixed top-24 left-1/2 -translate-x-1/2 z-[3000] px-5 py-3 bg-emerald-500 text-white font-black text-[12px] uppercase tracking-widest rounded-full shadow-xl flex items-center gap-2 pointer-events-none"
+          >
+            <CheckCircle2 size={16} className="text-white" />
+            {locale === 'en' ? 'Added' : 'เพิ่ม'} {addedItemName} {locale === 'en' ? 'to cart' : 'ลงตะกร้า'}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* 🛡️ Cart Drawer (Abbreviated) */}
       <AnimatePresence>
