@@ -29,8 +29,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { AnimatePresence, motion } from 'framer-motion'
 import Link from 'next/link'
 import POSShopStatusModal from '@/components/pos/POSShopStatusModal'
-import { printKitchenTicket, printCustomerReceipt } from '@/lib/printerUtils'
-import { printGraphicModeCustomerReceipt, printGraphicModeKitchenTicket } from '@/lib/graphicPrinter'
+import { printKitchenTicket } from '@/lib/printerUtils'
 import { playAppSound } from '@/lib/audioUtils'
 
 // XYL POS Components
@@ -130,10 +129,6 @@ function RestaurantOSPageContent() {
   const [activeCoupon, setActiveCoupon] = useState<any | null>(null)
   const [pendingModalTab, setPendingModalTab] = useState<'orders' | 'coupons'>('orders')
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null)
-  const [discountValue, setDiscountValue] = useState<number>(0)
-  const [discountRate, setDiscountRate] = useState<number>(0)
-  const [discountType, setDiscountType] = useState<'fixed' | 'percent'>('percent')
-  const [discountName, setDiscountName] = useState<string>('')
 
   // LIFTED STATES for POSTerminal persistence
   const [selectedTable, setSelectedTable] = useState<any | null>(null)
@@ -243,6 +238,13 @@ function RestaurantOSPageContent() {
       fetchInventoryCategories()
       fetchPendingOrders()
       fetchClaimingCoupons()
+    }
+    
+    // Register PWA Service Worker strictly scoped to /dashboard/pos
+    if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js', { scope: '/dashboard/pos' })
+        .then((reg) => console.log('✅ POS-scoped Service Worker registered:', reg.scope))
+        .catch((err) => console.error('❌ POS-scoped Service Worker registration failed:', err))
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.id])
@@ -711,13 +713,7 @@ function RestaurantOSPageContent() {
         settingsQuery = settingsQuery.eq('id', '00000000-0000-0000-0000-000000000001')
       }
       const { data: freshSettings } = await settingsQuery.maybeSingle()
-      let freshPrinters: any[] = freshSettings?.printers || shopSettings?.printers || []
-      if (freshPrinters.length === 0) {
-        const fallbackIp = typeof window !== 'undefined' ? localStorage.getItem('xylem_printer_ip') : null
-        if (fallbackIp) {
-          freshPrinters = [{ ip: fallbackIp, type: 'both', model: 'xprinter-xp-n160ii', encoding: 'graphic', categories: ['all'] }]
-        }
-      }
+      const freshPrinters: any[] = freshSettings?.printers || shopSettings?.printers || []
       const isLiffSourceOrder = String(order.order_source || '').toLowerCase() === 'liff'
 
       const kitchenPrinters = freshPrinters.filter((p: any) => p.type === 'kitchen' || p.type === 'both')
@@ -781,21 +777,25 @@ function RestaurantOSPageContent() {
       // Execute printing in background to avoid blocking the UI
       void (async () => {
         try {
-          for (const printer of kitchenPrinters) {
-            if (!printer.ip) continue;
+          if (!isLiffSourceOrder) {
+            for (const printer of kitchenPrinters) {
+              if (!printer.ip) continue;
 
-            let itemsToPrint = printOrderData.items;
-            const printerCats = printer.categories || ['all'];
-            if (!printerCats.includes('all') && printerCats.length > 0) {
-              itemsToPrint = printOrderData.items.filter((i: any) => printerCats.includes(i.category_id));
-            }
+              let itemsToPrint = printOrderData.items;
+              const printerCats = printer.categories || ['all'];
+              if (!printerCats.includes('all') && printerCats.length > 0) {
+                itemsToPrint = printOrderData.items.filter((i: any) => printerCats.includes(i.category_id));
+              }
 
-            if (itemsToPrint.length > 0) {
-              const routedOrderData = { ...printOrderData, items: itemsToPrint };
-              if (printer.encoding === 'graphic') {
-                await printGraphicModeKitchenTicket(printer.ip, routedOrderData, shopData, printer.model, printer.encoding);
-              } else {
-                await printKitchenTicket(printer.ip, routedOrderData, shopData, printer.model, printer.encoding || 'cp874');
+              if (itemsToPrint.length > 0) {
+                const routedOrderData = { ...printOrderData, items: itemsToPrint };
+                if (printer.encoding === 'graphic') {
+                  const { printGraphicModeKitchenTicket } = await import('@/lib/graphicPrinter');
+                  await printGraphicModeKitchenTicket(printer.ip, routedOrderData, shopData, printer.model, printer.encoding);
+                } else {
+                  const { printKitchenTicket } = await import('@/lib/printerUtils');
+                  await printKitchenTicket(printer.ip, routedOrderData, shopData, printer.model, printer.encoding);
+                }
               }
             }
           }
@@ -803,10 +803,13 @@ function RestaurantOSPageContent() {
           if (isLiffSourceOrder && receiptPrinters.length > 0) {
             for (const printer of receiptPrinters) {
               if (!printer.ip) continue
+
               if (printer.encoding === 'graphic') {
+                const { printGraphicModeCustomerReceipt } = await import('@/lib/graphicPrinter')
                 await printGraphicModeCustomerReceipt(printer.ip, receiptOrderData, shopData, printer.model, printer.encoding)
               } else {
-                await printCustomerReceipt(printer.ip, receiptOrderData, shopData, printer.model, printer.encoding || 'cp874')
+                const { printCustomerReceipt } = await import('@/lib/printerUtils')
+                await printCustomerReceipt(printer.ip, receiptOrderData, shopData, printer.model, printer.encoding)
               }
             }
           }

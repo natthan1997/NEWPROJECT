@@ -10,26 +10,27 @@ export function usePWA() {
   useEffect(() => {
     if (typeof window === 'undefined') return
 
-    // Unregister any lingering Service Workers to fix PWA caching issues
+    // POS is online-only; remove lingering PWA caches/service workers from older builds in one place.
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then((registrations) => {
-        for (let registration of registrations) {
+        for (const registration of registrations) {
           registration.unregister();
-          console.log('Unregistered Service Worker to disable PWA:', registration.scope);
+          console.log('[POS_PRINT_FLOW]', 'service_worker:unregistered', registration.scope);
         }
       }).catch(error => console.error('Error unregistering service worker:', error));
     }
 
-    // Handle update
-    window.addEventListener('sw-update', (event: any) => {
-      const worker = event.detail
-      console.log('Service worker update available')
-      worker.postMessage({ type: 'SKIP_WAITING' })
-      window.location.reload()
-    })
-
-    return () => {
-      window.removeEventListener('sw-update', () => {})
+    if ('caches' in window) {
+      caches.keys()
+        .then((cacheNames) => Promise.all(
+          cacheNames
+            .filter((name) => name.startsWith('xylem-') || name.startsWith('workbox-'))
+            .map((name) => {
+              console.log('[POS_PRINT_FLOW]', 'cache:deleted', name)
+              return caches.delete(name)
+            })
+        ))
+        .catch(error => console.error('Error clearing PWA caches:', error))
     }
   }, [])
 }

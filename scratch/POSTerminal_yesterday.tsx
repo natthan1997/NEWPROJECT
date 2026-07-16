@@ -1,6 +1,8 @@
 'use client';
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 
+import { POSReceipt } from './POSReceipt'
+import { POSKitchenTicket } from './POSKitchenTicket'
 import POSRecipeViewModal from './POSRecipeViewModal'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
@@ -8,7 +10,6 @@ import {
   Trash2,
   Plus,
   Minus,
-  AlertCircle,
   CreditCard,
   Banknote,
   Search,
@@ -27,7 +28,6 @@ import {
   Image as ImageIcon,
   ShoppingCart,
   Loader2,
-  CheckCircle2,
   Bell,
   FileText,
   Ticket,
@@ -63,6 +63,7 @@ import {
 } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import { supabase, type Profile } from '@/lib/supabaseClient'
+import { db } from '@/lib/offlineDatabase'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Capacitor } from '@capacitor/core'
@@ -70,7 +71,6 @@ import { PrinterSocket } from 'custom-printer-plugin';
 import { playAppSound } from '@/lib/audioUtils';
 import ReceiptPrinterEncoder from '@point-of-sale/receipt-printer-encoder'
 import { printCustomerReceipt, printKitchenTicket, printOpenDrawer, printPreReceipt } from '@/lib/printerUtils'
-import { printGraphicModeCustomerReceipt, printGraphicModeKitchenTicket } from '@/lib/graphicPrinter'
 import POSCustomerSelect from './POSCustomerSelect'
 import POSShopStatusModal from './POSShopStatusModal'
 import PointGenerator from './PointGenerator'
@@ -144,15 +144,6 @@ const normalizeLineModifiers = (modifiers?: any[]) =>
   })).sort((a: any, b: any) => `${a.id || ''}${a.name}${a.value}${a.price}`.localeCompare(`${b.id || ''}${b.name}${b.value}${b.price}`)))
 
 const cartLineKey = (item: any) => `${item.id || item.item_id}|${normalizeLineModifiers(item.selected_modifiers)}`
-const POS_PRINT_FLOW_LOG = '[POS_PRINT_FLOW]'
-
-const logPOSPrintFlow = (step: string, details?: any) => {
-  if (details !== undefined) {
-    console.log(POS_PRINT_FLOW_LOG, step, details)
-  } else {
-    console.log(POS_PRINT_FLOW_LOG, step)
-  }
-}
 
 const buildCartFingerprint = (items: any[]) => {
   const summary = new Map<string, number>()
@@ -335,10 +326,6 @@ export default function POSTerminal({
   const [successAudio, setSuccessAudio] = useState<HTMLAudioElement | null>(null)
   const [selectedRecipeItem, setSelectedRecipeItem] = useState<any | null>(null)
 
-  // Real-time Member Check-in States
-  const [memberCheckIns, setMemberCheckIns] = useState<any[]>([])
-  const [linkedCheckInId, setLinkedCheckInId] = useState<string | null>(null)
-
 
   const { locale } = useI18n();
   const [showPointModal, setShowPointModal] = useState(false)
@@ -404,7 +391,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   const [selectedStoryIndex, setSelectedStoryIndex] = useState<number>(-1)
 
   const [selectedTableZone, setSelectedTableZone] = useState('All')
-
+  const [printMode, setPrintMode] = useState<'none' | 'receipt' | 'kitchen'>('none');
 
   const [flyingItems, setFlyingItems] = useState<{id: string, x: number, y: number, imageUrl?: string}[]>([])
   const [isCartBumping, setIsCartBumping] = useState(false)
@@ -468,7 +455,6 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     setEditingOrderNumber(null)
     setSelectedTable(null)
     setSelectedCustomer(null)
-    setLinkedCheckInId(null)
     setIsCartExpanded(false)
     setOrderType('dine_in')
     resetDeliveryDraft()
@@ -513,7 +499,21 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     addToCart(item)
   }
 
-
+  useEffect(() => {
+    if (printMode !== 'none') {
+      let raf2 = 0
+      const raf1 = requestAnimationFrame(() => {
+        raf2 = requestAnimationFrame(() => {
+          window.print();
+          setPrintMode('none');
+        });
+      });
+      return () => {
+        cancelAnimationFrame(raf1)
+        cancelAnimationFrame(raf2)
+      }
+    }
+  }, [printMode]);
 
   const buildNativePreReceipt = (
     model: string = 'xprinter-xp-n160ii',
@@ -594,62 +594,9 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     return result.newline().newline().newline().cut().encode();
   };
 
-  const fetchPrintOrderData = async (orderId: string) => {
-    const { data: order, error } = await supabase
-      .from('pos_orders')
-      .select(`*, pos_order_items(*, item:pos_menu_items!item_id(*)), pos_order_payments(*)`)
-      .eq('id', orderId)
-      .maybeSingle()
-
-    if (error) throw error
-    if (!order) throw new Error('ไม่พบข้อมูลออเดอร์ในระบบ')
-
-    const getPaidAmountLocal = (o: any) => {
-      const paymentRows = Array.isArray(o.pos_order_payments) ? o.pos_order_payments : []
-      const paidFromRows = paymentRows
-        .filter((row: any) => String(row.status || '').toLowerCase() === 'paid')
-        .reduce((sum: number, row: any) => sum + Number(row.amount || 0), 0)
-      return paidFromRows > 0 ? paidFromRows : Number(o.net_total ?? o.total_amount ?? 0)
-    }
-
-    const getOrderPaymentMethodLocal = (o: any) => {
-      const paymentRows = Array.isArray(o.pos_order_payments) ? o.pos_order_payments : []
-      const firstPaidMethod = paymentRows.find((row: any) => String(row.status || '').toLowerCase() === 'paid')?.payment_method
-      return firstPaidMethod || o.payment_method || 'cash'
-    }
-
-    return {
-      orderNumber: order.order_number,
-      queueNumber: order.queue_number ? String(order.queue_number) : undefined,
-      date: new Date(order.created_at).toLocaleString('th-TH'),
-      orderSource: order.order_source || 'pos',
-      staffName: profile?.full_name || profile?.display_name || 'POS',
-      customerName: order.customer_name || undefined,
-      tableNumber: order.table_number || undefined,
-      comment: order.comment || order.notes || '',
-      pickupTime: order.pickup_time || '',
-      items: (order.pos_order_items || []).map((item: any) => ({
-        name: item.item?.name || item.name || 'Unknown Item',
-        quantity: Number(item.quantity || 0),
-        subtotal: Number(item.subtotal || (Number(item.unit_price || 0) * Number(item.quantity || 0))),
-        selected_modifiers: item.selected_modifiers || [],
-        category_id: item.item?.category_id || 'uncategorized'
-      })),
-      subtotal: Number(order.total_amount || 0),
-      discount: Number(order.discount_amount || 0),
-      tax: Number(order.tax_amount || 0),
-      total: Number(order.net_total ?? order.total_amount ?? 0),
-      paymentMethod: getOrderPaymentMethodLocal(order),
-      receivedAmount: getPaidAmountLocal(order),
-      changeAmount: Math.max(0, getPaidAmountLocal(order) - Number(order.net_total ?? order.total_amount ?? 0)),
-      orderType: order.order_type || 'dine_in',
-      deliveryPlatform: order.delivery_platform || undefined,
-      referenceName: order.reference_name || undefined,
-      deliveryFee: Number(order.delivery_fee || 0),
-    }
-  }
-
   const executeNativePrint = async (type: 'receipt' | 'kitchen', openDrawer: boolean = false) => {
+    // allow manual print without paymentSuccessData
+    // if (!paymentSuccessData) return;
     const printers = shopSettings?.printers || [];
     let targetPrinters = printers.filter((p: any) => p.type === type || p.type === 'both');
     if (type === 'receipt' && targetPrinters.length === 0) {
@@ -670,38 +617,29 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     try {
         let currentPrintOrderData: any = null;
         if (paymentSuccessData) {
-            if (paymentSuccessData.orderId && paymentSuccessData.orderId !== 'NEW') {
-                try {
-                    currentPrintOrderData = await fetchPrintOrderData(paymentSuccessData.orderId);
-                } catch (err) {
-                    console.warn('Failed to fetch order from DB, falling back to state data:', err);
-                }
-            }
-            if (!currentPrintOrderData) {
-                currentPrintOrderData = {
-                  orderNumber: paymentSuccessData.orderNumber,
-                  queueNumber: paymentSuccessData.queueNumber,
-                  date: new Date(paymentSuccessData.timestamp).toLocaleString(),
-                  orderSource: paymentSuccessData.orderSource || 'pos',
-                  tableNumber: paymentSuccessData.tableNumber,
-                  orderType: paymentSuccessData.orderType || orderType,
-                  staffName: profile?.full_name || 'Staff',
-                  customerName: paymentSuccessData.customerName,
-                  deliveryPlatform: paymentSuccessData.deliveryPlatform,
-                  referenceName: paymentSuccessData.referenceName,
-                  comment: paymentSuccessData.comment || paymentSuccessData.notes || '',
-                  pickupTime: paymentSuccessData.pickupTime || '',
-                  subtotal: paymentSuccessData.subtotal,
-                  discount: paymentSuccessData.discount,
-                  serviceCharge: paymentSuccessData.serviceCharge,
-                  tax: paymentSuccessData.tax,
-                  total: paymentSuccessData.total,
-                  paymentMethod: paymentSuccessData.paymentMethod,
-                  receivedAmount: paymentSuccessData.received,
-                  changeAmount: paymentSuccessData.change,
-                  items: paymentSuccessData.items
-                };
-            }
+            currentPrintOrderData = {
+              orderNumber: paymentSuccessData.orderNumber,
+              queueNumber: paymentSuccessData.queueNumber,
+              date: new Date(paymentSuccessData.timestamp).toLocaleString(),
+              orderSource: paymentSuccessData.orderSource || 'pos',
+              tableNumber: paymentSuccessData.tableNumber,
+              orderType: paymentSuccessData.orderType || orderType,
+              staffName: profile?.full_name || 'Staff',
+              customerName: paymentSuccessData.customerName,
+              deliveryPlatform: paymentSuccessData.deliveryPlatform,
+              referenceName: paymentSuccessData.referenceName,
+              comment: paymentSuccessData.comment || paymentSuccessData.notes || '',
+              pickupTime: paymentSuccessData.pickupTime || '',
+              subtotal: paymentSuccessData.subtotal,
+              discount: paymentSuccessData.discount,
+              serviceCharge: paymentSuccessData.serviceCharge,
+              tax: paymentSuccessData.tax,
+              total: paymentSuccessData.total,
+              paymentMethod: paymentSuccessData.paymentMethod,
+              receivedAmount: paymentSuccessData.received,
+              changeAmount: paymentSuccessData.change,
+              items: paymentSuccessData.items
+            };
         } else {
             // Manual Print: Construct from current cart and state
             const cartSubTotal = cart.reduce((total, item) => total + (item.cost_price || 0) * item.quantity, 0); // Not real subtotal but fallback
@@ -802,190 +740,18 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     } catch (e: any) {
         console.error(e);
         alert('Native print error: ' + (e?.message || JSON.stringify(e)));
+        setPrintMode(type);
     }
   };
 
-  const printFromDatabaseOrder = async (orderId: string, type: 'receipt' | 'kitchen', openDrawer: boolean = false) => {
-    logPOSPrintFlow('print_from_db:start', { orderId, type })
-
-    // 1. Fetch order exactly like POSHistory
-    const { data: order, error } = await supabase
-      .from('pos_orders')
-      .select('*, pos_order_items(*, item:pos_menu_items!item_id(*)), pos_order_payments(amount, payment_method, status), customer:pos_members!customer_id(display_name, full_name, phone)')
-      .eq('id', orderId)
-      .maybeSingle();
-
-    if (error) {
-      console.error('Database fetch error for print:', error);
-      logPOSPrintFlow('print_from_db:order_fetch_fail', { orderId, type, error: error.message || error })
-      throw error;
-    }
-    if (!order) {
-      logPOSPrintFlow('print_from_db:order_missing', { orderId, type })
-      throw new Error('ไม่พบข้อมูลออเดอร์ในระบบ');
-    }
-
-    const getPaidAmountLocal = (o: any) => {
-      const paymentRows = Array.isArray(o.pos_order_payments) ? o.pos_order_payments : []
-      const paidFromRows = paymentRows
-        .filter((row: any) => String(row.status || '').toLowerCase() === 'paid')
-        .reduce((sum: number, row: any) => sum + Number(row.amount || 0), 0)
-      return paidFromRows > 0 ? paidFromRows : Number(o.net_total ?? o.total_amount ?? 0)
-    }
-
-    const getOrderPaymentMethodLocal = (o: any) => {
-      const paymentRows = Array.isArray(o.pos_order_payments) ? o.pos_order_payments : []
-      const firstPaidMethod = paymentRows.find((row: any) => String(row.status || '').toLowerCase() === 'paid')?.payment_method
-      return firstPaidMethod || o.payment_method || 'cash'
-    }
-
-    // 2. Map exactly like POSHistory buildPrintOrder
-    const orderData = {
-      orderNumber: order.order_number,
-      queueNumber: order.queue_number ? String(order.queue_number) : undefined,
-      date: new Date(order.created_at).toLocaleString('th-TH'),
-      orderSource: order.order_source || 'pos',
-      staffName: profile?.full_name || profile?.display_name || 'POS',
-      customerName: order.customer?.full_name || order.customer?.display_name || order.customer_name || undefined,
-      tableNumber: order.table_number || undefined,
-      items: (order.pos_order_items || []).map((item: any) => ({
-        name: item.item?.name || item.name || 'Unknown Item',
-        quantity: Number(item.quantity || 0),
-        subtotal: Number(item.subtotal || (Number(item.unit_price || 0) * Number(item.quantity || 0))),
-        selected_modifiers: item.selected_modifiers || [],
-        category_id: item.item?.category_id || 'uncategorized'
-      })),
-      subtotal: Number(order.total_amount || 0),
-      discount: Number(order.discount_amount || 0),
-      tax: Number(order.tax_amount || 0),
-      total: Number(order.net_total ?? order.total_amount ?? 0),
-      paymentMethod: getOrderPaymentMethodLocal(order),
-      receivedAmount: getPaidAmountLocal(order),
-      changeAmount: Math.max(0, getPaidAmountLocal(order) - Number(order.net_total ?? order.total_amount ?? 0)),
-      orderType: order.order_type || 'dine_in',
-      deliveryPlatform: order.delivery_platform || undefined,
-      referenceName: order.reference_name || undefined,
-      deliveryFee: Number(order.delivery_fee || 0),
-    };
-
-    // 3. Map shop settings exactly like POSHistory
-    const shopData = {
-      name: shopSettings?.name || shopSettings?.branch_name || 'XYL STUDIO',
-      branch: shopSettings?.branch_name || '',
-      taxId: shopSettings?.tax_id || '',
-      address: shopSettings?.address || '',
-      phone: shopSettings?.phone || '',
-      receiptHeader: shopSettings?.receipt_header || '',
-      receiptFooter: shopSettings?.receipt_footer || '',
-      receiptFontSize: shopSettings?.receipt_font_size || 'normal',
-      kitchenFontSize: shopSettings?.kitchen_font_size || 'normal',
-      kitchenShowType: shopSettings?.kitchen_show_type,
-      receipt_story_mode: shopSettings?.receipt_story_mode || false,
-      receipt_stories: shopSettings?.receipt_stories || [],
-      receiptPaymentQrImage: shopSettings?.opening_hours?.receipt_payment_qr_image
-        || shopSettings?.receipt_payment_qr_image
-        || (shopSettings as any)?.receipt_payment_qr_image,
-    };
-
-    const printers = Array.isArray(shopSettings?.printers) ? shopSettings.printers : [];
-    let targetPrinters = printers.filter((p: any) => p?.type === type || p?.type === 'both');
-    if (type === 'receipt' && targetPrinters.length === 0) {
-      targetPrinters = printers.filter((p: any) => p?.type === 'kitchen' || p?.type === 'both');
-    }
-    
-    if (targetPrinters.length === 0 || targetPrinters.every((p: any) => !p.ip)) {
-      const fallbackIp = typeof window !== 'undefined' ? localStorage.getItem('xylem_printer_ip') : null;
-      if (fallbackIp) {
-        targetPrinters = [{ ip: fallbackIp, type, model: 'xprinter-xp-n160ii', encoding: 'graphic', categories: ['all'] }];
-      } else {
-        logPOSPrintFlow('print_from_db:no_printer', { orderId, type, configuredPrinters: printers.length })
-        throw new Error('ไม่พบเครื่องปริ้น หรือเครื่องปริ้นยังไม่มี IP Address')
-      }
-    }
-
-    logPOSPrintFlow('printer_selection', {
-      orderId,
-      type,
-      printers: targetPrinters.map((printer: any) => ({
-        name: printer.name,
-        ip: printer.ip,
-        type: printer.type,
-        encoding: printer.encoding || 'graphic',
-        categories: printer.categories || [],
-      })),
-    })
-
-    // 5. Send print jobs exactly like POSHistory reprint
-    let queuedPrintJobs = 0
-    const printJobs = targetPrinters.map(async (printer: any) => {
-      if (!printer?.ip) return;
-      const encoding = printer.encoding || 'graphic'
-      if (type === 'receipt') {
-        queuedPrintJobs += 1
-        logPOSPrintFlow('print:start', { orderId, type, ip: printer.ip, encoding })
-        if (encoding === 'graphic') {
-          await printGraphicModeCustomerReceipt(printer.ip, orderData, shopData, printer.model, encoding, openDrawer);
-        } else {
-          await printCustomerReceipt(printer.ip, orderData, shopData, printer.model, encoding, openDrawer);
-        }
-        logPOSPrintFlow('print:success', { orderId, type, ip: printer.ip, encoding })
-      } else {
-        let itemsToPrint = orderData.items;
-        const printerCats = printer.categories || [];
-        if (!printerCats.includes('all') && printerCats.length > 0) {
-          itemsToPrint = orderData.items.filter((i: any) => printerCats.includes(i.category_id));
-        }
-
-        if (itemsToPrint.length > 0) {
-          queuedPrintJobs += 1
-          const routedOrderData = { ...orderData, items: itemsToPrint };
-          logPOSPrintFlow('print:start', { orderId, type, ip: printer.ip, encoding, itemCount: itemsToPrint.length })
-          if (encoding === 'graphic') {
-            await printGraphicModeKitchenTicket(printer.ip, routedOrderData, shopData, printer.model, encoding);
-          } else {
-            await printKitchenTicket(printer.ip, routedOrderData, shopData, printer.model, encoding);
-          }
-          logPOSPrintFlow('print:success', { orderId, type, ip: printer.ip, encoding, itemCount: itemsToPrint.length })
-        } else {
-          logPOSPrintFlow('print:skipped_empty_category_match', { orderId, type, ip: printer.ip, categories: printerCats })
-        }
-      }
-    });
-
-    try {
-      await Promise.all(printJobs);
-    } catch (printError: any) {
-      logPOSPrintFlow('print:fail', { orderId, type, error: printError?.message || printError })
-      throw printError
-    }
-    if (queuedPrintJobs === 0) {
-      logPOSPrintFlow('print:no_jobs', { orderId, type })
-      throw new Error('ไม่พบรายการที่เข้าเงื่อนไขเครื่องปริ้นสำหรับบิลนี้')
-    }
+  const handlePrintReceipt = () => {
+    executeNativePrint('receipt', false); // never open drawer on manual print
+    setPrintMode('receipt');
   };
 
-  const handlePrintReceipt = async () => {
-    if (paymentSuccessData?.orderId && paymentSuccessData.orderId !== 'NEW') {
-      try {
-        await printFromDatabaseOrder(paymentSuccessData.orderId, 'receipt', false);
-      } catch (err: any) {
-        alert('พิมพ์ใบเสร็จไม่สำเร็จ: ' + err.message);
-      }
-    } else {
-      await executeNativePrint('receipt', false);
-    }
-  };
-
-  const handlePrintKitchen = async () => {
-    if (paymentSuccessData?.orderId && paymentSuccessData.orderId !== 'NEW') {
-      try {
-        await printFromDatabaseOrder(paymentSuccessData.orderId, 'kitchen', false);
-      } catch (err: any) {
-        alert('พิมพ์ออเดอร์เข้าครัวไม่สำเร็จ: ' + err.message);
-      }
-    } else {
-      await executeNativePrint('kitchen');
-    }
+  const handlePrintKitchen = () => {
+    executeNativePrint('kitchen');
+    setPrintMode('kitchen');
   };
 
   const checkManagerPin = (
@@ -1258,31 +1024,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   }
 
   const getQueueNumberForOrder = (currentOrderId?: string | null) => {
-    const activeQueueStatuses = new Set(['open', 'pending', 'payment_pending', 'accepted', 'preparing', 'shipping'])
-    const activeOrders = [...pendingOrders]
-      .filter((order: any) => activeQueueStatuses.has(String(order.status || '').toLowerCase()))
-      .sort((a: any, b: any) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime())
-
-    if (currentOrderId) {
-      const existingOrder = activeOrders.find((order: any) => order.id === currentOrderId)
-      if (existingOrder?.queue_number !== undefined && existingOrder?.queue_number !== null) {
-        const storedQueue = Number(existingOrder.queue_number)
-        if (Number.isFinite(storedQueue) && storedQueue > 0) return storedQueue
-      }
-
-      const existingIndex = activeOrders.findIndex((order: any) => order.id === currentOrderId)
-      if (existingIndex >= 0) return existingIndex + 1
-    }
-
-    const storedQueues = activeOrders
-      .map((order: any) => Number(order.queue_number))
-      .filter((queue: number) => Number.isFinite(queue) && queue > 0)
-
-    if (storedQueues.length > 0) {
-      return Math.max(...storedQueues) + 1
-    }
-
-    return activeOrders.length + 1
+    return 0
   }
 
   const activePrintData = useMemo(() => {
@@ -1343,12 +1085,11 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   }
 
   const requestOrderIdentity = async (existingOrderId?: string | null): Promise<POSOrderIdentity> => {
-    const fallbackQueue = getQueueNumberForOrder(existingOrderId)
-    const prefix = orderType === 'dine_in' ? 'DIN' : orderType === 'delivery' ? 'DEL' : 'TAK'
-    let localOrderNumber = editingOrderNumber || ''
-    if (!localOrderNumber) {
+    let orderNumber = editingOrderNumber || ''
+    if (!orderNumber) {
+      const prefix = orderType === 'dine_in' ? 'DIN' : orderType === 'delivery' ? 'DEL' : 'TAK'
       if (orderType === 'dine_in' && selectedTable) {
-        localOrderNumber = selectedTable.name || `T${selectedTable.table_number || selectedTable.id}`
+        orderNumber = selectedTable.name || `T${selectedTable.table_number || selectedTable.id}`
       } else {
         const now = new Date()
         const datePart = [
@@ -1356,40 +1097,12 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
           String(now.getMonth() + 1).padStart(2, '0'),
           String(now.getDate()).padStart(2, '0'),
         ].join('')
-        localOrderNumber = `${prefix}#${datePart}-${String(Date.now()).slice(-4)}`
+        orderNumber = `${prefix}#${datePart}-${String(Date.now()).slice(-4)}`
       }
     }
-
-    try {
-      const response = await fetch('/api/pos/order-identity', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          orderType,
-          branchId: shopSettings?.branch_id || activeShift?.branch_id || null,
-          shiftId: activeShift?.id || null,
-          existingOrderId: existingOrderId || null,
-          tableName: selectedTable ? String(selectedTable.name || `T${selectedTable.table_number || selectedTable.id}`).replace(/\s+/g, '') : null,
-        }),
-      })
-
-      if (!response.ok) {
-        console.warn('Order identity API failed, falling back to local generation')
-        return { orderNumber: localOrderNumber, queueNumber: fallbackQueue }
-      }
-
-      const result = await response.json()
-      if (!result?.orderNumber || result?.queueNumber === undefined) {
-        return { orderNumber: localOrderNumber, queueNumber: fallbackQueue }
-      }
-
-      return {
-        orderNumber: result.orderNumber,
-        queueNumber: Number(result.queueNumber),
-      }
-    } catch (err) {
-      console.warn('Failed to fetch order identity from API, falling back to local generation:', err)
-      return { orderNumber: localOrderNumber, queueNumber: fallbackQueue }
+    return {
+      orderNumber,
+      queueNumber: 0
     }
   }
 
@@ -1745,166 +1458,28 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     }
   }, [])
 
-  // Real-time Member Check-in Listener & Handlers
-  useEffect(() => {
-    const fetchPendingCheckIns = async () => {
-      const { data } = await supabase
-        .from('pos_member_checkins')
-        .select('*')
-        .eq('status', 'pending')
-        .order('created_at', { ascending: true });
-      if (data) {
-        setMemberCheckIns(prev => {
-          const merged = [...prev];
-          data.forEach(item => {
-            if (!merged.some(m => m.id === item.id)) {
-              merged.push(item);
-              playAppSound('notification');
-            }
-          });
-          return merged.filter(m => data.some(d => d.id === m.id));
-        });
-      }
-    };
-    fetchPendingCheckIns();
-
-    // Poll every 4 seconds as a robust fallback
-    const interval = setInterval(fetchPendingCheckIns, 4000);
-
-    const channel = supabase
-      .channel('pos_member_checkins_watch')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'pos_member_checkins' },
-        (payload: any) => {
-          if (payload.eventType === 'INSERT') {
-            const newItem = payload.new;
-            if (newItem.status === 'pending') {
-              setMemberCheckIns(prev => {
-                if (prev.some(item => item.id === newItem.id)) return prev;
-                return [...prev, newItem];
-              });
-              playAppSound('notification');
-            }
-          } else if (payload.eventType === 'UPDATE') {
-            const updatedItem = payload.new;
-            if (updatedItem.status !== 'pending') {
-              setMemberCheckIns(prev => prev.filter(item => item.id !== updatedItem.id));
-            } else {
-              setMemberCheckIns(prev => prev.map(item => item.id === updatedItem.id ? updatedItem : item));
-            }
-          } else if (payload.eventType === 'DELETE') {
-            const deletedId = payload.old.id;
-            setMemberCheckIns(prev => prev.filter(item => item.id !== deletedId));
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      clearInterval(interval);
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  const handleLinkCheckIn = async (checkIn: any) => {
-    if (!checkIn) return;
-    try {
-      if (editingOrderId) {
-        await supabase
-          .from('pos_orders')
-          .update({ customer_id: checkIn.member_id })
-          .eq('id', editingOrderId);
-      }
-
-      const { error } = await supabase
-        .from('pos_member_checkins')
-        .update({ 
-          status: 'linked', 
-          order_id: editingOrderId || null 
-        })
-        .eq('id', checkIn.id);
-
-      if (error) throw error;
-
-      const { data: member } = await supabase
-        .from('pos_members')
-        .select('*')
-        .eq('id', checkIn.member_id)
-        .maybeSingle();
-
-      if (member) {
-        setSelectedCustomer(member);
-        setLinkedCheckInId(checkIn.id);
-      }
-      
-      refreshPendingOrders();
-      setMemberCheckIns(prev => prev.filter(item => item.id !== checkIn.id));
-    } catch (err) {
-      console.error('Failed to link check-in:', err);
-      alert('เกิดข้อผิดพลาดในการผูกข้อมูลสมาชิก');
-    }
-  };
-
-  const handleLinkCheckInToOrder = async (checkIn: any, order: any) => {
-    if (!checkIn || !order) return;
-    try {
-      const { error: orderErr } = await supabase
-        .from('pos_orders')
-        .update({ customer_id: checkIn.member_id })
-        .eq('id', order.id);
-
-      if (orderErr) throw orderErr;
-
-      const { error: checkInErr } = await supabase
-        .from('pos_member_checkins')
-        .update({ status: 'linked', order_id: order.id })
-        .eq('id', checkIn.id);
-
-      if (checkInErr) throw checkInErr;
-
-      const { data: member } = await supabase
-        .from('pos_members')
-        .select('*')
-        .eq('id', checkIn.member_id)
-        .maybeSingle();
-
-      await handleResumeOrder(order, false);
-
-      if (member) {
-        setSelectedCustomer(member);
-        setLinkedCheckInId(checkIn.id);
-      }
-
-      refreshPendingOrders();
-      setMemberCheckIns(prev => prev.filter(item => item.id !== checkIn.id));
-    } catch (err) {
-      console.error('Failed to link check-in to order:', err);
-      alert('เกิดข้อผิดพลาดในการผูกข้อมูลสมาชิกเข้ากับบิล');
-    }
-  };
-
-  const handleRejectCheckIn = async (checkIn: any) => {
-    if (!checkIn) return;
-    try {
-      await supabase
-        .from('pos_member_checkins')
-        .update({ status: 'cancelled' })
-        .eq('id', checkIn.id);
-      
-      setMemberCheckIns(prev => prev.filter(item => item.id !== checkIn.id));
-    } catch (err) {
-      console.error('Failed to reject check-in:', err);
-    }
-  };
-
 
 
   const fetchItems = async (forceRefresh = false) => {
     try {
       if (typeof window !== 'undefined' && !navigator.onLine) {
-        logPOSPrintFlow('menu_fetch:fail', { reason: 'offline' })
-        alert('เน็ตไม่พร้อม: หน้า POS เป็นโหมด Online เท่านั้น กรุณาเชื่อมต่ออินเทอร์เน็ตก่อนโหลดเมนู')
+        console.log('Fetching menu from local DB (Offline Mode)')
+        const localCats = await db.menu_categories.toArray()
+        setCategories(localCats.sort((a, b) => a.order_index - b.order_index))
+        
+        const localItems = await db.menu_items.toArray()
+        const localLinks = await db.item_modifier_links.toArray()
+        
+        const mappedItems = localItems.map(item => {
+           const cat = localCats.find(c => c.id === item.category_id)
+           const links = localLinks.filter(l => l.item_id === item.id)
+           return {
+              ...item,
+              category: cat ? { name: cat.name } : undefined,
+              modifiers: links.map(l => ({ group_id: l.group_id }))
+           }
+        })
+        setItems(sortMenuItemsByOrder(mappedItems as any[]))
         return
       }
 
@@ -2266,91 +1841,136 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   }
 
   const handleSendOrder = async () => {
-    logPOSPrintFlow('preflight:start', {
-      cartItems: cart.length,
-      online: typeof navigator === 'undefined' ? true : navigator.onLine,
-      hasActiveShift: !!activeShift,
-      orderType,
-      hasSelectedTable: !!selectedTable,
-      editingOrderId,
-      isHeldOrderBaselineLoading,
-      hasUnsavedOrderChanges,
-    })
-
-    if (cart.length === 0) {
-      logPOSPrintFlow('preflight:fail', { reason: 'empty_cart' })
-      return
-    }
-
-    if (typeof window !== 'undefined' && !navigator.onLine) {
-      logPOSPrintFlow('preflight:fail', { reason: 'offline' })
-      alert('เน็ตไม่พร้อม: หน้า POS เป็นโหมด Online เท่านั้น กรุณาเชื่อมต่ออินเทอร์เน็ตก่อนพักบิลหรือสั่งปริ้นเข้าครัว')
-      return
-    }
-
-    if (!activeShift) {
-      logPOSPrintFlow('preflight:fail', { reason: 'missing_active_shift' })
-      alert('ยังไม่เปิดกะ: กรุณาเปิดกะ (Shift) ก่อนพักบิลหรือสั่งปริ้นเข้าครัว')
-      onShiftModalOpen()
-      return
-    }
-
+    if (cart.length === 0) return;
     if (isHeldOrderBaselineLoading) {
-      logPOSPrintFlow('preflight:fail', { reason: 'held_baseline_loading', editingOrderId })
       alert('กำลังตรวจสอบบิลที่พักไว้ กรุณารอสักครู่ครับ')
       return
     }
-
     if (editingOrderId && !hasUnsavedOrderChanges) {
-      logPOSPrintFlow('preflight:fail', { reason: 'no_unsaved_order_changes', editingOrderId })
       alert('บิลนี้พักไว้แล้วครับ ถ้าต้องการส่งออเดอร์เพิ่ม กรุณาเพิ่มรายการใหม่ก่อน')
       return
     }
-
-    if (!ensureDeliveryDetailsReady()) {
-      logPOSPrintFlow('preflight:fail', { reason: 'missing_delivery_details', orderType, deliveryPlatform, platformOrderId })
-      return
-    }
-
+	    
     if (orderType === 'dine_in' && !selectedTable) {
-      logPOSPrintFlow('preflight:fail', { reason: 'missing_table' })
       alert('กรุณาเลือกโต๊ะก่อนส่งออเดอร์สำหรับ Dine-in ครับ')
       setShowTableModal(true)
       return
     }
 
-    logPOSPrintFlow('preflight:pass')
+    const targetPrinters = shopSettings?.printers || [];
+    let kitchenPrinters = targetPrinters.filter((p: any) => p.type === 'kitchen' || p.type === 'both');
+    
+    // Fallback 1: If no kitchen printers configured, use receipt printers
+    if (kitchenPrinters.length === 0) {
+        kitchenPrinters = targetPrinters.filter((p: any) => p.type === 'receipt');
+    }
+    
+    // Fallback 2: If still no printers or all configured printers have no IP, fall back to LocalStorage IP
+    if (kitchenPrinters.length === 0 || kitchenPrinters.every((p: any) => !p.ip)) {
+        const fallbackIp = typeof window !== 'undefined' ? localStorage.getItem('xylem_printer_ip') : null;
+        if (fallbackIp) {
+            kitchenPrinters = [{
+                ip: fallbackIp,
+                type: 'both',
+                model: 'xprinter-xp-n160ii',
+                encoding: 'cp874'
+            }];
+        }
+    }
+
+    const shopData = {
+        name: shopSettings?.name || shopSettings?.shop_name || 'XYLEM LANDSCAPE',
+        branch: shopSettings?.branch_name,
+        kitchenFontSize: shopSettings?.kitchen_font_size || 'normal',
+        kitchenShowType: shopSettings?.kitchen_show_type
+    };
+
     setIsProcessing(true);
     try {
-        let savedOrder: any
-        try {
-          savedOrder = await handleHoldOrder({ suppressProcessingState: true, suppressAlert: true }) as any
-        } catch (saveError: any) {
-          logPOSPrintFlow('rpc:fail', { error: saveError?.message || saveError })
-          alert('บันทึกบิลไม่สำเร็จ: ' + (saveError?.message || JSON.stringify(saveError)))
-          return
+        const savedOrder = await handleHoldOrder({ suppressProcessingState: true, suppressAlert: true }) as any
+        if (!savedOrder) return
+
+        const printOrderData = {
+            orderNumber: savedOrder.orderNumber,
+            queueNumber: String(savedOrder.queueNumber || ''),
+            date: new Date().toLocaleString(),
+            orderSource: savedOrder.orderSource || 'pos',
+            tableNumber: savedOrder.tableNumber || 'Unknown',
+            deliveryPlatform: savedOrder.orderType === 'delivery' ? savedOrder.deliveryPlatform : '',
+            referenceName: savedOrder.orderType === 'delivery' ? savedOrder.referenceName : '',
+            comment: savedOrder.comment || savedOrder.notes || '',
+            pickupTime: savedOrder.pickupTime || '',
+            items: savedOrder.newItems.map((i: any) => ({
+                name: i.name,
+                quantity: i.quantity,
+                modifiers: i.selected_modifiers?.map((m: any) => m.name) || [],
+                selected_modifiers: i.selected_modifiers || [],
+                category_id: i.category_id
+            })),
+            orderType: savedOrder.orderType
+        };
+
+        if (kitchenPrinters.length === 0) {
+            alert('พักบิลแล้ว แต่ไม่พบการตั้งค่าเครื่องปริ้นเข้าครัว (Kitchen Printer) ในระบบครับ')
+            return
         }
 
-        if (!savedOrder) {
-          logPOSPrintFlow('rpc:no_result')
-          alert('บันทึกบิลไม่สำเร็จ: ไม่ได้รับข้อมูลออเดอร์กลับจากระบบ')
-          return
-        }
-
-        if (savedOrder.orderId) {
+        // Execute printing in background to avoid blocking the UI
+        void (async () => {
             try {
-                logPOSPrintFlow('print_after_save:start', { orderId: savedOrder.orderId })
-                await printFromDatabaseOrder(savedOrder.orderId, 'kitchen', false);
-                logPOSPrintFlow('print_after_save:success', { orderId: savedOrder.orderId })
+                if (kitchenPrinters.length > 0) {
+                    let debugInfo = `[ระบบวิเคราะห์] เริ่มทำงาน\nพบเครื่องปริ้นครัว: ${kitchenPrinters.length} เครื่อง\n`;
+                    let successCount = 0;
+                    
+                    for (const printer of kitchenPrinters) {
+                        debugInfo += `\nเครื่อง: ${printer.type} | IP: ${printer.ip || 'ไม่มี IP'}\n`;
+                        
+                        if (!printer.ip) {
+                            debugInfo += `- ข้าม (ไม่มี IP)\n`;
+                            continue;
+                        }
+                        
+                        let itemsToPrint = printOrderData.items;
+                        const printerCats = printer.categories || ['all'];
+                        if (!printerCats.includes('all') && printerCats.length > 0) {
+                           itemsToPrint = printOrderData.items.filter((i: any) => printerCats.includes(i.category_id));
+                        }
+                        
+                        debugInfo += `- รายการอาหารที่จะส่งปริ้น: ${itemsToPrint.length} รายการ\n`;
+                        
+                        if (itemsToPrint.length > 0) {
+                          const routedOrderData = { ...printOrderData, items: itemsToPrint };
+                          try {
+                              if (printer.encoding === 'graphic') {
+                                  const { printGraphicModeKitchenTicket } = await import('@/lib/graphicPrinter');
+                                  await printGraphicModeKitchenTicket(printer.ip, routedOrderData, shopData, printer.model, printer.encoding);
+                              } else {
+                                  await printKitchenTicket(printer.ip, routedOrderData, shopData, printer.model, printer.encoding);
+                              }
+                              debugInfo += `- ส่งข้อมูลเข้า Network ของ IP ${printer.ip} [สำเร็จ]\n`;
+                              successCount++;
+                          } catch (e: any) {
+                              debugInfo += `- แจ้งเตือน Error: ${e.message || JSON.stringify(e)}\n`;
+                              throw e;
+                          }
+                        } else {
+                          debugInfo += `- ข้าม (ไม่มีรายการอาหารหมวดหมู่นี้ในตะกร้า)\n`;
+                        }
+                    }
+                    
+                    if (successCount > 0) {
+                        alert(debugInfo + '\nสรุป: ระบบส่งข้อมูลเข้าเครื่องปริ้นครัวเสร็จสมบูรณ์แล้ว! (ถ้ากระดาษไม่ออก แปลว่าเครื่องปริ้นไม่ยอมรับข้อมูล หรือตั้งค่าผิด)');
+                    } else if (kitchenPrinters.some(p => !p.ip)) {
+                        alert(debugInfo + '\nสรุป: ไม่ได้ปริ้น เพราะไม่มีการใส่ IP Address ในการตั้งค่า!');
+                    } else {
+                        alert(debugInfo + '\nสรุป: ไม่ได้ปริ้น เพราะไม่มีรายการอาหารตรงกับหมวดหมู่ที่เครื่องปริ้นรับผิดชอบ');
+                    }
+                }
             } catch (err: any) {
-                console.error('Kitchen print error:', err);
-                logPOSPrintFlow('print_after_save:fail', { orderId: savedOrder.orderId, error: err?.message || err })
-                alert('บันทึกบิลสำเร็จ แต่ปริ้นไม่สำเร็จ: ' + (err.message || JSON.stringify(err)));
+                console.error('Background print error:', err);
+                alert(`เกิดข้อผิดพลาดในการสั่งปริ้นเข้าครัว (Kitchen Printer): ${err.message || JSON.stringify(err)}\n\n(ระบบจับ Error ได้แล้ว!)`);
             }
-        } else {
-            logPOSPrintFlow('rpc:missing_order_id', savedOrder)
-            alert('ไม่พบเลขที่ออเดอร์ในการส่งบิลเข้าครัวครับ');
-        }
+        })();
     } catch (error) {
         console.error('Error sending order to kitchen:', error);
         alert('เกิดข้อผิดพลาดในการส่งบิลเข้าครัว: ' + (error as any).message);
@@ -2361,26 +1981,19 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 
   const handleHoldOrder = async (options?: { suppressProcessingState?: boolean; suppressAlert?: boolean }) => {
     if (cart.length === 0) return
-    if (typeof window !== 'undefined' && !navigator.onLine) {
-      logPOSPrintFlow('hold_guard:fail', { reason: 'offline' })
-      const offlineError = new Error('เน็ตไม่พร้อม: หน้า POS เป็นโหมด Online เท่านั้น')
-      if (!options?.suppressAlert) alert(offlineError.message)
-      throw offlineError
-    }
     if (!activeShift) {
-      logPOSPrintFlow('hold_guard:fail', { reason: 'missing_active_shift' })
       alert('กรุณาเปิดกะ (Shift) ก่อนทำรายการครับ')
       onShiftModalOpen()
       return
     }
-    if (!ensureDeliveryDetailsReady()) {
-      logPOSPrintFlow('hold_guard:fail', { reason: 'missing_delivery_details' })
-      return
+    if (!ensureDeliveryDetailsReady()) return
+
+    if (typeof window !== 'undefined' && !navigator.onLine) {
+      alert('ไม่สามารถพักบิลในโหมด Offline ได้ กรุณาชำระเงินทันที');
+      return;
     }
 
-
     if (orderType === 'dine_in' && !selectedTable) {
-      logPOSPrintFlow('hold_guard:fail', { reason: 'missing_table' })
       alert('กรุณาเลือกโต๊ะก่อนพักบิลสำหรับ Dine-in ครับ')
       setShowTableModal(true)
       return
@@ -2467,23 +2080,14 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
           })
         };
 
-        logPOSPrintFlow('rpc:start', {
-          action: payload.order_action,
-          orderId: editingOrderId || null,
-          orderNumber: finalOrderNumber,
-          itemCount: payload.order_items?.length || 0,
-        })
-
         const { data: rpcResult, error: rpcError } = await supabase.rpc('pos_checkout_order', { payload });
         
         if (rpcError) {
           console.error('RPC HoldOrder Error:', rpcError);
-          logPOSPrintFlow('rpc:fail', { error: rpcError.message || rpcError })
           throw rpcError;
         }
 
         finalOrderId = rpcResult?.order_id || editingOrderId;
-        logPOSPrintFlow('rpc:success', { orderId: finalOrderId, orderNumber: finalOrderNumber })
 
 	      const newItemsForPrint = editingOrderId
 	        ? computeNewCartItems(cart, existingComparableItems)
@@ -2625,19 +2229,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   };
 
   const handleProcessPayment = async (method: string, amount?: number) => {
-    if (isProcessing) {
-      alert('กำลังประมวลผล กรุณารอสักครู่... หากค้างนานเกินไปให้รีเฟรชแอปพลิเคชัน');
-      return;
-    }
-    if (cart.length === 0) {
-      alert('ไม่สามารถชำระเงินได้เนื่องจากไม่มีรายการสินค้าในบิล');
-      return;
-    }
-    
-    if (typeof window !== 'undefined' && !navigator.onLine) {
-      alert('เน็ตไม่พร้อม: หน้า POS เป็นโหมด Online เท่านั้น กรุณาเชื่อมต่ออินเทอร์เน็ตก่อนชำระเงิน')
-      return
-    }
+    if (cart.length === 0 || isProcessing) return
     if (!activeShift) {
       alert('กรุณาเปิดกะ (Shift) ก่อนชำระเงินครับ')
       onShiftModalOpen()
@@ -2647,13 +2239,90 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 
     setIsProcessing(true)
 	    try {
+      if (typeof window !== 'undefined' && !navigator.onLine) {
+        console.log('Processing payment offline');
+        playAppSound('pay');
+        const offlineId = `OFF-${Date.now()}`;
+        const finalOrderNumber = `OFF-${Math.floor(Date.now() / 1000).toString().slice(-6)}`;
+        const amountToPay = amount !== undefined ? amount : remainingTotal;
+        
+        const payload = {
+          order: {
+            order_number: finalOrderNumber,
+            staff_id: profile?.id,
+            shift_id: activeShift?.id,
+            branch_id: activeShift?.branch_id || shopSettings?.branch_id || null,
+            status: 'completed',
+            total_amount: rawCartSubTotal,
+            net_total: cartTotal,
+            tax_amount: vatAmount,
+            service_charge_amount: serviceChargeAmount,
+            discount_amount: discountTotalValue + itemDiscountTotal,
+            customer_id: selectedCustomer?.id,
+            order_type: orderType,
+            table_id: selectedTable?.id,
+            table_number: selectedTable?.table_number,
+            payment_method: method,
+            order_source: 'pos',
+            paid_at: new Date().toISOString(),
+          },
+          items: cart.map(item => ({
+            item_id: item.id,
+            quantity: item.quantity,
+            unit_price: getEffectiveItemUnitPrice(item),
+            cost_price: item.cost_price || 0,
+            subtotal: ((getEffectiveItemUnitPrice(item) + (item.selected_modifiers?.reduce((a: number, m: any) => a + ((m.price_adjustment || 0) * (m.qty || 1)), 0) || 0)) * item.quantity) - (item.discount_amount || 0),
+            selected_modifiers: item.selected_modifiers,
+            customer_name: item.customer_name || 'ลูกค้า',
+            discount_amount: item.discount_amount || 0,
+            discount_reason: item.discount_reason || null,
+          })),
+          payments: [{
+            payment_method: method,
+            amount: amountToPay,
+            status: 'paid'
+          }]
+        };
+
+        await db.offline_orders.add({
+          id: offlineId,
+          payload,
+          createdAt: new Date().toISOString(),
+          syncStatus: 'pending'
+        });
+
+        const successData = {
+          received: method === 'cash' ? Number(cashReceived) || amountToPay : amountToPay,
+          change: method === 'cash' ? Math.max(0, (Number(cashReceived) || amountToPay) - cartTotal) : 0,
+          orderId: offlineId,
+          orderNumber: finalOrderNumber,
+          queueNumber: "99",
+          items: cart,
+          subtotal: cartSubTotal,
+          discount: discountTotalValue + itemDiscountTotal,
+          tax: vatAmount,
+          serviceCharge: serviceChargeAmount,
+          total: cartTotal,
+          paymentMethod: method,
+          timestamp: new Date().toISOString(),
+          deliveryPlatform: orderType === 'delivery' ? deliveryPlatform : '',
+          referenceName: orderType === 'delivery' && platformOrderId ? platformOrderId.trim() : '',
+          tableNumber: selectedTable?.table_number,
+          customerName: selectedCustomer?.full_name,
+          orderType: orderType,
+          orderSource: 'pos'
+        };
+        
+        setPaymentSuccessData(successData as any);
+        resetOrderComposer();
+        return;
+      }
 
 	      playAppSound('pay');
 	      let finalOrderId = editingOrderId
 	      let finalOrderNumber = editingOrderNumber || ''
 	      let finalQueueNumber = getQueueNumberForOrder(editingOrderId)
 	      const amountToPay = amount !== undefined ? amount : remainingTotal
-        let pointsEarned = 0;
       const newTotalPaid = totalPaid + amountToPay
       const newStatus = newTotalPaid >= cartTotal ? 'completed' : 'payment_pending'
       
@@ -2819,8 +2488,8 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         const earnThb = shopSettings?.opening_hours?.loyalty_earn_thb !== undefined ? shopSettings.opening_hours.loyalty_earn_thb : (shopSettings?.opening_hours?.loyalty_earn_rate || 100);
         const earnPts = shopSettings?.opening_hours?.loyalty_earn_pts !== undefined ? shopSettings.opening_hours.loyalty_earn_pts : 1;
         
-        const pointableAmount = amountToPay;
-        pointsEarned = 0;
+        let pointableAmount = amountToPay;
+        let pointsEarned = 0;
         
         if (pointableAmount > 0 && earnThb > 0) {
           if (activeCampaigns && activeCampaigns.length > 0 && cart.length > 0) {
@@ -2871,48 +2540,6 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       }
 
       finalOrderId = rpcResult?.order_id || editingOrderId;
-
-      if (newStatus === 'completed') {
-        const orderIdToSearch = finalOrderId || editingOrderId;
-        if (orderIdToSearch) {
-          const { data: activeCheckin } = await supabase
-            .from('pos_member_checkins')
-            .select('id')
-            .eq('order_id', orderIdToSearch)
-            .eq('status', 'linked')
-            .maybeSingle();
-
-          if (activeCheckin) {
-            await supabase
-              .from('pos_member_checkins')
-              .update({
-                status: 'completed',
-                points_earned: pointsEarned || 0
-              })
-              .eq('id', activeCheckin.id);
-          } else if (selectedCustomer?.id) {
-            const { data: memberCheckin } = await supabase
-              .from('pos_member_checkins')
-              .select('id')
-              .eq('member_id', selectedCustomer.id)
-              .in('status', ['pending', 'linked'])
-              .order('created_at', { ascending: false })
-              .limit(1)
-              .maybeSingle();
-
-            if (memberCheckin) {
-              await supabase
-                .from('pos_member_checkins')
-                .update({
-                  status: 'completed',
-                  order_id: orderIdToSearch,
-                  points_earned: pointsEarned || 0
-                })
-                .eq('id', memberCheckin.id);
-            }
-          }
-        }
-      }
 
       if (newStatus === 'completed' && selectedTable?.id) {
         fetchTables();
@@ -3632,7 +3259,10 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                         setShowDeliveryCheckoutModal(true)
                         return
                       }
-
+                      if (typeof window !== 'undefined' && !navigator.onLine) {
+                        setShowPaymentModal(true)
+                        return
+                      }
                       if (!selectedCustomer) {
                         setMemberCheckoutStep('lookup')
                         setMemberSearchQuery('')
@@ -3995,19 +3625,8 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                           )}
                           <div>
                             <div className="flex items-center gap-2">
-                              <div className="flex flex-col gap-0.5">
-                                <div className="text-sm font-black uppercase tracking-wide text-[#1A1A18]">
-                                  {order.order_type === 'delivery' ? (
-                                    `คิวส่ง #${String(order.queue_number || '').padStart(3, '0')}`
-                                  ) : order.order_type === 'dine_in' && order.table_number ? (
-                                    `โต๊ะ ${order.table_number}`
-                                  ) : (
-                                    `ออเดอร์ #${String(order.queue_number || '').padStart(3, '0')}`
-                                  )}
-                                </div>
-                                <div className="text-[10px] text-gray-400 font-normal">
-                                  {order.order_number}
-                                </div>
+                              <div className="text-xs font-black uppercase tracking-widest text-[#1A1A18]">
+                                {order.order_number}
                               </div>
                               {order.source === 'qr' && (
                                 <span className="bg-orange-500 text-white px-1.5 py-0.5 text-[8px] font-black uppercase tracking-tighter animate-pulse">
@@ -4195,41 +3814,29 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                     setCurrentPaymentAmount(remainingTotal);
                     setShowCashPaymentModal(true);
                   }}
-                  className="group relative flex flex-col items-center justify-center rounded-2xl border-2 border-transparent bg-gray-50 py-8 sm:py-10 font-bold text-black transition-all hover:border-black hover:bg-white hover:shadow-xl active:scale-95 overflow-hidden disabled:opacity-70 disabled:cursor-wait"
+                  className="group relative flex flex-col items-center justify-center rounded-2xl border-2 border-transparent bg-gray-50 py-8 sm:py-10 font-bold text-black transition-all hover:border-black hover:bg-white hover:shadow-xl active:scale-95 overflow-hidden"
                 >
                   <div className="absolute inset-0 bg-gradient-to-br from-gray-100/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  {isProcessing ? (
-                     <div className="animate-spin rounded-full h-10 w-10 sm:h-14 sm:w-14 border-4 border-gray-200 border-t-black mb-3 sm:mb-4 relative z-10" />
-                  ) : (
-                     <Banknote className="mb-3 sm:mb-4 h-10 w-10 sm:h-14 sm:w-14 text-gray-400 transition-transform duration-300 group-hover:scale-110 group-hover:text-black relative z-10" strokeWidth={1.5} />
-                  )}
-                  <span className="text-[11px] sm:text-[13px] font-black uppercase tracking-widest relative z-10">{isProcessing ? 'Processing...' : 'Cash'}</span>
+                  <Banknote className="mb-3 sm:mb-4 h-10 w-10 sm:h-14 sm:w-14 text-gray-400 transition-transform duration-300 group-hover:scale-110 group-hover:text-black relative z-10" strokeWidth={1.5} />
+                  <span className="text-[11px] sm:text-[13px] font-black uppercase tracking-widest relative z-10">Cash</span>
                 </button>
                 <button
                   disabled={isProcessing}
                   onClick={() => handleProcessPayment('promptpay')}
-                  className="group relative flex flex-col items-center justify-center rounded-2xl border-2 border-transparent bg-gray-50 py-8 sm:py-10 font-bold text-black transition-all hover:border-blue-600 hover:bg-white hover:shadow-xl active:scale-95 overflow-hidden disabled:opacity-70 disabled:cursor-wait"
+                  className="group relative flex flex-col items-center justify-center rounded-2xl border-2 border-transparent bg-gray-50 py-8 sm:py-10 font-bold text-black transition-all hover:border-blue-600 hover:bg-white hover:shadow-xl active:scale-95 overflow-hidden"
                 >
                   <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  {isProcessing ? (
-                     <div className="animate-spin rounded-full h-10 w-10 sm:h-14 sm:w-14 border-4 border-blue-200 border-t-blue-600 mb-3 sm:mb-4 relative z-10" />
-                  ) : (
-                     <QrCode className="mb-3 sm:mb-4 h-10 w-10 sm:h-14 sm:w-14 text-gray-400 transition-transform duration-300 group-hover:scale-110 group-hover:text-blue-600 relative z-10" strokeWidth={1.5} />
-                  )}
-                  <span className="text-[11px] sm:text-[13px] font-black uppercase tracking-widest relative z-10">{isProcessing ? 'Processing...' : 'QR Pay'}</span>
+                  <QrCode className="mb-3 sm:mb-4 h-10 w-10 sm:h-14 sm:w-14 text-gray-400 transition-transform duration-300 group-hover:scale-110 group-hover:text-blue-600 relative z-10" strokeWidth={1.5} />
+                  <span className="text-[11px] sm:text-[13px] font-black uppercase tracking-widest relative z-10">QR Pay</span>
                 </button>
                 <button
                   disabled={isProcessing}
                   onClick={() => handleProcessPayment('credit_card')}
-                  className="group relative flex flex-col items-center justify-center rounded-2xl border-2 border-transparent bg-gray-50 py-8 sm:py-10 font-bold text-black transition-all hover:border-orange-500 hover:bg-white hover:shadow-xl active:scale-95 overflow-hidden disabled:opacity-70 disabled:cursor-wait"
+                  className="group relative flex flex-col items-center justify-center rounded-2xl border-2 border-transparent bg-gray-50 py-8 sm:py-10 font-bold text-black transition-all hover:border-orange-500 hover:bg-white hover:shadow-xl active:scale-95 overflow-hidden"
                 >
                   <div className="absolute inset-0 bg-gradient-to-br from-orange-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  {isProcessing ? (
-                     <div className="animate-spin rounded-full h-10 w-10 sm:h-14 sm:w-14 border-4 border-orange-200 border-t-orange-500 mb-3 sm:mb-4 relative z-10" />
-                  ) : (
-                     <CreditCard className="mb-3 sm:mb-4 h-10 w-10 sm:h-14 sm:w-14 text-gray-400 transition-transform duration-300 group-hover:scale-110 group-hover:text-orange-500 relative z-10" strokeWidth={1.5} />
-                  )}
-                  <span className="text-[11px] sm:text-[13px] font-black uppercase tracking-widest relative z-10">{isProcessing ? 'Processing...' : 'Card'}</span>
+                  <CreditCard className="mb-3 sm:mb-4 h-10 w-10 sm:h-14 sm:w-14 text-gray-400 transition-transform duration-300 group-hover:scale-110 group-hover:text-orange-500 relative z-10" strokeWidth={1.5} />
+                  <span className="text-[11px] sm:text-[13px] font-black uppercase tracking-widest relative z-10">Card</span>
                 </button>
               </div>
             </div>
@@ -4388,7 +3995,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                                     <div
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        const nextSelected = [...tempSelectedModifiers]
+                                        let nextSelected = [...tempSelectedModifiers]
                                         const idx = nextSelected.findIndex(m => m.id === opt.id)
                                         if (idx > -1) {
                                           if ((nextSelected[idx].qty || 1) > 1) {
@@ -4838,12 +4445,8 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                      </div>
                      <button 
                        onClick={() => {
-                           if (linkedCheckInId) {
-                             supabase.from('pos_member_checkins').update({ status: 'cancelled' }).eq('id', linkedCheckInId).then(() => {});
-                             setLinkedCheckInId(null);
-                           }
-                           setSelectedCustomer(null)
-                           setMemberSearchQuery('')
+                          setSelectedCustomer(null)
+                          setMemberSearchQuery('')
                           setMemberCheckoutStep('lookup')
                        }}
                        className="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-[#1A1A18] bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-full transition-all"
@@ -5257,6 +4860,50 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                 </button>
               </div>
             </div>
+            {/* Global Print Area */}
+            <div id="print-area" className={printMode !== 'none' ? 'fixed left-[-9999px] top-[-9999px] print:static print:left-auto print:top-auto' : 'hidden'}>
+              {printMode === 'receipt' && activePrintData && (
+                <POSReceipt
+                  orderNumber={activePrintData.orderNumber}
+                  queueNumber={activePrintData.queueNumber}
+                  orderType={activePrintData.orderType || orderType}
+                  orderSource={activePrintData.orderSource}
+                  deliveryPlatform={activePrintData.deliveryPlatform}
+                  referenceName={activePrintData.referenceName}
+                  receiptStoryMode={shopSettings?.receipt_story_mode || shopSettings?.opening_hours?.receipt_story_mode}
+                  receiptStories={shopSettings?.receipt_stories || shopSettings?.opening_hours?.receipt_stories || []}
+                  receiptFooter={shopSettings?.receipt_footer}
+                  receiptPaymentQrImage={shopSettings?.opening_hours?.receipt_payment_qr_image || shopSettings?.receipt_payment_qr_image}
+                  tableNumber={activePrintData.tableNumber}
+                  customerName={activePrintData.customerName}
+                  items={activePrintData.items}
+                  subtotal={activePrintData.subtotal}
+                  discount={activePrintData.discount}
+                  tax={activePrintData.tax}
+                  serviceCharge={activePrintData.serviceCharge}
+                  total={activePrintData.total}
+                  paymentMethod={activePrintData.paymentMethod}
+                  paidAmount={activePrintData.received}
+                  change={activePrintData.change}
+                  timestamp={activePrintData.timestamp}
+                  cashierName={profile?.display_name || profile?.first_name || 'Staff'}
+                />
+              )}
+              {printMode === 'kitchen' && activePrintData && (
+                <POSKitchenTicket
+                  orderNumber={activePrintData.orderNumber}
+                  queueNumber={activePrintData.queueNumber}
+                  orderType={activePrintData.orderType || orderType}
+                  deliveryPlatform={activePrintData.deliveryPlatform}
+                  referenceName={activePrintData.referenceName}
+                  comment={activePrintData.comment || activePrintData.notes || ''}
+                  pickupTime={activePrintData.pickupTime || ''}
+                  tableNumber={activePrintData.tableNumber}
+                  items={activePrintData.items}
+                  timestamp={activePrintData.timestamp}
+                />
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -5661,184 +5308,6 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         item={selectedRecipeItem}
         orderType={orderType}
       />
-
-      {/* 🔔 Real-time Member Check-in Alert Modal */}
-      <AnimatePresence>
-        {memberCheckIns.length > 0 && (
-          <div className="fixed inset-0 z-[2600] flex items-center justify-center p-4">
-            {/* Backdrop with soft blur */}
-            <div className="absolute inset-0 bg-[#0A0A0A]/40 backdrop-blur-sm" />
-            
-            <motion.div 
-              initial={{ scale: 0.95, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-              className="relative bg-white text-[#1A1A18] rounded-[2rem] w-full max-w-4xl shadow-2xl border border-gray-100/50 flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-gray-100 overflow-hidden font-sans z-10"
-            >
-              {/* Left Column: Customer Profile & Current Cart */}
-              <div className="w-full md:w-[380px] p-8 flex flex-col items-center justify-between shrink-0">
-                <div className="w-full flex flex-col items-center text-center">
-                  {/* Alert icon */}
-                  <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mb-4 relative shrink-0">
-                    <QrCode size={28} className="text-emerald-600 animate-pulse" />
-                    <span className="absolute top-0 right-0 flex h-3.5 w-3.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                      <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500" />
-                    </span>
-                  </div>
-
-{/* Removed Title */}
-
-                  {/* Customer Card */}
-                  <div className="w-full bg-gray-50 border border-[#F0F0E8] rounded-2xl p-4 flex items-center gap-3.5 mb-6 text-left">
-                    {memberCheckIns[0].customer_image ? (
-                      <img 
-                        src={memberCheckIns[0].customer_image} 
-                        alt="Customer" 
-                        crossOrigin="anonymous"
-                        className="w-12 h-12 rounded-xl object-cover border border-gray-200"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 rounded-xl bg-gray-200 flex items-center justify-center text-gray-400 font-bold shrink-0">
-                        {memberCheckIns[0].customer_name?.[0] || 'M'}
-                      </div>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <h4 className="font-black text-sm text-gray-900 truncate">
-                        {memberCheckIns[0].customer_name}
-                      </h4>
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">
-                        LINE Member
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Current Cart Match Section */}
-                  <div className="w-full border border-dashed border-gray-200 rounded-2xl p-4 mb-6">
-                    <div className="flex justify-between items-center mb-3">
-                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider">
-                        ตะกร้าปัจจุบัน (Active Cart)
-                      </span>
-                      {cart.length > 0 ? (
-                        <span className="text-xs font-black text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full">
-                          {cart.reduce((sum, item) => sum + item.quantity, 0)} รายการ
-                        </span>
-                      ) : (
-                        <span className="text-xs font-black text-gray-400 bg-gray-100 px-2.5 py-0.5 rounded-full">
-                          ว่างเปล่า
-                        </span>
-                      )}
-                    </div>
-                    {cart.length > 0 ? (
-                      <div className="text-left mb-4">
-                        <span className="text-2xl font-black text-gray-900">
-                          ฿{cart.reduce((sum, item) => sum + (getEffectiveItemUnitPrice(item) * item.quantity), 0).toLocaleString()}
-                        </span>
-                      </div>
-                    ) : (
-                      <p className="text-xs text-gray-400 font-medium text-left mb-4">
-                        ยังไม่มีสินค้าในตะกร้า เริ่มเพิ่มสินค้าหรือผูกกับบิลค้างด้านขวา
-                      </p>
-                    )}
-
-                    <button
-                      onClick={() => handleLinkCheckIn(memberCheckIns[0])}
-                      disabled={cart.length === 0}
-                      className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-100 disabled:text-gray-400 text-white rounded-2xl text-xs font-black uppercase tracking-widest active:scale-95 disabled:scale-100 transition-all shadow-md flex items-center justify-center gap-2"
-                    >
-                      <CheckCircle2 size={16} />
-                      <span>ผูกกับบิลปัจจุบัน</span>
-                    </button>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => handleRejectCheckIn(memberCheckIns[0])}
-                  className="w-full py-3.5 text-gray-400 hover:text-red-600 rounded-xl text-xs font-black uppercase tracking-widest active:scale-95 transition-all text-center"
-                >
-                  ปฏิเสธการเช็คอิน
-                </button>
-              </div>
-
-            {/* Right Column: List of Held/Pending Orders */}
-            <div className="flex-1 p-8 flex flex-col min-w-0">
-                <div className="mb-4">
-                  <h4 className="text-sm font-black text-gray-900 tracking-tight">
-                    หรือผูกกับบิลที่เปิดค้างไว้
-                  </h4>
-                  <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mt-0.5">
-                    Select open bill to link points
-                  </p>
-                </div>
-
-                <div className="flex-1 overflow-y-auto max-h-[380px] space-y-3 pr-2">
-                  {pendingOrders.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center py-12 text-center">
-                      <div className="w-12 h-12 bg-gray-50 border border-gray-100 rounded-xl flex items-center justify-center text-gray-300 mb-3">
-                        <ShoppingBag size={20} />
-                      </div>
-                      <p className="text-xs text-gray-400 font-bold">ไม่มีบิลค้างในระบบขณะนี้</p>
-                    </div>
-                  ) : (
-                    pendingOrders.map((order: any) => {
-                      const itemCount = (order.pos_order_items || []).reduce((sum: number, item: any) => sum + (item.quantity || 0), 0);
-                      const itemSummary = (order.pos_order_items || [])
-                        .map((item: any) => `${item.quantity}x ${item.item?.name || item.name || 'สินค้า'}`)
-                        .join(', ');
-
-                      return (
-                        <div 
-                          key={order.id} 
-                          className="bg-gray-50 border border-[#F0F0E8] hover:border-emerald-300 hover:bg-emerald-50/20 rounded-2xl p-4 flex items-center justify-between gap-4 transition-all"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2 mb-1.5">
-                              <span className="text-xs font-black text-gray-900 bg-white border border-gray-200 px-2 py-0.5 rounded-md">
-                                บิล #{order.order_number || order.id.slice(0, 8)}
-                              </span>
-                              {order.table_number && (
-                                <span className="text-[10px] font-black text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md">
-                                  โต๊ะ {order.table_number}
-                                </span>
-                              )}
-                              {order.queue_number && (
-                                <span className="text-[10px] font-black text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md">
-                                  คิว #{order.queue_number}
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-xs text-gray-500 font-medium truncate max-w-md font-sans">
-                              {itemSummary || 'ไม่มีรายการสินค้า'}
-                            </p>
-                          </div>
-
-                          <div className="text-right shrink-0 flex items-center gap-4">
-                            <div>
-                              <div className="text-sm font-black text-gray-900">
-                                ฿{Number(order.net_total || order.total_amount || 0).toLocaleString()}
-                              </div>
-                              <div className="text-[9px] font-black text-gray-400 uppercase tracking-wider">
-                                {itemCount} รายการ
-                              </div>
-                            </div>
-                            <button
-                              onClick={() => handleLinkCheckInToOrder(memberCheckIns[0], order)}
-                              className="bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white border border-emerald-200 hover:border-emerald-600 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest active:scale-95 transition-all shadow-sm"
-                            >
-                              ผูกบิลนี้
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   )
 }
