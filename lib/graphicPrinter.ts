@@ -320,7 +320,11 @@ export const printGraphicModeCustomerReceipt = async (
     div.innerHTML = html;
     document.body.appendChild(div);
     try {
-      const canvas = await html2canvas(div, printCaptureOptions);
+      const canvasPromise = html2canvas(div, printCaptureOptions);
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('html2canvas render timeout')), 2500)
+      );
+      const canvas = await Promise.race([canvasPromise, timeoutPromise]);
       document.body.removeChild(div);
       const success = await printCanvasViaEscPos(ip, canvas);
       if (openDrawer) await printOpenDrawer(ip);
@@ -347,7 +351,11 @@ export const printGraphicModeKitchenTicket = async (
     div.innerHTML = renderKitchenHtml(order, shop);
     document.body.appendChild(div);
     try {
-      const canvas = await html2canvas(div, printCaptureOptions);
+      const canvasPromise = html2canvas(div, printCaptureOptions);
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('html2canvas render timeout')), 2500)
+      );
+      const canvas = await Promise.race([canvasPromise, timeoutPromise]);
       document.body.removeChild(div);
       return await printCanvasViaEscPos(ip, canvas);
     } finally {
@@ -373,7 +381,11 @@ export const printGraphicModeZReport = async (
     div.innerHTML = html;
     document.body.appendChild(div);
     try {
-      const canvas = await html2canvas(div, printCaptureOptions);
+      const canvasPromise = html2canvas(div, printCaptureOptions);
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('html2canvas render timeout')), 2500)
+      );
+      const canvas = await Promise.race([canvasPromise, timeoutPromise]);
       document.body.removeChild(div);
       return await printCanvasViaEscPos(ip, canvas);
     } finally {
