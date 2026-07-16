@@ -1,11 +1,11 @@
 'use client'
 
-import { useI18n } from '@/lib/i18n'
+import { useI18n } from '@/lib/I18nContext'
 import { Store, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
-import { getUserProfile } from '@/lib/auth'
+import { getUserProfile } from '@/lib/supabaseClient'
 
 export default function PosSettingsPage() {
   const { locale } = useI18n()
