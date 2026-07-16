@@ -100,12 +100,6 @@ export default function LiffTrackPage() {
 
   const fetchQueuePosition = async (orderRow: any) => {
     try {
-      const storedQueue = Number(orderRow?.queue_number);
-      if (Number.isFinite(storedQueue) && storedQueue > 0) {
-        setQueueAhead(Math.max(0, storedQueue - 1));
-        return;
-      }
-
       let queueQuery = supabase
         .from('pos_orders')
         .select('*', { count: 'exact', head: true })
