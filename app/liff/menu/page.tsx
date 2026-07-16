@@ -2364,7 +2364,7 @@ export default function LiffMenuPage() {
              {(() => {
                 const config = activeBranch?.inhouse_delivery_config || activeBranch?.opening_hours?.inhouse_delivery_config || shopSettings?.inhouse_delivery_config || shopSettings?.opening_hours?.inhouse_delivery_config;
                 const threshold = config?.enabled && config?.free_delivery_threshold > 0 ? config.free_delivery_threshold : 0;
-                if (threshold > 0 && orderType === 'delivery') {
+                if (threshold > 0 && orderType === 'delivery' && effectiveDeliveryFee !== -1) {
                     const remaining = Math.max(0, threshold - cartTotal);
                     const progress = Math.min(100, (cartTotal / threshold) * 100);
                     return (
@@ -2746,6 +2746,15 @@ export default function LiffMenuPage() {
                          สั่งอาหารล่วงหน้า (รับวันพรุ่งนี้)
                       </button>
                     </div>
+                  ) : (orderType === 'delivery' && effectiveDeliveryFee === -1) ? (
+                   <button 
+                     disabled={true}
+                     className="w-full h-14 bg-red-50 text-red-400 rounded-xl flex items-center justify-center px-4 transition-all cursor-not-allowed border border-red-100"
+                   >
+                     <span className="text-[14px] font-black uppercase tracking-widest text-red-500">
+                        {locale === 'en' ? 'Out of Delivery Area' : 'อยู่นอกพื้นที่ให้บริการ'}
+                     </span>
+                   </button>
                   ) : (
                    <button 
                      onClick={validateAndCheckout} 
