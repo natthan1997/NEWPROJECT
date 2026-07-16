@@ -782,36 +782,25 @@ function RestaurantOSPageContent() {
       // Execute printing in background to avoid blocking the UI
       void (async () => {
         try {
-          if (!isLiffSourceOrder) {
-            for (const printer of kitchenPrinters) {
-              if (!printer.ip) continue;
+          for (const printer of kitchenPrinters) {
+            if (!printer.ip) continue;
 
-              let itemsToPrint = printOrderData.items;
-              const printerCats = printer.categories || ['all'];
-              if (!printerCats.includes('all') && printerCats.length > 0) {
-                itemsToPrint = printOrderData.items.filter((i: any) => printerCats.includes(i.category_id));
-              }
+            let itemsToPrint = printOrderData.items;
+            const printerCats = printer.categories || ['all'];
+            if (!printerCats.includes('all') && printerCats.length > 0) {
+              itemsToPrint = printOrderData.items.filter((i: any) => printerCats.includes(i.category_id));
+            }
 
-              if (itemsToPrint.length > 0) {
-                const routedOrderData = { ...printOrderData, items: itemsToPrint };
-                if (printer.encoding === 'graphic') {
-                  await printGraphicModeKitchenTicket(printer.ip, routedOrderData, shopData, printer.model, printer.encoding);
-                } else {
-                  await printKitchenTicket(printer.ip, routedOrderData, shopData, printer.model, printer.encoding);
-                }
-              }
+            if (itemsToPrint.length > 0) {
+              const routedOrderData = { ...printOrderData, items: itemsToPrint };
+              await printGraphicModeKitchenTicket(printer.ip, routedOrderData, shopData, printer.model, 'graphic');
             }
           }
 
           if (isLiffSourceOrder && receiptPrinters.length > 0) {
             for (const printer of receiptPrinters) {
               if (!printer.ip) continue
-
-              if (printer.encoding === 'graphic') {
-                await printGraphicModeCustomerReceipt(printer.ip, receiptOrderData, shopData, printer.model, printer.encoding)
-              } else {
-                await printCustomerReceipt(printer.ip, receiptOrderData, shopData, printer.model, printer.encoding)
-              }
+              await printGraphicModeCustomerReceipt(printer.ip, receiptOrderData, shopData, printer.model, 'graphic')
             }
           }
         } catch (err) {

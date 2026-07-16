@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-  ChevronRight, ChevronLeft, Info, X, Gift, Phone, Globe, Facebook, MessageCircle, QrCode, Coins, Sparkles, AlertCircle
+  ChevronRight, ChevronLeft, Info, X, Gift, Phone, Globe, Facebook, MessageCircle, QrCode, Coins, Sparkles, AlertCircle, Loader2, CheckCircle2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
@@ -22,6 +22,12 @@ export default function LiffMemberPage() {
   const [memberInfo, setMemberInfo] = useState<any>(ctxMemberInfo || null);
   const [isLinkingPhone, setIsLinkingPhone] = useState(false);
   const [loading, setLoading] = useState(!isDataReady);
+
+  // Real-time check-in states
+  const [activeCheckInId, setActiveCheckInId] = useState<string | null>(null);
+  const [checkInStatus, setCheckInStatus] = useState<string | null>(null);
+  const [linkedOrder, setLinkedOrder] = useState<any | null>(null);
+  const [claimLoading, setClaimLoading] = useState(false);
 
   useEffect(() => {
     if (ctxMemberInfo) {
@@ -291,6 +297,148 @@ export default function LiffMemberPage() {
     };
   }, [lineProfile, liffLoading, isDataReady]);
 
+  const handleCheckIn = async () => {
+    if (!memberInfo || !lineProfile) return;
+    setClaimLoading(true);
+    try {
+      // Find and delete any existing pending check-ins for this user to avoid stale rows
+      await supabase
+        .from('pos_member_checkins')
+        .update({ status: 'cancelled' })
+        .eq('line_user_id', lineProfile.userId)
+        .eq('status', 'pending');
+
+      const { data, error } = await supabase
+        .from('pos_member_checkins')
+        .insert({
+          line_user_id: lineProfile.userId,
+          member_id: memberInfo.id,
+          customer_name: memberInfo.nickname || memberInfo.name || lineProfile.displayName || 'Member',
+          customer_image: lineProfile.pictureUrl || null,
+          status: 'pending'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setActiveCheckInId(data.id);
+        setCheckInStatus('pending');
+        setLinkedOrder(null);
+      }
+    } catch (err) {
+      console.error('Check-in Error:', err);
+      alert('ไม่สามารถเช็คอินได้ กรุณาลองใหม่อีกครั้ง');
+    } finally {
+      setClaimLoading(false);
+    }
+  };
+
+  const handleCancelCheckIn = async () => {
+    if (!activeCheckInId) return;
+    try {
+      await supabase
+        .from('pos_member_checkins')
+        .update({ status: 'cancelled' })
+        .eq('id', activeCheckInId);
+    } catch (err) {
+      console.error('Cancel Check-in Error:', err);
+    } finally {
+      setActiveCheckInId(null);
+      setCheckInStatus(null);
+      setLinkedOrder(null);
+    }
+  };
+
+  const handleCloseCheckInModal = () => {
+    setActiveCheckInId(null);
+    setCheckInStatus(null);
+    setLinkedOrder(null);
+  };
+
+  useEffect(() => {
+    if (!activeCheckInId) return;
+
+    const checkStatus = async () => {
+      const { data } = await supabase
+        .from('pos_member_checkins')
+        .select('*')
+        .eq('id', activeCheckInId)
+        .maybeSingle();
+
+      if (data) {
+        setCheckInStatus(data.status);
+        if (data.status === 'completed') {
+          if (data.order_id) {
+            const { data: order } = await supabase
+              .from('pos_orders')
+              .select('*, pos_order_items(*, item:pos_menu_items!item_id(name))')
+              .eq('id', data.order_id)
+              .maybeSingle();
+
+            setLinkedOrder({
+              order,
+              points_earned: data.points_earned || 0
+            });
+          }
+          clearInterval(pollInterval);
+        } else if (data.status === 'cancelled') {
+          setActiveCheckInId(null);
+          setCheckInStatus(null);
+          setLinkedOrder(null);
+          clearInterval(pollInterval);
+        }
+      }
+    };
+
+    checkStatus();
+    const pollInterval = setInterval(checkStatus, 3000);
+
+    const channel = supabase
+      .channel(`checkin_${activeCheckInId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'pos_member_checkins',
+          filter: `id=eq.${activeCheckInId}`
+        },
+        async (payload: any) => {
+          const updated = payload.new;
+          setCheckInStatus(updated.status);
+          
+          if (updated.status === 'completed') {
+            if (updated.order_id) {
+              const { data: order } = await supabase
+                .from('pos_orders')
+                .select('*, pos_order_items(*, item:pos_menu_items!item_id(name))')
+                .eq('id', updated.order_id)
+                .maybeSingle();
+
+              setLinkedOrder({
+                order,
+                points_earned: updated.points_earned || 0
+              });
+            }
+            clearInterval(pollInterval);
+          } else if (updated.status === 'cancelled') {
+            setActiveCheckInId(null);
+            setCheckInStatus(null);
+            setLinkedOrder(null);
+            clearInterval(pollInterval);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      clearInterval(pollInterval);
+      supabase.removeChannel(channel);
+    };
+  }, [activeCheckInId]);
+
   if (liffLoading && !isDataReady) return <XYLLoader tagline={dict.loading} />;
   if (loading && !isDataReady) return <XYLLoader tagline={dict.loading} />;
 
@@ -434,6 +582,23 @@ export default function LiffMemberPage() {
                 คูปองของฉัน <ChevronRight size={14} />
             </Link>
           </div>
+        </motion.section>
+
+        {/* Real-time Check-in Button */}
+        <motion.section
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.05 }}
+          className="w-full"
+        >
+          <button
+            onClick={handleCheckIn}
+            disabled={claimLoading || !!activeCheckInId}
+            className="w-full h-14 bg-[#1A1A18] text-white flex items-center justify-center gap-3 text-[13px] font-black uppercase tracking-[0.25em] hover:bg-black transition-all active:scale-[0.98] shadow-md disabled:opacity-50"
+          >
+            <QrCode size={18} className="animate-pulse text-emerald-400" />
+            <span>สะสมคะแนนหน้าร้าน (Check-in)</span>
+          </button>
         </motion.section>
 
         {/* Campaign Cards Section */}
@@ -884,6 +1049,122 @@ export default function LiffMemberPage() {
                     )}
                   </div>
                 </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 🟢 Real-time Check-in Loading & Success Modal */}
+      <AnimatePresence>
+        {activeCheckInId && (
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-5"
+          >
+            <div className="absolute inset-0" onClick={() => { if (checkInStatus === 'completed') handleCloseCheckInModal(); }} />
+            
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 20 }} 
+              animate={{ scale: 1, opacity: 1, y: 0 }} 
+              exit={{ scale: 0.95, opacity: 0, y: 20 }} 
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="bg-white rounded-[2rem] w-full max-w-sm p-8 shadow-2xl relative z-10 border border-gray-50 flex flex-col items-center"
+            >
+              {checkInStatus !== 'completed' ? (
+                <div className="w-full flex flex-col items-center py-6 text-center">
+                  <div className="relative mb-6">
+                    <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600 shadow-inner">
+                      <Loader2 size={36} className="animate-spin text-emerald-600" />
+                    </div>
+                    {checkInStatus === 'linked' && (
+                      <motion.div 
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="absolute -bottom-1 -right-1 bg-emerald-500 text-white rounded-full p-1 border-2 border-white"
+                      >
+                        <CheckCircle2 size={16} />
+                      </motion.div>
+                    )}
+                  </div>
+
+                  <h3 className="text-lg font-black text-gray-900 mb-2">
+                    {checkInStatus === 'linked' ? 'เชื่อมต่อบิลสำเร็จ' : 'กำลังเชื่อมต่อเครื่องคิดเงิน'}
+                  </h3>
+                  <p className="text-gray-500 text-xs font-semibold leading-relaxed mb-8 px-4">
+                    {checkInStatus === 'linked' 
+                      ? 'ระบบผูกบิลของคุณเรียบร้อยแล้ว กรุณารอสักครู่เพื่อชำระเงิน...' 
+                      : 'เปิดหน้าจอนี้ไว้ แล้วแจ้งแคชเชียร์เพื่อเชื่อมโยงข้อมูลสมาชิกของคุณ'
+                    }
+                  </p>
+
+                  <button 
+                    onClick={handleCancelCheckIn}
+                    className="w-full py-4 border border-gray-200 text-gray-500 hover:text-black rounded-2xl text-xs font-bold uppercase tracking-widest active:scale-95 transition-all"
+                  >
+                    ยกเลิกเช็คอิน
+                  </button>
+                </div>
+              ) : (
+                <div className="w-full flex flex-col items-center text-center">
+                  {/* Celebration / Success Stage */}
+                  <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center shadow-inner mb-6 relative">
+                    <CheckCircle2 size={40} className="text-emerald-500" />
+                    <motion.div 
+                      animate={{ scale: [1, 1.3, 1], opacity: [0, 0.8, 0] }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
+                      className="absolute inset-0 bg-emerald-100 rounded-full -z-10"
+                    />
+                  </div>
+
+                  <h3 className="text-xl font-black text-gray-900 tracking-tight mb-1">
+                    สะสมแต้มสำเร็จ! 🎉
+                  </h3>
+                  <div className="flex items-center justify-center gap-1.5 mb-6">
+                    <span className="text-3xl font-black text-emerald-600 tracking-tighter">
+                      +{linkedOrder?.points_earned || 0}
+                    </span>
+                    <span className="text-[10px] font-black text-emerald-600/50 uppercase tracking-widest mt-2">
+                      Points
+                    </span>
+                  </div>
+
+                  {linkedOrder?.order && (
+                    <div className="w-full bg-gray-50/50 border border-gray-100 rounded-2xl p-4 text-left space-y-3 mb-6">
+                      <div className="flex justify-between items-baseline border-b border-gray-100 pb-2">
+                        <span className="text-[10px] font-black tracking-wider text-gray-400 uppercase">
+                          บิลเลขที่: {linkedOrder.order.order_number || `#${linkedOrder.order.id.slice(0,8)}`}
+                        </span>
+                        <span className="text-xs font-black text-gray-900">
+                          ฿{(Number(linkedOrder.order.net_total || linkedOrder.order.total_amount || 0)).toLocaleString()}
+                        </span>
+                      </div>
+
+                      {/* Items List */}
+                      <div className="space-y-1.5 max-h-[120px] overflow-y-auto pr-1">
+                        {linkedOrder.order.pos_order_items?.map((item: any, idx: number) => (
+                          <div key={idx} className="flex justify-between items-center text-xs">
+                            <span className="font-bold text-gray-600 truncate flex-1 pr-2">
+                              {item.item?.name || item.name || 'สินค้า'}
+                            </span>
+                            <span className="font-black text-gray-900 shrink-0">
+                              x{item.quantity}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <button 
+                    onClick={handleCloseCheckInModal}
+                    className="w-full py-4.5 bg-black text-white hover:bg-gray-950 text-[13px] font-black uppercase tracking-[0.25em] active:scale-95 transition-all rounded-2xl shadow-xl shadow-black/10"
+                  >
+                    เรียบร้อย
+                  </button>
+                </div>
+              )}
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

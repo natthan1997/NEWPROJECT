@@ -550,7 +550,10 @@ const sendToPrinter = async (ip: string, hexData: string): Promise<boolean | str
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ip, port: 9100, data: hexData }),
       })
-      if (!response.ok) throw new Error('API Print failed')
+      if (!response.ok) {
+        const detail = await response.json().catch(() => null)
+        throw new Error(detail?.error || 'API Print failed')
+      }
       return true
     }
   } catch (error: any) {

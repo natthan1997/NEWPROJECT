@@ -10,9 +10,8 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY.trim()
 const supabase = createClient(supabaseUrl, supabaseKey)
 
 const sql = `
-ALTER TABLE public.pos_orders ADD COLUMN IF NOT EXISTS platform_gp_fee NUMERIC DEFAULT 0;
-ALTER TABLE public.pos_orders ADD COLUMN IF NOT EXISTS platform_gp_rate NUMERIC DEFAULT 0;
-ALTER TABLE public.pos_shop_settings ADD COLUMN IF NOT EXISTS delivery_gp JSONB DEFAULT '{"grab": 32.1, "lineman": 32.1, "shopee": 32.1, "foodpanda": 32.1, "robinhood": 0}'::jsonb;
+ALTER TABLE pos_loyalty_coupons ADD COLUMN IF NOT EXISTS applicable_items JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE pos_member_coupons ADD COLUMN IF NOT EXISTS applicable_items JSONB DEFAULT '[]'::jsonb;
 `
 
 async function run() {

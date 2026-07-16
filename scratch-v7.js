@@ -5,23 +5,18 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-async function checkStore() {
-  const { data: settings, error } = await supabase
-    .from('pos_shop_settings')
-    .select('*, branches!branch_id(*)');
+async function checkCoupons() {
+  const { data, error } = await supabase
+    .from('pos_member_coupons')
+    .select('*, member:pos_members(*)')
+    .limit(5);
 
   if (error) {
-    console.error('Error:', error);
+    console.error('Error fetching member coupons:', error);
     return;
   }
   
-  settings.forEach(s => {
-    console.log('Branch ID:', s.branch_id);
-    console.log('Is Open:', s.is_open);
-    console.log('Status:', s.status);
-    console.log('Opening Hours:', JSON.stringify(s.opening_hours, null, 2));
-    console.log('---');
-  });
+  console.log('Successfully fetched coupons:', data);
 }
 
-checkStore();
+checkCoupons();

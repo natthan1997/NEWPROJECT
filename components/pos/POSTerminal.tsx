@@ -2260,34 +2260,6 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       return
     }
 
-    const targetPrinters = shopSettings?.printers || [];
-    let kitchenPrinters = targetPrinters.filter((p: any) => p.type === 'kitchen' || p.type === 'both');
-    
-    // Fallback 1: If no kitchen printers configured, use receipt printers
-    if (kitchenPrinters.length === 0) {
-        kitchenPrinters = targetPrinters.filter((p: any) => p.type === 'receipt');
-    }
-    
-    // Fallback 2: If still no printers or all configured printers have no IP, fall back to LocalStorage IP
-    if (kitchenPrinters.length === 0 || kitchenPrinters.every((p: any) => !p.ip)) {
-        const fallbackIp = typeof window !== 'undefined' ? localStorage.getItem('xylem_printer_ip') : null;
-        if (fallbackIp) {
-            kitchenPrinters = [{
-                ip: fallbackIp,
-                type: 'both',
-                model: 'xprinter-xp-n160ii',
-                encoding: 'cp874'
-            }];
-        }
-    }
-
-    const shopData = {
-        name: shopSettings?.name || shopSettings?.shop_name || 'XYLEM LANDSCAPE',
-        branch: shopSettings?.branch_name,
-        kitchenFontSize: shopSettings?.kitchen_font_size || 'normal',
-        kitchenShowType: shopSettings?.kitchen_show_type
-    };
-
     setIsProcessing(true);
     try {
         const savedOrder = await handleHoldOrder({ suppressProcessingState: true, suppressAlert: true }) as any
