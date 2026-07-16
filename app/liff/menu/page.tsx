@@ -1149,7 +1149,17 @@ export default function LiffMenuPage() {
     return acc + ((item.sale_price + modsPrice) * item.quantity);
   }, 0), [cart]);
   const totalDiscount = useMemo(() => pointsDiscount + couponDiscount, [pointsDiscount, couponDiscount]);
-  const grandTotal = useMemo(() => Math.max(0, cartTotal + (orderType === 'delivery' && deliveryFee > 0 ? deliveryFee : 0) - totalDiscount), [cartTotal, orderType, deliveryFee, totalDiscount]);
+
+  const isFreeDelivery = useMemo(() => {
+    const config = activeBranch?.inhouse_delivery_config || activeBranch?.opening_hours?.inhouse_delivery_config || shopSettings?.inhouse_delivery_config || shopSettings?.opening_hours?.inhouse_delivery_config;
+    if (config?.enabled && config.free_delivery_threshold > 0) {
+      return cartTotal >= config.free_delivery_threshold;
+    }
+    return false;
+  }, [activeBranch, shopSettings, cartTotal]);
+
+  const effectiveDeliveryFee = deliveryFee === -1 ? -1 : (isFreeDelivery ? 0 : deliveryFee);
+  const grandTotal = useMemo(() => Math.max(0, cartTotal + (orderType === 'delivery' && effectiveDeliveryFee > 0 ? effectiveDeliveryFee : 0) - totalDiscount), [cartTotal, orderType, effectiveDeliveryFee, totalDiscount]);
 
   // 📍 Dynamic Distance-Based Delivery Fee Calculation
   useEffect(() => {
@@ -1159,28 +1169,67 @@ export default function LiffMenuPage() {
       return;
     }
 
-    const calculateDynamicFee = () => {
+    const calculateDynamicFee = async () => {
         const customerLat = tempPin.lat;
         const customerLng = tempPin.lng;
 
-        let minDistance = Infinity;
         let closestBranch = allShopSettings[0] || shopSettings;
+        let distanceKm = Infinity;
 
-        allShopSettings.forEach(branch => {
-            if (branch.latitude && branch.longitude) {
-                const d = calculateDistance(branch.latitude, branch.longitude, customerLat, customerLng);
-                if (d < minDistance) {
-                    minDistance = d;
-                    closestBranch = branch;
+        // Try using Google Maps API first if inhouse config is enabled
+        const inhouseConfig = closestBranch?.inhouse_delivery_config || closestBranch?.opening_hours?.inhouse_delivery_config;
+        if (inhouseConfig?.enabled) {
+            try {
+                const res = await fetch('/api/distance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        originLat: closestBranch.latitude,
+                        originLng: closestBranch.longitude,
+                        destLat: customerLat,
+                        destLng: customerLng
+                    })
+                });
+                const data = await res.json();
+                if (data.distanceKm !== undefined) {
+                    distanceKm = data.distanceKm;
+                }
+            } catch (err) {
+                console.error('Failed to get precise distance', err);
+            }
+        }
+
+        // Fallback to Haversine
+        if (distanceKm === Infinity) {
+            let minDistance = Infinity;
+            allShopSettings.forEach(branch => {
+                if (branch.latitude && branch.longitude) {
+                    const d = calculateDistance(branch.latitude, branch.longitude, customerLat, customerLng);
+                    if (d < minDistance) {
+                        minDistance = d;
+                        closestBranch = branch;
+                    }
+                }
+            });
+            distanceKm = minDistance === Infinity 
+                ? calculateDistance(Number(shopSettings.latitude), Number(shopSettings.longitude), Number(customerLat), Number(customerLng))
+                : minDistance;
+        }
+            
+        // Calculate Fee
+        let fee = -1; // -1 means out of bounds
+        if (inhouseConfig?.enabled) {
+            if (distanceKm <= inhouseConfig.max_distance_km) {
+                fee = inhouseConfig.base_price;
+                if (distanceKm > inhouseConfig.base_distance_km) {
+                    const extraKm = Math.ceil(distanceKm - inhouseConfig.base_distance_km);
+                    fee += (extraKm * inhouseConfig.per_km_rate);
                 }
             }
-        });
+        } else {
+            fee = getDeliveryFee(distanceKm, closestBranch?.delivery_fee_rules || closestBranch?.pricing_tiers || []);
+        }
 
-        const distanceKm = minDistance === Infinity 
-            ? calculateDistance(Number(shopSettings.latitude), Number(shopSettings.longitude), Number(customerLat), Number(customerLng))
-            : minDistance;
-            
-        const fee = getDeliveryFee(distanceKm, closestBranch?.delivery_fee_rules || closestBranch?.pricing_tiers || []);
         setDeliveryFee(fee);
         setDeliveryDistance(distanceKm);
         setActiveBranch(closestBranch);
@@ -1715,7 +1764,7 @@ export default function LiffMenuPage() {
           deliveryAddress: address, 
           latitude: tempPin?.lat,
           longitude: tempPin?.lng,
-          deliveryFee, // Send dynamic fee to API
+          deliveryFee: effectiveDeliveryFee, // Send dynamic fee to API
           deliveryDistance, // ADDED: Send calculated distance to API
           orderType, 
           pickupTime: orderType === 'takeaway' ? pickupTime : '',
@@ -1909,7 +1958,10 @@ export default function LiffMenuPage() {
                         <p className="text-[7px] font-black uppercase tracking-[0.3em] text-emerald-500">{locale === 'en' ? 'กำลังดำเนินการ (Active Order)' : locale === 'zh' ? 'กำลังดำเนินการ (Active Order)' : 'กำลังดำเนินการ (Active Order)'}</p>
                         {activeOrders[0].status === 'pending' && <span className="w-1.5 h-1.5 bg-amber-500 rounded-none animate-pulse" />}
                       </div>
-                      <h4 className="text-[13px] font-black uppercase tracking-tighter text-[#1A1A18]">{locale === 'en' ? 'หมายเลข #' : locale === 'zh' ? 'หมายเลข #' : 'หมายเลข #'}{activeOrders[0].order_number || activeOrders[0].id.slice(0,8).toUpperCase()}</h4>
+                      <div className="flex flex-col gap-0.5">
+                        <h4 className="text-[13px] font-black uppercase tracking-tighter text-[#1A1A18]">{locale === 'en' ? 'ออเดอร์ #' : locale === 'zh' ? 'ออเดอร์ #' : 'ออเดอร์ #'}{String(activeOrders[0].queue_number || 0).padStart(3, '0')}</h4>
+                        <p className="text-[7px] font-bold text-gray-400 uppercase tracking-widest">Ref: {activeOrders[0].order_number}</p>
+                      </div>
                       <p className="text-[9px] font-bold text-gray-400 uppercase mt-1 tracking-widest leading-relaxed">
                         {activeOrders[0].status === 'pending' ? (
                           (activeOrders[0] as any).queue_ahead > 0 
@@ -2547,7 +2599,12 @@ export default function LiffMenuPage() {
                   </div>
                   <div className="flex justify-between items-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                     <span>{t.deliveryFee}</span>
-                    <span className="text-emerald-600">{(orderType === 'delivery') ? (deliveryFee === -1 ? 'อยู่นอกพื้นที่ให้บริการ' : deliveryFee > 0 ? `฿${deliveryFee.toLocaleString()}` : 'FREE') : 'FREE'}</span>
+                    <span className="text-emerald-600">{(orderType === 'delivery') ? (effectiveDeliveryFee === -1 ? 'อยู่นอกพื้นที่ให้บริการ' : effectiveDeliveryFee > 0 ? `฿${effectiveDeliveryFee.toLocaleString()}` : (
+                      <span className="flex items-center gap-1">
+                        {deliveryFee > 0 && <span className="line-through text-gray-300">฿{deliveryFee}</span>}
+                        <span>FREE</span>
+                      </span>
+                    )) : 'FREE'}</span>
                   </div>
 
                   {/* 🧧 INTEGRATED LOYALTY SECTION - GRAB STYLE */}
@@ -2779,8 +2836,16 @@ export default function LiffMenuPage() {
                         >
                           {isLocatingAddress ? <XYLLoader mini /> : <><Target size={14} /> ตำแหน่งตอนนี้</>}
                         </button>
-                        <div className="h-11 bg-neutral-50 text-neutral-700 rounded-xl text-[12px] font-black tracking-widest uppercase flex items-center justify-center gap-2 border border-neutral-100">
-                          <Truck size={14} className="text-emerald-500" /> {locale === 'en' ? 'Fee' : 'ค่าส่ง'} <span className="text-emerald-600">{deliveryFee === -1 ? 'อยู่นอกพื้นที่' : `฿${deliveryFee.toLocaleString()}`}</span>
+                        <div className="h-11 bg-neutral-50 text-neutral-700 rounded-xl text-[12px] font-black tracking-widest uppercase flex items-center justify-center gap-2 border border-neutral-100 px-3">
+                          <Truck size={14} className="text-emerald-500" /> {locale === 'en' ? 'Fee' : 'ค่าส่ง'} 
+                          <span className="text-emerald-600 flex items-center gap-1">
+                            {effectiveDeliveryFee === -1 ? 'อยู่นอกพื้นที่' : effectiveDeliveryFee > 0 ? `฿${effectiveDeliveryFee.toLocaleString()}` : (
+                              <>
+                                {deliveryFee > 0 && <span className="line-through text-gray-400">฿{deliveryFee}</span>}
+                                <span>FREE</span>
+                              </>
+                            )}
+                          </span>
                         </div>
                       </div>
                     </section>
@@ -3010,10 +3075,17 @@ export default function LiffMenuPage() {
                     </div>
                   </div>
 
-                  {isMapSheetExpanded && deliveryFee > 0 && (
+                  {isMapSheetExpanded && (effectiveDeliveryFee > 0 || isFreeDelivery) && (
                     <div className="mt-5 p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center justify-between">
                       <span className="text-[12px] font-black uppercase tracking-wider text-emerald-800">{locale === 'en' ? 'Est. Delivery Fee' : 'ค่าจัดส่งประมาณ'}</span>
-                      <span className="text-[16px] font-black text-emerald-600">{deliveryFee === -1 ? 'อยู่นอกพื้นที่' : `฿${deliveryFee.toLocaleString()}`}</span>
+                      <span className="text-[16px] font-black text-emerald-600 flex items-center gap-2">
+                        {effectiveDeliveryFee === -1 ? 'อยู่นอกพื้นที่' : effectiveDeliveryFee > 0 ? `฿${effectiveDeliveryFee.toLocaleString()}` : (
+                           <>
+                             {deliveryFee > 0 && <span className="line-through text-emerald-300 text-sm">฿{deliveryFee}</span>}
+                             <span>FREE</span>
+                           </>
+                        )}
+                      </span>
                     </div>
                   )}
 
