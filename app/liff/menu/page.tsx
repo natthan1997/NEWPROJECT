@@ -1959,8 +1959,8 @@ export default function LiffMenuPage() {
                         {activeOrders[0].status === 'pending' && <span className="w-1.5 h-1.5 bg-amber-500 rounded-none animate-pulse" />}
                       </div>
                       <div className="flex flex-col gap-0.5">
-                        <h4 className="text-[13px] font-black uppercase tracking-tighter text-[#1A1A18]">{locale === 'en' ? 'ออเดอร์ #' : locale === 'zh' ? 'ออเดอร์ #' : 'ออเดอร์ #'}{String(activeOrders[0].queue_number || 0).padStart(3, '0')}</h4>
-                        <p className="text-[7px] font-bold text-gray-400 uppercase tracking-widest">Ref: {activeOrders[0].order_number}</p>
+                        <h4 className="text-[13px] font-black uppercase tracking-tighter text-[#1A1A18]">{activeOrders[0].order_type === 'dine_in' && activeOrders[0].table_number ? `โต๊ะ ${activeOrders[0].table_number}` : `#${String(activeOrders[0].queue_number || 0).padStart(3, '0')}`}</h4>
+                        <p className="text-[7px] font-bold text-gray-400 uppercase tracking-widest">Ref: {activeOrders[0].order_number}{activeOrders[0].order_type === 'dine_in' && activeOrders[0].table_number ? ` • คิว: #${String(activeOrders[0].queue_number || 0).padStart(3, '0')}` : ''}</p>
                       </div>
                       <p className="text-[9px] font-bold text-gray-400 uppercase mt-1 tracking-widest leading-relaxed">
                         {activeOrders[0].status === 'pending' ? (
@@ -2360,6 +2360,30 @@ export default function LiffMenuPage() {
                 <h2 className="text-xl font-black uppercase tracking-tighter">{t.reviewOrder}</h2>
                 <div className="w-6" />
              </header>
+
+             {(() => {
+                const config = activeBranch?.inhouse_delivery_config || activeBranch?.opening_hours?.inhouse_delivery_config || shopSettings?.inhouse_delivery_config || shopSettings?.opening_hours?.inhouse_delivery_config;
+                const threshold = config?.enabled && config?.free_delivery_threshold > 0 ? config.free_delivery_threshold : 0;
+                if (threshold > 0 && orderType === 'delivery') {
+                    const remaining = Math.max(0, threshold - cartTotal);
+                    const progress = Math.min(100, (cartTotal / threshold) * 100);
+                    return (
+                        <div className="bg-emerald-50 px-6 py-4 border-b border-emerald-100 shrink-0">
+                            <div className="flex justify-between items-end mb-2">
+                                <span className="text-[12px] font-black tracking-tight text-emerald-800">
+                                    {remaining > 0 ? (locale === 'en' ? `Add ฿${remaining.toLocaleString()} more for free delivery!` : `สั่งอีก ฿${remaining.toLocaleString()} รับสิทธิ์ส่งฟรี!`) : (locale === 'en' ? 'You got Free Delivery! 🎉' : 'คุณได้รับสิทธิ์ส่งฟรี! 🎉')}
+                                </span>
+                                <span className="text-[10px] font-bold text-emerald-600 uppercase">{progress.toFixed(0)}%</span>
+                            </div>
+                            <div className="w-full h-1.5 bg-emerald-200/50 rounded-full overflow-hidden">
+                                <div className="h-full bg-emerald-500 rounded-full transition-all duration-500 ease-out" style={{ width: `${progress}%` }} />
+                            </div>
+                        </div>
+                    );
+                }
+                return null;
+             })()}
+
              <div className="flex-1 overflow-y-auto p-8 space-y-6">
                 <div className="space-y-4">
                   {cart.map(item => (
