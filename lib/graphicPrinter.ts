@@ -125,6 +125,9 @@ const renderReceiptHtml = (order: PrintOrderData, shop: PrintShopData) => {
   html += `<div style="font-size: 22px; margin-bottom: 7px; line-height:1.25;">พนักงาน: ${escapeHtml(order.staffName || '-')}</div>`;
   if (order.customerName) html += `<div style="font-size: 22px; margin-bottom: 7px; line-height:1.25;">ลูกค้า: ${escapeHtml(order.customerName)}</div>`;
   html += `<div style="font-size: 22px; margin-bottom: 7px; line-height:1.25;">ประเภท: ${escapeHtml(formatOrderTypeLabel(order.orderType))}</div>`;
+  if (order.tableNumber) {
+    html += `<div style="font-size: 22px; margin-bottom: 7px; line-height:1.25;">โต๊ะ: ${escapeHtml(order.tableNumber)}</div>`;
+  }
   if (order.deliveryPlatform || order.referenceName) {
     html += `<div style="margin: 14px 0; border:3px solid #000; padding:12px 10px; text-align:center; font-weight: 900;">`;
     html += `<div style="font-size: 16px; letter-spacing: 0.12em; margin-bottom: 6px;">ค่ายเดลิเวอรี่</div>`;
@@ -135,6 +138,14 @@ const renderReceiptHtml = (order: PrintOrderData, shop: PrintShopData) => {
     if (order.deliveryFee && Number(order.deliveryFee) > 0) {
       html += `<div style="font-size: 22px; margin-top: 4px;">ค่าส่ง: ${formatCurrency(Number(order.deliveryFee))}</div>`;
     }
+    html += `</div>`;
+  }
+
+  const qStr = String(order.queueNumber || '').trim();
+  if (qStr && qStr !== '0' && qStr !== 'null') {
+    html += `<div style="margin: 14px 0; border:3px solid #000; padding:12px 10px; text-align:center; font-weight: 900;">`;
+    html += `<div style="font-size: 16px; letter-spacing: 0.12em; margin-bottom: 6px;">TAKEAWAY</div>`;
+    html += `<div style="font-size: 48px; line-height:1.05;">คิว: ${escapeHtml(qStr)}</div>`;
     html += `</div>`;
   }
 
@@ -315,22 +326,25 @@ export const printGraphicModeCustomerReceipt = async (
 ) => {
   try {
     const html = renderReceiptHtml(order, shop);
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = `position: absolute; left: 0; top: 0; width: 0; height: 0; overflow: hidden; z-index: -9999; pointer-events: none;`;
     const div = document.createElement('div');
-    div.style.cssText = `position: fixed; left: -9999px; top: -9999px; opacity: 1; pointer-events: none; background: white; color: black; font-family: 'Noto Sans Thai', 'Tahoma', 'Arial', sans-serif; width: ${GRAPHIC_RECEIPT_WIDTH}px; box-sizing: border-box; padding: 10px 12px; font-size: 20px; font-weight: bold; text-align: center; z-index: -9999;`;
+    div.style.cssText = `background: white; color: black; font-family: 'Noto Sans Thai', 'Tahoma', 'Arial', sans-serif; width: ${GRAPHIC_RECEIPT_WIDTH}px; box-sizing: border-box; padding: 10px 12px; font-size: 20px; font-weight: bold; text-align: center;`;
     div.innerHTML = html;
-    document.body.appendChild(div);
+    wrapper.appendChild(div);
+    document.body.appendChild(wrapper);
     try {
       const canvasPromise = html2canvas(div, printCaptureOptions);
       const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('html2canvas render timeout')), 15000)
       );
       const canvas = await Promise.race([canvasPromise, timeoutPromise]);
-      document.body.removeChild(div);
+      document.body.removeChild(wrapper);
       const success = await printCanvasViaEscPos(ip, canvas);
       if (openDrawer) await printOpenDrawer(ip);
       return success;
     } finally {
-      if (document.body.contains(div)) document.body.removeChild(div);
+      if (document.body.contains(wrapper)) document.body.removeChild(wrapper);
     }
   } catch (error) {
     console.error('Graphic Mode Receipt Print failed. Falling back to Text Mode:', error);
@@ -346,20 +360,23 @@ export const printGraphicModeKitchenTicket = async (
   encoding = 'graphic'
 ) => {
   try {
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = `position: absolute; left: 0; top: 0; width: 0; height: 0; overflow: hidden; z-index: -9999; pointer-events: none;`;
     const div = document.createElement('div');
-    div.style.cssText = `position: fixed; left: -9999px; top: -9999px; opacity: 1; pointer-events: none; background: white; color: black; font-family: 'Noto Sans Thai', 'Tahoma', 'Arial', sans-serif; width: ${GRAPHIC_RECEIPT_WIDTH}px; box-sizing: border-box; padding: 12px 14px; font-size: 20px; font-weight: bold; text-align: left; z-index: -9999;`;
+    div.style.cssText = `background: white; color: black; font-family: 'Noto Sans Thai', 'Tahoma', 'Arial', sans-serif; width: ${GRAPHIC_RECEIPT_WIDTH}px; box-sizing: border-box; padding: 12px 14px; font-size: 20px; font-weight: bold; text-align: left;`;
     div.innerHTML = renderKitchenHtml(order, shop);
-    document.body.appendChild(div);
+    wrapper.appendChild(div);
+    document.body.appendChild(wrapper);
     try {
       const canvasPromise = html2canvas(div, printCaptureOptions);
       const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('html2canvas render timeout')), 15000)
       );
       const canvas = await Promise.race([canvasPromise, timeoutPromise]);
-      document.body.removeChild(div);
+      document.body.removeChild(wrapper);
       return await printCanvasViaEscPos(ip, canvas);
     } finally {
-      if (document.body.contains(div)) document.body.removeChild(div);
+      if (document.body.contains(wrapper)) document.body.removeChild(wrapper);
     }
   } catch (error) {
     console.error('Graphic Mode Kitchen Ticket Print failed. Falling back to Text Mode:', error);
@@ -376,20 +393,23 @@ export const printGraphicModeZReport = async (
 ) => {
   try {
     const html = renderZReportHtml(report, shop);
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = `position: absolute; left: 0; top: 0; width: 0; height: 0; overflow: hidden; z-index: -9999; pointer-events: none;`;
     const div = document.createElement('div');
-    div.style.cssText = `position: fixed; left: -9999px; top: -9999px; opacity: 1; pointer-events: none; background: white; color: black; font-family: 'Noto Sans Thai', 'Tahoma', 'Arial', sans-serif; width: ${GRAPHIC_RECEIPT_WIDTH}px; box-sizing: border-box; padding: 12px 14px; font-size: 18px; font-weight: 700; text-align: left; z-index: -9999;`;
+    div.style.cssText = `background: white; color: black; font-family: 'Noto Sans Thai', 'Tahoma', 'Arial', sans-serif; width: ${GRAPHIC_RECEIPT_WIDTH}px; box-sizing: border-box; padding: 12px 14px; font-size: 18px; font-weight: 700; text-align: left;`;
     div.innerHTML = html;
-    document.body.appendChild(div);
+    wrapper.appendChild(div);
+    document.body.appendChild(wrapper);
     try {
       const canvasPromise = html2canvas(div, printCaptureOptions);
       const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('html2canvas render timeout')), 15000)
       );
       const canvas = await Promise.race([canvasPromise, timeoutPromise]);
-      document.body.removeChild(div);
+      document.body.removeChild(wrapper);
       return await printCanvasViaEscPos(ip, canvas);
     } finally {
-      if (document.body.contains(div)) document.body.removeChild(div);
+      if (document.body.contains(wrapper)) document.body.removeChild(wrapper);
     }
   } catch (error) {
     console.error('Graphic Mode ZReport Print failed. Falling back to Text Mode:', error);
