@@ -931,11 +931,11 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         await printFromDatabaseOrder(paymentSuccessData.orderId, 'receipt', false);
       } catch (err: any) {
         alert('พิมพ์ใบเสร็จไม่สำเร็จ: ' + err.message);
+        setPrintMode('receipt');
       }
     } else {
-      executeNativePrint('receipt', false);
+      await executeNativePrint('receipt', false);
     }
-    setPrintMode('receipt');
   };
 
   const handlePrintKitchen = async () => {
@@ -944,11 +944,11 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         await printFromDatabaseOrder(paymentSuccessData.orderId, 'kitchen', false);
       } catch (err: any) {
         alert('พิมพ์ออเดอร์เข้าครัวไม่สำเร็จ: ' + err.message);
+        setPrintMode('kitchen');
       }
     } else {
-      executeNativePrint('kitchen');
+      await executeNativePrint('kitchen');
     }
-    setPrintMode('kitchen');
   };
 
   const checkManagerPin = (
@@ -5223,7 +5223,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
               </div>
             </div>
             {/* Global Print Area */}
-            <div id="print-area" className={printMode !== 'none' ? 'fixed left-[-9999px] top-[-9999px] print:static print:left-auto print:top-auto' : 'hidden'}>
+            <div id="print-area" className={printMode !== 'none' ? 'fixed opacity-0 pointer-events-none -z-50 -left-[9999px] -top-[9999px] print:static print:opacity-100 print:pointer-events-auto print:z-auto print:left-auto print:top-auto' : 'hidden'}>
               {printMode === 'receipt' && activePrintData && (
                 <POSReceipt
                   orderNumber={activePrintData.orderNumber}
