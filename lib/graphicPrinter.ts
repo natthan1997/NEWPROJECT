@@ -332,27 +332,81 @@ const renderGraphicCanvasDirect = async (
   width: number,
   styles = 'padding: 10px 12px; text-align: center; font-size: 20px; font-weight: bold;'
 ): Promise<HTMLCanvasElement> => {
-  const div = document.createElement('div');
-  div.style.cssText = `position: fixed; left: 0; top: 0; opacity: 0.01; pointer-events: none; background: white; color: black; font-family: 'Noto Sans Thai', 'Tahoma', 'Arial', sans-serif; width: ${width}px; box-sizing: border-box; ${styles} z-index: -9999;`;
-  div.innerHTML = html;
-  
-  document.body.appendChild(div);
+  return new Promise((resolve, reject) => {
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = `position: fixed; left: -9999px; top: 0; width: ${width}px; height: 100vh; border: none; z-index: -9999;`;
+    document.body.appendChild(iframe);
 
-  try {
-    const canvas = await html2canvas(div, {
-      scale: 1,
-      backgroundColor: '#FFFFFF',
-      useCORS: true,
-      removeContainer: true,
-      foreignObjectRendering: false,
-      imageTimeout: 3000,
-    });
-    return canvas;
-  } finally {
-    if (document.body.contains(div)) {
-      document.body.removeChild(div);
+    const doc = iframe.contentWindow?.document;
+    if (!doc) {
+      document.body.removeChild(iframe);
+      return reject(new Error('Cannot access iframe document'));
     }
-  }
+
+    doc.open();
+    doc.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;700;900&display=swap');
+            body {
+              margin: 0;
+              background: white;
+              color: black;
+              font-family: 'Noto Sans Thai', 'Tahoma', 'Arial', sans-serif;
+              width: ${width}px;
+              box-sizing: border-box;
+              ${styles}
+            }
+          </style>
+        </head>
+        <body>
+          <div id="receipt-content">${html}</div>
+        </body>
+      </html>
+    `);
+    doc.close();
+
+    const checkAndRender = async () => {
+      try {
+        // Allow time for fonts and images to load inside iframe
+        await new Promise(r => setTimeout(r, 600));
+        
+        const contentDiv = doc.getElementById('receipt-content');
+        if (!contentDiv) throw new Error('Content div not found in iframe');
+
+        const canvas = await html2canvas(contentDiv, {
+          scale: 1,
+          backgroundColor: '#FFFFFF',
+          useCORS: true,
+          logging: true,
+          windowWidth: width,
+          window: iframe.contentWindow || window, // CRITICAL: Prevent cloning main document
+          ignoreElements: (element) => {
+            // Prevent WebKit WEBP err=-50 crash by ignoring any image outside our content
+            if ((element.tagName === 'IMG' || element.tagName === 'img') && !contentDiv.contains(element)) {
+              return true;
+            }
+            return false;
+          }
+        });
+        resolve(canvas);
+      } catch (err) {
+        console.error('html2canvas iframe render failed:', err);
+        reject(err);
+      } finally {
+        if (document.body.contains(iframe)) {
+          document.body.removeChild(iframe);
+        }
+      }
+    };
+
+    // Trigger render after iframe loads
+    iframe.onload = () => {
+      checkAndRender();
+    };
+  });
 };
 
 export const printGraphicModeCustomerReceipt = async (
