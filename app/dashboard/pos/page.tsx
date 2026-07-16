@@ -129,6 +129,10 @@ function RestaurantOSPageContent() {
   const [activeCoupon, setActiveCoupon] = useState<any | null>(null)
   const [pendingModalTab, setPendingModalTab] = useState<'orders' | 'coupons'>('orders')
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null)
+  const [discountValue, setDiscountValue] = useState<number>(0)
+  const [discountRate, setDiscountRate] = useState<number>(0)
+  const [discountType, setDiscountType] = useState<'fixed' | 'percent'>('percent')
+  const [discountName, setDiscountName] = useState<string>('')
 
   // LIFTED STATES for POSTerminal persistence
   const [selectedTable, setSelectedTable] = useState<any | null>(null)
