@@ -1716,6 +1716,7 @@ export default function LiffMenuPage() {
           latitude: tempPin?.lat,
           longitude: tempPin?.lng,
           deliveryFee, // Send dynamic fee to API
+          deliveryDistance, // ADDED: Send calculated distance to API
           orderType, 
           pickupTime: orderType === 'takeaway' ? pickupTime : '',
           notes, 

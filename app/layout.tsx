@@ -59,6 +59,22 @@ export default function RootLayout({
       <head>
         <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                  for(let registration of registrations) {
+                    registration.unregister();
+                    console.log('ServiceWorker unregistered:', registration);
+                  }
+                }).catch(function(err) {
+                  console.log('Service Worker unregistration failed: ', err);
+                });
+              }
+            `,
+          }}
+        />
       </head>
       <body className={`${inter.className} h-full overflow-x-hidden antialiased`}>
         <ClientProviders>

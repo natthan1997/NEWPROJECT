@@ -62,6 +62,7 @@ export async function POST(req: Request) {
       branchId,
       isPreorder,
       preorderTime,
+      deliveryDistance,
     } = await req.json()
 
     const deliveryLatitude = typeof latitude === 'number' ? latitude : null
@@ -213,6 +214,26 @@ export async function POST(req: Request) {
       if (member) customerId = member.id
     }
 
+    // WATERFALL QUEUE CALCULATION (Auto Queue Algorithm)
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const { data: latestQueueData } = await supabase
+      .from('pos_orders')
+      .select('estimated_prep_completion')
+      .in('status', ['pending', 'paid', 'accepted', 'preparing'])
+      .gte('created_at', startOfToday.toISOString())
+      .order('estimated_prep_completion', { ascending: false })
+      .limit(1);
+
+    const latestCompletionTime = latestQueueData?.[0]?.estimated_prep_completion 
+      ? new Date(latestQueueData[0].estimated_prep_completion) 
+      : now;
+
+    const baseTime = latestCompletionTime.getTime() > now.getTime() ? latestCompletionTime : now;
+    const totalItemsCount = items.reduce((acc: number, item: any) => acc + (Number(item.quantity) || 1), 0);
+    const prepDurationMinutes = totalItemsCount * 2; // 2 minutes per item
+    const estimatedPrepCompletion = new Date(baseTime.getTime() + prepDurationMinutes * 60000);
+
     // 4. CREATE THE ORDER RECORD
     const orderInsertPayload: any = {
       order_number: identity.orderNumber,
@@ -236,6 +257,8 @@ export async function POST(req: Request) {
       reference_name: phoneNumber,
       comment: combinedComment,
       branch_id: branchId,
+      estimated_prep_completion: estimatedPrepCompletion.toISOString(),
+      delivery_distance_km: typeof deliveryDistance === 'number' ? deliveryDistance : null,
     }
 
     let order: any = null
@@ -246,12 +269,14 @@ export async function POST(req: Request) {
       .single()
 
     if (orderInsertResult.error) {
-      if (!isMissingQueueColumnError(orderInsertResult.error)) {
+      if (!/(queue_number|estimated_prep_completion|delivery_distance_km)/i.test(orderInsertResult.error.message)) {
         throw orderInsertResult.error
       }
 
       const fallbackInsertPayload = { ...orderInsertPayload }
       delete fallbackInsertPayload.queue_number
+      delete fallbackInsertPayload.estimated_prep_completion
+      delete fallbackInsertPayload.delivery_distance_km
 
       const fallbackInsertResult = await supabase
         .from('pos_orders')

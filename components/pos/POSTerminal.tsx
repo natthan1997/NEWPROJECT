@@ -2426,6 +2426,29 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
           finalQueueNumber = identity.queueNumber
         }
 
+        // WATERFALL QUEUE CALCULATION (Auto Queue Algorithm)
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
+        const { data: latestQueueData } = await supabase
+          .from('pos_orders')
+          .select('estimated_prep_completion')
+          .in('status', ['pending', 'paid', 'accepted', 'preparing'])
+          .gte('created_at', startOfToday.toISOString())
+          .order('estimated_prep_completion', { ascending: false })
+          .limit(1);
+
+        const latestCompletionTime = latestQueueData?.[0]?.estimated_prep_completion 
+          ? new Date(latestQueueData[0].estimated_prep_completion) 
+          : new Date();
+
+        const now = new Date();
+        const baseTime = latestCompletionTime.getTime() > now.getTime() ? latestCompletionTime : now;
+        
+        const itemsToCount = editingOrderId ? newItems : cart;
+        const totalItemsCount = itemsToCount.reduce((acc: number, item: any) => acc + (Number(item.quantity) || 1), 0);
+        const prepDurationMinutes = totalItemsCount * 2; // 2 minutes per item
+        const estimatedPrepCompletion = new Date(baseTime.getTime() + prepDurationMinutes * 60000);
+
         const payload: any = {
           order_action: editingOrderId ? 'update' : 'insert',
           order_id: editingOrderId || undefined,
@@ -2450,6 +2473,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             delivery_platform: orderType === 'delivery' ? deliveryPlatform : null,
             delivery_gp_amount: 0,
             reference_name: orderType === 'delivery' && platformOrderId ? platformOrderId.trim() : null,
+            estimated_prep_completion: estimatedPrepCompletion.toISOString(),
           },
           order_items: cart.map(item => {
             const modsPrice = item.selected_modifiers?.reduce((a: number, m: any) => a + ((m.price_adjustment || 0) * (m.qty || 1)), 0) || 0;
@@ -2701,6 +2725,31 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 	      finalOrderNumber = identity.orderNumber
 	      finalQueueNumber = identity.queueNumber
 
+        let estimatedPrepCompletionStr: string | undefined = undefined;
+        if (!editingOrderId) {
+           const startOfToday = new Date();
+           startOfToday.setHours(0, 0, 0, 0);
+           const { data: latestQueueData } = await supabase
+             .from('pos_orders')
+             .select('estimated_prep_completion')
+             .in('status', ['pending', 'paid', 'accepted', 'preparing'])
+             .gte('created_at', startOfToday.toISOString())
+             .order('estimated_prep_completion', { ascending: false })
+             .limit(1);
+   
+           const latestCompletionTime = latestQueueData?.[0]?.estimated_prep_completion 
+             ? new Date(latestQueueData[0].estimated_prep_completion) 
+             : new Date();
+   
+           const now = new Date();
+           const baseTime = latestCompletionTime.getTime() > now.getTime() ? latestCompletionTime : now;
+           
+           const totalItemsCount = cart.reduce((acc: number, item: any) => acc + (Number(item.quantity) || 1), 0);
+           const prepDurationMinutes = totalItemsCount * 2; // 2 minutes per item
+           const estimatedPrepCompletion = new Date(baseTime.getTime() + prepDurationMinutes * 60000);
+           estimatedPrepCompletionStr = estimatedPrepCompletion.toISOString();
+        }
+
 	      const payload: any = {
         order_action: editingOrderId ? 'update' : 'insert',
         order_id: editingOrderId || undefined,
@@ -2726,6 +2775,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
           delivery_platform: orderType === 'delivery' ? deliveryPlatform : null,
           delivery_gp_amount: deliveryGpAmount,
           reference_name: orderType === 'delivery' && platformOrderId ? platformOrderId.trim() : null,
+          ...(estimatedPrepCompletionStr ? { estimated_prep_completion: estimatedPrepCompletionStr } : {}),
         },
         order_items: cart.map(item => {
           const modsPrice = item.selected_modifiers?.reduce((a: number, m: any) => a + ((m.price_adjustment || 0) * (m.qty || 1)), 0) || 0;
@@ -2749,22 +2799,15 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       };
 
       try {
-        const movementsToInsert: any[] = []
+        const ingredientsToFetch: { ingredient_id: string, usage: number }[] = [];
+        
         for (const item of cart) {
           if (item.recipe_data && Array.isArray(item.recipe_data)) {
             for (const ing of item.recipe_data) {
               if (ing.order_types && Array.isArray(ing.order_types) && !ing.order_types.includes(orderType)) continue;
               const usage = Number(ing.quantity || 0) * Number(ing.factor || 1) * Number(item.quantity)
               if (ing.ingredient_id && usage > 0) {
-                const { data: invItem } = await supabase.from('inventory_items').select('stock_quantity').eq('id', ing.ingredient_id).maybeSingle()
-                if (invItem) {
-                  movementsToInsert.push({
-                    item_id: ing.ingredient_id,
-                    change_amount: -usage,
-                    new_quantity: Number(invItem.stock_quantity),
-                    reason: 'sale'
-                  })
-                }
+                ingredientsToFetch.push({ ingredient_id: ing.ingredient_id, usage });
               }
             }
           }
@@ -2775,21 +2818,36 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                   if (ing.order_types && Array.isArray(ing.order_types) && !ing.order_types.includes(orderType)) continue;
                   const usage = Number(ing.quantity || 0) * Number(ing.factor || 1) * Number(item.quantity)
                   if (ing.ingredient_id && usage > 0) {
-                    const { data: invItem } = await supabase.from('inventory_items').select('stock_quantity').eq('id', ing.ingredient_id).maybeSingle()
-                    if (invItem) {
-                      movementsToInsert.push({
-                        item_id: ing.ingredient_id,
-                        change_amount: -usage,
-                        new_quantity: Number(invItem.stock_quantity),
-                        reason: 'sale'
-                      })
-                    }
+                    ingredientsToFetch.push({ ingredient_id: ing.ingredient_id, usage });
                   }
                 }
               }
             }
           }
         }
+
+        const movementsToInsert: any[] = []
+        if (ingredientsToFetch.length > 0) {
+          const ingredientIds = Array.from(new Set(ingredientsToFetch.map(i => i.ingredient_id)));
+          const { data: invItems } = await supabase.from('inventory_items').select('id, stock_quantity').in('id', ingredientIds);
+          
+          if (invItems && invItems.length > 0) {
+            const invMap = new Map(invItems.map(i => [i.id, Number(i.stock_quantity)]));
+            
+            for (const ing of ingredientsToFetch) {
+              const currentStock = invMap.get(ing.ingredient_id);
+              if (currentStock !== undefined) {
+                movementsToInsert.push({
+                  item_id: ing.ingredient_id,
+                  change_amount: -ing.usage,
+                  new_quantity: currentStock,
+                  reason: 'sale'
+                });
+              }
+            }
+          }
+        }
+        
         if (movementsToInsert.length > 0) {
           payload.movements = movementsToInsert;
         }

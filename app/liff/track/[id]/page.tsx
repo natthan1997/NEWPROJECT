@@ -97,17 +97,42 @@ export default function LiffTrackPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [queueAhead, setQueueAhead] = useState(0);
   const [isOnline, setIsOnline] = useState(true); // 📡 Connectivity Pulse
+  const [estimatedDeliveryTime, setEstimatedDeliveryTime] = useState<Date | null>(null);
 
   const fetchQueuePosition = async (orderRow: any) => {
     try {
-      let queueQuery = supabase
-        .from('pos_orders')
-        .select('*', { count: 'exact', head: true })
-        .in('status', ['pending', 'paid', 'accepted', 'preparing'])
-        .lt('created_at', orderRow.created_at);
-      if (orderRow.shift_id) queueQuery = queueQuery.eq('shift_id', orderRow.shift_id);
-      const { count } = await queueQuery;
-      setQueueAhead(count || 0);
+      if (orderRow.estimated_prep_completion) {
+        const now = new Date().toISOString();
+        let queueQuery = supabase
+          .from('pos_orders')
+          .select('*', { count: 'exact', head: true })
+          .in('status', ['pending', 'paid', 'accepted', 'preparing'])
+          .gt('estimated_prep_completion', now)
+          .lt('estimated_prep_completion', orderRow.estimated_prep_completion);
+        
+        if (orderRow.shift_id) queueQuery = queueQuery.eq('shift_id', orderRow.shift_id);
+        const { count } = await queueQuery;
+        setQueueAhead(count || 0);
+
+        // Calculate delivery ETA if applicable
+        const prepTime = new Date(orderRow.estimated_prep_completion);
+        if (orderRow.order_type === 'delivery') {
+            const travelMins = orderRow.delivery_distance_km ? Math.ceil(orderRow.delivery_distance_km * 3) + 5 : 15;
+            prepTime.setMinutes(prepTime.getMinutes() + travelMins);
+        }
+        setEstimatedDeliveryTime(prepTime);
+
+      } else {
+        // Fallback for older orders without estimated_prep_completion
+        let queueQuery = supabase
+          .from('pos_orders')
+          .select('*', { count: 'exact', head: true })
+          .in('status', ['pending', 'paid', 'accepted', 'preparing'])
+          .lt('created_at', orderRow.created_at);
+        if (orderRow.shift_id) queueQuery = queueQuery.eq('shift_id', orderRow.shift_id);
+        const { count } = await queueQuery;
+        setQueueAhead(count || 0);
+      }
     } catch (err) {
       console.error('Failed to fetch queue position:', err);
     }
@@ -287,6 +312,14 @@ export default function LiffTrackPage() {
 
            {/* 🏷️ STATUS CARD */}
            <div className="text-center space-y-4 pt-6 border-t border-gray-50">
+              {estimatedDeliveryTime && !isCompleted && status !== 'cancelled' && (
+                <div className="bg-emerald-50 text-emerald-700 py-3 px-4 border border-emerald-100 flex items-center justify-between mx-4 mb-4">
+                  <span className="text-[10px] font-black uppercase tracking-widest">{locale === 'en' ? 'Estimated Time' : locale === 'zh' ? '预计时间' : 'คาดว่าจะได้รับเวลา'}</span>
+                  <span className="text-sm font-black tracking-widest">
+                    {estimatedDeliveryTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.
+                  </span>
+                </div>
+              )}
               <AnimatePresence mode="wait">
                 <motion.div 
                   key={status}
