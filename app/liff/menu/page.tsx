@@ -179,7 +179,7 @@ export default function LiffMenuPage() {
   const [lang, setLang] = useState<'th' | 'en'>('th');
 
   const [cart, setCart] = useState<any[]>([]);
-  const [addedItemName, setAddedItemName] = useState<string | null>(null);
+  const [cartShake, setCartShake] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [orderType, setOrderType] = useState<'delivery' | 'takeaway'>('delivery');
   const [notes, setNotes] = useState('');
@@ -1402,11 +1402,11 @@ export default function LiffMenuPage() {
       return [...prev, { ...item, quantity: quantity, selected_modifiers: (selectedModifiers || []) }];
     });
 
-    setAddedItemName(item.name || item.item_name || 'รายการ');
+    setCartShake(true);
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
       navigator.vibrate(50);
     }
-    setTimeout(() => setAddedItemName(null), 1500);
+    setTimeout(() => setCartShake(false), 500);
 
     setPendingItem(null);
     setModifierGroups([]);
@@ -2348,30 +2348,20 @@ export default function LiffMenuPage() {
       {/* Floating Basket Button */}
       {cart.length > 0 && !isCartOpen && (
         <div className="fixed bottom-6 left-6 right-6 z-[150]">
-          <button onClick={() => setIsCartOpen(true)} className="w-full bg-black text-white px-6 py-4 rounded-none flex justify-between items-center shadow-2xl active:scale-95 transition-all">
+          <motion.button 
+            onClick={() => setIsCartOpen(true)} 
+            animate={cartShake ? { scale: [1, 1.1, 0.95, 1.05, 1] } : { scale: 1 }}
+            transition={{ duration: 0.4 }}
+            className="w-full bg-black text-white px-6 py-4 rounded-none flex justify-between items-center shadow-2xl active:scale-95 transition-all"
+          >
             <div className="flex items-center gap-3">
               <ShoppingCart size={18} />
               <span className="text-[10px] font-black uppercase tracking-widest">{t.viewOrder} ({cart.reduce((a,b) => a+b.quantity, 0)})</span>
             </div>
             <span className="text-sm font-black">{locale === 'en' ? '฿' : locale === 'zh' ? '฿' : '฿'}{grandTotal.toLocaleString()}</span>
-          </button>
+          </motion.button>
         </div>
       )}
-
-      {/* 🟢 Toast Notification */}
-      <AnimatePresence>
-        {addedItemName && (
-          <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.9 }}
-            className="fixed top-24 left-1/2 -translate-x-1/2 z-[3000] px-5 py-3 bg-emerald-500 text-white font-black text-[12px] uppercase tracking-widest rounded-full shadow-xl flex items-center gap-2 pointer-events-none"
-          >
-            <CheckCircle2 size={16} className="text-white" />
-            {locale === 'en' ? 'Added' : 'เพิ่ม'} {addedItemName} {locale === 'en' ? 'to cart' : 'ลงตะกร้า'}
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* 🛡️ Cart Drawer (Abbreviated) */}
       <AnimatePresence>
