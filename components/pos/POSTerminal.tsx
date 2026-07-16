@@ -28,6 +28,7 @@ import {
   Image as ImageIcon,
   ShoppingCart,
   Loader2,
+  CheckCircle2,
   Bell,
   FileText,
   Ticket,
@@ -327,6 +328,10 @@ export default function POSTerminal({
   const [successAudio, setSuccessAudio] = useState<HTMLAudioElement | null>(null)
   const [selectedRecipeItem, setSelectedRecipeItem] = useState<any | null>(null)
 
+  // Real-time Member Check-in States
+  const [memberCheckIns, setMemberCheckIns] = useState<any[]>([])
+  const [linkedCheckInId, setLinkedCheckInId] = useState<string | null>(null)
+
 
   const { locale } = useI18n();
   const [showPointModal, setShowPointModal] = useState(false)
@@ -456,6 +461,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     setEditingOrderNumber(null)
     setSelectedTable(null)
     setSelectedCustomer(null)
+    setLinkedCheckInId(null)
     setIsCartExpanded(false)
     setOrderType('dine_in')
     resetDeliveryDraft()
@@ -595,6 +601,61 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     return result.newline().newline().newline().cut().encode();
   };
 
+  const fetchPrintOrderData = async (orderId: string) => {
+    const { data: order, error } = await supabase
+      .from('pos_orders')
+      .select(`*, pos_order_items(*, item:pos_menu_items(*)), pos_order_payments(*)`)
+      .eq('id', orderId)
+      .maybeSingle()
+
+    if (error) throw error
+    if (!order) throw new Error('ไม่พบข้อมูลออเดอร์ในระบบ')
+
+    const getPaidAmountLocal = (o: any) => {
+      const paymentRows = Array.isArray(o.pos_order_payments) ? o.pos_order_payments : []
+      const paidFromRows = paymentRows
+        .filter((row: any) => String(row.status || '').toLowerCase() === 'paid')
+        .reduce((sum: number, row: any) => sum + Number(row.amount || 0), 0)
+      return paidFromRows > 0 ? paidFromRows : Number(o.net_total ?? o.total_amount ?? 0)
+    }
+
+    const getOrderPaymentMethodLocal = (o: any) => {
+      const paymentRows = Array.isArray(o.pos_order_payments) ? o.pos_order_payments : []
+      const firstPaidMethod = paymentRows.find((row: any) => String(row.status || '').toLowerCase() === 'paid')?.payment_method
+      return firstPaidMethod || o.payment_method || 'cash'
+    }
+
+    return {
+      orderNumber: order.order_number,
+      queueNumber: order.queue_number ? String(order.queue_number) : undefined,
+      date: new Date(order.created_at).toLocaleString('th-TH'),
+      orderSource: order.order_source || 'pos',
+      staffName: profile?.full_name || profile?.display_name || 'POS',
+      customerName: order.customer_name || undefined,
+      tableNumber: order.table_number || undefined,
+      comment: order.comment || order.notes || '',
+      pickupTime: order.pickup_time || '',
+      items: (order.pos_order_items || []).map((item: any) => ({
+        name: item.item?.name || item.name || 'Unknown Item',
+        quantity: Number(item.quantity || 0),
+        subtotal: Number(item.subtotal || (Number(item.unit_price || 0) * Number(item.quantity || 0))),
+        selected_modifiers: item.selected_modifiers || [],
+        category_id: item.item?.category_id || 'uncategorized'
+      })),
+      subtotal: Number(order.total_amount || 0),
+      discount: Number(order.discount_amount || 0),
+      tax: Number(order.tax_amount || 0),
+      total: Number(order.net_total ?? order.total_amount ?? 0),
+      paymentMethod: getOrderPaymentMethodLocal(order),
+      receivedAmount: getPaidAmountLocal(order),
+      changeAmount: Math.max(0, getPaidAmountLocal(order) - Number(order.net_total ?? order.total_amount ?? 0)),
+      orderType: order.order_type || 'dine_in',
+      deliveryPlatform: order.delivery_platform || undefined,
+      referenceName: order.reference_name || undefined,
+      deliveryFee: Number(order.delivery_fee || 0),
+    }
+  }
+
   const executeNativePrint = async (type: 'receipt' | 'kitchen', openDrawer: boolean = false) => {
     // allow manual print without paymentSuccessData
     // if (!paymentSuccessData) return;
@@ -618,29 +679,38 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     try {
         let currentPrintOrderData: any = null;
         if (paymentSuccessData) {
-            currentPrintOrderData = {
-              orderNumber: paymentSuccessData.orderNumber,
-              queueNumber: paymentSuccessData.queueNumber,
-              date: new Date(paymentSuccessData.timestamp).toLocaleString(),
-              orderSource: paymentSuccessData.orderSource || 'pos',
-              tableNumber: paymentSuccessData.tableNumber,
-              orderType: paymentSuccessData.orderType || orderType,
-              staffName: profile?.full_name || 'Staff',
-              customerName: paymentSuccessData.customerName,
-              deliveryPlatform: paymentSuccessData.deliveryPlatform,
-              referenceName: paymentSuccessData.referenceName,
-              comment: paymentSuccessData.comment || paymentSuccessData.notes || '',
-              pickupTime: paymentSuccessData.pickupTime || '',
-              subtotal: paymentSuccessData.subtotal,
-              discount: paymentSuccessData.discount,
-              serviceCharge: paymentSuccessData.serviceCharge,
-              tax: paymentSuccessData.tax,
-              total: paymentSuccessData.total,
-              paymentMethod: paymentSuccessData.paymentMethod,
-              receivedAmount: paymentSuccessData.received,
-              changeAmount: paymentSuccessData.change,
-              items: paymentSuccessData.items
-            };
+            if (paymentSuccessData.orderId && paymentSuccessData.orderId !== 'NEW') {
+                try {
+                    currentPrintOrderData = await fetchPrintOrderData(paymentSuccessData.orderId);
+                } catch (err) {
+                    console.warn('Failed to fetch order from DB, falling back to state data:', err);
+                }
+            }
+            if (!currentPrintOrderData) {
+                currentPrintOrderData = {
+                  orderNumber: paymentSuccessData.orderNumber,
+                  queueNumber: paymentSuccessData.queueNumber,
+                  date: new Date(paymentSuccessData.timestamp).toLocaleString(),
+                  orderSource: paymentSuccessData.orderSource || 'pos',
+                  tableNumber: paymentSuccessData.tableNumber,
+                  orderType: paymentSuccessData.orderType || orderType,
+                  staffName: profile?.full_name || 'Staff',
+                  customerName: paymentSuccessData.customerName,
+                  deliveryPlatform: paymentSuccessData.deliveryPlatform,
+                  referenceName: paymentSuccessData.referenceName,
+                  comment: paymentSuccessData.comment || paymentSuccessData.notes || '',
+                  pickupTime: paymentSuccessData.pickupTime || '',
+                  subtotal: paymentSuccessData.subtotal,
+                  discount: paymentSuccessData.discount,
+                  serviceCharge: paymentSuccessData.serviceCharge,
+                  tax: paymentSuccessData.tax,
+                  total: paymentSuccessData.total,
+                  paymentMethod: paymentSuccessData.paymentMethod,
+                  receivedAmount: paymentSuccessData.received,
+                  changeAmount: paymentSuccessData.change,
+                  items: paymentSuccessData.items
+                };
+            }
         } else {
             // Manual Print: Construct from current cart and state
             const cartSubTotal = cart.reduce((total, item) => total + (item.cost_price || 0) * item.quantity, 0); // Not real subtotal but fallback
@@ -1502,6 +1572,159 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     }
   }, [])
 
+  // Real-time Member Check-in Listener & Handlers
+  useEffect(() => {
+    const fetchPendingCheckIns = async () => {
+      const { data } = await supabase
+        .from('pos_member_checkins')
+        .select('*')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: true });
+      if (data) {
+        setMemberCheckIns(prev => {
+          const merged = [...prev];
+          data.forEach(item => {
+            if (!merged.some(m => m.id === item.id)) {
+              merged.push(item);
+              playAppSound('notification');
+            }
+          });
+          return merged.filter(m => data.some(d => d.id === m.id));
+        });
+      }
+    };
+    fetchPendingCheckIns();
+
+    // Poll every 4 seconds as a robust fallback
+    const interval = setInterval(fetchPendingCheckIns, 4000);
+
+    const channel = supabase
+      .channel('pos_member_checkins_watch')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'pos_member_checkins' },
+        (payload: any) => {
+          if (payload.eventType === 'INSERT') {
+            const newItem = payload.new;
+            if (newItem.status === 'pending') {
+              setMemberCheckIns(prev => {
+                if (prev.some(item => item.id === newItem.id)) return prev;
+                return [...prev, newItem];
+              });
+              playAppSound('notification');
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedItem = payload.new;
+            if (updatedItem.status !== 'pending') {
+              setMemberCheckIns(prev => prev.filter(item => item.id !== updatedItem.id));
+            } else {
+              setMemberCheckIns(prev => prev.map(item => item.id === updatedItem.id ? updatedItem : item));
+            }
+          } else if (payload.eventType === 'DELETE') {
+            const deletedId = payload.old.id;
+            setMemberCheckIns(prev => prev.filter(item => item.id !== deletedId));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      clearInterval(interval);
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const handleLinkCheckIn = async (checkIn: any) => {
+    if (!checkIn) return;
+    try {
+      if (editingOrderId) {
+        await supabase
+          .from('pos_orders')
+          .update({ customer_id: checkIn.member_id })
+          .eq('id', editingOrderId);
+      }
+
+      const { error } = await supabase
+        .from('pos_member_checkins')
+        .update({ 
+          status: 'linked', 
+          order_id: editingOrderId || null 
+        })
+        .eq('id', checkIn.id);
+
+      if (error) throw error;
+
+      const { data: member } = await supabase
+        .from('pos_members')
+        .select('*')
+        .eq('id', checkIn.member_id)
+        .maybeSingle();
+
+      if (member) {
+        setSelectedCustomer(member);
+        setLinkedCheckInId(checkIn.id);
+      }
+      
+      refreshPendingOrders();
+      setMemberCheckIns(prev => prev.filter(item => item.id !== checkIn.id));
+    } catch (err) {
+      console.error('Failed to link check-in:', err);
+      alert('เกิดข้อผิดพลาดในการผูกข้อมูลสมาชิก');
+    }
+  };
+
+  const handleLinkCheckInToOrder = async (checkIn: any, order: any) => {
+    if (!checkIn || !order) return;
+    try {
+      const { error: orderErr } = await supabase
+        .from('pos_orders')
+        .update({ customer_id: checkIn.member_id })
+        .eq('id', order.id);
+
+      if (orderErr) throw orderErr;
+
+      const { error: checkInErr } = await supabase
+        .from('pos_member_checkins')
+        .update({ status: 'linked', order_id: order.id })
+        .eq('id', checkIn.id);
+
+      if (checkInErr) throw checkInErr;
+
+      const { data: member } = await supabase
+        .from('pos_members')
+        .select('*')
+        .eq('id', checkIn.member_id)
+        .maybeSingle();
+
+      if (member) {
+        if (editingOrderId === order.id) {
+          setSelectedCustomer(member);
+          setLinkedCheckInId(checkIn.id);
+        }
+      }
+
+      refreshPendingOrders();
+      setMemberCheckIns(prev => prev.filter(item => item.id !== checkIn.id));
+    } catch (err) {
+      console.error('Failed to link check-in to order:', err);
+      alert('เกิดข้อผิดพลาดในการผูกข้อมูลสมาชิกเข้ากับบิล');
+    }
+  };
+
+  const handleRejectCheckIn = async (checkIn: any) => {
+    if (!checkIn) return;
+    try {
+      await supabase
+        .from('pos_member_checkins')
+        .update({ status: 'cancelled' })
+        .eq('id', checkIn.id);
+      
+      setMemberCheckIns(prev => prev.filter(item => item.id !== checkIn.id));
+    } catch (err) {
+      console.error('Failed to reject check-in:', err);
+    }
+  };
+
 
 
   const fetchItems = async (forceRefresh = false) => {
@@ -1934,25 +2157,36 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         const savedOrder = await handleHoldOrder({ suppressProcessingState: true, suppressAlert: true }) as any
         if (!savedOrder) return
 
-        const printOrderData = {
-            orderNumber: savedOrder.orderNumber,
-            queueNumber: String(savedOrder.queueNumber || ''),
-            date: new Date().toLocaleString(),
-            orderSource: savedOrder.orderSource || 'pos',
-            tableNumber: savedOrder.tableNumber || 'Unknown',
-            deliveryPlatform: savedOrder.orderType === 'delivery' ? savedOrder.deliveryPlatform : '',
-            referenceName: savedOrder.orderType === 'delivery' ? savedOrder.referenceName : '',
-            comment: savedOrder.comment || savedOrder.notes || '',
-            pickupTime: savedOrder.pickupTime || '',
-            items: savedOrder.newItems.map((i: any) => ({
-                name: i.name,
-                quantity: i.quantity,
-                modifiers: i.selected_modifiers?.map((m: any) => m.name) || [],
-                selected_modifiers: i.selected_modifiers || [],
-                category_id: i.category_id
-            })),
-            orderType: savedOrder.orderType
-        };
+        let printOrderData: any = null;
+        if (savedOrder.orderId) {
+            try {
+                printOrderData = await fetchPrintOrderData(savedOrder.orderId);
+            } catch (err) {
+                console.warn('Failed to fetch hold order from DB for print, falling back to local state:', err);
+            }
+        }
+
+        if (!printOrderData) {
+            printOrderData = {
+                orderNumber: savedOrder.orderNumber,
+                queueNumber: String(savedOrder.queueNumber || ''),
+                date: new Date().toLocaleString(),
+                orderSource: savedOrder.orderSource || 'pos',
+                tableNumber: savedOrder.tableNumber || 'Unknown',
+                deliveryPlatform: savedOrder.orderType === 'delivery' ? savedOrder.deliveryPlatform : '',
+                referenceName: savedOrder.orderType === 'delivery' ? savedOrder.referenceName : '',
+                comment: savedOrder.comment || savedOrder.notes || '',
+                pickupTime: savedOrder.pickupTime || '',
+                items: savedOrder.newItems.map((i: any) => ({
+                    name: i.name,
+                    quantity: i.quantity,
+                    modifiers: i.selected_modifiers?.map((m: any) => m.name) || [],
+                    selected_modifiers: i.selected_modifiers || [],
+                    category_id: i.category_id
+                })),
+                orderType: savedOrder.orderType
+            };
+        }
 
         if (kitchenPrinters.length === 0) {
             alert('พักบิลแล้ว แต่ไม่พบการตั้งค่าเครื่องปริ้นเข้าครัว (Kitchen Printer) ในระบบครับ')
@@ -2579,6 +2813,17 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       }
 
       finalOrderId = rpcResult?.order_id || editingOrderId;
+
+      if (newStatus === 'completed' && linkedCheckInId) {
+        await supabase
+          .from('pos_member_checkins')
+          .update({
+            status: 'completed',
+            order_id: finalOrderId,
+            points_earned: pointsEarned
+          })
+          .eq('id', linkedCheckInId);
+      }
 
       if (newStatus === 'completed' && selectedTable?.id) {
         fetchTables();
@@ -4495,8 +4740,12 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                      </div>
                      <button 
                        onClick={() => {
-                          setSelectedCustomer(null)
-                          setMemberSearchQuery('')
+                           if (linkedCheckInId) {
+                             supabase.from('pos_member_checkins').update({ status: 'cancelled' }).eq('id', linkedCheckInId).then(() => {});
+                             setLinkedCheckInId(null);
+                           }
+                           setSelectedCustomer(null)
+                           setMemberSearchQuery('')
                           setMemberCheckoutStep('lookup')
                        }}
                        className="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-[#1A1A18] bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-full transition-all"
@@ -5358,6 +5607,189 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         item={selectedRecipeItem}
         orderType={orderType}
       />
+
+      {/* 🔔 Real-time Member Check-in Alert Modal */}
+      <AnimatePresence>
+        {memberCheckIns.length > 0 && (
+          <div className="fixed inset-0 z-[2600] flex items-center justify-center p-4">
+            {/* Backdrop with soft blur */}
+            <div className="absolute inset-0 bg-[#0A0A0A]/40 backdrop-blur-sm" />
+            
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+              className="relative bg-white text-[#1A1A18] rounded-[2rem] w-full max-w-4xl shadow-2xl border border-gray-100/50 flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-gray-100 overflow-hidden font-sans z-10"
+            >
+              {/* Left Column: Customer Profile & Current Cart */}
+              <div className="w-full md:w-[380px] p-8 flex flex-col items-center justify-between shrink-0">
+                <div className="w-full flex flex-col items-center text-center">
+                  {/* Alert icon */}
+                  <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mb-4 relative shrink-0">
+                    <QrCode size={28} className="text-emerald-600 animate-pulse" />
+                    <span className="absolute top-0 right-0 flex h-3.5 w-3.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500"></span>
+                    </span>
+                  </div>
+
+                  <h3 className="text-lg font-black text-gray-900 tracking-tight mb-1">
+                    ลูกค้าเช็คอินสะสมแต้ม
+                  </h3>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-6">
+                    Real-time Check-in
+                  </p>
+
+                  {/* Customer Card */}
+                  <div className="w-full bg-gray-50 border border-[#F0F0E8] rounded-2xl p-4 flex items-center gap-3.5 mb-6 text-left">
+                    {memberCheckIns[0].customer_image ? (
+                      <img 
+                        src={memberCheckIns[0].customer_image} 
+                        alt="Customer" 
+                        crossOrigin="anonymous"
+                        className="w-12 h-12 rounded-xl object-cover border border-gray-200"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-xl bg-gray-200 flex items-center justify-center text-gray-400 font-bold shrink-0">
+                        {memberCheckIns[0].customer_name?.[0] || 'M'}
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <h4 className="font-black text-sm text-gray-900 truncate">
+                        {memberCheckIns[0].customer_name}
+                      </h4>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">
+                        LINE Member
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Current Cart Match Section */}
+                  <div className="w-full border border-dashed border-gray-200 rounded-2xl p-4 mb-6">
+                    <div className="flex justify-between items-center mb-3">
+                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider">
+                        ตะกร้าปัจจุบัน (Active Cart)
+                      </span>
+                      {cart.length > 0 ? (
+                        <span className="text-xs font-black text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full">
+                          {cart.reduce((sum, item) => sum + item.quantity, 0)} รายการ
+                        </span>
+                      ) : (
+                        <span className="text-xs font-black text-gray-400 bg-gray-100 px-2.5 py-0.5 rounded-full">
+                          ว่างเปล่า
+                        </span>
+                      )}
+                    </div>
+                    {cart.length > 0 ? (
+                      <div className="text-left mb-4">
+                        <span className="text-2xl font-black text-gray-900">
+                          ฿{cart.reduce((sum, item) => sum + (getEffectiveItemUnitPrice(item) * item.quantity), 0).toLocaleString()}
+                        </span>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-400 font-medium text-left mb-4">
+                        ยังไม่มีสินค้าในตะกร้า เริ่มเพิ่มสินค้าหรือผูกกับบิลค้างด้านขวา
+                      </p>
+                    )}
+
+                    <button
+                      onClick={() => handleLinkCheckIn(memberCheckIns[0])}
+                      disabled={cart.length === 0}
+                      className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-100 disabled:text-gray-400 text-white rounded-2xl text-xs font-black uppercase tracking-widest active:scale-95 disabled:scale-100 transition-all shadow-md flex items-center justify-center gap-2"
+                    >
+                      <CheckCircle2 size={16} />
+                      <span>ผูกกับบิลปัจจุบัน</span>
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => handleRejectCheckIn(memberCheckIns[0])}
+                  className="w-full py-3.5 text-gray-400 hover:text-red-600 rounded-xl text-xs font-black uppercase tracking-widest active:scale-95 transition-all text-center"
+                >
+                  ปฏิเสธการเช็คอิน
+                </button>
+              </div>
+
+              {/* Right Column: List of Held/Pending Orders */}
+              <div className="flex-1 p-8 flex flex-col min-w-0">
+                <div className="mb-4">
+                  <h4 className="text-sm font-black text-gray-900 tracking-tight">
+                    หรือผูกกับบิลที่เปิดค้างไว้
+                  </h4>
+                  <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mt-0.5">
+                    Select open bill to link points
+                  </p>
+                </div>
+
+                <div className="flex-1 overflow-y-auto max-h-[380px] space-y-3 pr-2">
+                  {pendingOrders.length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center py-12 text-center">
+                      <div className="w-12 h-12 bg-gray-50 border border-gray-100 rounded-xl flex items-center justify-center text-gray-300 mb-3">
+                        <ShoppingBag size={20} />
+                      </div>
+                      <p className="text-xs text-gray-400 font-bold">ไม่มีบิลค้างในระบบขณะนี้</p>
+                    </div>
+                  ) : (
+                    pendingOrders.map((order: any) => {
+                      const itemCount = (order.pos_order_items || []).reduce((sum: number, item: any) => sum + (item.quantity || 0), 0);
+                      const itemSummary = (order.pos_order_items || [])
+                        .map((item: any) => `${item.quantity}x ${item.item?.name || item.name || 'สินค้า'}`)
+                        .join(', ');
+
+                      return (
+                        <div 
+                          key={order.id} 
+                          className="bg-gray-50 border border-[#F0F0E8] hover:border-emerald-300 hover:bg-emerald-50/20 rounded-2xl p-4 flex items-center justify-between gap-4 transition-all"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 mb-1.5">
+                              <span className="text-xs font-black text-gray-900 bg-white border border-gray-200 px-2 py-0.5 rounded-md">
+                                บิล #{order.order_number || order.id.slice(0, 8)}
+                              </span>
+                              {order.table_number && (
+                                <span className="text-[10px] font-black text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md">
+                                  โต๊ะ {order.table_number}
+                                </span>
+                              )}
+                              {order.queue_number && (
+                                <span className="text-[10px] font-black text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md">
+                                  คิว #{order.queue_number}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-500 font-medium truncate max-w-md font-sans">
+                              {itemSummary || 'ไม่มีรายการสินค้า'}
+                            </p>
+                          </div>
+
+                          <div className="text-right shrink-0 flex items-center gap-4">
+                            <div>
+                              <div className="text-sm font-black text-gray-900">
+                                ฿{Number(order.net_total || order.total_amount || 0).toLocaleString()}
+                              </div>
+                              <div className="text-[9px] font-black text-gray-400 uppercase tracking-wider">
+                                {itemCount} รายการ
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => handleLinkCheckInToOrder(memberCheckIns[0], order)}
+                              className="bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white border border-emerald-200 hover:border-emerald-600 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest active:scale-95 transition-all shadow-sm"
+                            >
+                              ผูกบิลนี้
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
