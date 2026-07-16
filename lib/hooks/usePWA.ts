@@ -10,33 +10,14 @@ export function usePWA() {
   useEffect(() => {
     if (typeof window === 'undefined') return
 
-    // Register service worker
+    // Unregister any lingering Service Workers to fix PWA caching issues
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker
-        .register('/sw.js', { scope: '/' })
-        .then((registration) => {
-          console.log('Service worker registered:', registration)
-
-          // Listen for updates
-          registration.addEventListener('updatefound', () => {
-            const newWorker = registration.installing
-            if (newWorker) {
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  // New service worker is ready, show update notification
-                  if (typeof window !== 'undefined') {
-                    window.dispatchEvent(
-                      new CustomEvent('sw-update', { detail: newWorker })
-                    )
-                  }
-                }
-              })
-            }
-          })
-        })
-        .catch((error) => {
-          console.error('Service worker registration failed:', error)
-        })
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (let registration of registrations) {
+          registration.unregister();
+          console.log('Unregistered Service Worker to disable PWA:', registration.scope);
+        }
+      }).catch(error => console.error('Error unregistering service worker:', error));
     }
 
     // Handle update

@@ -1,20 +1,37 @@
 const fs = require('fs');
-const content = fs.readFileSync('c:\\Users\\localadmin\\Desktop\\xylproject-pr-copilot-swe-agent-3\\xylem-landscape\\app\\dashboard\\customer\\page.tsx', 'utf8');
+const path = require('path');
 
-let openBraces = 0;
-let openParens = 0;
-let openBrackets = 0;
+const filePath = '/Users/chenchirawongpothisan/Downloads/XYL to .com/components/pos/POSTerminal.tsx';
+const content = fs.readFileSync(filePath, 'utf8');
 
-for (let i = 0; i < content.length; i++) {
-  const char = content[i];
-  if (char === '{') openBraces++;
-  else if (char === '}') openBraces--;
-  else if (char === '(') openParens++;
-  else if (char === ')') openParens--;
-  else if (char === '[') openBrackets++;
-  else if (char === ']') openBrackets--;
+const lines = content.split('\n');
+console.log('Total lines:', lines.length);
+
+// Let's find the start of the success modal
+const startLine = lines.findIndex(l => l.includes('GLOBAL PAYMENT SUCCESS MODAL'));
+console.log('Success modal starts at line:', startLine + 1);
+
+// Let's look at lines from startLine to 5220
+let openDivs = 0;
+let closedDivs = 0;
+
+for (let i = startLine; i < 5220; i++) {
+  const line = lines[i];
+  if (!line) continue;
+  
+  // Count opening div tags (excluding self-closing ones like <div />)
+  const openMatches = line.match(/<div(?![^>]*\/>)[^>]*>/g) || [];
+  // Count closing div tags
+  const closeMatches = line.match(/<\/div>/g) || [];
+  
+  openDivs += openMatches.length;
+  closedDivs += closeMatches.length;
+  
+  if (openMatches.length > 0 || closeMatches.length > 0) {
+    console.log(`Line ${i + 1}: ${line.trim()} | Open: +${openMatches.length}, Close: +${closeMatches.length} | Net: ${openDivs - closedDivs}`);
+  }
 }
 
-console.log(`Braces: ${openBraces}`);
-console.log(`Parens: ${openParens}`);
-console.log(`Brackets: ${openBrackets}`);
+console.log('Total Open divs:', openDivs);
+console.log('Total Closed divs:', closedDivs);
+console.log('Net (should be 0 if balanced inside this block):', openDivs - closedDivs);

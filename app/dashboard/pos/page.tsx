@@ -245,11 +245,14 @@ function RestaurantOSPageContent() {
       fetchClaimingCoupons()
     }
     
-    // Register PWA Service Worker strictly scoped to /dashboard/pos
+    // Unregister any lingering Service Workers to fix PWA caching issues
     if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js', { scope: '/dashboard/pos' })
-        .then((reg) => console.log('✅ POS-scoped Service Worker registered:', reg.scope))
-        .catch((err) => console.error('❌ POS-scoped Service Worker registration failed:', err))
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (let registration of registrations) {
+          registration.unregister();
+          console.log('✅ Unregistered Service Worker:', registration.scope);
+        }
+      }).catch(err => console.error('Failed to unregister Service Worker:', err));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.id])
@@ -718,7 +721,13 @@ function RestaurantOSPageContent() {
         settingsQuery = settingsQuery.eq('id', '00000000-0000-0000-0000-000000000001')
       }
       const { data: freshSettings } = await settingsQuery.maybeSingle()
-      const freshPrinters: any[] = freshSettings?.printers || shopSettings?.printers || []
+      let freshPrinters: any[] = freshSettings?.printers || shopSettings?.printers || []
+      if (freshPrinters.length === 0) {
+        const fallbackIp = typeof window !== 'undefined' ? localStorage.getItem('xylem_printer_ip') : null
+        if (fallbackIp) {
+          freshPrinters = [{ ip: fallbackIp, type: 'both', model: 'xprinter-xp-n160ii', encoding: 'graphic', categories: ['all'] }]
+        }
+      }
       const isLiffSourceOrder = String(order.order_source || '').toLowerCase() === 'liff'
 
       const kitchenPrinters = freshPrinters.filter((p: any) => p.type === 'kitchen' || p.type === 'both')
@@ -793,14 +802,22 @@ function RestaurantOSPageContent() {
 
             if (itemsToPrint.length > 0) {
               const routedOrderData = { ...printOrderData, items: itemsToPrint };
-              await printGraphicModeKitchenTicket(printer.ip, routedOrderData, shopData, printer.model, 'graphic');
+              if (printer.encoding === 'graphic') {
+                await printGraphicModeKitchenTicket(printer.ip, routedOrderData, shopData, printer.model, printer.encoding);
+              } else {
+                await printKitchenTicket(printer.ip, routedOrderData, shopData, printer.model, printer.encoding || 'cp874');
+              }
             }
           }
 
           if (isLiffSourceOrder && receiptPrinters.length > 0) {
             for (const printer of receiptPrinters) {
               if (!printer.ip) continue
-              await printGraphicModeCustomerReceipt(printer.ip, receiptOrderData, shopData, printer.model, 'graphic')
+              if (printer.encoding === 'graphic') {
+                await printGraphicModeCustomerReceipt(printer.ip, receiptOrderData, shopData, printer.model, printer.encoding)
+              } else {
+                await printCustomerReceipt(printer.ip, receiptOrderData, shopData, printer.model, printer.encoding || 'cp874')
+              }
             }
           }
         } catch (err) {

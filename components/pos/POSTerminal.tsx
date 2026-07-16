@@ -8,6 +8,7 @@ import {
   Trash2,
   Plus,
   Minus,
+  AlertCircle,
   CreditCard,
   Banknote,
   Search,
@@ -760,7 +761,12 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         const printJobs = targetPrinters.map(async (printer: any) => {
             if (!printer.ip) return;
             if (type === 'receipt') {
-               await printGraphicModeCustomerReceipt(printer.ip, currentPrintOrderData, printShopData, printer.model, 'graphic', openDrawer);
+               if (printer.encoding === 'graphic') {
+                   const { printGraphicModeCustomerReceipt } = await import('@/lib/graphicPrinter');
+                   await printGraphicModeCustomerReceipt(printer.ip, currentPrintOrderData, printShopData, printer.model, printer.encoding, openDrawer);
+               } else {
+                   await printCustomerReceipt(printer.ip, currentPrintOrderData, printShopData, printer.model, printer.encoding, openDrawer);
+               }
             } else {
                let itemsToPrint = currentPrintOrderData.items;
                const printerCats = printer.categories || [];
@@ -771,7 +777,12 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                
                if (itemsToPrint.length > 0) {
                   const routedOrderData = { ...currentPrintOrderData, items: itemsToPrint };
-                  await printGraphicModeKitchenTicket(printer.ip, routedOrderData, printShopData, printer.model, 'graphic');
+                  if (printer.encoding === 'graphic') {
+                      const { printGraphicModeKitchenTicket } = await import('@/lib/graphicPrinter');
+                      await printGraphicModeKitchenTicket(printer.ip, routedOrderData, printShopData, printer.model, printer.encoding);
+                  } else {
+                      await printKitchenTicket(printer.ip, routedOrderData, printShopData, printer.model, printer.encoding);
+                  }
                }
             }
         });
@@ -888,7 +899,11 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     const printJobs = targetPrinters.map(async (printer: any) => {
       if (!printer?.ip) return;
       if (type === 'receipt') {
-        await printGraphicModeCustomerReceipt(printer.ip, orderData, shopData, printer.model, 'graphic', openDrawer);
+        if (printer.encoding === 'graphic') {
+          await printGraphicModeCustomerReceipt(printer.ip, orderData, shopData, printer.model, printer.encoding, openDrawer);
+        } else {
+          await printCustomerReceipt(printer.ip, orderData, shopData, printer.model, printer.encoding, openDrawer);
+        }
       } else {
         let itemsToPrint = orderData.items;
         const printerCats = printer.categories || [];
@@ -898,7 +913,11 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 
         if (itemsToPrint.length > 0) {
           const routedOrderData = { ...orderData, items: itemsToPrint };
-          await printGraphicModeKitchenTicket(printer.ip, routedOrderData, shopData, printer.model, 'graphic');
+          if (printer.encoding === 'graphic') {
+            await printGraphicModeKitchenTicket(printer.ip, routedOrderData, shopData, printer.model, printer.encoding);
+          } else {
+            await printKitchenTicket(printer.ip, routedOrderData, shopData, printer.model, printer.encoding);
+          }
         }
       }
     });
@@ -2239,6 +2258,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       return
     }
 
+
     setIsProcessing(true);
     try {
         const savedOrder = await handleHoldOrder({ suppressProcessingState: true, suppressAlert: true }) as any
@@ -2271,10 +2291,6 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     }
     if (!ensureDeliveryDetailsReady()) return
 
-    if (typeof window !== 'undefined' && !navigator.onLine) {
-      alert('ไม่สามารถพักบิลในโหมด Offline ได้ กรุณาชำระเงินทันที');
-      return;
-    }
 
     if (orderType === 'dine_in' && !selectedTable) {
       alert('กรุณาเลือกโต๊ะก่อนพักบิลสำหรับ Dine-in ครับ')
@@ -2522,84 +2538,6 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 
     setIsProcessing(true)
 	    try {
-      if (typeof window !== 'undefined' && !navigator.onLine) {
-        console.log('Processing payment offline');
-        playAppSound('pay');
-        const offlineId = `OFF-${Date.now()}`;
-        const finalOrderNumber = `OFF-${Math.floor(Date.now() / 1000).toString().slice(-6)}`;
-        const amountToPay = amount !== undefined ? amount : remainingTotal;
-        
-        const payload = {
-          order: {
-            order_number: finalOrderNumber,
-            staff_id: profile?.id,
-            shift_id: activeShift?.id,
-            branch_id: activeShift?.branch_id || shopSettings?.branch_id || null,
-            status: 'completed',
-            total_amount: rawCartSubTotal,
-            net_total: cartTotal,
-            tax_amount: vatAmount,
-            service_charge_amount: serviceChargeAmount,
-            discount_amount: discountTotalValue + itemDiscountTotal,
-            customer_id: selectedCustomer?.id,
-            order_type: orderType,
-            table_id: selectedTable?.id,
-            table_number: selectedTable?.table_number,
-            payment_method: method,
-            order_source: 'pos',
-            paid_at: new Date().toISOString(),
-          },
-          items: cart.map(item => ({
-            item_id: item.id,
-            quantity: item.quantity,
-            unit_price: getEffectiveItemUnitPrice(item),
-            cost_price: item.cost_price || 0,
-            subtotal: ((getEffectiveItemUnitPrice(item) + (item.selected_modifiers?.reduce((a: number, m: any) => a + ((m.price_adjustment || 0) * (m.qty || 1)), 0) || 0)) * item.quantity) - (item.discount_amount || 0),
-            selected_modifiers: item.selected_modifiers,
-            customer_name: item.customer_name || 'ลูกค้า',
-            discount_amount: item.discount_amount || 0,
-            discount_reason: item.discount_reason || null,
-          })),
-          payments: [{
-            payment_method: method,
-            amount: amountToPay,
-            status: 'paid'
-          }]
-        };
-
-        await db.offline_orders.add({
-          id: offlineId,
-          payload,
-          createdAt: new Date().toISOString(),
-          syncStatus: 'pending'
-        });
-
-        const successData = {
-          received: method === 'cash' ? Number(cashReceived) || amountToPay : amountToPay,
-          change: method === 'cash' ? Math.max(0, (Number(cashReceived) || amountToPay) - cartTotal) : 0,
-          orderId: offlineId,
-          orderNumber: finalOrderNumber,
-          queueNumber: "99",
-          items: cart,
-          subtotal: cartSubTotal,
-          discount: discountTotalValue + itemDiscountTotal,
-          tax: vatAmount,
-          serviceCharge: serviceChargeAmount,
-          total: cartTotal,
-          paymentMethod: method,
-          timestamp: new Date().toISOString(),
-          deliveryPlatform: orderType === 'delivery' ? deliveryPlatform : '',
-          referenceName: orderType === 'delivery' && platformOrderId ? platformOrderId.trim() : '',
-          tableNumber: selectedTable?.table_number,
-          customerName: selectedCustomer?.full_name,
-          orderType: orderType,
-          orderSource: 'pos'
-        };
-        
-        setPaymentSuccessData(successData as any);
-        resetOrderComposer();
-        return;
-      }
 
 	      playAppSound('pay');
 	      let finalOrderId = editingOrderId
@@ -3585,10 +3523,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                         setShowDeliveryCheckoutModal(true)
                         return
                       }
-                      if (typeof window !== 'undefined' && !navigator.onLine) {
-                        setShowPaymentModal(true)
-                        return
-                      }
+
                       if (!selectedCustomer) {
                         setMemberCheckoutStep('lookup')
                         setMemberSearchQuery('')
@@ -5627,8 +5562,8 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                   <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mb-4 relative shrink-0">
                     <QrCode size={28} className="text-emerald-600 animate-pulse" />
                     <span className="absolute top-0 right-0 flex h-3.5 w-3.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500"></span>
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500" />
                     </span>
                   </div>
 
