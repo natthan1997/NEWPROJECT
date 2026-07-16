@@ -805,13 +805,147 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     }
   };
 
-  const handlePrintReceipt = () => {
-    executeNativePrint('receipt', false); // never open drawer on manual print
+  const printFromDatabaseOrder = async (orderId: string, type: 'receipt' | 'kitchen', openDrawer: boolean = false) => {
+    // 1. Fetch order exactly like POSHistory
+    const { data: order, error } = await supabase
+      .from('pos_orders')
+      .select('*, pos_order_items(*, item:pos_menu_items!item_id(*)), pos_order_payments(amount, payment_method, status), customer:pos_members!customer_id(display_name, full_name, phone)')
+      .eq('id', orderId)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Database fetch error for print:', error);
+      throw error;
+    }
+    if (!order) {
+      throw new Error('ไม่พบข้อมูลออเดอร์ในระบบ');
+    }
+
+    const getPaidAmountLocal = (o: any) => {
+      const paymentRows = Array.isArray(o.pos_order_payments) ? o.pos_order_payments : []
+      const paidFromRows = paymentRows
+        .filter((row: any) => String(row.status || '').toLowerCase() === 'paid')
+        .reduce((sum: number, row: any) => sum + Number(row.amount || 0), 0)
+      return paidFromRows > 0 ? paidFromRows : Number(o.net_total ?? o.total_amount ?? 0)
+    }
+
+    const getOrderPaymentMethodLocal = (o: any) => {
+      const paymentRows = Array.isArray(o.pos_order_payments) ? o.pos_order_payments : []
+      const firstPaidMethod = paymentRows.find((row: any) => String(row.status || '').toLowerCase() === 'paid')?.payment_method
+      return firstPaidMethod || o.payment_method || 'cash'
+    }
+
+    // 2. Map exactly like POSHistory buildPrintOrder
+    const orderData = {
+      orderNumber: order.order_number,
+      queueNumber: order.queue_number ? String(order.queue_number) : undefined,
+      date: new Date(order.created_at).toLocaleString('th-TH'),
+      orderSource: order.order_source || 'pos',
+      staffName: profile?.full_name || profile?.display_name || 'POS',
+      customerName: order.customer?.full_name || order.customer?.display_name || order.customer_name || undefined,
+      tableNumber: order.table_number || undefined,
+      items: (order.pos_order_items || []).map((item: any) => ({
+        name: item.item?.name || item.name || 'Unknown Item',
+        quantity: Number(item.quantity || 0),
+        subtotal: Number(item.subtotal || (Number(item.unit_price || 0) * Number(item.quantity || 0))),
+        selected_modifiers: item.selected_modifiers || [],
+        category_id: item.item?.category_id || 'uncategorized'
+      })),
+      subtotal: Number(order.total_amount || 0),
+      discount: Number(order.discount_amount || 0),
+      tax: Number(order.tax_amount || 0),
+      total: Number(order.net_total ?? order.total_amount ?? 0),
+      paymentMethod: getOrderPaymentMethodLocal(order),
+      receivedAmount: getPaidAmountLocal(order),
+      changeAmount: Math.max(0, getPaidAmountLocal(order) - Number(order.net_total ?? order.total_amount ?? 0)),
+      orderType: order.order_type || 'dine_in',
+      deliveryPlatform: order.delivery_platform || undefined,
+      referenceName: order.reference_name || undefined,
+      deliveryFee: Number(order.delivery_fee || 0),
+    };
+
+    // 3. Map shop settings exactly like POSHistory
+    const shopData = {
+      name: shopSettings?.name || shopSettings?.branch_name || 'XYL STUDIO',
+      branch: shopSettings?.branch_name || '',
+      taxId: shopSettings?.tax_id || '',
+      address: shopSettings?.address || '',
+      phone: shopSettings?.phone || '',
+      receiptHeader: shopSettings?.receipt_header || '',
+      receiptFooter: shopSettings?.receipt_footer || '',
+      receiptFontSize: shopSettings?.receipt_font_size || 'normal',
+      kitchenFontSize: shopSettings?.kitchen_font_size || 'normal',
+      kitchenShowType: shopSettings?.kitchen_show_type,
+      receipt_story_mode: shopSettings?.receipt_story_mode || false,
+      receipt_stories: shopSettings?.receipt_stories || [],
+      receiptPaymentQrImage: shopSettings?.opening_hours?.receipt_payment_qr_image
+        || shopSettings?.receipt_payment_qr_image
+        || (shopSettings as any)?.receipt_payment_qr_image,
+    };
+
+    // 4. Resolve printers list
+    const printers = Array.isArray(shopSettings?.printers) ? shopSettings.printers : [];
+    let targetPrinters = printers.filter((p: any) => p?.type === type || p?.type === 'both');
+    if (type === 'receipt' && targetPrinters.length === 0) {
+      targetPrinters = printers.filter((p: any) => p?.type === 'kitchen' || p?.type === 'both');
+    }
+    if (targetPrinters.length === 0) {
+      const fallbackIp = typeof window !== 'undefined' ? localStorage.getItem('xylem_printer_ip') : '';
+      if (fallbackIp) {
+        targetPrinters.push({ ip: fallbackIp, model: 'xprinter-xp-n160ii', encoding: 'graphic' });
+      }
+    }
+
+    if (targetPrinters.length === 0) {
+      console.warn('No printers configured.');
+      return;
+    }
+
+    // 5. Send print jobs exactly like POSHistory reprint
+    const printJobs = targetPrinters.map(async (printer: any) => {
+      if (!printer?.ip) return;
+      if (type === 'receipt') {
+        await printGraphicModeCustomerReceipt(printer.ip, orderData, shopData, printer.model, 'graphic', openDrawer);
+      } else {
+        let itemsToPrint = orderData.items;
+        const printerCats = printer.categories || [];
+        if (!printerCats.includes('all') && printerCats.length > 0) {
+          itemsToPrint = orderData.items.filter((i: any) => printerCats.includes(i.category_id));
+        }
+
+        if (itemsToPrint.length > 0) {
+          const routedOrderData = { ...orderData, items: itemsToPrint };
+          await printGraphicModeKitchenTicket(printer.ip, routedOrderData, shopData, printer.model, 'graphic');
+        }
+      }
+    });
+
+    await Promise.all(printJobs);
+  };
+
+  const handlePrintReceipt = async () => {
+    if (paymentSuccessData?.orderId && paymentSuccessData.orderId !== 'NEW') {
+      try {
+        await printFromDatabaseOrder(paymentSuccessData.orderId, 'receipt', false);
+      } catch (err: any) {
+        alert('พิมพ์ใบเสร็จไม่สำเร็จ: ' + err.message);
+      }
+    } else {
+      executeNativePrint('receipt', false);
+    }
     setPrintMode('receipt');
   };
 
-  const handlePrintKitchen = () => {
-    executeNativePrint('kitchen');
+  const handlePrintKitchen = async () => {
+    if (paymentSuccessData?.orderId && paymentSuccessData.orderId !== 'NEW') {
+      try {
+        await printFromDatabaseOrder(paymentSuccessData.orderId, 'kitchen', false);
+      } catch (err: any) {
+        alert('พิมพ์ออเดอร์เข้าครัวไม่สำเร็จ: ' + err.message);
+      }
+    } else {
+      executeNativePrint('kitchen');
+    }
     setPrintMode('kitchen');
   };
 
@@ -1696,11 +1830,11 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         .eq('id', checkIn.member_id)
         .maybeSingle();
 
+      await handleResumeOrder(order, false);
+
       if (member) {
-        if (editingOrderId === order.id) {
-          setSelectedCustomer(member);
-          setLinkedCheckInId(checkIn.id);
-        }
+        setSelectedCustomer(member);
+        setLinkedCheckInId(checkIn.id);
       }
 
       refreshPendingOrders();
@@ -2157,93 +2291,16 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         const savedOrder = await handleHoldOrder({ suppressProcessingState: true, suppressAlert: true }) as any
         if (!savedOrder) return
 
-        let printOrderData: any = null;
         if (savedOrder.orderId) {
             try {
-                printOrderData = await fetchPrintOrderData(savedOrder.orderId);
-            } catch (err) {
-                console.warn('Failed to fetch hold order from DB for print, falling back to local state:', err);
-            }
-        }
-
-        if (!printOrderData) {
-            printOrderData = {
-                orderNumber: savedOrder.orderNumber,
-                queueNumber: String(savedOrder.queueNumber || ''),
-                date: new Date().toLocaleString(),
-                orderSource: savedOrder.orderSource || 'pos',
-                tableNumber: savedOrder.tableNumber || 'Unknown',
-                deliveryPlatform: savedOrder.orderType === 'delivery' ? savedOrder.deliveryPlatform : '',
-                referenceName: savedOrder.orderType === 'delivery' ? savedOrder.referenceName : '',
-                comment: savedOrder.comment || savedOrder.notes || '',
-                pickupTime: savedOrder.pickupTime || '',
-                items: savedOrder.newItems.map((i: any) => ({
-                    name: i.name,
-                    quantity: i.quantity,
-                    modifiers: i.selected_modifiers?.map((m: any) => m.name) || [],
-                    selected_modifiers: i.selected_modifiers || [],
-                    category_id: i.category_id
-                })),
-                orderType: savedOrder.orderType
-            };
-        }
-
-        if (kitchenPrinters.length === 0) {
-            alert('พักบิลแล้ว แต่ไม่พบการตั้งค่าเครื่องปริ้นเข้าครัว (Kitchen Printer) ในระบบครับ')
-            return
-        }
-
-        // Execute printing in background to avoid blocking the UI
-        void (async () => {
-            try {
-                if (kitchenPrinters.length > 0) {
-                    let debugInfo = `[ระบบวิเคราะห์] เริ่มทำงาน\nพบเครื่องปริ้นครัว: ${kitchenPrinters.length} เครื่อง\n`;
-                    let successCount = 0;
-                    
-                    for (const printer of kitchenPrinters) {
-                        debugInfo += `\nเครื่อง: ${printer.type} | IP: ${printer.ip || 'ไม่มี IP'}\n`;
-                        
-                        if (!printer.ip) {
-                            debugInfo += `- ข้าม (ไม่มี IP)\n`;
-                            continue;
-                        }
-                        
-                        let itemsToPrint = printOrderData.items;
-                        const printerCats = printer.categories || ['all'];
-                        if (!printerCats.includes('all') && printerCats.length > 0) {
-                           itemsToPrint = printOrderData.items.filter((i: any) => printerCats.includes(i.category_id));
-                        }
-                        
-                        debugInfo += `- รายการอาหารที่จะส่งปริ้น: ${itemsToPrint.length} รายการ\n`;
-                        
-                        if (itemsToPrint.length > 0) {
-                          const routedOrderData = { ...printOrderData, items: itemsToPrint };
-                          try {
-                              await printGraphicModeKitchenTicket(printer.ip, routedOrderData, shopData, printer.model, 'graphic');
-                              debugInfo += `- ส่งข้อมูลเข้า Network ของ IP ${printer.ip} [สำเร็จ]\n`;
-                              successCount++;
-                          } catch (e: any) {
-                              debugInfo += `- แจ้งเตือน Error: ${e.message || JSON.stringify(e)}\n`;
-                              throw e;
-                          }
-                        } else {
-                          debugInfo += `- ข้าม (ไม่มีรายการอาหารหมวดหมู่นี้ในตะกร้า)\n`;
-                        }
-                    }
-                    
-                    if (successCount > 0) {
-                        alert(debugInfo + '\nสรุป: ระบบส่งข้อมูลเข้าเครื่องปริ้นครัวเสร็จสมบูรณ์แล้ว! (ถ้ากระดาษไม่ออก แปลว่าเครื่องปริ้นไม่ยอมรับข้อมูล หรือตั้งค่าผิด)');
-                    } else if (kitchenPrinters.some(p => !p.ip)) {
-                        alert(debugInfo + '\nสรุป: ไม่ได้ปริ้น เพราะไม่มีการใส่ IP Address ในการตั้งค่า!');
-                    } else {
-                        alert(debugInfo + '\nสรุป: ไม่ได้ปริ้น เพราะไม่มีรายการอาหารตรงกับหมวดหมู่ที่เครื่องปริ้นรับผิดชอบ');
-                    }
-                }
+                await printFromDatabaseOrder(savedOrder.orderId, 'kitchen', false);
             } catch (err: any) {
-                console.error('Background print error:', err);
-                alert(`เกิดข้อผิดพลาดในการสั่งปริ้นเข้าครัว (Kitchen Printer): ${err.message || JSON.stringify(err)}\n\n(ระบบจับ Error ได้แล้ว!)`);
+                console.error('Kitchen print error:', err);
+                alert('เกิดข้อผิดพลาดในการสั่งปริ้นเข้าครัว (Kitchen Printer): ' + (err.message || JSON.stringify(err)));
             }
-        })();
+        } else {
+            alert('ไม่พบเลขที่ออเดอร์ในการส่งบิลเข้าครัวครับ');
+        }
     } catch (error) {
         console.error('Error sending order to kitchen:', error);
         alert('เกิดข้อผิดพลาดในการส่งบิลเข้าครัว: ' + (error as any).message);
@@ -2596,6 +2653,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 	      let finalOrderNumber = editingOrderNumber || ''
 	      let finalQueueNumber = getQueueNumberForOrder(editingOrderId)
 	      const amountToPay = amount !== undefined ? amount : remainingTotal
+        let pointsEarned = 0;
       const newTotalPaid = totalPaid + amountToPay
       const newStatus = newTotalPaid >= cartTotal ? 'completed' : 'payment_pending'
       
@@ -2762,7 +2820,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         const earnPts = shopSettings?.opening_hours?.loyalty_earn_pts !== undefined ? shopSettings.opening_hours.loyalty_earn_pts : 1;
         
         let pointableAmount = amountToPay;
-        let pointsEarned = 0;
+        pointsEarned = 0;
         
         if (pointableAmount > 0 && earnThb > 0) {
           if (activeCampaigns && activeCampaigns.length > 0 && cart.length > 0) {
