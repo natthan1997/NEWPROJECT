@@ -883,22 +883,24 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         || (shopSettings as any)?.receipt_payment_qr_image,
     };
 
-    // 4. Resolve printers list
     const printers = Array.isArray(shopSettings?.printers) ? shopSettings.printers : [];
     let targetPrinters = printers.filter((p: any) => p?.type === type || p?.type === 'both');
     if (type === 'receipt' && targetPrinters.length === 0) {
       targetPrinters = printers.filter((p: any) => p?.type === 'kitchen' || p?.type === 'both');
     }
-    if (targetPrinters.length === 0) {
-      const fallbackIp = typeof window !== 'undefined' ? localStorage.getItem('xylem_printer_ip') : '';
-      if (fallbackIp) {
-        targetPrinters.push({ ip: fallbackIp, model: 'xprinter-xp-n160ii', encoding: 'graphic' });
+    
+    if (targetPrinters.length === 0 || targetPrinters.every((p: any) => !p.ip)) {
+      let ip = typeof window !== 'undefined' ? localStorage.getItem('xylem_printer_ip') : null;
+      if (!ip) {
+        ip = prompt('ไม่พบเครื่องพิมพ์ในระบบ หรือเครื่องพิมพ์ในระบบไม่มีการใส่ IP Address. กรุณาระบุ IP Address ของเครื่องพิมพ์เพื่อใช้พิมพ์ (เช่น 192.168.1.100):', '192.168.1.100');
+        if (ip) {
+          localStorage.setItem('xylem_printer_ip', ip);
+        } else {
+          alert('ยกเลิกการพิมพ์เนื่องจากไม่ได้ใส่ IP Address ของเครื่องพิมพ์');
+          return;
+        }
       }
-    }
-
-    if (targetPrinters.length === 0) {
-      console.warn('No printers configured.');
-      return;
+      targetPrinters = [{ ip, type, model: 'xprinter-xp-n160ii', encoding: 'graphic', categories: ['all'] }];
     }
 
     // 5. Send print jobs exactly like POSHistory reprint
