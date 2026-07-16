@@ -604,7 +604,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   const fetchPrintOrderData = async (orderId: string) => {
     const { data: order, error } = await supabase
       .from('pos_orders')
-      .select(`*, pos_order_items(*, item:pos_menu_items(*)), pos_order_payments(*)`)
+      .select(`*, pos_order_items(*, item:pos_menu_items!item_id(*)), pos_order_payments(*)`)
       .eq('id', orderId)
       .maybeSingle()
 
@@ -2814,15 +2814,46 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 
       finalOrderId = rpcResult?.order_id || editingOrderId;
 
-      if (newStatus === 'completed' && linkedCheckInId) {
-        await supabase
-          .from('pos_member_checkins')
-          .update({
-            status: 'completed',
-            order_id: finalOrderId,
-            points_earned: pointsEarned
-          })
-          .eq('id', linkedCheckInId);
+      if (newStatus === 'completed') {
+        const orderIdToSearch = finalOrderId || editingOrderId;
+        if (orderIdToSearch) {
+          const { data: activeCheckin } = await supabase
+            .from('pos_member_checkins')
+            .select('id')
+            .eq('order_id', orderIdToSearch)
+            .eq('status', 'linked')
+            .maybeSingle();
+
+          if (activeCheckin) {
+            await supabase
+              .from('pos_member_checkins')
+              .update({
+                status: 'completed',
+                points_earned: pointsEarned || 0
+              })
+              .eq('id', activeCheckin.id);
+          } else if (selectedCustomer?.id) {
+            const { data: memberCheckin } = await supabase
+              .from('pos_member_checkins')
+              .select('id')
+              .eq('member_id', selectedCustomer.id)
+              .in('status', ['pending', 'linked'])
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            if (memberCheckin) {
+              await supabase
+                .from('pos_member_checkins')
+                .update({
+                  status: 'completed',
+                  order_id: orderIdToSearch,
+                  points_earned: pointsEarned || 0
+                })
+                .eq('id', memberCheckin.id);
+            }
+          }
+        }
       }
 
       if (newStatus === 'completed' && selectedTable?.id) {
