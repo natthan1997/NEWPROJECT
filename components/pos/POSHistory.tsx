@@ -232,11 +232,7 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
 
       for (const printer of receiptPrinters) {
         if (!printer?.ip) continue
-        if (printer.encoding === 'graphic') {
-          await printGraphicModeCustomerReceipt(printer.ip, orderData, shopData, printer.model, printer.encoding)
-        } else {
-          await printCustomerReceipt(printer.ip, orderData, shopData, printer.model, printer.encoding)
-        }
+        await printGraphicModeCustomerReceipt(printer.ip, orderData, shopData, printer.model, 'graphic')
       }
     } catch (error: any) {
       console.error('Receipt reprint error:', error)

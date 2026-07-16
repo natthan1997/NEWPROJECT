@@ -708,11 +708,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         const printJobs = targetPrinters.map(async (printer: any) => {
             if (!printer.ip) return;
             if (type === 'receipt') {
-               if (printer.encoding === 'graphic') {
-                   await printGraphicModeCustomerReceipt(printer.ip, currentPrintOrderData, printShopData, printer.model, printer.encoding, openDrawer);
-               } else {
-                   await printCustomerReceipt(printer.ip, currentPrintOrderData, printShopData, printer.model, printer.encoding, openDrawer);
-               }
+               await printGraphicModeCustomerReceipt(printer.ip, currentPrintOrderData, printShopData, printer.model, 'graphic', openDrawer);
             } else {
                let itemsToPrint = currentPrintOrderData.items;
                const printerCats = printer.categories || [];
@@ -723,11 +719,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                
                if (itemsToPrint.length > 0) {
                   const routedOrderData = { ...currentPrintOrderData, items: itemsToPrint };
-                  if (printer.encoding === 'graphic') {
-                      await printGraphicModeKitchenTicket(printer.ip, routedOrderData, printShopData, printer.model, printer.encoding);
-                  } else {
-                      await printKitchenTicket(printer.ip, routedOrderData, printShopData, printer.model, printer.encoding);
-                  }
+                  await printGraphicModeKitchenTicket(printer.ip, routedOrderData, printShopData, printer.model, 'graphic');
                }
             }
         });
@@ -1993,11 +1985,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                         if (itemsToPrint.length > 0) {
                           const routedOrderData = { ...printOrderData, items: itemsToPrint };
                           try {
-                              if (printer.encoding === 'graphic') {
-                                  await printGraphicModeKitchenTicket(printer.ip, routedOrderData, shopData, printer.model, printer.encoding);
-                              } else {
-                                  await printKitchenTicket(printer.ip, routedOrderData, shopData, printer.model, printer.encoding);
-                              }
+                              await printGraphicModeKitchenTicket(printer.ip, routedOrderData, shopData, printer.model, 'graphic');
                               debugInfo += `- ส่งข้อมูลเข้า Network ของ IP ${printer.ip} [สำเร็จ]\n`;
                               successCount++;
                           } catch (e: any) {
