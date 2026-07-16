@@ -4,12 +4,7 @@ import { Capacitor } from '@capacitor/core'
 import { PrinterSocket } from 'custom-printer-plugin'
 import { printCustomerReceipt, printKitchenTicket } from '@/lib/printerUtils'
 import { printGraphicModeCustomerReceipt, printGraphicModeKitchenTicket } from '@/lib/graphicPrinter'
-import { 
-  Plus, Loader2, Save, X, Settings, Clock,
-  Bell, Info, Image as ImageIcon, Star, Gift,
-  ChevronDown, ChevronUp, Upload, Trash2, Menu as MenuIcon, ChevronRight, ArrowLeft, ShieldCheck, QrCode,
-  MapPin, Printer, Truck, Flag, RefreshCw
-} from 'lucide-react'
+import { Plus, Loader2, Save, X, Settings, Clock, Bell, Info, Image as ImageIcon, Star, Gift, ChevronDown, ChevronUp, Upload, Trash2, Menu as MenuIcon, ChevronRight, ArrowLeft, ShieldCheck, QrCode, MapPin, Printer, Truck, Flag, RefreshCw, Store, Navigation, Percent } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
 import POSCampaignsTab from './POSCampaignsTab'
@@ -161,6 +156,7 @@ export default function POSShopSettings({
                 loyalty_redeem_thb: data.opening_hours?.loyalty_redeem_thb !== undefined ? data.opening_hours.loyalty_redeem_thb : (data.opening_hours?.loyalty_points_per_thb || 10),
                 delivery_gp: data.opening_hours?.delivery_gp || { grab: 32.1, lineman: 32.1, shopee: 32.1, foodpanda: 32.1, robinhood: 0 },
                 active_delivery_platforms: data.opening_hours?.active_delivery_platforms || ['grab', 'shopee', 'lineman', 'foodpanda', 'robinhood'],
+                inhouse_delivery_config: data.opening_hours?.inhouse_delivery_config || { enabled: false, base_distance_km: 3, base_price: 20, per_km_rate: 10, max_distance_km: 15, free_delivery_threshold: 500 },
                 mystery_box_cost: data.opening_hours?.mystery_box_cost !== undefined ? data.opening_hours.mystery_box_cost : 50,
                 mystery_box_prizes: data.opening_hours?.mystery_box_prizes || [
                     { chance: 60, points: 20 },
@@ -223,6 +219,7 @@ export default function POSShopSettings({
         loyalty_redeem_thb: settings.loyalty_redeem_thb,
         delivery_gp: settings.delivery_gp,
         active_delivery_platforms: settings.active_delivery_platforms,
+        inhouse_delivery_config: settings.inhouse_delivery_config,
         mystery_box_cost: settings.mystery_box_cost,
         mystery_box_prizes: settings.mystery_box_prizes,
       },
@@ -246,6 +243,7 @@ export default function POSShopSettings({
     delete payload.address;
     delete payload.delivery_gp;
     delete payload.active_delivery_platforms;
+    delete payload.inhouse_delivery_config;
     delete payload.mystery_box_cost;
     delete payload.mystery_box_prizes;
 
@@ -296,6 +294,7 @@ export default function POSShopSettings({
                 loyalty_redeem_thb: data.opening_hours?.loyalty_redeem_thb !== undefined ? data.opening_hours.loyalty_redeem_thb : (data.opening_hours?.loyalty_points_per_thb || 10),
                 delivery_gp: data.opening_hours?.delivery_gp || { grab: 32.1, lineman: 32.1, shopee: 32.1, foodpanda: 32.1, robinhood: 0 },
                 active_delivery_platforms: data.opening_hours?.active_delivery_platforms || ['grab', 'shopee', 'lineman', 'foodpanda', 'robinhood'],
+                inhouse_delivery_config: data.opening_hours?.inhouse_delivery_config || { enabled: false, base_distance_km: 3, base_price: 20, per_km_rate: 10, max_distance_km: 15, free_delivery_threshold: 500 },
             })
             alert('บันทึกการตั้งค่าเรียบร้อยแล้ว')
         }
@@ -443,7 +442,9 @@ export default function POSShopSettings({
                     {/* SIDEBAR TABS */}
                     <div className="w-full lg:w-64 flex-shrink-0 space-y-3">
                         {[
-                            { id: 'general', icon: Info, label: 'ข้อมูลร้านค้า', desc: 'ที่อยู่, ข้อความประกาศ' },
+                            { id: 'general', icon: Info, label: 'ข้อมูลร้านค้า', desc: 'ที่อยู่, แจ้งเตือน' },
+                            { id: 'operational', icon: Clock, label: 'การจัดการร้าน', desc: 'เปิด/ปิดร้าน, เวลาทำการ' },
+                            { id: 'delivery', icon: Truck, label: 'เดลิเวอรี่', desc: 'ค่าส่ง, หัก GP' },
                             { id: 'receipt', icon: Printer, label: 'ตั้งค่าใบเสร็จ', desc: 'หัวบิล, โลโก้, ท้ายบิล' },
                             { id: 'kitchen', icon: MenuIcon, label: 'ห้องครัว', desc: 'ฟอนต์, ออเดอร์' },
                             { id: 'hardware', icon: Settings, label: 'เครื่องปริ้น', desc: 'จัดการอุปกรณ์เสริม' },
@@ -926,6 +927,95 @@ export default function POSShopSettings({
                                                 </div>
                                             </div>
                                         )})}
+                                    </div>
+                                </div>
+
+                                {/* IN-HOUSE DELIVERY SETTINGS */}
+                                <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
+                                    <div className="flex items-center justify-between mb-8">
+                                        <div>
+                                            <h3 className="text-xl font-black mb-2 flex items-center gap-3">
+                                                <MapPin className="text-emerald-500" size={24} /> {locale === 'en' ? 'In-House Delivery Settings' : locale === 'zh' ? '内部配送设置' : 'ตั้งค่าไรเดอร์ของร้าน (In-House)'}
+                                            </h3>
+                                            <p className="text-[12px] text-gray-500 font-bold">{locale === 'en' ? 'Configure distance-based delivery fee' : locale === 'zh' ? '配置基于距离的送货费' : 'ตั้งค่าราคาค่าส่งตามระยะทาง (Google Maps)'}</p>
+                                        </div>
+                                        <button
+                                            onClick={() => setSettings({
+                                                ...settings,
+                                                inhouse_delivery_config: { ...settings.inhouse_delivery_config, enabled: !settings.inhouse_delivery_config?.enabled }
+                                            })}
+                                            className={`w-12 h-6 rounded-full relative transition-colors ${settings.inhouse_delivery_config?.enabled ? 'bg-emerald-500' : 'bg-gray-300'}`}
+                                        >
+                                            <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all ${settings.inhouse_delivery_config?.enabled ? 'left-6.5' : 'left-0.5'}`} />
+                                        </button>
+                                    </div>
+                                    
+                                    <div className={`transition-all duration-300 ${settings.inhouse_delivery_config?.enabled ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div>
+                                                <label className="text-[11px] font-black uppercase tracking-widest text-gray-400 block mb-2">Base Distance (ระยะเริ่มต้น)</label>
+                                                <div className="relative">
+                                                    <input 
+                                                        type="number" step="0.1"
+                                                        value={settings.inhouse_delivery_config?.base_distance_km ?? 3}
+                                                        onChange={e => setSettings({...settings, inhouse_delivery_config: { ...settings.inhouse_delivery_config, base_distance_km: parseFloat(e.target.value) || 0 }})}
+                                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-[14px] font-bold outline-none focus:ring-2 focus:ring-black pr-12" 
+                                                    />
+                                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-black">กม.</span>
+                                                </div>
+                                                <p className="text-[10px] text-gray-400 mt-2 font-bold">ระยะทางเริ่มต้นสำหรับค่าส่งเหมาจ่าย</p>
+                                            </div>
+                                            <div>
+                                                <label className="text-[11px] font-black uppercase tracking-widest text-gray-400 block mb-2">Base Price (ราคาเริ่มต้น)</label>
+                                                <div className="relative">
+                                                    <input 
+                                                        type="number" 
+                                                        value={settings.inhouse_delivery_config?.base_price ?? 20}
+                                                        onChange={e => setSettings({...settings, inhouse_delivery_config: { ...settings.inhouse_delivery_config, base_price: parseInt(e.target.value) || 0 }})}
+                                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-[14px] font-bold outline-none focus:ring-2 focus:ring-black pr-12" 
+                                                    />
+                                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-black">บาท</span>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="text-[11px] font-black uppercase tracking-widest text-gray-400 block mb-2">Per Km Rate (บวกกม.ละ)</label>
+                                                <div className="relative">
+                                                    <input 
+                                                        type="number" 
+                                                        value={settings.inhouse_delivery_config?.per_km_rate ?? 10}
+                                                        onChange={e => setSettings({...settings, inhouse_delivery_config: { ...settings.inhouse_delivery_config, per_km_rate: parseInt(e.target.value) || 0 }})}
+                                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-[14px] font-bold outline-none focus:ring-2 focus:ring-black pr-12" 
+                                                    />
+                                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-black">บาท</span>
+                                                </div>
+                                                <p className="text-[10px] text-gray-400 mt-2 font-bold">ราคาบวกเพิ่มสำหรับระยะทางที่เกินจาก Base Distance</p>
+                                            </div>
+                                            <div>
+                                                <label className="text-[11px] font-black uppercase tracking-widest text-gray-400 block mb-2">Max Distance (ส่งไกลสุด)</label>
+                                                <div className="relative">
+                                                    <input 
+                                                        type="number" step="0.1"
+                                                        value={settings.inhouse_delivery_config?.max_distance_km ?? 15}
+                                                        onChange={e => setSettings({...settings, inhouse_delivery_config: { ...settings.inhouse_delivery_config, max_distance_km: parseFloat(e.target.value) || 0 }})}
+                                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-[14px] font-bold outline-none focus:ring-2 focus:ring-black pr-12" 
+                                                    />
+                                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-black">กม.</span>
+                                                </div>
+                                            </div>
+                                            <div className="md:col-span-2">
+                                                <label className="text-[11px] font-black uppercase tracking-widest text-gray-400 block mb-2">Free Delivery Threshold (สั่งครบ ส่งฟรี)</label>
+                                                <div className="relative">
+                                                    <input 
+                                                        type="number" 
+                                                        value={settings.inhouse_delivery_config?.free_delivery_threshold ?? 500}
+                                                        onChange={e => setSettings({...settings, inhouse_delivery_config: { ...settings.inhouse_delivery_config, free_delivery_threshold: parseInt(e.target.value) || 0 }})}
+                                                        className="w-full bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl py-3 px-4 text-[14px] font-bold outline-none focus:ring-2 focus:ring-emerald-500 pr-12" 
+                                                    />
+                                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-600 font-black">บาท</span>
+                                                </div>
+                                                <p className="text-[10px] text-emerald-600 mt-2 font-bold">หากลูกค้ามียอดสั่งซื้อถึงกำหนด ค่าจัดส่งจะเป็น 0 บาท ทันที (ใส่ 0 ถ้ายกเลิกส่งฟรี)</p>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
