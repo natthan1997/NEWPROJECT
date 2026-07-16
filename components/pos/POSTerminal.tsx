@@ -1,8 +1,6 @@
 'use client';
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 
-import { POSReceipt } from './POSReceipt'
-import { POSKitchenTicket } from './POSKitchenTicket'
 import POSRecipeViewModal from './POSRecipeViewModal'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
@@ -397,7 +395,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   const [selectedStoryIndex, setSelectedStoryIndex] = useState<number>(-1)
 
   const [selectedTableZone, setSelectedTableZone] = useState('All')
-  const [printMode, setPrintMode] = useState<'none' | 'receipt' | 'kitchen'>('none');
+
 
   const [flyingItems, setFlyingItems] = useState<{id: string, x: number, y: number, imageUrl?: string}[]>([])
   const [isCartBumping, setIsCartBumping] = useState(false)
@@ -506,21 +504,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     addToCart(item)
   }
 
-  useEffect(() => {
-    if (printMode !== 'none') {
-      let raf2 = 0
-      const raf1 = requestAnimationFrame(() => {
-        raf2 = requestAnimationFrame(() => {
-          window.print();
-          setPrintMode('none');
-        });
-      });
-      return () => {
-        cancelAnimationFrame(raf1)
-        cancelAnimationFrame(raf2)
-      }
-    }
-  }, [printMode]);
+
 
   const buildNativePreReceipt = (
     model: string = 'xprinter-xp-n160ii',
@@ -657,8 +641,6 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   }
 
   const executeNativePrint = async (type: 'receipt' | 'kitchen', openDrawer: boolean = false) => {
-    // allow manual print without paymentSuccessData
-    // if (!paymentSuccessData) return;
     const printers = shopSettings?.printers || [];
     let targetPrinters = printers.filter((p: any) => p.type === type || p.type === 'both');
     if (type === 'receipt' && targetPrinters.length === 0) {
@@ -801,7 +783,6 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     } catch (e: any) {
         console.error(e);
         alert('Native print error: ' + (e?.message || JSON.stringify(e)));
-        setPrintMode(type);
     }
   };
 
@@ -931,7 +912,6 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         await printFromDatabaseOrder(paymentSuccessData.orderId, 'receipt', false);
       } catch (err: any) {
         alert('พิมพ์ใบเสร็จไม่สำเร็จ: ' + err.message);
-        setPrintMode('receipt');
       }
     } else {
       await executeNativePrint('receipt', false);
@@ -944,7 +924,6 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         await printFromDatabaseOrder(paymentSuccessData.orderId, 'kitchen', false);
       } catch (err: any) {
         alert('พิมพ์ออเดอร์เข้าครัวไม่สำเร็จ: ' + err.message);
-        setPrintMode('kitchen');
       }
     } else {
       await executeNativePrint('kitchen');
@@ -5221,50 +5200,6 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                   {locale === 'en' ? 'Next Order' : locale === 'zh' ? '下一个订单' : 'ออเดอร์ถัดไป (Next Order)'}
                 </button>
               </div>
-            </div>
-            {/* Global Print Area */}
-            <div id="print-area" className={printMode !== 'none' ? 'fixed opacity-0 pointer-events-none -z-50 -left-[9999px] -top-[9999px] print:static print:opacity-100 print:pointer-events-auto print:z-auto print:left-auto print:top-auto' : 'hidden'}>
-              {printMode === 'receipt' && activePrintData && (
-                <POSReceipt
-                  orderNumber={activePrintData.orderNumber}
-                  queueNumber={activePrintData.queueNumber}
-                  orderType={activePrintData.orderType || orderType}
-                  orderSource={activePrintData.orderSource}
-                  deliveryPlatform={activePrintData.deliveryPlatform}
-                  referenceName={activePrintData.referenceName}
-                  receiptStoryMode={shopSettings?.receipt_story_mode || shopSettings?.opening_hours?.receipt_story_mode}
-                  receiptStories={shopSettings?.receipt_stories || shopSettings?.opening_hours?.receipt_stories || []}
-                  receiptFooter={shopSettings?.receipt_footer}
-                  receiptPaymentQrImage={shopSettings?.opening_hours?.receipt_payment_qr_image || shopSettings?.receipt_payment_qr_image}
-                  tableNumber={activePrintData.tableNumber}
-                  customerName={activePrintData.customerName}
-                  items={activePrintData.items}
-                  subtotal={activePrintData.subtotal}
-                  discount={activePrintData.discount}
-                  tax={activePrintData.tax}
-                  serviceCharge={activePrintData.serviceCharge}
-                  total={activePrintData.total}
-                  paymentMethod={activePrintData.paymentMethod}
-                  paidAmount={activePrintData.received}
-                  change={activePrintData.change}
-                  timestamp={activePrintData.timestamp}
-                  cashierName={profile?.display_name || profile?.first_name || 'Staff'}
-                />
-              )}
-              {printMode === 'kitchen' && activePrintData && (
-                <POSKitchenTicket
-                  orderNumber={activePrintData.orderNumber}
-                  queueNumber={activePrintData.queueNumber}
-                  orderType={activePrintData.orderType || orderType}
-                  deliveryPlatform={activePrintData.deliveryPlatform}
-                  referenceName={activePrintData.referenceName}
-                  comment={activePrintData.comment || activePrintData.notes || ''}
-                  pickupTime={activePrintData.pickupTime || ''}
-                  tableNumber={activePrintData.tableNumber}
-                  items={activePrintData.items}
-                  timestamp={activePrintData.timestamp}
-                />
-              )}
             </div>
           </div>
         </div>
