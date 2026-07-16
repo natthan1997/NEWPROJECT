@@ -94,16 +94,7 @@ const shouldPrintReceiptPaymentQr = (order: PrintOrderData, shop: PrintShopData)
   return source === 'liff' && order.orderType === 'delivery' && ['cod', 'cash_on_delivery', 'cash-on-delivery'].includes(paymentMethod);
 };
 
-const printCaptureOptions = {
-  scale: 1,
-  backgroundColor: '#FFFFFF',
-  useCORS: true,
-  removeContainer: true,
-  foreignObjectRendering: false,
-  imageTimeout: 0,
-} as const;
-
-const GRAPHIC_RECEIPT_WIDTH = 576;
+const GRAPHIC_RECEIPT_WIDTH = 512;
 
 const renderReceiptHtml = (order: PrintOrderData, shop: PrintShopData) => {
   let html = '';
@@ -118,19 +109,46 @@ const renderReceiptHtml = (order: PrintOrderData, shop: PrintShopData) => {
   if (shop.phone) html += `<div style="margin-bottom: 14px; text-align:center; font-size:23px; line-height:1.3;">โทร: ${escapeHtml(shop.phone)}</div>`;
 
   html += `<div style="border-top: 3px dashed black; margin: 14px 0;"></div>`;
-  html += `<div style="text-align:center; font-size:21px; margin-bottom: 8px; line-height:1.25;">วันที่: ${escapeHtml(order.date.split(',')[0] || order.date)}</div>`;
+  html += `<div style="text-align:center; font-size:21px; margin-bottom: 8px; line-height:1.25;">วันที่: ${escapeHtml(order.date ? String(order.date).split(',')[0] : '')}</div>`;
+  html += `<div style="font-size: 22px; margin-bottom: 7px; line-height:1.25;">รหัสบิล: ${escapeHtml(order.orderNumber)}</div>`;
   html += `<div style="font-size: 22px; margin-bottom: 7px; line-height:1.25;">พนักงาน: ${escapeHtml(order.staffName || '-')}</div>`;
   if (order.customerName) html += `<div style="font-size: 22px; margin-bottom: 7px; line-height:1.25;">ลูกค้า: ${escapeHtml(order.customerName)}</div>`;
   html += `<div style="font-size: 22px; margin-bottom: 7px; line-height:1.25;">ประเภท: ${escapeHtml(formatOrderTypeLabel(order.orderType))}</div>`;
-  if (order.deliveryPlatform || order.referenceName) {
-    html += `<div style="margin: 14px 0; border:3px solid #000; padding:12px 10px; text-align:center; font-weight: 900;">`;
-    html += `<div style="font-size: 16px; letter-spacing: 0.12em; margin-bottom: 6px;">ค่ายเดลิเวอรี่</div>`;
-    html += `<div style="font-size: 32px; line-height:1.1; margin-bottom: 6px;">${escapeHtml(formatDeliveryPlatformLabel(order.deliveryPlatform))}</div>`;
-    if (order.referenceName) {
-      html += `<div style="font-size: 24px; margin-bottom: 2px;">เลข: ${escapeHtml(order.referenceName)}</div>`;
+  if (order.tableNumber) {
+    html += `<div style="font-size: 22px; margin-bottom: 7px; line-height:1.25;">โต๊ะ: ${escapeHtml(order.tableNumber)}</div>`;
+  }
+  if (order.orderType === 'delivery') {
+    if (order.deliveryPlatform || order.referenceName) {
+      html += `<div style="margin: 14px 0; border:3px solid #000; padding:12px 10px; text-align:center; font-weight: 900;">`;
+      html += `<div style="font-size: 16px; letter-spacing: 0.12em; margin-bottom: 6px;">ค่ายเดลิเวอรี่</div>`;
+      html += `<div style="font-size: 32px; line-height:1.1; margin-bottom: 6px;">${escapeHtml(formatDeliveryPlatformLabel(order.deliveryPlatform))}</div>`;
+      if (order.referenceName) {
+        html += `<div style="font-size: 24px; margin-bottom: 2px;">เลข: ${escapeHtml(order.referenceName)}</div>`;
+      }
+      const qStr = String(order.queueNumber || '').trim();
+      if (qStr && qStr !== '0' && qStr !== 'null') {
+        html += `<div style="font-size: 28px; margin-top: 6px; border-top: 2px dashed black; padding-top: 6px;">คิวเดลิเวอรี่: ${escapeHtml(qStr)}</div>`;
+      }
+      const orderRefNum = (order.orderNumber && order.orderNumber !== 'Draft') ? String(order.orderNumber).slice(-4) : (order.orderNumber || '-');
+      html += `<div style="font-size: 28px; margin-top: 6px; border-top: 2px dashed black; padding-top: 6px;">เลขออเดอร์: ${escapeHtml(orderRefNum)}</div>`;
+      
+      if (order.deliveryFee && Number(order.deliveryFee) > 0) {
+        html += `<div style="font-size: 22px; margin-top: 4px;">ค่าส่ง: ${formatCurrency(Number(order.deliveryFee))}</div>`;
+      }
+      html += `</div>`;
     }
-    if (order.deliveryFee && Number(order.deliveryFee) > 0) {
-      html += `<div style="font-size: 22px; margin-top: 4px;">ค่าส่ง: ${formatCurrency(Number(order.deliveryFee))}</div>`;
+  } else {
+    const qStr = String(order.queueNumber || '').trim();
+    const orderRefNum = (order.orderNumber && order.orderNumber !== 'Draft') ? String(order.orderNumber).slice(-4) : (order.orderNumber || '-');
+
+    html += `<div style="margin: 14px 0; border:3px solid #000; padding:12px 10px; text-align:center; font-weight: 900;">`;
+    if (qStr && qStr !== '0' && qStr !== 'null') {
+      html += `<div style="font-size: 16px; letter-spacing: 0.12em; margin-bottom: 6px;">คิวที่ (QUEUE)</div>`;
+      html += `<div style="font-size: 48px; line-height:1.05;">#${escapeHtml(qStr.padStart(3, '0'))}</div>`;
+      html += `<div style="font-size: 20px; line-height:1.05; margin-top: 6px;">เลขออเดอร์: ${escapeHtml(orderRefNum)}</div>`;
+    } else {
+      html += `<div style="font-size: 16px; letter-spacing: 0.12em; margin-bottom: 6px;">เลขออเดอร์ (ORDER)</div>`;
+      html += `<div style="font-size: 48px; line-height:1.05;">#${escapeHtml(orderRefNum)}</div>`;
     }
     html += `</div>`;
   }
@@ -171,7 +189,7 @@ const renderReceiptHtml = (order: PrintOrderData, shop: PrintShopData) => {
   if (shouldPrintReceiptPaymentQr(order, shop)) {
     html += `<div style="margin-top: 16px; border-top: 2px dashed #000; padding-top: 12px; text-align:center;">`;
     html += `<div style="font-size:20px; font-weight:900; margin-bottom: 8px; line-height:1.2;">สแกน QR ชำระเงิน</div>`;
-    html += `<div style="display:flex; justify-content:center;"><img src="${escapeHtml(shop.receiptPaymentQrImage || '')}" alt="Payment QR" style="width:220px; height:auto; display:block;" /></div>`;
+    html += `<div style="display:flex; justify-content:center;"><img src="${escapeHtml(shop.receiptPaymentQrImage || '')}" crossorigin="anonymous" alt="Payment QR" style="width:220px; height:auto; display:block;" /></div>`;
     html += `</div>`;
   }
   return html;
@@ -188,19 +206,31 @@ const renderKitchenHtml = (order: PrintOrderData, shop: PrintShopData) => {
     html += `<div style="font-size: 16px; letter-spacing: 0.14em; margin-bottom: 8px;">ค่ายเดลิเวอรี่</div>`;
     html += `<div style="font-size: 42px; line-height:1.05; margin-bottom: 10px;">${escapeHtml(formatDeliveryPlatformLabel(order.deliveryPlatform))}</div>`;
     html += `<div style="font-size: 15px; letter-spacing: 0.14em; margin-bottom: 6px;">เลข</div>`;
-    html += `<div style="font-size: 48px; line-height:1.05; word-break: break-word;">${escapeHtml(order.referenceName || '-')}</div>`;
+    html += `<div style="font-size: 48px; line-height:1.05; word-break: break-word; margin-bottom: 8px;">${escapeHtml(order.referenceName || '-')}</div>`;
+    const qStr = String(order.queueNumber || '').trim();
+    if (qStr && qStr !== '0' && qStr !== 'null') {
+      html += `<div style="font-size: 32px; border-top: 2px dashed black; padding-top: 8px; margin-top: 4px;">คิวเดลิเวอรี่: ${escapeHtml(qStr)}</div>`;
+    }
+    const orderRefNum = (order.orderNumber && order.orderNumber !== 'Draft') ? String(order.orderNumber).slice(-4) : (order.orderNumber || '-');
+    html += `<div style="font-size: 32px; border-top: 2px dashed black; padding-top: 8px; margin-top: 4px;">เลขออเดอร์: ${escapeHtml(orderRefNum)}</div>`;
   } else if (order.orderType === 'dine-in' || order.orderType === 'dine_in') {
-    html += `<div style="font-size: 16px; letter-spacing: 0.16em; margin-bottom: 8px;">โต๊ะ</div>`;
+    html += `<div style="font-size: 16px; letter-spacing: 0.16em; margin-bottom: 8px;">โต๊ะ (TABLE)</div>`;
     html += `<div style="font-size: 72px; line-height: 0.95; word-break: break-word;">${escapeHtml(order.tableNumber || '-')}</div>`;
   } else {
-    html += `<div style="font-size: 18px; letter-spacing: 0.16em; margin-bottom: 8px;">TAKEAWAY</div>`;
-    html += `<div style="font-size: 72px; line-height: 0.95; word-break: break-word;">${escapeHtml(order.queueNumber || '-')}</div>`;
-    html += `<div style="font-size: 22px; margin-top: 8px;">เลขคิว</div>`;
+    const qStr = String(order.queueNumber || '').trim();
+    const orderRefNum = (order.orderNumber && order.orderNumber !== 'Draft') ? String(order.orderNumber).slice(-4) : (order.orderNumber || '-');
+
+    if (qStr && qStr !== '0' && qStr !== 'null') {
+      html += `<div style="font-size: 18px; letter-spacing: 0.16em; margin-bottom: 8px;">คิวที่ (QUEUE)</div>`;
+      html += `<div style="font-size: 54px; line-height: 1.05; word-break: break-word;">#${escapeHtml(qStr.padStart(3, '0'))}</div>`;
+      html += `<div style="font-size: 24px; line-height:1.05; margin-top: 12px; font-weight:900;">เลขออเดอร์: ${escapeHtml(orderRefNum)}</div>`;
+    } else {
+      html += `<div style="font-size: 18px; letter-spacing: 0.16em; margin-bottom: 8px;">เลขออเดอร์ (ORDER)</div>`;
+      html += `<div style="font-size: 54px; line-height: 1.05; word-break: break-word;">#${escapeHtml(orderRefNum)}</div>`;
+    }
   }
   html += `</div>`;
-  if (order.orderType !== 'delivery') {
-    html += `<div style="margin-bottom: 8px; font-size: 20px; font-weight:800;">เลขบิลระบบ: ${escapeHtml(order.orderNumber)}</div>`;
-  }
+  html += `<div style="margin-bottom: 8px; font-size: 20px; font-weight:800;">รหัสบิล: ${escapeHtml(order.orderNumber || '-')}</div>`;
   html += `<div style="margin-bottom: 10px; font-size: 22px; font-weight:800;">ประเภท: ${escapeHtml(formatOrderTypeLabel(order.orderType))}</div>`;
   const pickupTime = extractPickupTime(order.comment, order.pickupTime);
   const orderNote = extractOrderNote(order.comment);
@@ -297,32 +327,55 @@ const renderZReportHtml = (report: PrintZReportData, shop: PrintShopData) => {
   return html;
 };
 
+const renderGraphicCanvasDirect = async (
+  html: string,
+  width: number,
+  styles = 'padding: 10px 12px; text-align: center; font-size: 20px; font-weight: bold;'
+): Promise<HTMLCanvasElement> => {
+  const div = document.createElement('div');
+  div.style.cssText = `position: fixed; left: 0; top: 0; opacity: 0.01; pointer-events: none; background: white; color: black; font-family: 'Noto Sans Thai', 'Tahoma', 'Arial', sans-serif; width: ${width}px; box-sizing: border-box; ${styles} z-index: -9999;`;
+  div.innerHTML = html;
+  
+  document.body.appendChild(div);
+
+  try {
+    const canvas = await html2canvas(div, {
+      scale: 1,
+      backgroundColor: '#FFFFFF',
+      useCORS: true,
+      removeContainer: true,
+      foreignObjectRendering: false,
+      imageTimeout: 3000,
+    });
+    return canvas;
+  } finally {
+    if (document.body.contains(div)) {
+      document.body.removeChild(div);
+    }
+  }
+};
+
 export const printGraphicModeCustomerReceipt = async (
   ip: string,
   order: PrintOrderData,
   shop: PrintShopData,
-  _model = 'xprinter-xp-n160ii',
-  _encoding = 'graphic',
+  model = 'xprinter-xp-n160ii',
+  encoding = 'graphic',
   openDrawer = false
 ) => {
   try {
     const html = renderReceiptHtml(order, shop);
-    const div = document.createElement('div');
-    div.style.cssText = `position: fixed; left: -9999px; top: 0; background: white; color: black; font-family: 'Noto Sans Thai', 'Tahoma', 'Arial', sans-serif; width: ${GRAPHIC_RECEIPT_WIDTH}px; box-sizing: border-box; padding: 10px 12px; font-size: 20px; font-weight: bold; text-align: center; z-index: -100;`;
-    div.innerHTML = html;
-    document.body.appendChild(div);
-    try {
-      const canvas = await html2canvas(div, printCaptureOptions);
-      document.body.removeChild(div);
-      const success = await printCanvasViaEscPos(ip, canvas);
-      if (openDrawer) await printOpenDrawer(ip);
-      return success;
-    } finally {
-      if (document.body.contains(div)) document.body.removeChild(div);
-    }
+    const canvas = await renderGraphicCanvasDirect(
+      html,
+      GRAPHIC_RECEIPT_WIDTH,
+      'padding: 10px 12px; text-align: center; font-size: 20px; font-weight: bold;'
+    );
+    const success = await printCanvasViaEscPos(ip, canvas);
+    if (openDrawer) await printOpenDrawer(ip);
+    return success;
   } catch (error) {
-    console.error(error);
-    return false;
+    console.error('Graphic Mode Receipt Print failed:', error);
+    throw error;
   }
 };
 
@@ -330,24 +383,20 @@ export const printGraphicModeKitchenTicket = async (
   ip: string,
   order: PrintOrderData,
   shop: PrintShopData,
-  _model = 'xprinter-xp-n160ii',
-  _encoding = 'graphic'
+  model = 'xprinter-xp-n160ii',
+  encoding = 'graphic'
 ) => {
   try {
-    const div = document.createElement('div');
-    div.style.cssText = `position: fixed; left: -9999px; top: 0; background: white; color: black; font-family: 'Noto Sans Thai', 'Tahoma', 'Arial', sans-serif; width: ${GRAPHIC_RECEIPT_WIDTH}px; box-sizing: border-box; padding: 12px 14px; font-size: 20px; font-weight: bold; text-align: left; z-index: -100;`;
-    div.innerHTML = renderKitchenHtml(order, shop);
-    document.body.appendChild(div);
-    try {
-      const canvas = await html2canvas(div, printCaptureOptions);
-      document.body.removeChild(div);
-      return await printCanvasViaEscPos(ip, canvas);
-    } finally {
-      if (document.body.contains(div)) document.body.removeChild(div);
-    }
+    const html = renderKitchenHtml(order, shop);
+    const canvas = await renderGraphicCanvasDirect(
+      html,
+      GRAPHIC_RECEIPT_WIDTH,
+      'padding: 12px 14px; text-align: left; font-size: 20px; font-weight: bold;'
+    );
+    return await printCanvasViaEscPos(ip, canvas);
   } catch (error) {
-    console.error(error);
-    return false;
+    console.error('Graphic Mode Kitchen Ticket Print failed:', error);
+    throw error;
   }
 };
 
@@ -355,24 +404,19 @@ export const printGraphicModeZReport = async (
   ip: string,
   report: PrintZReportData,
   shop: PrintShopData,
-  _model = 'xprinter-xp-n160ii',
-  _encoding = 'graphic'
+  model = 'xprinter-xp-n160ii',
+  encoding = 'graphic'
 ) => {
   try {
     const html = renderZReportHtml(report, shop);
-    const div = document.createElement('div');
-    div.style.cssText = `position: fixed; left: -9999px; top: 0; background: white; color: black; font-family: 'Noto Sans Thai', 'Tahoma', 'Arial', sans-serif; width: ${GRAPHIC_RECEIPT_WIDTH}px; box-sizing: border-box; padding: 12px 14px; font-size: 18px; font-weight: 700; text-align: left; z-index: -100;`;
-    div.innerHTML = html;
-    document.body.appendChild(div);
-    try {
-      const canvas = await html2canvas(div, printCaptureOptions);
-      document.body.removeChild(div);
-      return await printCanvasViaEscPos(ip, canvas);
-    } finally {
-      if (document.body.contains(div)) document.body.removeChild(div);
-    }
+    const canvas = await renderGraphicCanvasDirect(
+      html,
+      GRAPHIC_RECEIPT_WIDTH,
+      'padding: 12px 14px; text-align: left; font-size: 18px; font-weight: 700;'
+    );
+    return await printCanvasViaEscPos(ip, canvas);
   } catch (error) {
-    console.error(error);
-    return false;
+    console.error('Graphic Mode ZReport Print failed:', error);
+    throw error;
   }
 };

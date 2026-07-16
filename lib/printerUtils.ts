@@ -92,6 +92,51 @@ export interface PrintZReportData {
 // No external library needed — pure math
 // =====================================================
 
+const IS_UPPER_VOWEL = (c: number) => [0xD1, 0xD4, 0xD5, 0xD6, 0xD7, 0xE7].includes(c);
+const IS_TONE = (c: number) => [0xE8, 0xE9, 0xEA, 0xEB, 0xEC].includes(c);
+const IS_LOWER_VOWEL = (c: number) => [0xD8, 0xD9].includes(c);
+const IS_LONG_TAIL_UP = (c: number) => [0xBB, 0xBD, 0xBF, 0xCA].includes(c); // ป, ฝ, ฟ, ฬ
+const IS_LONG_TAIL_DOWN = (c: number) => [0xAF, 0xB0].includes(c); // ญ, ฐ
+
+const levelThaiBytes = (bytes: number[]): number[] => {
+  const result: number[] = [];
+  for (let i = 0; i < bytes.length; i++) {
+    const curr = bytes[i];
+    const prev = i > 0 ? bytes[i - 1] : 0;
+    
+    // If tone mark
+    if (IS_TONE(curr)) {
+      if (IS_LONG_TAIL_UP(prev)) {
+        result.push(curr - 0x60); // Shift Left & Down (0xE8 -> 0x88)
+      } else if (!IS_UPPER_VOWEL(prev) && !IS_LOWER_VOWEL(prev)) {
+        result.push(curr - 0x50); // Shift Down (0xE8 -> 0x98)
+      } else if (IS_UPPER_VOWEL(prev)) {
+        const prevPrev = i > 1 ? bytes[i - 2] : 0;
+        if (IS_LONG_TAIL_UP(prevPrev)) {
+          result.push(curr - 0x60); // Shift Left Top (0xE8 -> 0x88)
+        } else {
+          result.push(curr); // Normal Top
+        }
+      } else {
+        result.push(curr);
+      }
+    } 
+    // If upper vowel
+    else if (IS_UPPER_VOWEL(curr)) {
+      if (IS_LONG_TAIL_UP(prev)) {
+        result.push(curr - 0x50); // Shift Left (0xD4 -> 0x84)
+      } else {
+        result.push(curr);
+      }
+    }
+    // Normal character
+    else {
+      result.push(curr);
+    }
+  }
+  return result;
+}
+
 export const toThaiBytes = (text: string, encoding: string = 'ku42'): number[] => {
   const bytes: number[] = []
   for (let i = 0; i < text.length; i++) {
@@ -100,23 +145,13 @@ export const toThaiBytes = (text: string, encoding: string = 'ku42'): number[] =
       bytes.push(cp)
     } else if (cp >= 0x0E01 && cp <= 0x0E5B) {
       const tis620 = cp - 0x0E00 + 0xA0
-      if (encoding === 'ku42') {
-        // Map TIS-620 to KU42 (CP27 on Xprinter)
-        if (tis620 >= 0xD0 && tis620 <= 0xDA) {
-          bytes.push(tis620 - 0xD0 + 0x8C)
-        } else if (tis620 >= 0xE7 && tis620 <= 0xED) {
-          bytes.push(tis620 - 0xE7 + 0x97)
-        } else {
-          bytes.push(tis620)
-        }
-      } else {
-        // Standard TIS-620 / CP874
-        bytes.push(tis620)
-      }
+      // Just send the raw TIS-620 byte — printer hardware handles leveling natively
+      bytes.push(tis620)
     } else {
       bytes.push(0x3F) // ?
     }
   }
+  
   return bytes
 }
 
@@ -239,6 +274,66 @@ const appendReceiptStory = (b: ESCPOSBuilder, shop: PrintShopData) => {
   b.lf()
 }
 
+const applyThaiLineSpacingHack = (text: string) => {
+  let upper1 = '';
+  let upper2 = '';
+  let baseStr = '';
+  let lowerStr = '';
+
+  const LONG_TAILS = ['ป', 'ฝ', 'ฟ', 'ฬ'];
+  const TOP_VOWELS = ['ิ', 'ี', 'ึ', 'ื', 'ั', '็', 'ำ'];
+  const TONES = ['่', '้', '๊', '๋', '์'];
+  const LOWER_VOWELS = ['ุ', 'ู'];
+
+  let i = 0;
+  while (i < text.length) {
+    let char = text[i];
+    
+    // Standalone dead char
+    if (TOP_VOWELS.includes(char) || TONES.includes(char) || LOWER_VOWELS.includes(char)) {
+      baseStr += char;
+      upper1 += ' ';
+      upper2 += ' ';
+      lowerStr += ' ';
+      i++;
+      continue;
+    }
+
+    let cellBase = char;
+    let isLongTail = LONG_TAILS.includes(cellBase);
+    
+    let cellUpper1Marks = '';
+    let cellUpper2Marks = '';
+    let cellLowerMarks = '';
+
+    let j = i + 1;
+    while (j < text.length) {
+      let mark = text[j];
+      if (LOWER_VOWELS.includes(mark)) {
+        cellLowerMarks += mark;
+      } else if (TOP_VOWELS.includes(mark)) {
+        if (isLongTail) cellUpper1Marks += mark;
+        else cellUpper2Marks += mark;
+      } else if (TONES.includes(mark)) {
+        // Tones always go to highest level
+        cellUpper1Marks += mark;
+      } else {
+        break;
+      }
+      j++;
+    }
+
+    baseStr += cellBase;
+    upper1 += ' ' + cellUpper1Marks;
+    upper2 += ' ' + cellUpper2Marks;
+    lowerStr += ' ' + cellLowerMarks;
+
+    i = j;
+  }
+  
+  return { upper1, upper2, baseStr, lowerStr };
+}
+
 // =====================================================
 // RAW ESC/POS BUILDER
 // Does NOT use receipt-printer-encoder — avoids 1C 2E (FS .) interference
@@ -254,16 +349,21 @@ class ESCPOSBuilder {
     this.encoding = encoding
   }
 
-  /** Initialize printer and switch to Thai mode */
   init(): this {
     this.bytes.push(0x1B, 0x40)          // ESC @ - Initialize
-    this.bytes.push(0x1C, 0x2E)          // FS .  - Cancel Chinese mode (exit GBK)
     
-    // Set character code table
-    const codepage = this.encoding === 'ku42' ? 0x1B : 0x1A;
-    this.bytes.push(0x1B, 0x74, codepage) // ESC t 
+    // Set character code table to 27 (KU42)
+    let codepage = 0x1B; // 27
+    if (this.encoding === 'cp874') codepage = 0x15; // 21
+    if (this.encoding === 'tis620') codepage = 0x1A; // 26
+    
+    // Send FS & (0x1C, 0x26) - This is the "switch" that tells Xprinter to turn on Thai Leveling (สระไม่ลอย)
+    this.bytes.push(0x1C, 0x26)
+    
+    this.bytes.push(0x1B, 0x74, codepage) // ESC t n
     return this
   }
+
 
   align(a: 'left' | 'center' | 'right'): this {
     const n = a === 'center' ? 1 : a === 'right' ? 2 : 0
@@ -384,7 +484,9 @@ const canvasToRasterBytes = (canvas: HTMLCanvasElement): number[] => {
 
   const width = canvas.width
   const height = canvas.height
-  const imgData = ctx.getImageData(0, 0, width, height).data
+  const imgData = ctx.getImageData(0, 0, width, height)
+  const pixels = new Uint32Array(imgData.data.buffer)
+  
   const bytesWidth = Math.ceil(width / 8)
   const out: number[] = [
     0x1D, 0x76, 0x30, 0x00,
@@ -398,13 +500,17 @@ const canvasToRasterBytes = (canvas: HTMLCanvasElement): number[] => {
       for (let bit = 0; bit < 8; bit++) {
         const x = xByte * 8 + bit
         if (x < width) {
-          const i = (y * width + x) * 4
-          const r = imgData[i]
-          const g = imgData[i + 1]
-          const bVal = imgData[i + 2]
-          const a = imgData[i + 3]
+          const pixel = pixels[y * width + x]
+          // Little-endian Uint32 is ABGR (Alpha, Blue, Green, Red)
+          const r = pixel & 0xFF
+          const g = (pixel >> 8) & 0xFF
+          const bVal = (pixel >> 16) & 0xFF
+          const a = (pixel >> 24) & 0xFF
+          
           const lum = (r * 299 + g * 587 + bVal * 114) / 1000
-          if (lum < 160 && a > 32) b |= (1 << (7 - bit))
+          if (lum < 160 && a > 32) {
+            b |= (1 << (7 - bit))
+          }
         }
       }
       out.push(b)
@@ -444,12 +550,15 @@ const sendToPrinter = async (ip: string, hexData: string): Promise<boolean | str
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ip, port: 9100, data: hexData }),
       })
-      if (!response.ok) throw new Error('API Print failed')
+      if (!response.ok) {
+        const detail = await response.json().catch(() => null)
+        throw new Error(detail?.error || 'API Print failed')
+      }
       return true
     }
   } catch (error: any) {
     console.error('Printer Connection Error:', error)
-    return error.message || JSON.stringify(error) || 'Unknown TCP error'
+    throw new Error(error.message || JSON.stringify(error) || 'Unknown TCP error')
   }
 }
 
@@ -528,7 +637,7 @@ export const printCanvasViaEscPos = async (ip: string, canvas: HTMLCanvasElement
     return await sendToPrinter(ip, hex);
   } catch (error: any) {
     console.error('Graphic Print Error:', error);
-    return error.message || 'Unknown Graphic Error';
+    throw error;
   }
 }
 
@@ -545,8 +654,8 @@ export const printOpenDrawer = async (ip: string, model = 'xprinter-xp-n160ii') 
     const hex = drawerBytes.map(b => b.toString(16).padStart(2, '0')).join('')
     return await sendToPrinter(ip, hex)
   } catch (error) {
-    console.error('Drawer Error:', error)
-    return false
+    console.error('Drawer Error:', error);
+    throw error;
   }
 }
 
@@ -598,6 +707,41 @@ export const printCustomerReceipt = async (
   openDrawer = false
 ) => {
   try {
+    if (encoding === 'find-thai-page') {
+      // Print raw byte map of KU42 (Code Page 27) to find correct Thai byte mapping
+      // ESC t 27 = switch to KU42, then print every byte 0x80-0xFF with hex label
+      const bytes: number[] = [
+        0x1B, 0x40,       // ESC @ init
+        0x1C, 0x2E,       // FS . cancel Chinese mode
+        0x1B, 0x74, 0x1B, // ESC t 27 = KU42
+      ];
+      
+      // Print header
+      const header = 'KU42 BYTE MAP (0x80-0xFF)\n';
+      for (let i = 0; i < header.length; i++) bytes.push(header.charCodeAt(i));
+      bytes.push(0x0A);
+      
+      // Print 8 bytes per row with hex labels
+      for (let row = 0x80; row <= 0xFF; row += 8) {
+        // Print hex label "80: "
+        const label = `${row.toString(16).toUpperCase().padStart(2,'0')}: `;
+        for (let i = 0; i < label.length; i++) bytes.push(label.charCodeAt(i));
+        
+        // Print 8 raw bytes
+        for (let col = 0; col < 8 && row + col <= 0xFF; col++) {
+          bytes.push(row + col);
+          bytes.push(0x20); // space between
+        }
+        bytes.push(0x0A); // newline
+      }
+      
+      bytes.push(0x0A, 0x0A, 0x0A);
+      bytes.push(0x1D, 0x56, 0x42, 0x00); // Cut
+      
+      const hex = bytes.map(b => b.toString(16).padStart(2, '0')).join('');
+      return await sendToPrinter(ip, hex);
+    }
+
     const b = new ESCPOSBuilder(48, encoding || 'cp874')
     b.init()
 
@@ -673,8 +817,8 @@ export const printCustomerReceipt = async (
 
     return await sendToPrinter(ip, b.hex())
   } catch (error) {
-    console.error('Customer Receipt Print Error:', error)
-    return false
+    console.error('Customer Receipt Print Error:', error);
+    throw error;
   }
 }
 
@@ -736,7 +880,7 @@ export const printKitchenTicket = async (
     return await sendToPrinter(ip, b.hex())
   } catch (error) {
     console.error('Kitchen Ticket Print Error:', error)
-    return false
+    throw error
   }
 }
 
@@ -832,8 +976,8 @@ export const printZReport = async (
 
     return await sendToPrinter(ip, b.hex())
   } catch (error) {
-    console.error('Z-Report Print Error:', error)
-    return false
+    console.error('Z-Report Print Error:', error);
+    throw error;
   }
 }
 
@@ -857,6 +1001,35 @@ export const printPreReceipt = async (
   encoding = 'cp874'
 ) => {
   try {
+    if (encoding === 'find-thai-page') {
+      const encodingsToTest = [
+        'ku42-hack',
+        'tis620-hack', 
+        'cp874-hack',
+        'text-ku42-hw',
+        'text-leveling-21',
+        'text-leveling-26'
+      ];
+      
+      let fullHex = '';
+      
+      for (const enc of encodingsToTest) {
+          const b = new ESCPOSBuilder(48, enc);
+          b.init();
+          b.align('center');
+          b.bold(true).line(`=== TEST: ${enc} ===`).bold(false);
+          b.align('left');
+          b.line('คิว: 01   โต๊ะ: T-01');
+          b.line('1x ลาเต้เย็น (หวานน้อย 50%)');
+          b.line('1x ข้าวผัดกะเพราหมูกรอบ');
+          b.line(' ');
+          fullHex += b.hex();
+      }
+      
+      fullHex += '1d564200'; // Cut
+      return await sendToPrinter(ip, fullHex);
+    }
+
     const b = new ESCPOSBuilder(48, encoding || 'cp874')
     b.init()
 
@@ -909,7 +1082,7 @@ export const printPreReceipt = async (
 
     return await sendToPrinter(ip, b.hex())
   } catch (error) {
-    console.error('Pre-Receipt Print Error:', error)
-    return false
+    console.error('Pre-Receipt Print Error:', error);
+    throw error;
   }
 }
