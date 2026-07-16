@@ -135,13 +135,9 @@ const renderReceiptHtml = (order: PrintOrderData, shop: PrintShopData) => {
       html += `</div>`;
     }
   } else {
-    const shortNum = order.queueNumber && String(order.queueNumber).trim() !== '' && String(order.queueNumber).trim() !== '0' && String(order.queueNumber).trim() !== 'null'
-      ? String(order.queueNumber).trim().padStart(3, '0')
-      : String(order.orderNumber).slice(-4);
-
     html += `<div style="margin: 14px 0; border:3px solid #000; padding:12px 10px; text-align:center; font-weight: 900;">`;
-    html += `<div style="font-size: 16px; letter-spacing: 0.12em; margin-bottom: 6px;">ออเดอร์ (ORDER)</div>`;
-    html += `<div style="font-size: 48px; line-height:1.05;">#${escapeHtml(shortNum)}</div>`;
+    html += `<div style="font-size: 16px; letter-spacing: 0.12em; margin-bottom: 6px;">เลขที่ออเดอร์ (ORDER)</div>`;
+    html += `<div style="font-size: 30px; line-height:1.1; word-break: break-all;">#${escapeHtml(order.orderNumber)}</div>`;
     html += `</div>`;
   }
 
