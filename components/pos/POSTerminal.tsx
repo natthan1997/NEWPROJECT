@@ -347,6 +347,7 @@ export default function POSTerminal({
   const [showDeliveryHub, setShowDeliveryHub] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
+  const [checkoutError, setCheckoutError] = useState<string | null>(null)
 
   const [paymentSplits, setPaymentSplits] = useState<any[]>([])
 
@@ -1342,57 +1343,6 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     return /queue_number/i.test(message) && /(does not exist|column)/i.test(message)
   }
 
-  const requestOrderIdentity = async (existingOrderId?: string | null): Promise<POSOrderIdentity> => {
-    const fallbackQueue = getQueueNumberForOrder(existingOrderId)
-    const prefix = orderType === 'dine_in' ? 'DIN' : orderType === 'delivery' ? 'DEL' : 'TAK'
-    let localOrderNumber = editingOrderNumber || ''
-    if (!localOrderNumber) {
-      if (orderType === 'dine_in' && selectedTable) {
-        localOrderNumber = selectedTable.name || `T${selectedTable.table_number || selectedTable.id}`
-      } else {
-        const now = new Date()
-        const datePart = [
-          String(now.getFullYear()).slice(-2),
-          String(now.getMonth() + 1).padStart(2, '0'),
-          String(now.getDate()).padStart(2, '0'),
-        ].join('')
-        localOrderNumber = `${prefix}#${datePart}-${String(Date.now()).slice(-4)}`
-      }
-    }
-
-    try {
-      const response = await fetch('/api/pos/order-identity', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          orderType,
-          branchId: shopSettings?.branch_id || activeShift?.branch_id || null,
-          shiftId: activeShift?.id || null,
-          existingOrderId: existingOrderId || null,
-          tableName: selectedTable ? String(selectedTable.name || `T${selectedTable.table_number || selectedTable.id}`).replace(/\s+/g, '') : null,
-        }),
-      })
-
-      if (!response.ok) {
-        console.warn('Order identity API failed, falling back to local generation')
-        return { orderNumber: localOrderNumber, queueNumber: fallbackQueue }
-      }
-
-      const result = await response.json()
-      if (!result?.orderNumber || result?.queueNumber === undefined) {
-        return { orderNumber: localOrderNumber, queueNumber: fallbackQueue }
-      }
-
-      return {
-        orderNumber: result.orderNumber,
-        queueNumber: Number(result.queueNumber),
-      }
-    } catch (err) {
-      console.warn('Failed to fetch order identity from API, falling back to local generation:', err)
-      return { orderNumber: localOrderNumber, queueNumber: fallbackQueue }
-    }
-  }
-
   const handleDeleteOrder = async (id: string) => {
     if (
       !confirm(
@@ -2320,7 +2270,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     }
 
     logPOSPrintFlow('preflight:pass')
-    setIsProcessing(true);
+    setIsProcessing(true); setCheckoutError(null);
     try {
         let savedOrder: any
         try {
@@ -2390,7 +2340,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       throw new Error('บิลนี้พักไว้แล้ว กรุณาเพิ่มรายการใหม่ก่อนส่งออเดอร์เพิ่ม')
     }
 
-	    if (!options?.suppressProcessingState) setIsProcessing(true)
+	    if (!options?.suppressProcessingState) setIsProcessing(true); setCheckoutError(null)
 	    try {
 	      let finalOrderId = editingOrderId
 	      let finalOrderNumber = editingOrderNumber || ''
@@ -2417,13 +2367,9 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             throw new Error('บิลนี้พักไว้แล้ว กรุณาเพิ่มรายการใหม่ก่อนส่งออเดอร์เพิ่ม')
           }
 
-          const identity = await requestOrderIdentity(editingOrderId)
-          finalOrderNumber = identity.orderNumber
-          finalQueueNumber = identity.queueNumber
+          finalQueueNumber = getQueueNumberForOrder(editingOrderId)
         } else {
-          const identity = await requestOrderIdentity()
-          finalOrderNumber = identity.orderNumber
-          finalQueueNumber = identity.queueNumber
+          finalQueueNumber = getQueueNumberForOrder()
         }
 
         // WATERFALL QUEUE CALCULATION (Auto Queue Algorithm)
@@ -2444,9 +2390,16 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         const now = new Date();
         const baseTime = latestCompletionTime.getTime() > now.getTime() ? latestCompletionTime : now;
         
+        // Fetch Category Prep Time Mapping
+        const { data: catData } = await supabase.from('pos_menu_categories').select('id, estimated_prep_minutes');
+        const prepTimeMap = new Map(catData?.map(c => [c.id, c.estimated_prep_minutes ?? 2]));
+
         const itemsToCount = editingOrderId ? newItems : cart;
-        const totalItemsCount = itemsToCount.reduce((acc: number, item: any) => acc + (Number(item.quantity) || 1), 0);
-        const prepDurationMinutes = totalItemsCount * 2; // 2 minutes per item
+        const prepDurationMinutes = itemsToCount.reduce((acc: number, item: any) => {
+          const prepTime = prepTimeMap.get(item.category_id) ?? 2;
+          return acc + (prepTime * (Number(item.quantity) || 1));
+        }, 0);
+        
         const estimatedPrepCompletion = new Date(baseTime.getTime() + prepDurationMinutes * 60000);
 
         const payload: any = {
@@ -2669,7 +2622,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     }
     if (!ensureDeliveryDetailsReady()) return
 
-    setIsProcessing(true)
+    setIsProcessing(true); setCheckoutError(null)
 	    try {
 
 	      playAppSound('pay');
@@ -2721,9 +2674,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         console.log(`[GP] platform=${deliveryPlatform}, gpPercent=${gpPercent}%, cartTotal=${cartTotal}`);
       }
       const deliveryGpAmount = (cartTotal * gpPercent) / 100;
-	      const identity = await requestOrderIdentity(editingOrderId)
-	      finalOrderNumber = identity.orderNumber
-	      finalQueueNumber = identity.queueNumber
+	      finalQueueNumber = getQueueNumberForOrder(editingOrderId)
 
         let estimatedPrepCompletionStr: string | undefined = undefined;
         if (!editingOrderId) {
@@ -2744,8 +2695,15 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
            const now = new Date();
            const baseTime = latestCompletionTime.getTime() > now.getTime() ? latestCompletionTime : now;
            
-           const totalItemsCount = cart.reduce((acc: number, item: any) => acc + (Number(item.quantity) || 1), 0);
-           const prepDurationMinutes = totalItemsCount * 2; // 2 minutes per item
+           // Fetch Category Prep Time Mapping
+           const { data: catData } = await supabase.from('pos_menu_categories').select('id, estimated_prep_minutes');
+           const prepTimeMap = new Map(catData?.map(c => [c.id, c.estimated_prep_minutes ?? 2]));
+
+           const prepDurationMinutes = cart.reduce((acc: number, item: any) => {
+             const prepTime = prepTimeMap.get(item.category_id) ?? 2;
+             return acc + (prepTime * (Number(item.quantity) || 1));
+           }, 0);
+           
            const estimatedPrepCompletion = new Date(baseTime.getTime() + prepDurationMinutes * 60000);
            estimatedPrepCompletionStr = estimatedPrepCompletion.toISOString();
         }
@@ -3090,7 +3048,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       }
     } catch (e: any) {
       console.error('Payment Error:', e)
-      alert(`การชำระเงินขัดข้อง: ${e.message}`)
+      setCheckoutError(`การชำระเงินขัดข้อง: ${e.message || String(e)}`)
     } finally {
       setIsProcessing(false)
     }
@@ -3835,7 +3793,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                                 if (editingOrderId) {
                                     if (isOccupied) {
                                         if (confirm(`โต๊ะ ${targetTable.table_number} มีลูกค้าอยู่แล้ว ต้องการนำบิลของโต๊ะ ${selectedTable?.table_number || 'ปัจจุบัน'} ไปรวมบิลด้วยใช่หรือไม่?`)) {
-                                            setIsProcessing(true);
+                                            setIsProcessing(true); setCheckoutError(null);
                                             (async () => {
                                                 try {
                                                     const targetOrder = pendingForThisTable[0];
@@ -4227,6 +4185,13 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                 </div>
               </div>
 
+              {checkoutError && (
+                <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3 text-red-600">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  <p className="text-sm font-medium leading-relaxed">{checkoutError}</p>
+                </div>
+              )}
+
               <div className="mb-6">
                 <button
                   disabled={isProcessing || remainingTotal <= 0}
@@ -4247,6 +4212,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                 <button
                   disabled={isProcessing}
                   onClick={() => {
+                    setCheckoutError(null);
                     setShowPaymentModal(false);
                     setCashReceived('');
                     setPaymentSuccessData(null);
@@ -4265,7 +4231,10 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                 </button>
                 <button
                   disabled={isProcessing}
-                  onClick={() => handleProcessPayment('promptpay')}
+                  onClick={() => {
+                    setCheckoutError(null);
+                    handleProcessPayment('promptpay')
+                  }}
                   className="group relative flex flex-col items-center justify-center rounded-2xl border-2 border-transparent bg-gray-50 py-8 sm:py-10 font-bold text-black transition-all hover:border-blue-600 hover:bg-white hover:shadow-xl active:scale-95 overflow-hidden disabled:opacity-70 disabled:cursor-wait"
                 >
                   <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
@@ -4278,7 +4247,10 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                 </button>
                 <button
                   disabled={isProcessing}
-                  onClick={() => handleProcessPayment('credit_card')}
+                  onClick={() => {
+                    setCheckoutError(null);
+                    handleProcessPayment('credit_card')
+                  }}
                   className="group relative flex flex-col items-center justify-center rounded-2xl border-2 border-transparent bg-gray-50 py-8 sm:py-10 font-bold text-black transition-all hover:border-orange-500 hover:bg-white hover:shadow-xl active:scale-95 overflow-hidden disabled:opacity-70 disabled:cursor-wait"
                 >
                   <div className="absolute inset-0 bg-gradient-to-br from-orange-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
