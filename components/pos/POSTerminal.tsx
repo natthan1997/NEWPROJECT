@@ -3676,8 +3676,19 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                           )}
                           <div>
                             <div className="flex items-center gap-2">
-                              <div className="text-xs font-black uppercase tracking-widest text-[#1A1A18]">
-                                {order.order_number}
+                              <div className="flex flex-col gap-0.5">
+                                <div className="text-sm font-black uppercase tracking-wide text-[#1A1A18]">
+                                  {order.order_type === 'delivery' ? (
+                                    `คิวส่ง #${String(order.queue_number || '').padStart(3, '0')}`
+                                  ) : order.order_type === 'dine_in' && order.table_number ? (
+                                    `โต๊ะ ${order.table_number}`
+                                  ) : (
+                                    `ออเดอร์ #${String(order.queue_number || '').padStart(3, '0')}`
+                                  )}
+                                </div>
+                                <div className="text-[10px] text-gray-400 font-normal">
+                                  {order.order_number}
+                                </div>
                               </div>
                               {order.source === 'qr' && (
                                 <span className="bg-orange-500 text-white px-1.5 py-0.5 text-[8px] font-black uppercase tracking-tighter animate-pulse">

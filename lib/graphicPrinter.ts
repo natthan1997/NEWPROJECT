@@ -110,6 +110,7 @@ const renderReceiptHtml = (order: PrintOrderData, shop: PrintShopData) => {
 
   html += `<div style="border-top: 3px dashed black; margin: 14px 0;"></div>`;
   html += `<div style="text-align:center; font-size:21px; margin-bottom: 8px; line-height:1.25;">วันที่: ${escapeHtml(order.date.split(',')[0] || order.date)}</div>`;
+  html += `<div style="font-size: 22px; margin-bottom: 7px; line-height:1.25;">เลขบิล: ${escapeHtml(order.orderNumber)}</div>`;
   html += `<div style="font-size: 22px; margin-bottom: 7px; line-height:1.25;">พนักงาน: ${escapeHtml(order.staffName || '-')}</div>`;
   if (order.customerName) html += `<div style="font-size: 22px; margin-bottom: 7px; line-height:1.25;">ลูกค้า: ${escapeHtml(order.customerName)}</div>`;
   html += `<div style="font-size: 22px; margin-bottom: 7px; line-height:1.25;">ประเภท: ${escapeHtml(formatOrderTypeLabel(order.orderType))}</div>`;
@@ -134,9 +135,13 @@ const renderReceiptHtml = (order: PrintOrderData, shop: PrintShopData) => {
       html += `</div>`;
     }
   } else {
+    const shortNum = order.queueNumber && String(order.queueNumber).trim() !== '' && String(order.queueNumber).trim() !== '0' && String(order.queueNumber).trim() !== 'null'
+      ? String(order.queueNumber).trim().padStart(3, '0')
+      : String(order.orderNumber).slice(-4);
+
     html += `<div style="margin: 14px 0; border:3px solid #000; padding:12px 10px; text-align:center; font-weight: 900;">`;
-    html += `<div style="font-size: 16px; letter-spacing: 0.12em; margin-bottom: 6px;">เลขที่ออเดอร์ (ORDER)</div>`;
-    html += `<div style="font-size: 32px; line-height:1.05; word-break: break-all;">#${escapeHtml(order.orderNumber)}</div>`;
+    html += `<div style="font-size: 16px; letter-spacing: 0.12em; margin-bottom: 6px;">ออเดอร์ (ORDER)</div>`;
+    html += `<div style="font-size: 48px; line-height:1.05;">#${escapeHtml(shortNum)}</div>`;
     html += `</div>`;
   }
 
