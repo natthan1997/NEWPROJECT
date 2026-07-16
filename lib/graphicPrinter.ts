@@ -316,7 +316,7 @@ export const printGraphicModeCustomerReceipt = async (
   try {
     const html = renderReceiptHtml(order, shop);
     const div = document.createElement('div');
-    div.style.cssText = `position: fixed; left: 0; top: 0; opacity: 0.01; pointer-events: none; background: white; color: black; font-family: 'Noto Sans Thai', 'Tahoma', 'Arial', sans-serif; width: ${GRAPHIC_RECEIPT_WIDTH}px; box-sizing: border-box; padding: 10px 12px; font-size: 20px; font-weight: bold; text-align: center; z-index: -9999;`;
+    div.style.cssText = `position: fixed; left: -9999px; top: -9999px; opacity: 1; pointer-events: none; background: white; color: black; font-family: 'Noto Sans Thai', 'Tahoma', 'Arial', sans-serif; width: ${GRAPHIC_RECEIPT_WIDTH}px; box-sizing: border-box; padding: 10px 12px; font-size: 20px; font-weight: bold; text-align: center; z-index: -9999;`;
     div.innerHTML = html;
     document.body.appendChild(div);
     try {
@@ -343,7 +343,7 @@ export const printGraphicModeKitchenTicket = async (
 ) => {
   try {
     const div = document.createElement('div');
-    div.style.cssText = `position: fixed; left: 0; top: 0; opacity: 0.01; pointer-events: none; background: white; color: black; font-family: 'Noto Sans Thai', 'Tahoma', 'Arial', sans-serif; width: ${GRAPHIC_RECEIPT_WIDTH}px; box-sizing: border-box; padding: 12px 14px; font-size: 20px; font-weight: bold; text-align: left; z-index: -9999;`;
+    div.style.cssText = `position: fixed; left: -9999px; top: -9999px; opacity: 1; pointer-events: none; background: white; color: black; font-family: 'Noto Sans Thai', 'Tahoma', 'Arial', sans-serif; width: ${GRAPHIC_RECEIPT_WIDTH}px; box-sizing: border-box; padding: 12px 14px; font-size: 20px; font-weight: bold; text-align: left; z-index: -9999;`;
     div.innerHTML = renderKitchenHtml(order, shop);
     document.body.appendChild(div);
     try {
@@ -369,7 +369,7 @@ export const printGraphicModeZReport = async (
   try {
     const html = renderZReportHtml(report, shop);
     const div = document.createElement('div');
-    div.style.cssText = `position: fixed; left: 0; top: 0; opacity: 0.01; pointer-events: none; background: white; color: black; font-family: 'Noto Sans Thai', 'Tahoma', 'Arial', sans-serif; width: ${GRAPHIC_RECEIPT_WIDTH}px; box-sizing: border-box; padding: 12px 14px; font-size: 18px; font-weight: 700; text-align: left; z-index: -9999;`;
+    div.style.cssText = `position: fixed; left: -9999px; top: -9999px; opacity: 1; pointer-events: none; background: white; color: black; font-family: 'Noto Sans Thai', 'Tahoma', 'Arial', sans-serif; width: ${GRAPHIC_RECEIPT_WIDTH}px; box-sizing: border-box; padding: 12px 14px; font-size: 18px; font-weight: 700; text-align: left; z-index: -9999;`;
     div.innerHTML = html;
     document.body.appendChild(div);
     try {
