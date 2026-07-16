@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-  ChevronRight, ChevronLeft, Info, X, Gift, Phone, Globe, Facebook, MessageCircle, QrCode, Coins, Sparkles, AlertCircle, Loader2, CheckCircle2
+  ChevronRight, ChevronLeft, Info, X, Gift, Phone, Globe, Facebook, MessageCircle, QrCode, Coins, Sparkles, AlertCircle, Loader2, CheckCircle2, HelpCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
@@ -28,6 +28,7 @@ export default function LiffMemberPage() {
   const [checkInStatus, setCheckInStatus] = useState<string | null>(null);
   const [linkedOrder, setLinkedOrder] = useState<any | null>(null);
   const [claimLoading, setClaimLoading] = useState(false);
+  const [showInstructionsModal, setShowInstructionsModal] = useState(false);
 
   useEffect(() => {
     if (ctxMemberInfo) {
@@ -584,21 +585,47 @@ export default function LiffMemberPage() {
           </div>
         </motion.section>
 
-        {/* Real-time Check-in Button */}
+        {/* Real-time Check-in Button Card */}
         <motion.section
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.05 }}
-          className="w-full"
+          className="w-full bg-[#1A1A18] text-white rounded-[24px] p-5 shadow-xl relative overflow-hidden"
         >
-          <button
-            onClick={handleCheckIn}
-            disabled={claimLoading || !!activeCheckInId}
-            className="w-full h-14 bg-[#1A1A18] text-white flex items-center justify-center gap-3 text-[13px] font-black uppercase tracking-[0.25em] hover:bg-black transition-all active:scale-[0.98] shadow-md disabled:opacity-50"
-          >
-            <QrCode size={18} className="animate-pulse text-emerald-400" />
-            <span>สะสมคะแนนหน้าร้าน (Check-in)</span>
-          </button>
+          {/* Subtle background glow */}
+          <div className="absolute -right-10 -top-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl" />
+          <div className="absolute -left-10 -bottom-10 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl" />
+
+          <div className="relative z-10 flex flex-col gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-emerald-400 shrink-0">
+                <QrCode size={20} className="animate-pulse" />
+              </div>
+              <div>
+                <h4 className="text-[14px] font-black tracking-tight text-white leading-tight">สะสมคะแนนหน้าร้าน</h4>
+                <p className="text-[10px] text-gray-400 font-bold tracking-wide mt-0.5">สแกนเช็คอินเชื่อมต่อบิลและรับคะแนนทันที</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 mt-1">
+              <button
+                onClick={handleCheckIn}
+                disabled={claimLoading || !!activeCheckInId}
+                className="h-12 bg-white text-black hover:bg-gray-100 disabled:bg-white/50 disabled:text-black/50 text-[12px] font-black uppercase tracking-wider rounded-2xl transition-all active:scale-[0.97] flex items-center justify-center gap-1.5 shadow-sm"
+              >
+                <span>กดเช็คอิน</span>
+                <ChevronRight size={14} />
+              </button>
+              
+              <button
+                onClick={() => setShowInstructionsModal(true)}
+                className="h-12 bg-white/10 border border-white/10 text-white hover:bg-white/20 text-[12px] font-black uppercase tracking-wider rounded-2xl transition-all active:scale-[0.97] flex items-center justify-center gap-1.5"
+              >
+                <HelpCircle size={14} />
+                <span>วิธีใช้งาน</span>
+              </button>
+            </div>
+          </div>
         </motion.section>
 
         {/* Campaign Cards Section */}
@@ -1164,6 +1191,87 @@ export default function LiffMemberPage() {
                   </button>
                 </div>
               )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 📘 Instructions / How to Use Modal */}
+      <AnimatePresence>
+        {showInstructionsModal && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[2500] flex items-end justify-center bg-black/60 backdrop-blur-xs font-sans"
+          >
+            {/* Backdrop click to close */}
+            <div className="absolute inset-0" onClick={() => setShowInstructionsModal(false)} />
+            
+            <motion.div 
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative w-full bg-white rounded-t-[2.5rem] p-8 pb-10 shadow-2xl flex flex-col items-center z-10 max-h-[85vh] overflow-y-auto"
+            >
+              {/* Top Drag Bar */}
+              <div className="w-12 h-1.5 bg-gray-200 rounded-full mb-6 shrink-0" />
+
+              <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mb-4 text-emerald-600 shrink-0">
+                <HelpCircle size={28} />
+              </div>
+
+              <h3 className="text-lg font-black text-gray-900 tracking-tight mb-1 text-center">
+                ขั้นตอนการสะสมคะแนนหน้าร้าน
+              </h3>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-8 text-center">
+                How to Earn Points at Store
+              </p>
+
+              {/* Steps List */}
+              <div className="w-full space-y-6 text-left mb-8">
+                {/* Step 1 */}
+                <div className="flex gap-4">
+                  <div className="w-8 h-8 rounded-full bg-gray-900 text-white flex items-center justify-center text-sm font-black shrink-0">
+                    1
+                  </div>
+                  <div>
+                    <h4 className="font-black text-sm text-gray-950 mb-0.5">กดปุ่มเช็คอิน</h4>
+                    <p className="text-xs text-gray-500 font-medium">กดปุ่ม "กดเช็คอิน" บนหน้าบัตรสมาชิกนี้เพื่อสร้างคำขอสะสมแต้ม</p>
+                  </div>
+                </div>
+
+                {/* Step 2 */}
+                <div className="flex gap-4">
+                  <div className="w-8 h-8 rounded-full bg-gray-900 text-white flex items-center justify-center text-sm font-black shrink-0">
+                    2
+                  </div>
+                  <div>
+                    <h4 className="font-black text-sm text-gray-950 mb-0.5">แจ้งพนักงานเพื่อเชื่อมต่อบิล</h4>
+                    <p className="text-xs text-gray-500 font-medium">พนักงานแคชเชียร์จะเห็นชื่อของคุณและทำการเลือกเชื่อมต่อเข้ากับบิลปัจจุบัน หรือบิลที่เปิดค้างของคุณบน POS</p>
+                  </div>
+                </div>
+
+                {/* Step 3 */}
+                <div className="flex gap-4">
+                  <div className="w-8 h-8 rounded-full bg-gray-900 text-white flex items-center justify-center text-sm font-black shrink-0">
+                    3
+                  </div>
+                  <div>
+                    <h4 className="font-black text-sm text-gray-950 mb-0.5">ชำระเงินและรับพอยท์</h4>
+                    <p className="text-xs text-gray-500 font-medium">เมื่อพนักงานชำระเงินเรียบร้อย คะแนนสะสมและสรุปรายการอาหารจะเด้งเข้ามือถือของคุณทันที!</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Close Button */}
+              <button
+                onClick={() => setShowInstructionsModal(false)}
+                className="w-full py-4 bg-black text-white hover:bg-gray-950 text-[13px] font-black uppercase tracking-[0.25em] active:scale-95 transition-all rounded-2xl shadow-xl shadow-black/10"
+              >
+                เข้าใจแล้ว
+              </button>
             </motion.div>
           </motion.div>
         )}

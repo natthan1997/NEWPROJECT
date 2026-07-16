@@ -338,14 +338,26 @@ export default function POSShopSettings({
             ]
         };
 
-        if (printer.type === 'kitchen') {
-            await printGraphicModeKitchenTicket(printer.ip, dummyOrder, settings, printer.model, 'graphic');
-        } else if (printer.type === 'receipt') {
-            await printGraphicModeCustomerReceipt(printer.ip, dummyOrder, settings, printer.model, 'graphic');
+        if (printer.encoding === 'graphic') {
+            if (printer.type === 'kitchen') {
+                await printGraphicModeKitchenTicket(printer.ip, dummyOrder, settings, printer.model, printer.encoding);
+            } else if (printer.type === 'receipt') {
+                await printGraphicModeCustomerReceipt(printer.ip, dummyOrder, settings, printer.model, printer.encoding);
+            } else {
+                await printGraphicModeCustomerReceipt(printer.ip, dummyOrder, settings, printer.model, printer.encoding);
+                await new Promise(r => setTimeout(r, 1000));
+                await printGraphicModeKitchenTicket(printer.ip, dummyOrder, settings, printer.model, printer.encoding);
+            }
         } else {
-            await printGraphicModeCustomerReceipt(printer.ip, dummyOrder, settings, printer.model, 'graphic');
-            await new Promise(r => setTimeout(r, 1000));
-            await printGraphicModeKitchenTicket(printer.ip, dummyOrder, settings, printer.model, 'graphic');
+            if (printer.type === 'kitchen') {
+                await printKitchenTicket(printer.ip, dummyOrder, settings, printer.model, printer.encoding);
+            } else if (printer.type === 'receipt') {
+                await printCustomerReceipt(printer.ip, dummyOrder, settings, printer.model, printer.encoding);
+            } else {
+                await printCustomerReceipt(printer.ip, dummyOrder, settings, printer.model, printer.encoding);
+                await new Promise(r => setTimeout(r, 1000));
+                await printKitchenTicket(printer.ip, dummyOrder, settings, printer.model, printer.encoding);
+            }
         }
 
         alert('ส่งคำสั่งพิมพ์ทดสอบสำเร็จ');

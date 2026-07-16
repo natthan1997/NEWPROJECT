@@ -5709,9 +5709,10 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                   ปฏิเสธการเช็คอิน
                 </button>
               </div>
+            </div>
 
-              {/* Right Column: List of Held/Pending Orders */}
-              <div className="flex-1 p-8 flex flex-col min-w-0">
+            {/* Right Column: List of Held/Pending Orders */}
+            <div className="flex-1 p-8 flex flex-col min-w-0">
                 <div className="mb-4">
                   <h4 className="text-sm font-black text-gray-900 tracking-tight">
                     หรือผูกกับบิลที่เปิดค้างไว้

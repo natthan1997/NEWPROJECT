@@ -214,7 +214,7 @@ const renderKitchenHtml = (order: PrintOrderData, shop: PrintShopData) => {
     const orderRefNum = (order.orderNumber && order.orderNumber !== 'Draft') ? String(order.orderNumber).slice(-4) : (order.orderNumber || '-');
     html += `<div style="font-size: 32px; border-top: 2px dashed black; padding-top: 8px; margin-top: 4px;">เลขออเดอร์: ${escapeHtml(orderRefNum)}</div>`;
   } else if (order.orderType === 'dine-in' || order.orderType === 'dine_in') {
-    html += `<div style="font-size: 16px; letter-spacing: 0.16em; margin-bottom: 8px;">โต๊ะ</div>`;
+    html += `<div style="font-size: 16px; letter-spacing: 0.16em; margin-bottom: 8px;">โต๊ะ (TABLE)</div>`;
     html += `<div style="font-size: 72px; line-height: 0.95; word-break: break-word;">${escapeHtml(order.tableNumber || '-')}</div>`;
   } else {
     const qStr = String(order.queueNumber || '').trim();
@@ -223,16 +223,14 @@ const renderKitchenHtml = (order: PrintOrderData, shop: PrintShopData) => {
     if (qStr && qStr !== '0' && qStr !== 'null') {
       html += `<div style="font-size: 18px; letter-spacing: 0.16em; margin-bottom: 8px;">คิวที่ (QUEUE)</div>`;
       html += `<div style="font-size: 54px; line-height: 1.05; word-break: break-word;">#${escapeHtml(qStr.padStart(3, '0'))}</div>`;
-      html += `<div style="font-size: 20px; line-height:1.05; margin-top: 8px;">เลขออเดอร์: ${escapeHtml(orderRefNum)}</div>`;
+      html += `<div style="font-size: 24px; line-height:1.05; margin-top: 12px; font-weight:900;">เลขออเดอร์: ${escapeHtml(orderRefNum)}</div>`;
     } else {
-      html += `<div style="font-size: 18px; letter-spacing: 0.16em; margin-bottom: 8px;">ออเดอร์ (TAKEAWAY)</div>`;
+      html += `<div style="font-size: 18px; letter-spacing: 0.16em; margin-bottom: 8px;">เลขออเดอร์ (ORDER)</div>`;
       html += `<div style="font-size: 54px; line-height: 1.05; word-break: break-word;">#${escapeHtml(orderRefNum)}</div>`;
     }
   }
   html += `</div>`;
-  if (order.orderType !== 'delivery') {
-    html += `<div style="margin-bottom: 8px; font-size: 20px; font-weight:800;">รหัสบิล: ${escapeHtml(order.orderNumber || '-')}</div>`;
-  }
+  html += `<div style="margin-bottom: 8px; font-size: 20px; font-weight:800;">รหัสบิล: ${escapeHtml(order.orderNumber || '-')}</div>`;
   html += `<div style="margin-bottom: 10px; font-size: 22px; font-weight:800;">ประเภท: ${escapeHtml(formatOrderTypeLabel(order.orderType))}</div>`;
   const pickupTime = extractPickupTime(order.comment, order.pickupTime);
   const orderNote = extractOrderNote(order.comment);
@@ -335,7 +333,7 @@ const renderGraphicCanvasDirect = async (
   styles = 'padding: 10px 12px; text-align: center; font-size: 20px; font-weight: bold;'
 ): Promise<HTMLCanvasElement> => {
   const wrapper = document.createElement('div');
-  wrapper.style.cssText = `position: fixed; left: -9999px; top: -9999px; width: ${width}px; height: auto; overflow: hidden; z-index: 999999; opacity: 0.002; pointer-events: none; background: white;`;
+  wrapper.style.cssText = `position: fixed; left: -9999px; top: -9999px; width: ${width}px; height: auto; z-index: 999999; opacity: 1; background: white;`;
   const div = document.createElement('div');
   div.style.cssText = `background: white; color: black; font-family: 'Prompt', 'Noto Sans Thai', 'Tahoma', 'Arial', sans-serif; width: ${width}px; box-sizing: border-box; ${styles}`;
   div.innerHTML = html;
