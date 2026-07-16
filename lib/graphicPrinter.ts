@@ -322,7 +322,7 @@ export const printGraphicModeCustomerReceipt = async (
     try {
       const canvasPromise = html2canvas(div, printCaptureOptions);
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('html2canvas render timeout')), 2500)
+        setTimeout(() => reject(new Error('html2canvas render timeout')), 15000)
       );
       const canvas = await Promise.race([canvasPromise, timeoutPromise]);
       document.body.removeChild(div);
@@ -353,7 +353,7 @@ export const printGraphicModeKitchenTicket = async (
     try {
       const canvasPromise = html2canvas(div, printCaptureOptions);
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('html2canvas render timeout')), 2500)
+        setTimeout(() => reject(new Error('html2canvas render timeout')), 15000)
       );
       const canvas = await Promise.race([canvasPromise, timeoutPromise]);
       document.body.removeChild(div);
@@ -383,7 +383,7 @@ export const printGraphicModeZReport = async (
     try {
       const canvasPromise = html2canvas(div, printCaptureOptions);
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('html2canvas render timeout')), 2500)
+        setTimeout(() => reject(new Error('html2canvas render timeout')), 15000)
       );
       const canvas = await Promise.race([canvasPromise, timeoutPromise]);
       document.body.removeChild(div);
