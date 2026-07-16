@@ -343,31 +343,6 @@ const renderGraphicCanvasDirect = async (
       return reject(new Error('Cannot access iframe document'));
     }
 
-    doc.open();
-    doc.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <style>
-            @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;700;900&display=swap');
-            body {
-              margin: 0;
-              background: white;
-              color: black;
-              font-family: 'Noto Sans Thai', 'Tahoma', 'Arial', sans-serif;
-              width: ${width}px;
-              box-sizing: border-box;
-              ${styles}
-            }
-          </style>
-        </head>
-        <body>
-          <div id="receipt-content">${html}</div>
-        </body>
-      </html>
-    `);
-    doc.close();
-
     const checkAndRender = async () => {
       try {
         // Allow time for fonts and images to load inside iframe
@@ -402,10 +377,35 @@ const renderGraphicCanvasDirect = async (
       }
     };
 
-    // Trigger render after iframe loads
+    // Assign onload BEFORE doc.write to prevent race conditions on second prints
     iframe.onload = () => {
       checkAndRender();
     };
+
+    doc.open();
+    doc.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;700;900&display=swap');
+            body {
+              margin: 0;
+              background: white;
+              color: black;
+              font-family: 'Noto Sans Thai', 'Tahoma', 'Arial', sans-serif;
+              width: ${width}px;
+              box-sizing: border-box;
+              ${styles}
+            }
+          </style>
+        </head>
+        <body>
+          <div id="receipt-content">${html}</div>
+        </body>
+      </html>
+    `);
+    doc.close();
   });
 };
 
