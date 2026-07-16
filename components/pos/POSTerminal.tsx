@@ -5632,12 +5632,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                     </span>
                   </div>
 
-                  <h3 className="text-lg font-black text-gray-900 tracking-tight mb-1">
-                    ลูกค้าเช็คอินสะสมแต้ม
-                  </h3>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-6">
-                    Real-time Check-in
-                  </p>
+{/* Removed Title */}
 
                   {/* Customer Card */}
                   <div className="w-full bg-gray-50 border border-[#F0F0E8] rounded-2xl p-4 flex items-center gap-3.5 mb-6 text-left">
@@ -5709,7 +5704,6 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                   ปฏิเสธการเช็คอิน
                 </button>
               </div>
-            </div>
 
             {/* Right Column: List of Held/Pending Orders */}
             <div className="flex-1 p-8 flex flex-col min-w-0">
