@@ -716,126 +716,144 @@ const handleSave = async () => {
 
                         {activeTab === 'delivery' && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                {/* Section: Delivery Rules */}
-            <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
-              <div className="flex items-center justify-between mb-8">
-                <h3 className="text-xl font-black flex items-center gap-3">
-                  <Truck className="w-6 h-6 text-[#111111]" />
-                  {locale === 'en' ? '                   กฎราคาค่าขนส่ง (Delivery Fee Tiers)                 ' : locale === 'zh' ? '                   กฎราคาค่าขนส่ง (Delivery Fee Tiers)                 ' : '                   กฎราคาค่าขนส่ง (Delivery Fee Tiers)                 '}</h3>
-                <button
-                  onClick={addDeliveryRule}
-                  className="flex items-center gap-2 border border-[#111111] px-4 py-2 hover:bg-[#F0F0F0] text-xs font-bold uppercase tracking-wider transition-all"
-                >
-                  <Plus className="w-4 h-4" /> {locale === 'en' ? ' เพิ่มขั้นบันได                 ' : locale === 'zh' ? ' เพิ่มขั้นบันได                 ' : ' เพิ่มขั้นบันได                 '}</button>
-              </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead>
-                    <tr className="border-b border-[#111111]">
-                      <th className="py-4 text-[10px] font-bold uppercase tracking-widest text-[#A3A3A3]">{locale === 'en' ? 'ระยะทางสูงสุด (กม.)' : locale === 'zh' ? 'ระยะทางสูงสุด (กม.)' : 'ระยะทางสูงสุด (กม.)'}</th>
-                      <th className="py-4 text-[10px] font-bold uppercase tracking-widest text-[#A3A3A3]">{locale === 'en' ? 'ค่าจัดส่ง (บาท)' : locale === 'zh' ? 'ค่าจัดส่ง (บาท)' : 'ค่าจัดส่ง (บาท)'}</th>
-                      <th className="py-4"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#F0F0F0]">
-                    {(settings.delivery_fee_rules || []).map((rule, idx) => (
-                      <tr key={idx} className="group hover:bg-[#FAFAFA] transition-colors">
-                        <td className="py-4">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-[#A3A3A3]">{locale === 'en' ? 'ไม่เกิน' : locale === 'zh' ? 'ไม่เกิน' : 'ไม่เกิน'}</span>
-                            <input
-                              type="number"
-                              value={rule.max_dist}
-                              onChange={(e) => updateDeliveryRule(idx, 'max_dist', Number(e.target.value))}
-                              className="w-24 p-2 border border-[#E5E5E5] bg-white font-mono text-center outline-none focus:border-[#111111]"
-                            />
-                            <span className="text-xs text-[#111111]">{locale === 'en' ? 'กม.' : locale === 'zh' ? 'กม.' : 'กม.'}</span>
-                          </div>
-                        </td>
-                        <td className="py-4 font-mono font-bold text-lg">
-                           <div className="flex items-center gap-2">
-                            <input
-                              type="number"
-                              value={rule.fee}
-                              onChange={(e) => updateDeliveryRule(idx, 'fee', Number(e.target.value))}
-                              className="w-24 p-2 border border-[#E5E5E5] bg-white font-mono text-center outline-none focus:border-[#111111]"
-                            />
-                            <span className="text-xs text-[#111111]">{locale === 'en' ? 'baht' : locale === 'zh' ? '铢' : 'บาท'}</span>
-                          </div>
-                        </td>
-                        <td className="py-4 text-right">
-                          <button
-                            onClick={() => removeDeliveryRule(idx)}
-                            className="p-2 text-red-400 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                    {(!settings.delivery_fee_rules || settings.delivery_fee_rules.length === 0) && (
-                      <tr>
-                        <td colSpan={3} className="py-12 text-center text-sm text-[#A3A3A3] font-light italic">
-                          {locale === 'en' ? '                           ยังไม่ได้กำหนดราคาค่าขนส่งตามระยะทาง                         ' : locale === 'zh' ? '                           ยังไม่ได้กำหนดราคาค่าขนส่งตามระยะทาง                         ' : '                           ยังไม่ได้กำหนดราคาค่าขนส่งตามระยะทาง                         '}</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-              
-              <div className="mt-8 p-6 bg-[#FAFAFA] border border-dashed border-[#CCCCCC] rounded-md">
-                <h4 className="text-xs font-bold uppercase tracking-widest mb-4">Example Calculation</h4>
-                <div className="space-y-2 text-xs text-[#666666]">
-                  <p>{locale === 'en' ? '• ระยะทาง 1.5 กม. → ใช้ขั้นบันไดที่ครอบคลุม 1.5 กม. อันแรก' : locale === 'zh' ? '• ระยะทาง 1.5 กม. → ใช้ขั้นบันไดที่ครอบคลุม 1.5 กม. อันแรก' : '• ระยะทาง 1.5 กม. → ใช้ขั้นบันไดที่ครอบคลุม 1.5 กม. อันแรก'}</p>
-                  <p>{locale === 'en' ? '• ระบบจะคำนวณระยะทางจากหน้า LIFF ของลูกค้าโดยอัตโนมัติ' : locale === 'zh' ? '• ระบบจะคำนวณระยะทางจากหน้า LIFF ของลูกค้าโดยอัตโนมัติ' : '• ระบบจะคำนวณระยะทางจากหน้า LIFF ของลูกค้าโดยอัตโนมัติ'}</p>
-                </div>
-              </div>
-            </div>
+                                <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
+                                    <h3 className="text-xl font-black mb-2 flex items-center gap-3">
+                                        <Truck className="text-orange-500" size={24} /> {locale === 'en' ? 'ตั้งค่า GP เดลิเวอรี่' : locale === 'zh' ? '设置外卖GP' : 'ตั้งค่า GP เดลิเวอรี่'}
+                                    </h3>
+                                    <p className="text-[12px] text-gray-500 font-bold mb-8">{locale === 'en' ? 'ระบุเปอร์เซ็นต์หัก GP ของแต่ละแอป' : locale === 'zh' ? '指定每个应用程序扣除的GP百分比' : 'ระบุเปอร์เซ็นต์หัก GP ของแต่ละแอป'}</p>
+                                    
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
+                                        {['grab', 'lineman', 'shopee', 'foodpanda', 'robinhood'].map(platform => {
+                                            const isActive = settings.active_delivery_platforms?.includes(platform) ?? true;
+                                            return (
+                                            <div key={platform} className={`space-y-3 ${isActive ? '' : 'opacity-50'}`}>
+                                                <div className="flex items-center justify-between">
+                                                    <label className="text-[11px] font-black uppercase tracking-widest text-gray-400">
+                                                        {platform === 'grab' ? 'Grab' : platform === 'lineman' ? 'LINE MAN' : platform === 'shopee' ? 'ShopeeFood' : platform === 'foodpanda' ? 'Foodpanda' : 'Robinhood'}
+                                                    </label>
+                                                    <button
+                                                        onClick={() => {
+                                                            let active = settings.active_delivery_platforms || ['grab', 'lineman', 'shopee', 'foodpanda', 'robinhood'];
+                                                            if (active.includes(platform)) {
+                                                                active = active.filter(p => p !== platform);
+                                                            } else {
+                                                                active = [...active, platform];
+                                                            }
+                                                            setSettings({...settings, active_delivery_platforms: active});
+                                                        }}
+                                                        className={`w-10 h-5 rounded-full relative transition-colors ${isActive ? 'bg-black' : 'bg-gray-300'}`}
+                                                    >
+                                                        <div className={`w-4 h-4 rounded-full bg-white absolute top-0.5 transition-all ${isActive ? 'left-5' : 'left-0.5'}`} />
+                                                    </button>
+                                                </div>
+                                                <div className="relative">
+                                                    <input 
+                                                        type="number" 
+                                                        step="0.1"
+                                                        disabled={!isActive}
+                                                        value={settings.delivery_gp?.[platform] ?? 32.1}
+                                                        onChange={e => setSettings({
+                                                            ...settings, 
+                                                            delivery_gp: { ...settings.delivery_gp, [platform]: parseFloat(e.target.value) || 0 }
+                                                        })}
+                                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-[14px] font-bold outline-none focus:ring-2 focus:ring-black pr-10" 
+                                                    />
+                                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-black">%</span>
+                                                </div>
+                                            </div>
+                                        )})}
+                                    </div>
+                                </div>
 
-            
-                                {/* Section: Delivery GP Rules */}
-            <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
-              <div className="flex items-center justify-between mb-8">
-                <h3 className="text-xl font-black flex items-center gap-3">
-                  <span className="text-[#111111] font-bold">%</span>
-                  {locale === 'en' ? '                   เปอร์เซ็นต์หัก GP ตามแพลตฟอร์ม (Delivery GP %)                 ' : locale === 'zh' ? '                   เปอร์เซ็นต์หัก GP ตามแพลตฟอร์ม (Delivery GP %)                 ' : '                   เปอร์เซ็นต์หัก GP ตามแพลตฟอร์ม (Delivery GP %)                 '}</h3>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {['grab', 'lineman', 'shopee', 'foodpanda', 'robinhood'].map((platform) => (
-                  <div key={platform} className="p-4 border border-[#F0F0F0] hover:border-[#111111] transition-colors">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-[#666666] mb-2 block capitalize">
-                      {platform} GP (%)
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        value={settings.delivery_gp?.[platform] ?? 0}
-                        onChange={(e) => setSettings({
-                          ...settings,
-                          delivery_gp: { ...(settings.delivery_gp || {}), [platform]: Number(e.target.value) }
-                        })}
-                        className="w-full p-3 border border-[#E5E5E5] bg-white font-mono text-xl focus:border-[#111111] outline-none transition-colors"
-                        min={0}
-                        max={100}
-                        step={0.1}
-                      />
-                      <span className="text-[#111111] font-bold text-lg">%</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              
-              <div className="mt-8 p-6 bg-[#FAFAFA] border border-dashed border-[#CCCCCC] rounded-md">
-                <h4 className="text-xs font-bold uppercase tracking-widest mb-4">GP Calculation Notice</h4>
-                <div className="space-y-2 text-xs text-[#666666]">
-                  <p>{locale === 'en' ? '• ระบบจะนำเปอร์เซ็นต์ GP นี้ไปคำนวณหักลบออกจากยอดออเดอร์ (Grand Total) เพื่อแสดงเป็นยอดสุทธิในหน้า Reports อัตโนมัติ' : locale === 'zh' ? '• ระบบจะนำเปอร์เซ็นต์ GP นี้ไปคำนวณหักลบออกจากยอดออเดอร์ (Grand Total) เพื่อแสดงเป็นยอดสุทธิในหน้า Reports อัตโนมัติ' : '• ระบบจะนำเปอร์เซ็นต์ GP นี้ไปคำนวณหักลบออกจากยอดออเดอร์ (Grand Total) เพื่อแสดงเป็นยอดสุทธิในหน้า Reports อัตโนมัติ'}</p>
-                  <p className="text-red-600 font-bold">{locale === 'en' ? '* สำคัญ: กรุณารัน SQL Migration เพิ่ม Column ให้กับ Database ในเมนู Database Migration ก่อนการใช้งานครั้งแรก' : locale === 'zh' ? '* สำคัญ: กรุณารัน SQL Migration เพิ่ม Column ให้กับ Database ในเมนู Database Migration ก่อนการใช้งานครั้งแรก' : '* สำคัญ: กรุณารัน SQL Migration เพิ่ม Column ให้กับ Database ในเมนู Database Migration ก่อนการใช้งานครั้งแรก'}</p>
-                </div>
-              </div>
-            </div>
-          
+                                {/* IN-HOUSE DELIVERY SETTINGS */}
+                                <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
+                                    <div className="flex items-center justify-between mb-8">
+                                        <div>
+                                            <h3 className="text-xl font-black mb-2 flex items-center gap-3">
+                                                <MapPin className="text-emerald-500" size={24} /> {locale === 'en' ? 'In-House Delivery Settings' : locale === 'zh' ? '内部配送设置' : 'ตั้งค่าไรเดอร์ของร้าน (In-House)'}
+                                            </h3>
+                                            <p className="text-[12px] text-gray-500 font-bold">{locale === 'en' ? 'Configure distance-based delivery fee' : locale === 'zh' ? '配置基于距离的送货费' : 'ตั้งค่าราคาค่าส่งตามระยะทาง (Google Maps)'}</p>
+                                        </div>
+                                        <button
+                                            onClick={() => setSettings({
+                                                ...settings,
+                                                inhouse_delivery_config: { ...settings.inhouse_delivery_config, enabled: !settings.inhouse_delivery_config?.enabled }
+                                            })}
+                                            className={`w-12 h-6 rounded-full relative transition-colors ${settings.inhouse_delivery_config?.enabled ? 'bg-emerald-500' : 'bg-gray-300'}`}
+                                        >
+                                            <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all ${settings.inhouse_delivery_config?.enabled ? 'left-6.5' : 'left-0.5'}`} />
+                                        </button>
+                                    </div>
+                                    
+                                    <div className={`transition-all duration-300 ${settings.inhouse_delivery_config?.enabled ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div>
+                                                <label className="text-[11px] font-black uppercase tracking-widest text-gray-400 block mb-2">Base Distance (ระยะเริ่มต้น)</label>
+                                                <div className="relative">
+                                                    <input 
+                                                        type="number" step="0.1"
+                                                        value={settings.inhouse_delivery_config?.base_distance_km ?? 3}
+                                                        onChange={e => setSettings({...settings, inhouse_delivery_config: { ...settings.inhouse_delivery_config, base_distance_km: parseFloat(e.target.value) || 0 }})}
+                                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-[14px] font-bold outline-none focus:ring-2 focus:ring-black pr-12" 
+                                                    />
+                                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-black">กม.</span>
+                                                </div>
+                                                <p className="text-[10px] text-gray-400 mt-2 font-bold">ระยะทางเริ่มต้นสำหรับค่าส่งเหมาจ่าย</p>
+                                            </div>
+                                            <div>
+                                                <label className="text-[11px] font-black uppercase tracking-widest text-gray-400 block mb-2">Base Price (ราคาเริ่มต้น)</label>
+                                                <div className="relative">
+                                                    <input 
+                                                        type="number" 
+                                                        value={settings.inhouse_delivery_config?.base_price ?? 20}
+                                                        onChange={e => setSettings({...settings, inhouse_delivery_config: { ...settings.inhouse_delivery_config, base_price: parseInt(e.target.value) || 0 }})}
+                                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-[14px] font-bold outline-none focus:ring-2 focus:ring-black pr-12" 
+                                                    />
+                                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-black">บาท</span>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="text-[11px] font-black uppercase tracking-widest text-gray-400 block mb-2">Per Km Rate (บวกกม.ละ)</label>
+                                                <div className="relative">
+                                                    <input 
+                                                        type="number" 
+                                                        value={settings.inhouse_delivery_config?.per_km_rate ?? 10}
+                                                        onChange={e => setSettings({...settings, inhouse_delivery_config: { ...settings.inhouse_delivery_config, per_km_rate: parseInt(e.target.value) || 0 }})}
+                                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-[14px] font-bold outline-none focus:ring-2 focus:ring-black pr-12" 
+                                                    />
+                                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-black">บาท</span>
+                                                </div>
+                                                <p className="text-[10px] text-gray-400 mt-2 font-bold">ราคาบวกเพิ่มสำหรับระยะทางที่เกินจาก Base Distance</p>
+                                            </div>
+                                            <div>
+                                                <label className="text-[11px] font-black uppercase tracking-widest text-gray-400 block mb-2">Max Distance (ส่งไกลสุด)</label>
+                                                <div className="relative">
+                                                    <input 
+                                                        type="number" step="0.1"
+                                                        value={settings.inhouse_delivery_config?.max_distance_km ?? 15}
+                                                        onChange={e => setSettings({...settings, inhouse_delivery_config: { ...settings.inhouse_delivery_config, max_distance_km: parseFloat(e.target.value) || 0 }})}
+                                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-[14px] font-bold outline-none focus:ring-2 focus:ring-black pr-12" 
+                                                    />
+                                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-black">กม.</span>
+                                                </div>
+                                            </div>
+                                            <div className="md:col-span-2">
+                                                <label className="text-[11px] font-black uppercase tracking-widest text-gray-400 block mb-2">Free Delivery Threshold (สั่งครบ ส่งฟรี)</label>
+                                                <div className="relative">
+                                                    <input 
+                                                        type="number" 
+                                                        value={settings.inhouse_delivery_config?.free_delivery_threshold ?? 500}
+                                                        onChange={e => setSettings({...settings, inhouse_delivery_config: { ...settings.inhouse_delivery_config, free_delivery_threshold: parseInt(e.target.value) || 0 }})}
+                                                        className="w-full bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl py-3 px-4 text-[14px] font-bold outline-none focus:ring-2 focus:ring-emerald-500 pr-12" 
+                                                    />
+                                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-600 font-black">บาท</span>
+                                                </div>
+                                                <p className="text-[10px] text-emerald-600 mt-2 font-bold">หากลูกค้ามียอดสั่งซื้อถึงกำหนด ค่าจัดส่งจะเป็น 0 บาท ทันที (ใส่ 0 ถ้ายกเลิกส่งฟรี)</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         )}
 
@@ -1172,144 +1190,6 @@ const handleSave = async () => {
                                         >
                                             <div className={`absolute top-1 w-6 h-6 rounded-full bg-white transition-all ${settings.opening_hours?.allow_qr_payment !== false ? 'left-7' : 'left-1'}`} />
                                         </button>
-                                    </div>
-                                </div>
-
-                                <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
-                                    <h3 className="text-xl font-black mb-2 flex items-center gap-3">
-                                        <Truck className="text-orange-500" size={24} /> {locale === 'en' ? 'ตั้งค่า GP เดลิเวอรี่' : locale === 'zh' ? '设置外卖GP' : 'ตั้งค่า GP เดลิเวอรี่'}
-                                    </h3>
-                                    <p className="text-[12px] text-gray-500 font-bold mb-8">{locale === 'en' ? 'ระบุเปอร์เซ็นต์หัก GP ของแต่ละแอป' : locale === 'zh' ? '指定每个应用程序扣除的GP百分比' : 'ระบุเปอร์เซ็นต์หัก GP ของแต่ละแอป'}</p>
-                                    
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
-                                        {['grab', 'lineman', 'shopee', 'foodpanda', 'robinhood'].map(platform => {
-                                            const isActive = settings.active_delivery_platforms?.includes(platform) ?? true;
-                                            return (
-                                            <div key={platform} className={`space-y-3 ${isActive ? '' : 'opacity-50'}`}>
-                                                <div className="flex items-center justify-between">
-                                                    <label className="text-[11px] font-black uppercase tracking-widest text-gray-400">
-                                                        {platform === 'grab' ? 'Grab' : platform === 'lineman' ? 'LINE MAN' : platform === 'shopee' ? 'ShopeeFood' : platform === 'foodpanda' ? 'Foodpanda' : 'Robinhood'}
-                                                    </label>
-                                                    <button
-                                                        onClick={() => {
-                                                            let active = settings.active_delivery_platforms || ['grab', 'lineman', 'shopee', 'foodpanda', 'robinhood'];
-                                                            if (active.includes(platform)) {
-                                                                active = active.filter(p => p !== platform);
-                                                            } else {
-                                                                active = [...active, platform];
-                                                            }
-                                                            setSettings({...settings, active_delivery_platforms: active});
-                                                        }}
-                                                        className={`w-10 h-5 rounded-full relative transition-colors ${isActive ? 'bg-black' : 'bg-gray-300'}`}
-                                                    >
-                                                        <div className={`w-4 h-4 rounded-full bg-white absolute top-0.5 transition-all ${isActive ? 'left-5' : 'left-0.5'}`} />
-                                                    </button>
-                                                </div>
-                                                <div className="relative">
-                                                    <input 
-                                                        type="number" 
-                                                        step="0.1"
-                                                        disabled={!isActive}
-                                                        value={settings.delivery_gp?.[platform] ?? 32.1}
-                                                        onChange={e => setSettings({
-                                                            ...settings, 
-                                                            delivery_gp: { ...settings.delivery_gp, [platform]: parseFloat(e.target.value) || 0 }
-                                                        })}
-                                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-[14px] font-bold outline-none focus:ring-2 focus:ring-black pr-10" 
-                                                    />
-                                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-black">%</span>
-                                                </div>
-                                            </div>
-                                        )})}
-                                    </div>
-                                </div>
-
-                                {/* IN-HOUSE DELIVERY SETTINGS */}
-                                <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
-                                    <div className="flex items-center justify-between mb-8">
-                                        <div>
-                                            <h3 className="text-xl font-black mb-2 flex items-center gap-3">
-                                                <MapPin className="text-emerald-500" size={24} /> {locale === 'en' ? 'In-House Delivery Settings' : locale === 'zh' ? '内部配送设置' : 'ตั้งค่าไรเดอร์ของร้าน (In-House)'}
-                                            </h3>
-                                            <p className="text-[12px] text-gray-500 font-bold">{locale === 'en' ? 'Configure distance-based delivery fee' : locale === 'zh' ? '配置基于距离的送货费' : 'ตั้งค่าราคาค่าส่งตามระยะทาง (Google Maps)'}</p>
-                                        </div>
-                                        <button
-                                            onClick={() => setSettings({
-                                                ...settings,
-                                                inhouse_delivery_config: { ...settings.inhouse_delivery_config, enabled: !settings.inhouse_delivery_config?.enabled }
-                                            })}
-                                            className={`w-12 h-6 rounded-full relative transition-colors ${settings.inhouse_delivery_config?.enabled ? 'bg-emerald-500' : 'bg-gray-300'}`}
-                                        >
-                                            <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all ${settings.inhouse_delivery_config?.enabled ? 'left-6.5' : 'left-0.5'}`} />
-                                        </button>
-                                    </div>
-                                    
-                                    <div className={`transition-all duration-300 ${settings.inhouse_delivery_config?.enabled ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <div>
-                                                <label className="text-[11px] font-black uppercase tracking-widest text-gray-400 block mb-2">Base Distance (ระยะเริ่มต้น)</label>
-                                                <div className="relative">
-                                                    <input 
-                                                        type="number" step="0.1"
-                                                        value={settings.inhouse_delivery_config?.base_distance_km ?? 3}
-                                                        onChange={e => setSettings({...settings, inhouse_delivery_config: { ...settings.inhouse_delivery_config, base_distance_km: parseFloat(e.target.value) || 0 }})}
-                                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-[14px] font-bold outline-none focus:ring-2 focus:ring-black pr-12" 
-                                                    />
-                                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-black">กม.</span>
-                                                </div>
-                                                <p className="text-[10px] text-gray-400 mt-2 font-bold">ระยะทางเริ่มต้นสำหรับค่าส่งเหมาจ่าย</p>
-                                            </div>
-                                            <div>
-                                                <label className="text-[11px] font-black uppercase tracking-widest text-gray-400 block mb-2">Base Price (ราคาเริ่มต้น)</label>
-                                                <div className="relative">
-                                                    <input 
-                                                        type="number" 
-                                                        value={settings.inhouse_delivery_config?.base_price ?? 20}
-                                                        onChange={e => setSettings({...settings, inhouse_delivery_config: { ...settings.inhouse_delivery_config, base_price: parseInt(e.target.value) || 0 }})}
-                                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-[14px] font-bold outline-none focus:ring-2 focus:ring-black pr-12" 
-                                                    />
-                                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-black">บาท</span>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <label className="text-[11px] font-black uppercase tracking-widest text-gray-400 block mb-2">Per Km Rate (บวกกม.ละ)</label>
-                                                <div className="relative">
-                                                    <input 
-                                                        type="number" 
-                                                        value={settings.inhouse_delivery_config?.per_km_rate ?? 10}
-                                                        onChange={e => setSettings({...settings, inhouse_delivery_config: { ...settings.inhouse_delivery_config, per_km_rate: parseInt(e.target.value) || 0 }})}
-                                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-[14px] font-bold outline-none focus:ring-2 focus:ring-black pr-12" 
-                                                    />
-                                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-black">บาท</span>
-                                                </div>
-                                                <p className="text-[10px] text-gray-400 mt-2 font-bold">ราคาบวกเพิ่มสำหรับระยะทางที่เกินจาก Base Distance</p>
-                                            </div>
-                                            <div>
-                                                <label className="text-[11px] font-black uppercase tracking-widest text-gray-400 block mb-2">Max Distance (ส่งไกลสุด)</label>
-                                                <div className="relative">
-                                                    <input 
-                                                        type="number" step="0.1"
-                                                        value={settings.inhouse_delivery_config?.max_distance_km ?? 15}
-                                                        onChange={e => setSettings({...settings, inhouse_delivery_config: { ...settings.inhouse_delivery_config, max_distance_km: parseFloat(e.target.value) || 0 }})}
-                                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-[14px] font-bold outline-none focus:ring-2 focus:ring-black pr-12" 
-                                                    />
-                                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-black">กม.</span>
-                                                </div>
-                                            </div>
-                                            <div className="md:col-span-2">
-                                                <label className="text-[11px] font-black uppercase tracking-widest text-gray-400 block mb-2">Free Delivery Threshold (สั่งครบ ส่งฟรี)</label>
-                                                <div className="relative">
-                                                    <input 
-                                                        type="number" 
-                                                        value={settings.inhouse_delivery_config?.free_delivery_threshold ?? 500}
-                                                        onChange={e => setSettings({...settings, inhouse_delivery_config: { ...settings.inhouse_delivery_config, free_delivery_threshold: parseInt(e.target.value) || 0 }})}
-                                                        className="w-full bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl py-3 px-4 text-[14px] font-bold outline-none focus:ring-2 focus:ring-emerald-500 pr-12" 
-                                                    />
-                                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-600 font-black">บาท</span>
-                                                </div>
-                                                <p className="text-[10px] text-emerald-600 mt-2 font-bold">หากลูกค้ามียอดสั่งซื้อถึงกำหนด ค่าจัดส่งจะเป็น 0 บาท ทันที (ใส่ 0 ถ้ายกเลิกส่งฟรี)</p>
-                                            </div>
-                                        </div>
                                     </div>
                                 </div>
 
