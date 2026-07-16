@@ -326,9 +326,9 @@ export const printGraphicModeCustomerReceipt = async (
 ) => {
   const html = renderReceiptHtml(order, shop);
   const wrapper = document.createElement('div');
-  wrapper.style.cssText = `position: absolute; left: 0; top: 0; width: 0; height: 0; overflow: hidden; z-index: -9999; pointer-events: none;`;
+  wrapper.style.cssText = `position: absolute; left: 0; top: 0; width: ${GRAPHIC_RECEIPT_WIDTH}px; height: auto; overflow: hidden; z-index: -9999; pointer-events: none;`;
   const div = document.createElement('div');
-  div.style.cssText = `background: white; color: black; font-family: 'Noto Sans Thai', 'Tahoma', 'Arial', sans-serif; width: ${GRAPHIC_RECEIPT_WIDTH}px; box-sizing: border-box; padding: 10px 12px; font-size: 20px; font-weight: bold; text-align: center;`;
+  div.style.cssText = `background: white; color: black; font-family: 'Prompt', 'Noto Sans Thai', 'Tahoma', 'Arial', sans-serif; width: ${GRAPHIC_RECEIPT_WIDTH}px; box-sizing: border-box; padding: 10px 12px; font-size: 20px; font-weight: bold; text-align: center;`;
   div.innerHTML = html;
   wrapper.appendChild(div);
   document.body.appendChild(wrapper);
@@ -358,9 +358,9 @@ export const printGraphicModeKitchenTicket = async (
   encoding = 'graphic'
 ) => {
   const wrapper = document.createElement('div');
-  wrapper.style.cssText = `position: absolute; left: 0; top: 0; width: 0; height: 0; overflow: hidden; z-index: -9999; pointer-events: none;`;
+  wrapper.style.cssText = `position: absolute; left: 0; top: 0; width: ${GRAPHIC_RECEIPT_WIDTH}px; height: auto; overflow: hidden; z-index: -9999; pointer-events: none;`;
   const div = document.createElement('div');
-  div.style.cssText = `background: white; color: black; font-family: 'Noto Sans Thai', 'Tahoma', 'Arial', sans-serif; width: ${GRAPHIC_RECEIPT_WIDTH}px; box-sizing: border-box; padding: 12px 14px; font-size: 20px; font-weight: bold; text-align: left;`;
+  div.style.cssText = `background: white; color: black; font-family: 'Prompt', 'Noto Sans Thai', 'Tahoma', 'Arial', sans-serif; width: ${GRAPHIC_RECEIPT_WIDTH}px; box-sizing: border-box; padding: 12px 14px; font-size: 20px; font-weight: bold; text-align: left;`;
   div.innerHTML = renderKitchenHtml(order, shop);
   wrapper.appendChild(div);
   document.body.appendChild(wrapper);
@@ -389,9 +389,9 @@ export const printGraphicModeZReport = async (
 ) => {
   const html = renderZReportHtml(report, shop);
   const wrapper = document.createElement('div');
-  wrapper.style.cssText = `position: absolute; left: 0; top: 0; width: 0; height: 0; overflow: hidden; z-index: -9999; pointer-events: none;`;
+  wrapper.style.cssText = `position: absolute; left: 0; top: 0; width: ${GRAPHIC_RECEIPT_WIDTH}px; height: auto; overflow: hidden; z-index: -9999; pointer-events: none;`;
   const div = document.createElement('div');
-  div.style.cssText = `background: white; color: black; font-family: 'Noto Sans Thai', 'Tahoma', 'Arial', sans-serif; width: ${GRAPHIC_RECEIPT_WIDTH}px; box-sizing: border-box; padding: 12px 14px; font-size: 18px; font-weight: 700; text-align: left;`;
+  div.style.cssText = `background: white; color: black; font-family: 'Prompt', 'Noto Sans Thai', 'Tahoma', 'Arial', sans-serif; width: ${GRAPHIC_RECEIPT_WIDTH}px; box-sizing: border-box; padding: 12px 14px; font-size: 18px; font-weight: 700; text-align: left;`;
   div.innerHTML = html;
   wrapper.appendChild(div);
   document.body.appendChild(wrapper);
