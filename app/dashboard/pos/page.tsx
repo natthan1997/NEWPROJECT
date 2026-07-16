@@ -29,7 +29,8 @@ import { supabase } from '@/lib/supabaseClient'
 import { AnimatePresence, motion } from 'framer-motion'
 import Link from 'next/link'
 import POSShopStatusModal from '@/components/pos/POSShopStatusModal'
-import { printKitchenTicket } from '@/lib/printerUtils'
+import { printKitchenTicket, printCustomerReceipt } from '@/lib/printerUtils'
+import { printGraphicModeCustomerReceipt, printGraphicModeKitchenTicket } from '@/lib/graphicPrinter'
 import { playAppSound } from '@/lib/audioUtils'
 
 // XYL POS Components
@@ -794,10 +795,8 @@ function RestaurantOSPageContent() {
               if (itemsToPrint.length > 0) {
                 const routedOrderData = { ...printOrderData, items: itemsToPrint };
                 if (printer.encoding === 'graphic') {
-                  const { printGraphicModeKitchenTicket } = await import('@/lib/graphicPrinter');
                   await printGraphicModeKitchenTicket(printer.ip, routedOrderData, shopData, printer.model, printer.encoding);
                 } else {
-                  const { printKitchenTicket } = await import('@/lib/printerUtils');
                   await printKitchenTicket(printer.ip, routedOrderData, shopData, printer.model, printer.encoding);
                 }
               }
@@ -809,10 +808,8 @@ function RestaurantOSPageContent() {
               if (!printer.ip) continue
 
               if (printer.encoding === 'graphic') {
-                const { printGraphicModeCustomerReceipt } = await import('@/lib/graphicPrinter')
                 await printGraphicModeCustomerReceipt(printer.ip, receiptOrderData, shopData, printer.model, printer.encoding)
               } else {
-                const { printCustomerReceipt } = await import('@/lib/printerUtils')
                 await printCustomerReceipt(printer.ip, receiptOrderData, shopData, printer.model, printer.encoding)
               }
             }

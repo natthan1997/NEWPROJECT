@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabaseClient'
 import POSPinModal from './POSPinModal'
 import { useI18n } from "@/lib/I18nContext";
 import { printCustomerReceipt } from '@/lib/printerUtils'
+import { printGraphicModeCustomerReceipt } from '@/lib/graphicPrinter'
 
 export default function POSHistory({ shopSettings, profile, activeShift, onSetView, fetchShiftStats }: any) {
     const { locale } = useI18n();
@@ -232,7 +233,6 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
       for (const printer of receiptPrinters) {
         if (!printer?.ip) continue
         if (printer.encoding === 'graphic') {
-          const { printGraphicModeCustomerReceipt } = await import('@/lib/graphicPrinter')
           await printGraphicModeCustomerReceipt(printer.ip, orderData, shopData, printer.model, printer.encoding)
         } else {
           await printCustomerReceipt(printer.ip, orderData, shopData, printer.model, printer.encoding)

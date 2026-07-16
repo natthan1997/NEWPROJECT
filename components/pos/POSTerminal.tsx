@@ -71,6 +71,7 @@ import { PrinterSocket } from 'custom-printer-plugin';
 import { playAppSound } from '@/lib/audioUtils';
 import ReceiptPrinterEncoder from '@point-of-sale/receipt-printer-encoder'
 import { printCustomerReceipt, printKitchenTicket, printOpenDrawer, printPreReceipt } from '@/lib/printerUtils'
+import { printGraphicModeCustomerReceipt, printGraphicModeKitchenTicket } from '@/lib/graphicPrinter'
 import POSCustomerSelect from './POSCustomerSelect'
 import POSShopStatusModal from './POSShopStatusModal'
 import PointGenerator from './PointGenerator'
@@ -708,7 +709,6 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             if (!printer.ip) return;
             if (type === 'receipt') {
                if (printer.encoding === 'graphic') {
-                   const { printGraphicModeCustomerReceipt } = await import('@/lib/graphicPrinter');
                    await printGraphicModeCustomerReceipt(printer.ip, currentPrintOrderData, printShopData, printer.model, printer.encoding, openDrawer);
                } else {
                    await printCustomerReceipt(printer.ip, currentPrintOrderData, printShopData, printer.model, printer.encoding, openDrawer);
@@ -724,7 +724,6 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                if (itemsToPrint.length > 0) {
                   const routedOrderData = { ...currentPrintOrderData, items: itemsToPrint };
                   if (printer.encoding === 'graphic') {
-                      const { printGraphicModeKitchenTicket } = await import('@/lib/graphicPrinter');
                       await printGraphicModeKitchenTicket(printer.ip, routedOrderData, printShopData, printer.model, printer.encoding);
                   } else {
                       await printKitchenTicket(printer.ip, routedOrderData, printShopData, printer.model, printer.encoding);
@@ -1995,7 +1994,6 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                           const routedOrderData = { ...printOrderData, items: itemsToPrint };
                           try {
                               if (printer.encoding === 'graphic') {
-                                  const { printGraphicModeKitchenTicket } = await import('@/lib/graphicPrinter');
                                   await printGraphicModeKitchenTicket(printer.ip, routedOrderData, shopData, printer.model, printer.encoding);
                               } else {
                                   await printKitchenTicket(printer.ip, routedOrderData, shopData, printer.model, printer.encoding);

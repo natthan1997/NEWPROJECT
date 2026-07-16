@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react'
 import { Capacitor } from '@capacitor/core'
 import { PrinterSocket } from 'custom-printer-plugin'
 import { printCustomerReceipt, printKitchenTicket } from '@/lib/printerUtils'
+import { printGraphicModeCustomerReceipt, printGraphicModeKitchenTicket } from '@/lib/graphicPrinter'
 import { 
   Plus, Loader2, Save, X, Settings, Clock,
   Bell, Info, Image as ImageIcon, Star, Gift,
@@ -338,7 +339,6 @@ export default function POSShopSettings({
         };
 
         if (printer.encoding === 'graphic') {
-            const { printGraphicModeCustomerReceipt, printGraphicModeKitchenTicket } = await import('@/lib/graphicPrinter');
             if (printer.type === 'kitchen') {
                 await printGraphicModeKitchenTicket(printer.ip, dummyOrder, settings, printer.model, printer.encoding);
             } else if (printer.type === 'receipt') {
