@@ -88,10 +88,15 @@ export const POSReceipt = forwardRef<HTMLDivElement, ReceiptProps>(({
         <h2 className="text-[34px] font-extrabold mb-1 leading-none">XYLEM</h2>
         <p className="text-[17px] leading-tight font-semibold">Cafe & Landscape</p>
         <p className="text-[17px] leading-tight font-bold">{locale === 'en' ? 'ใบเสร็จรับเงิน / Receipt' : locale === 'zh' ? 'ใบเสร็จรับเงิน / Receipt' : 'ใบเสร็จรับเงิน / Receipt'}</p>
-        {queueNumber && (
+        {orderType === 'delivery' && queueNumber && queueNumber !== '0' && queueNumber !== 'null' ? (
           <div className="mt-4 border-t-2 border-b-2 border-black border-dashed py-2">
-            <div className="text-[14px] font-bold">คิวที่ / QUEUE</div>
+            <div className="text-[14px] font-bold">คิวเดลิเวอรี่ / DELIVERY QUEUE</div>
             <div className="text-[48px] font-extrabold leading-none">#{String(queueNumber).padStart(3, '0')}</div>
+          </div>
+        ) : (
+          <div className="mt-4 border-t-2 border-b-2 border-black border-dashed py-2">
+            <div className="text-[14px] font-bold">เลขที่ออเดอร์ / ORDER NO.</div>
+            <div className="text-[24px] font-extrabold leading-normal break-all">#{orderNumber}</div>
           </div>
         )}
       </div>

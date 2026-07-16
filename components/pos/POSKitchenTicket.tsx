@@ -82,7 +82,10 @@ export const POSKitchenTicket = forwardRef<HTMLDivElement, KitchenTicketProps>((
               <div className="text-[13px] font-black uppercase tracking-[0.25em] mb-2">ค่ายเดลิเวอรี่</div>
               <div className="text-3xl font-black leading-tight break-words">{formatDeliveryPlatformLabel(deliveryPlatform)}</div>
               <div className="mt-3 text-[13px] font-black uppercase tracking-[0.25em] mb-1">เลข</div>
-              <div className="text-4xl font-black leading-tight break-words">{referenceName || '-'}</div>
+              <div className="text-4xl font-black leading-tight break-words mb-2">{referenceName || '-'}</div>
+              {queueNumber && queueNumber !== '0' && queueNumber !== 'null' && (
+                <div className="mt-2 border-t border-dashed border-black pt-2 text-2xl font-black">คิวส่ง: {queueNumber}</div>
+              )}
             </>
           ) : orderType === 'dine-in' || orderType === 'dine_in' ? (
             <>
@@ -91,9 +94,8 @@ export const POSKitchenTicket = forwardRef<HTMLDivElement, KitchenTicketProps>((
             </>
           ) : (
             <>
-              <div className="text-[15px] font-black uppercase tracking-[0.25em] mb-1">TAKEAWAY</div>
-              <div className="text-6xl font-black leading-none break-words">{queueNumber ? `#${String(queueNumber).padStart(3, '0')}` : '-'}</div>
-              <div className="mt-2 text-[15px] font-black">เลขคิว</div>
+              <div className="text-[15px] font-black uppercase tracking-[0.25em] mb-1">ออเดอร์ (TAKEAWAY)</div>
+              <div className="text-3xl font-black leading-normal break-all">#{orderNumber}</div>
             </>
           )}
         </div>
