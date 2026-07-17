@@ -2210,8 +2210,8 @@ export default function LiffMenuPage() {
                            </div>
                         </div>
                      )}
-                     <div className="absolute top-2 left-2 px-2.5 py-1 bg-white/95 backdrop-blur-sm rounded-full shadow-sm text-red-500 text-[10px] font-bold z-30 flex items-center gap-1">
-                       <span className="text-[10px]">🔥</span>
+                     <div className="absolute top-2 left-2 px-2.5 py-1 bg-white/95 backdrop-blur-sm rounded-full shadow-sm text-blue-500 text-[10px] font-bold z-30 flex items-center gap-1">
+                       <span className="text-[10px]">👍</span>
                        แนะนำ #{index + 1}
                      </div>
                    </div>
@@ -2243,6 +2243,58 @@ export default function LiffMenuPage() {
           </section>
         )}
 
+
+        {/* 🌟 Reviews Section */}
+        {recentReviews.length > 0 && !searchTerm && (
+          <div className="my-8 px-4">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Star size={20} fill="#F6C144" stroke="#F6C144" />
+                  <span className="text-xl font-bold text-gray-900">{reviewStats.average.toFixed(1)}</span>
+                  <span className="text-sm text-gray-500">({reviewStats.count} เรตติ้ง)</span>
+                </div>
+                <p className="text-sm text-gray-600">
+                  เสียงตอบรับจากลูกค้า <span className="text-black font-medium">ที่สั่งอาหารกับเรา</span>
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 snap-x">
+              {recentReviews.map((rev, idx) => (
+                <div key={idx} className="flex-shrink-0 w-[85%] snap-center p-5 bg-white border border-gray-100 rounded-2xl shadow-sm flex flex-col justify-between">
+                   <div>
+                     <div className="flex items-center justify-between mb-3">
+                         <div className="flex items-center gap-1">
+                           {[...Array(5)].map((_, i) => (
+                             <Star key={i} size={14} fill={i < rev.rating ? "#F6C144" : "none"} stroke={i < rev.rating ? "#F6C144" : "#E2E8F0"} />
+                           ))}
+                         </div>
+                         <span className="text-[13px] text-gray-400">{rev.customer_name || 'ลูกค้าคนสำคัญ'}</span>
+                     </div>
+                     {rev.comment && rev.comment.trim() !== '' && (
+                       <p className="text-[14px] text-gray-800 mb-4 leading-relaxed line-clamp-2">{rev.comment.trim()}</p>
+                     )}
+                   </div>
+                   {rev.pos_order_items && rev.pos_order_items.length > 0 && (
+                     <div className="flex flex-wrap gap-2 mt-auto">
+                       {rev.pos_order_items.slice(0, 2).map((oi: any, i: number) => {
+                         const itemName = Array.isArray(oi.item) ? oi.item[0]?.name : oi.item?.name;
+                         if (!itemName) return null;
+                         return (
+                           <div key={i} className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-50 text-gray-700 rounded-lg border border-gray-100 text-[12px] font-medium">
+                             <PlusCircle size={12} className="text-gray-400" />
+                             <span className="truncate max-w-[120px]">{itemName}</span>
+                           </div>
+                         );
+                       })}
+                     </div>
+                   )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ❤️ Tier 2: Most Loved (Best Sellers) */}
         {!searchTerm && bestSellingIds.length > 0 && (
@@ -2301,57 +2353,6 @@ export default function LiffMenuPage() {
           </section>
         )}
 
-        {/* 🌟 Reviews Section */}
-        {recentReviews.length > 0 && !searchTerm && (
-          <div className="my-8 px-4">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <Star size={20} fill="#F6C144" stroke="#F6C144" />
-                  <span className="text-xl font-bold text-gray-900">{reviewStats.average.toFixed(1)}</span>
-                  <span className="text-sm text-gray-500">({reviewStats.count} เรตติ้ง)</span>
-                </div>
-                <p className="text-sm text-gray-600">
-                  เสียงตอบรับจากลูกค้า <span className="text-black font-medium">ที่สั่งอาหารกับเรา</span>
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 snap-x">
-              {recentReviews.map((rev, idx) => (
-                <div key={idx} className="flex-shrink-0 w-[85%] snap-center p-5 bg-white border border-gray-100 rounded-2xl shadow-sm flex flex-col justify-between">
-                   <div>
-                     <div className="flex items-center justify-between mb-3">
-                         <div className="flex items-center gap-1">
-                           {[...Array(5)].map((_, i) => (
-                             <Star key={i} size={14} fill={i < rev.rating ? "#F6C144" : "none"} stroke={i < rev.rating ? "#F6C144" : "#E2E8F0"} />
-                           ))}
-                         </div>
-                         <span className="text-[13px] text-gray-400">{rev.customer_name || 'ลูกค้าคนสำคัญ'}</span>
-                     </div>
-                     {rev.comment && rev.comment.trim() !== '' && (
-                       <p className="text-[14px] text-gray-800 mb-4 leading-relaxed line-clamp-2">{rev.comment.trim()}</p>
-                     )}
-                   </div>
-                   {rev.pos_order_items && rev.pos_order_items.length > 0 && (
-                     <div className="flex flex-wrap gap-2 mt-auto">
-                       {rev.pos_order_items.slice(0, 2).map((oi: any, i: number) => {
-                         const itemName = Array.isArray(oi.item) ? oi.item[0]?.name : oi.item?.name;
-                         if (!itemName) return null;
-                         return (
-                           <div key={i} className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-50 text-gray-700 rounded-lg border border-gray-100 text-[12px] font-medium">
-                             <PlusCircle size={12} className="text-gray-400" />
-                             <span className="truncate max-w-[120px]">{itemName}</span>
-                           </div>
-                         );
-                       })}
-                     </div>
-                   )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* 📦 Full Collections: Categorized Browsing (Full-width Rows) */}
         <div className="px-4 space-y-12">
