@@ -741,7 +741,7 @@ export default function LiffMenuPage() {
           rating, 
           comment,
           pos_order_items (
-            item:pos_menu_items (name)
+            item:pos_menu_items!pos_order_items_item_id_fkey (name)
           )
         `)
         .not('comment', 'is', null)
