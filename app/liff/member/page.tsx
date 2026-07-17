@@ -473,15 +473,7 @@ export default function LiffMemberPage() {
         <div className="flex flex-col items-center flex-1">
             <h1 className="text-[14px] font-bold tracking-widest text-[#1A1A18]">{dict.title}</h1>
         </div>
-        <div className="relative flex items-center">
-            <motion.div 
-                animate={{ x: [0, -4, 0] }}
-                transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
-                className="absolute right-12 whitespace-nowrap text-[10px] font-bold text-gray-500 flex items-center gap-1 pointer-events-none"
-            >
-                {locale === 'en' ? 'Earn Points' : 'สะสมคะแนน'}
-                <ArrowRight size={12} className="text-gray-400" />
-            </motion.div>
+        <div className="relative flex flex-col items-center justify-center">
             <button
                 onClick={handleCheckIn}
                 disabled={claimLoading || !!activeCheckInId}
@@ -490,9 +482,16 @@ export default function LiffMemberPage() {
                 {claimLoading ? (
                   <div className="w-4 h-4 border-2 border-[#1A1A18] border-t-transparent rounded-full animate-spin" />
                 ) : (
-                  <QrCode size={18} />
+                  <Sparkles size={18} />
                 )}
             </button>
+            <motion.div 
+                animate={{ y: [0, -3, 0] }}
+                transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+                className="absolute top-[44px] whitespace-nowrap text-[9px] font-bold text-gray-400 pointer-events-none"
+            >
+                {locale === 'en' ? 'EARN' : 'สะสมพอยท์'}
+            </motion.div>
         </div>
       </header>
 
