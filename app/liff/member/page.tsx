@@ -483,22 +483,22 @@ export default function LiffMemberPage() {
         <div className="flex flex-col items-center flex-1">
             <h1 className="text-[14px] font-bold tracking-widest text-[#1A1A18]">{dict.title}</h1>
         </div>
-        <div className="relative flex flex-col items-center justify-center">
+        <div className="relative flex flex-col items-center justify-center pt-1">
             <button
                 onClick={handleCheckIn}
                 disabled={claimLoading || !!activeCheckInId}
-                className="w-10 h-10 flex items-center justify-center bg-white text-[#1A1A18] rounded-full active:scale-95 transition-all shadow-sm border border-gray-200 relative overflow-hidden z-10"
+                className="w-8 h-8 flex items-center justify-center text-[#1A1A18] active:scale-95 transition-all z-10"
             >
                 {claimLoading ? (
                   <div className="w-4 h-4 border-2 border-[#1A1A18] border-t-transparent rounded-full animate-spin" />
                 ) : (
-                  <ScanPointsIcon size={18} />
+                  <ScanPointsIcon size={20} />
                 )}
             </button>
             <motion.div 
-                animate={{ y: [0, -3, 0] }}
+                animate={{ y: [0, -2, 0] }}
                 transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
-                className="absolute top-[44px] whitespace-nowrap text-[9px] font-bold text-gray-400 pointer-events-none"
+                className="absolute top-[32px] whitespace-nowrap text-[8.5px] font-bold text-gray-400 pointer-events-none"
             >
                 {locale === 'en' ? 'EARN' : 'สะสมพอยท์'}
             </motion.div>
