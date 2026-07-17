@@ -1,8 +1,9 @@
 'use client';
 import React, { useState, useEffect } from 'react'
-import { Users, Search, QrCode, Phone, ChevronRight, UserPlus, Loader2, Star, Coffee, X, Layers } from 'lucide-react'
+import { Users, Search, QrCode, Phone, ChevronRight, UserPlus, Loader2, Star, Coffee, X, Layers, Download } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import { useI18n } from "@/lib/I18nContext";
+import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
 
 interface Customer {
     id: string
@@ -29,6 +30,7 @@ export default function POSCustomerSelect({ onSelect, selectedCustomer, onClose,
     const [customers, setCustomers] = useState<Customer[]>([])
     const [loading, setLoading] = useState(false)
     const [isCreating, setIsCreating] = useState(false)
+    const [showQR, setShowQR] = useState(false)
     const [newCustomer, setNewCustomer] = useState({ name: '', phone: '', email: '' })
 
     useEffect(() => {
@@ -38,6 +40,19 @@ export default function POSCustomerSelect({ onSelect, selectedCustomer, onClose,
             fetchRecentCustomers()
         }
     }, [searchTerm])
+
+    const handleDownloadQR = () => {
+        const canvas = document.getElementById('member-qr-canvas') as HTMLCanvasElement;
+        if (canvas) {
+            const pngUrl = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
+            let downloadLink = document.createElement("a");
+            downloadLink.href = pngUrl;
+            downloadLink.download = "member-register-qr.png";
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+        }
+    }
 
     const searchCustomers = async () => {
         setLoading(true)
@@ -177,12 +192,21 @@ export default function POSCustomerSelect({ onSelect, selectedCustomer, onClose,
                                 ) : null}
                             </div>
 
-                            <button 
-                                onClick={() => setIsCreating(true)}
-                                className="w-full py-5 border-2 border-dashed border-gray-100 text-gray-400 rounded-none text-xs font-black uppercase tracking-widest hover:border-black hover:text-black transition-all flex items-center justify-center gap-2"
-                            >
-                                <UserPlus size={18} /> {locale === 'en' ? 'Register new member' : locale === 'zh' ? '注册新会员' : 'ลงทะเบียนสมาชิกใหม่'}
-                            </button>
+                            <div className="grid grid-cols-2 gap-3">
+                                <button 
+                                    onClick={() => setIsCreating(true)}
+                                    className="w-full py-5 border-2 border-dashed border-gray-100 text-gray-400 rounded-none text-xs font-black uppercase tracking-widest hover:border-black hover:text-black transition-all flex flex-col items-center justify-center gap-2"
+                                >
+                                    <UserPlus size={18} /> {locale === 'en' ? 'Register manually' : locale === 'zh' ? '手动注册' : 'ลงทะเบียนเอง'}
+                                </button>
+                                
+                                <button 
+                                    onClick={() => setShowQR(true)}
+                                    className="w-full py-5 border-2 border-dashed border-gray-100 text-gray-400 rounded-none text-xs font-black uppercase tracking-widest hover:border-black hover:text-black transition-all flex flex-col items-center justify-center gap-2"
+                                >
+                                    <QrCode size={18} /> {locale === 'en' ? 'Scan to register' : locale === 'zh' ? '扫码注册' : 'แสกนสมัครสมาชิก'}
+                                </button>
+                            </div>
 
                             {onManage && (
                                 <button 
@@ -260,8 +284,43 @@ export default function POSCustomerSelect({ onSelect, selectedCustomer, onClose,
                                  <div className="text-xs font-black uppercase">{selectedCustomer.display_name || selectedCustomer.full_name}</div>
                              </div>
                           </div>
-                         <button onClick={() => onSelect(null)} className="text-[10px] font-black uppercase text-red-500 underline underline-offset-4">{locale === 'en' ? 'Deselect' : locale === 'zh' ? '取消选择' : 'ยกเลิกการเลือก'}</button>
+                          <button onClick={() => onSelect(null)} className="text-[10px] font-black uppercase text-red-500 underline underline-offset-4">{locale === 'en' ? 'Deselect' : locale === 'zh' ? '取消选择' : 'ยกเลิกการเลือก'}</button>
                     </footer>
+                )}
+
+                {showQR && (
+                    <div className="absolute inset-0 z-50 bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center animate-in fade-in duration-200">
+                        <button 
+                            onClick={() => setShowQR(false)} 
+                            className="absolute top-6 right-6 p-4 bg-gray-50 rounded-none hover:bg-gray-100 transition-all text-gray-400 hover:text-black"
+                        >
+                            <X size={20} />
+                        </button>
+                        
+                        <div className="bg-white p-8 border border-gray-100 shadow-2xl rounded-2xl flex flex-col items-center gap-6">
+                            <h4 className="text-xl font-black uppercase tracking-widest text-center">
+                                {locale === 'en' ? 'Scan to Register' : locale === 'zh' ? '扫码注册' : 'แสกนเพื่อสมัครสมาชิก'}
+                            </h4>
+                            <div className="p-4 bg-gray-50 rounded-xl relative group">
+                                <QRCodeCanvas
+                                    id="member-qr-canvas"
+                                    value={`https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}/liff/member`}
+                                    size={200}
+                                    level="H"
+                                    includeMargin={true}
+                                />
+                                <button
+                                    onClick={handleDownloadQR}
+                                    className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-black text-white px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-xl hover:bg-gray-800 transition-all opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0"
+                                >
+                                    <Download size={14} /> Download
+                                </button>
+                            </div>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center max-w-[200px] mt-2">
+                                {locale === 'en' ? 'Customers can scan this QR code with their LINE app to register as a member.' : locale === 'zh' ? '客户可以使用 LINE 应用扫描此二维码注册成为会员。' : 'ลูกค้าสามารถใช้แอปพลิเคชัน LINE แสกน QR Code นี้เพื่อสมัครสมาชิกได้ทันที'}
+                            </p>
+                        </div>
+                    </div>
                 )}
             </div>
         </div>

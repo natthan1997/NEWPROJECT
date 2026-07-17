@@ -4,11 +4,12 @@ import {
   Users, Search, UserPlus, Phone, Mail, Award, History, 
   ChevronRight, ArrowLeft, Loader2, Save, X, Edit2, 
   TrendingUp, TrendingDown, Star, LayoutGrid, List,
-  Coffee, Sparkles, CheckCircle2, ShieldCheck, UserCheck, Settings, Gift, Tag
+  Coffee, Sparkles, CheckCircle2, ShieldCheck, UserCheck, Settings, Gift, Tag, QrCode, Download
 } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import { useI18n } from "@/lib/I18nContext";
 import CrmSettingsPage from '@/app/dashboard/admin/pos-settings/crm/page';
+import { QRCodeCanvas } from 'qrcode.react';
 
 interface Customer {
     id: string
@@ -69,6 +70,7 @@ export default function POSMemberManager({
     const [editData, setEditData] = useState<Partial<Customer>>({})
     const [searchTerm, setSearchTerm] = useState('')
     const [showCrmSettings, setShowCrmSettings] = useState(false)
+    const [showQR, setShowQR] = useState(false)
 
     useEffect(() => {
         fetchMembers()
@@ -109,6 +111,19 @@ export default function POSMemberManager({
         setViewExtraHeader(null);
         return () => setViewExtraHeader(null);
     }, [setViewExtraHeader]);
+
+    const handleDownloadQR = () => {
+        const canvas = document.getElementById('member-qr-canvas-manager') as HTMLCanvasElement;
+        if (canvas) {
+            const pngUrl = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
+            let downloadLink = document.createElement("a");
+            downloadLink.href = pngUrl;
+            downloadLink.download = "member-register-qr.png";
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+        }
+    }
 
     const fetchMembers = async () => {
         setLoading(true)
@@ -258,6 +273,9 @@ export default function POSMemberManager({
                              <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#1A1A18]">{locale === 'en' ? 'รายชื่อสมาชิก' : locale === 'zh' ? 'รายชื่อสมาชิก' : 'รายชื่อสมาชิก'}</h2>
                              <div className="flex gap-2 items-center">
                                  <span className="text-[8px] font-black text-sage-600 bg-sage-50 px-2 py-1 uppercase tracking-widest">{customers.length} {locale === 'en' ? ' ท่าน' : locale === 'zh' ? ' ท่าน' : ' ท่าน'}</span>
+                                 <button onClick={() => setShowQR(true)} className="p-1 text-gray-400 hover:text-[#1A1A18] transition-colors" title="QR สมัครสมาชิก">
+                                     <QrCode size={14} />
+                                 </button>
                                  <button onClick={() => setShowCrmSettings(true)} className="p-1 text-gray-400 hover:text-[#1A1A18] transition-colors" title="ตั้งค่า CRM & Loyalty">
                                      <Settings size={14} />
                                  </button>
@@ -639,6 +657,40 @@ export default function POSMemberManager({
                         <div className="flex-1 overflow-y-auto">
                             <CrmSettingsPage />
                         </div>
+                    </div>
+                </div>
+            )}
+            {showQR && (
+                <div className="absolute inset-0 z-[150] bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center animate-in fade-in duration-200 font-bold">
+                    <button 
+                        onClick={() => setShowQR(false)} 
+                        className="absolute top-6 right-6 p-4 bg-gray-50 rounded-none hover:bg-gray-100 transition-all text-gray-400 hover:text-black"
+                    >
+                        <X size={20} />
+                    </button>
+                    
+                    <div className="bg-white p-8 border border-gray-100 shadow-2xl rounded-2xl flex flex-col items-center gap-6">
+                        <h4 className="text-xl font-black uppercase tracking-widest text-center">
+                            {locale === 'en' ? 'Scan to Register' : locale === 'zh' ? '扫码注册' : 'แสกนเพื่อสมัครสมาชิก'}
+                        </h4>
+                        <div className="p-4 bg-gray-50 rounded-xl relative group">
+                            <QRCodeCanvas
+                                id="member-qr-canvas-manager"
+                                value={`https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}/liff/member`}
+                                size={240}
+                                level="H"
+                                includeMargin={true}
+                            />
+                            <button
+                                onClick={handleDownloadQR}
+                                className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-black text-white px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-xl hover:bg-gray-800 transition-all opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0"
+                            >
+                                <Download size={14} /> Download
+                            </button>
+                        </div>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center max-w-[240px] mt-2">
+                            {locale === 'en' ? 'Customers can scan this QR code with their LINE app to register as a member.' : locale === 'zh' ? '客户可以使用 LINE 应用扫描此二维码注册成为会员。' : 'ลูกค้าสามารถใช้แอปพลิเคชัน LINE แสกน QR Code นี้เพื่อสมัครสมาชิกได้ทันที'}
+                        </p>
                     </div>
                 </div>
             )}
