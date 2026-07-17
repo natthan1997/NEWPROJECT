@@ -374,8 +374,8 @@ export default function LiffMemberPage() {
           icon: 'warning',
           title: locale === 'en' ? 'Outside Store Area' : 'อยู่นอกพื้นที่ร้าน',
           text: locale === 'en' 
-            ? `You must be at the cashier to earn points. (Distance: ${Math.round(minDistance)}m)` 
-            : `กดสะสมพอยท์ได้ที่หน้าแคชเชียร์เท่านั้น (คุณอยู่ห่างจากร้าน ${Math.round(minDistance)} เมตร)`,
+            ? `You must be at the cashier to earn points.` 
+            : `กดสะสมพอยท์ได้ที่หน้าแคชเชียร์เท่านั้น`,
           confirmButtonColor: '#1A1A18'
         });
         return;
