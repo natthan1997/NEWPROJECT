@@ -51,18 +51,26 @@ async function awardLoyaltyPointsOnce(supabase: ReturnType<typeof createSupabase
   }
 
   try {
+    let memberId = order.customer_id
+    let hasPhone = false
+    
+    if (order.line_user_id) {
+      const { data: memberData } = await supabase.from('pos_members').select('id, phone').eq('line_user_id', order.line_user_id).maybeSingle()
+      if (memberData?.id) {
+        memberId = memberData.id
+        if (memberData.phone) hasPhone = true
+      }
+    } else if (memberId) {
+      const { data: memberData } = await supabase.from('pos_members').select('phone').eq('id', memberId).maybeSingle()
+      if (memberData?.phone) hasPhone = true
+    }
+
+    if (!memberId || !hasPhone) return // Cannot insert history or award points if not a registered member (no phone)
+
     await supabase.rpc('increment_member_points', {
       user_id: order.line_user_id,
       points_to_add: pointsToEarn,
     })
-
-    let memberId = order.customer_id
-    if (!memberId && order.line_user_id) {
-      const { data: memberData } = await supabase.from('pos_members').select('id').eq('line_user_id', order.line_user_id).maybeSingle()
-      if (memberData?.id) memberId = memberData.id
-    }
-
-    if (!memberId) return // Cannot insert history without valid UUID
 
     const historyPayload = {
       member_id: memberId,
