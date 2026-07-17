@@ -12,6 +12,8 @@ import XYLLoader from '@/components/loaders/XYLLoader';
 import { useI18n } from "@/lib/I18nContext";
 import RegistrationForm from './RegistrationForm';
 import Link from 'next/link';
+import Swal from 'sweetalert2';
+import { calculateDistance, isWithinRange } from '@/lib/geoUtils';
 
 const ScanPointsIcon = ({ size = 24, className = "" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -311,7 +313,74 @@ export default function LiffMemberPage() {
   const handleCheckIn = async () => {
     if (!memberInfo || !lineProfile) return;
     setClaimLoading(true);
+    
     try {
+      // 1. Get user location
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        });
+      }).catch(err => {
+        console.error("Geolocation error:", err);
+        return null;
+      });
+
+      if (!position) {
+        setClaimLoading(false);
+        Swal.fire({
+          icon: 'error',
+          title: locale === 'en' ? 'Location Required' : 'ไม่สามารถเข้าถึงตำแหน่งได้',
+          text: locale === 'en' ? 'Please allow location access to earn points at the store.' : 'กรุณาเปิด GPS และอนุญาตการเข้าถึงตำแหน่ง เพื่อสะสมพอยท์ที่หน้าร้าน',
+          confirmButtonColor: '#1A1A18'
+        });
+        return;
+      }
+
+      const { latitude, longitude } = position.coords;
+
+      // 2. Fetch all shop settings to get branch locations
+      const { data: settings } = await supabase
+        .from('pos_shop_settings')
+        .select('latitude, longitude, check_in_radius');
+      
+      let isAtStore = false;
+      let minDistance = Infinity;
+
+      if (settings && settings.length > 0) {
+        for (const shop of settings) {
+          const shopLat = shop.latitude || 13.7563;
+          const shopLng = shop.longitude || 100.5018;
+          const radius = shop.check_in_radius || 100;
+          
+          const withinRange = isWithinRange(latitude, longitude, shopLat, shopLng, radius);
+          const dist = calculateDistance(latitude, longitude, shopLat, shopLng) * 1000;
+          if (dist < minDistance) minDistance = dist;
+
+          if (withinRange) {
+            isAtStore = true;
+            break;
+          }
+        }
+      } else {
+        // If no settings configured in DB, bypass the check
+        isAtStore = true;
+      }
+
+      if (!isAtStore) {
+        setClaimLoading(false);
+        Swal.fire({
+          icon: 'warning',
+          title: locale === 'en' ? 'Outside Store Area' : 'อยู่นอกพื้นที่ร้าน',
+          text: locale === 'en' 
+            ? `You must be at the cashier to earn points. (Distance: ${Math.round(minDistance)}m)` 
+            : `กดสะสมพอยท์ได้ที่หน้าแคชเชียร์เท่านั้น (คุณอยู่ห่างจากร้าน ${Math.round(minDistance)} เมตร)`,
+          confirmButtonColor: '#1A1A18'
+        });
+        return;
+      }
+
       // Find and delete any existing pending check-ins for this user to avoid stale rows
       await supabase
         .from('pos_member_checkins')

@@ -72,6 +72,7 @@
     "react-to-print": "^3.3.0",
     "recharts": "^3.7.0",
     "stripe": "^21.0.1",
+    "sweetalert2": "^11.26.25",
     "tailwind-merge": "^2.6.1",
     "thai-address-database": "^0.0.30",
     "ts-morph": "^28.0.0",
