@@ -247,7 +247,7 @@ export default function LiffMenuPage() {
   const [isInternalRedirectOpen, setIsInternalRedirectOpen] = useState(false);
   const [internalRedirectUrl, setInternalRedirectUrl] = useState<string | null>(null);
   const [activeOrders, setActiveOrders] = useState<any[]>([]);
-  const [latestOrder, setLatestOrder] = useState<any>(null);
+  const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const cleanupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const checkoutLockRef = useRef(false);
   const [recentReviews, setRecentReviews] = useState<any[]>([]);
@@ -798,20 +798,19 @@ export default function LiffMenuPage() {
       const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
       if (!userId) return;
       try {
-        const { data: latestOrderObj, error } = await supabase
+        const { data: recentOrdersData, error } = await supabase
           .from('pos_orders')
           .select(`*, items:pos_order_items(*)`)
           .eq('line_user_id', userId)
           .in('status', ['completed', 'delivered'])
           .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
+          .limit(3);
         
-        if (latestOrderObj) {
-          setLatestOrder(latestOrderObj);
+        if (recentOrdersData && recentOrdersData.length > 0) {
+          setRecentOrders(recentOrdersData);
         }
       } catch (err) {
-        console.error('Failed to fetch latest order:', err);
+        console.error('Failed to fetch recent orders:', err);
       }
     };
 
@@ -2052,49 +2051,68 @@ export default function LiffMenuPage() {
           })}
         </div>
 
-              {/* ⭐ Latest Order */}
-        {!searchTerm && latestOrder && latestOrder.items && latestOrder.items.length > 0 && (
+              {/* ⭐ Latest Orders */}
+        {!searchTerm && recentOrders.length > 0 && (
           <section className="px-4 mb-6 pt-4">
-             <div className="bg-white border border-gray-100 p-5 rounded-[16px] shadow-sm relative">
-                <div className="flex items-start justify-between mb-4">
-                   <div>
-                     <h2 className="text-[12px] font-bold text-gray-900 flex items-center gap-2">
-                       <History size={14} className="text-gray-500" />
-                       {locale === 'en' ? 'Latest Order' : locale === 'zh' ? 'Latest Order' : 'สั่งล่าสุด'}
-                     </h2>
-                     <p className="text-[10px] font-medium text-gray-500 mt-0.5">
-                       {latestOrder.items.length} {locale === 'en' ? 'items' : locale === 'zh' ? 'items' : 'รายการ'}
-                     </p>
-                   </div>
-                   <button 
-                     onClick={handleReorderLatest}
-                     className="bg-black text-white px-4 py-2 text-[10px] font-bold rounded-full active:scale-95 transition-all"
-                   >
-                     {locale === 'en' ? 'Order Again' : locale === 'zh' ? 'Order Again' : 'สั่งอีกครั้ง'}
-                   </button>
-                </div>
+             <div className="flex items-center gap-2 mb-3 px-1">
+               <History size={16} className="text-gray-900" />
+               <h2 className="text-[14px] font-bold text-gray-900">
+                 {locale === 'en' ? 'Order Again' : locale === 'zh' ? 'Order Again' : 'สั่งอีกครั้งจากรายการเดิม'}
+               </h2>
+             </div>
+             <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 snap-x">
+                {recentOrders.map((order, orderIdx) => {
+                  const dateString = new Date(order.created_at).toLocaleDateString(locale === 'en' ? 'en-US' : 'th-TH', { month: 'short', day: 'numeric' });
+                  return (
+                    <div key={order.id} className="shrink-0 w-[80%] snap-center p-5 bg-white border border-gray-100 rounded-2xl shadow-sm flex flex-col justify-between">
+                       <div className="flex items-center justify-between mb-4">
+                         <span className="text-[12px] font-medium text-gray-500">{dateString}</span>
+                         <button 
+                           onClick={(e) => handleReorderOrder(e, order)}
+                           className="bg-black text-white px-4 py-2 text-[10px] font-bold rounded-full active:scale-95 transition-all"
+                         >
+                           {locale === 'en' ? 'Order Again' : locale === 'zh' ? 'Order Again' : 'สั่งอีกครั้ง'}
+                         </button>
+                       </div>
+                       
+                       <div className="flex flex-col gap-2">
+                          {order.items.slice(0, 3).map((orderItem: any, idx: number) => {
+                             const mItem = items.find(i => i.id === orderItem.item_id);
+                             if (!mItem) return null;
+                             return (
+                                <div key={idx} className="flex items-center gap-3">
+                                   <div className="w-10 h-10 rounded-lg bg-gray-50 overflow-hidden flex-shrink-0">
+                                      {mItem.image_url ? (
+                                         <img src={mItem.image_url} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                                      ) : (
+                                         <div className="w-full h-full flex items-center justify-center text-gray-300">
+                                           <span className="text-[8px] font-bold">XYL</span>
+                                         </div>
+                                      )}
+                                   </div>
+                                   <div className="flex-1 min-w-0">
+                                      <p className="text-[12px] font-bold text-gray-900 truncate">{mItem.name}</p>
+                                      <p className="text-[10px] text-gray-500">x{orderItem.quantity}</p>
+                                   </div>
+                                </div>
+                             )
+                          })}
+                          {order.items.length > 3 && (
+                            <p className="text-[10px] text-gray-400 font-medium pl-13">+{order.items.length - 3} รายการอื่นๆ</p>
+                          )}
+                       </div>
+                    </div>
+                  );
+                })}
                 
-                <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                   {latestOrder.items.map((orderItem: any, idx: number) => {
-                      const mItem = items.find(i => i.id === orderItem.item_id);
-                      if (!mItem) return null;
-                      return (
-                         <div key={idx} className="shrink-0 w-[64px] flex flex-col gap-1 relative">
-                            <div className="w-[64px] h-[64px] rounded-[12px] bg-gray-50 overflow-hidden relative">
-                               {mItem.image_url ? (
-                                  <img src={mItem.image_url} className="w-full h-full object-cover" loading="lazy" decoding="async" />
-                               ) : (
-                                  <div className="w-full h-full flex items-center justify-center text-gray-300">
-                                    <span className="text-[10px] font-bold">XYL</span>
-                                  </div>
-                               )}
-                               <div className="absolute top-0 right-0 bg-black/80 backdrop-blur-sm text-white text-[9px] font-bold px-1.5 py-0.5 rounded-bl-[8px]">
-                                 x{orderItem.quantity}
-                               </div>
-                            </div>
-                         </div>
-                      )
-                   })}
+                <div 
+                  onClick={() => router.push('/liff/history')}
+                  className="shrink-0 w-[40%] snap-center p-5 bg-gray-50 border border-gray-100 rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer active:scale-95 transition-all text-gray-500 hover:text-black hover:bg-gray-100"
+                >
+                  <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm">
+                    <ChevronRight size={20} />
+                  </div>
+                  <span className="text-[11px] font-bold">ดูประวัติทั้งหมด</span>
                 </div>
              </div>
           </section>
