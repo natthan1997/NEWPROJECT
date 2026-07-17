@@ -2073,37 +2073,53 @@ export default function LiffMenuPage() {
             <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide">
                {latestOrders.map((order: any, idx: number) => {
                   return (
-                    <div key={idx} className="shrink-0 w-[85%] snap-center p-4 bg-white border border-gray-100 rounded-2xl shadow-sm flex flex-col">
-                       <div className="flex items-center justify-between mb-3 border-b border-gray-50 pb-2">
-                          <span className="text-[10px] text-gray-400 font-medium">
-                             {new Date(order.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}
+                    <div key={idx} className="shrink-0 w-[260px] snap-center p-3.5 bg-white border border-gray-200/60 rounded-[18px] shadow-sm flex flex-col">
+                       <div className="flex items-center justify-between mb-3 border-b border-gray-100 pb-2.5">
+                          <span className="text-[11px] text-gray-500 font-medium">
+                             {new Date(order.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })} • {new Date(order.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
                           </span>
-                          <span className="text-[12px] font-bold text-emerald-600">฿{order.net_total}</span>
+                          <span className="text-[12px] font-bold text-gray-900">฿{order.net_total}</span>
                        </div>
                        
-                       <div className="flex-1 mb-4 flex flex-col justify-center">
-                          {order.items.slice(0, 3).map((orderItem: any, i: number) => {
-                             const mItem = items.find(i => i.id === orderItem.item_id);
-                             if (!mItem) return null;
-                             return (
-                               <div key={i} className="flex items-center justify-between py-1">
-                                  <div className="flex items-center gap-2 overflow-hidden">
-                                    <span className="text-[12px] font-bold text-gray-800 px-1.5 py-0.5 rounded-md bg-gray-50 leading-none">
-                                      {orderItem.quantity}x
-                                    </span>
-                                    <span className="text-[13px] text-gray-700 truncate">{mItem.name}</span>
-                                  </div>
+                       <div className="flex-1 mb-3">
+                          <div className="flex gap-2">
+                            {order.items.slice(0, 3).map((orderItem: any, i: number) => {
+                               const mItem = items.find(it => it.id === orderItem.item_id);
+                               if (!mItem) return null;
+                               return (
+                                 <div key={i} className="relative w-[52px] h-[52px] shrink-0">
+                                   <div className="w-full h-full rounded-xl bg-gray-50 border border-gray-100 overflow-hidden">
+                                     {mItem.image_url ? (
+                                       <img src={mItem.image_url} alt={mItem.name} className="w-full h-full object-cover" />
+                                     ) : (
+                                       <div className="w-full h-full flex items-center justify-center text-gray-300">
+                                         <Coffee size={20} />
+                                       </div>
+                                     )}
+                                   </div>
+                                   {orderItem.quantity > 1 && (
+                                     <div className="absolute -top-1.5 -right-1.5 bg-gray-900 text-white text-[10px] font-bold px-1.5 h-5 min-w-[20px] flex items-center justify-center rounded-full border-[1.5px] border-white z-10 shadow-sm">
+                                       {orderItem.quantity}
+                                     </div>
+                                   )}
+                                 </div>
+                               );
+                            })}
+                            {order.items.length > 3 && (
+                               <div className="w-[52px] h-[52px] rounded-xl bg-gray-50 border border-gray-100 flex flex-col items-center justify-center shrink-0">
+                                  <span className="text-[11px] font-bold text-gray-500">+{order.items.length - 3}</span>
                                </div>
-                             );
-                          })}
-                          {order.items.length > 3 && (
-                             <p className="text-[11px] text-gray-400 mt-1 italic">+ อีก {order.items.length - 3} รายการ</p>
-                          )}
+                            )}
+                          </div>
+                          
+                          <div className="text-[11px] text-gray-500 mt-2.5 line-clamp-1 font-medium leading-relaxed">
+                            {order.items.map((i: any) => items.find(it => it.id === i.item_id)?.name || '').filter(Boolean).join(', ')}
+                          </div>
                        </div>
 
                        <button 
                          onClick={(e) => handleReorderOrder(e, order)}
-                         className="w-full bg-black text-white py-2.5 text-[12px] font-bold rounded-xl active:scale-95 transition-all flex items-center justify-center gap-2"
+                         className="w-full bg-gray-900 hover:bg-black text-white py-2.5 text-[12px] font-bold rounded-xl active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm"
                        >
                          <ShoppingCart size={14} />
                          {locale === 'en' ? 'Order Again' : locale === 'zh' ? 'Order Again' : 'สั่งเซ็ตนี้อีกครั้ง'}
