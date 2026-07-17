@@ -710,7 +710,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             
             currentPrintOrderData = {
               orderNumber: editingOrderNumber || 'Draft',
-              queueNumber: editingOrderId ? String(getQueueNumberForOrder(editingOrderId) || '') : '',
+              queueNumber: editingOrderId ? String(getPreviewQueueNumber(editingOrderId) || '') : '',
               date: new Date().toLocaleString(),
               orderSource: 'pos',
               tableNumber: selectedTable?.table_number || 'Unknown',
@@ -1258,7 +1258,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     }
   }
 
-  const getQueueNumberForOrder = (currentOrderId?: string | null) => {
+  const getPreviewQueueNumber = (currentOrderId?: string | null) => {
     const activeQueueStatuses = new Set(['open', 'pending', 'payment_pending', 'accepted', 'preparing', 'shipping'])
     const activeOrders = [...pendingOrders]
       .filter((order: any) => activeQueueStatuses.has(String(order.status || '').toLowerCase()))
@@ -1286,12 +1286,38 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     return activeOrders.length + 1
   }
 
+  const fetchTrueQueueNumber = async (currentOrderId?: string | null): Promise<number> => {
+    if (currentOrderId) {
+      const { data: existing } = await supabase
+        .from('pos_orders')
+        .select('queue_number')
+        .eq('id', currentOrderId)
+        .maybeSingle();
+      if (existing && existing.queue_number) {
+        return existing.queue_number;
+      }
+    }
+
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const { data: maxData } = await supabase
+      .from('pos_orders')
+      .select('queue_number')
+      .not('queue_number', 'is', null)
+      .gte('created_at', startOfToday.toISOString())
+      .order('queue_number', { ascending: false })
+      .limit(1);
+
+    const maxQueue = Number(maxData?.[0]?.queue_number) || 0;
+    return maxQueue + 1;
+  };
+
   const activePrintData = useMemo(() => {
     if (paymentSuccessData) return paymentSuccessData;
     const finalCartTotal = cartTotal;
     return {
       orderNumber: editingOrderNumber || 'Draft',
-      queueNumber: editingOrderId ? String(getQueueNumberForOrder(editingOrderId) || '') : '',
+      queueNumber: editingOrderId ? String(getPreviewQueueNumber(editingOrderId) || '') : '',
       orderType: orderType,
       orderSource: 'pos',
       deliveryPlatform: orderType === 'delivery' ? deliveryPlatform : '',
@@ -1969,7 +1995,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     await supabase.from('pos_tables').update({ parent_table_id: null }).eq('id', table.id)
 
     if (selectedTable?.id === table.id) {
-      setSelectedTable(null)
+      resetOrderComposer()
     }
 
     await fetchTables()
@@ -2344,7 +2370,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 	    try {
 	      let finalOrderId = editingOrderId
 	      let finalOrderNumber = editingOrderNumber || ''
-	      let finalQueueNumber = getQueueNumberForOrder(editingOrderId)
+	      let finalQueueNumber = await fetchTrueQueueNumber(editingOrderId)
 	      let existingComparableItems: any[] = []
 
 	      if (editingOrderId) {
@@ -2367,9 +2393,9 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             throw new Error('บิลนี้พักไว้แล้ว กรุณาเพิ่มรายการใหม่ก่อนส่งออเดอร์เพิ่ม')
           }
 
-          finalQueueNumber = getQueueNumberForOrder(editingOrderId)
+          finalQueueNumber = await fetchTrueQueueNumber(editingOrderId)
         } else {
-          finalQueueNumber = getQueueNumberForOrder()
+          finalQueueNumber = await fetchTrueQueueNumber()
         }
 
         // WATERFALL QUEUE CALCULATION (Auto Queue Algorithm)
@@ -2628,7 +2654,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 	      playAppSound('pay');
 	      let finalOrderId = editingOrderId
 	      let finalOrderNumber = editingOrderNumber || ''
-	      let finalQueueNumber = getQueueNumberForOrder(editingOrderId)
+	      let finalQueueNumber = await fetchTrueQueueNumber(editingOrderId)
 	      const amountToPay = amount !== undefined ? amount : remainingTotal
         let pointsEarned = 0;
       const newTotalPaid = totalPaid + amountToPay
@@ -2674,7 +2700,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         console.log(`[GP] platform=${deliveryPlatform}, gpPercent=${gpPercent}%, cartTotal=${cartTotal}`);
       }
       const deliveryGpAmount = (cartTotal * gpPercent) / 100;
-	      finalQueueNumber = getQueueNumberForOrder(editingOrderId)
+		      finalQueueNumber = await fetchTrueQueueNumber(editingOrderId)
 
         let estimatedPrepCompletionStr: string | undefined = undefined;
         if (!editingOrderId) {
@@ -3626,10 +3652,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                   <button
                     onClick={() => {
                       handleDeleteOrder(editingOrderId)
-                      setCart([])
-                      setEditingOrderId(null)
-                      setSelectedTable(null)
-                      setOrderType('takeaway')
+                      resetOrderComposer()
                     }}
                     className="flex h-16 flex-[2] items-center justify-center gap-4 text-[11px] font-black uppercase tracking-[0.4em] text-white shadow-xl transition-all bg-red-600 hover:bg-red-700"
                   >
@@ -4018,11 +4041,11 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                                   ) : order.order_type === 'dine_in' && order.table_number ? (
                                     `โต๊ะ ${order.table_number}`
                                   ) : (
-                                    `ออเดอร์ #${String(order.queue_number || '').padStart(3, '0')}`
+                                    `#${String(order.queue_number || '').padStart(3, '0')}`
                                   )}
                                 </div>
                                 <div className="text-[10px] text-gray-400 font-normal">
-                                  {order.order_number}
+                                  {order.order_number || ''}
                                 </div>
                               </div>
                               {order.source === 'qr' && (
@@ -5825,16 +5848,16 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 mb-1.5">
                               <span className="text-xs font-black text-gray-900 bg-white border border-gray-200 px-2 py-0.5 rounded-md">
-                                บิล #{order.order_number || order.id.slice(0, 8)}
+                                #{String(order.queue_number || 0).padStart(3, '0')}
                               </span>
                               {order.table_number && (
                                 <span className="text-[10px] font-black text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md">
                                   โต๊ะ {order.table_number}
                                 </span>
                               )}
-                              {order.queue_number && (
-                                <span className="text-[10px] font-black text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md">
-                                  คิว #{order.queue_number}
+                              {order.order_number && (
+                                <span className="text-[10px] font-bold text-gray-400 px-2 py-0.5">
+                                  {order.order_number}
                                 </span>
                               )}
                             </div>
