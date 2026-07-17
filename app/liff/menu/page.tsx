@@ -247,7 +247,7 @@ export default function LiffMenuPage() {
   const [isInternalRedirectOpen, setIsInternalRedirectOpen] = useState(false);
   const [internalRedirectUrl, setInternalRedirectUrl] = useState<string | null>(null);
   const [activeOrders, setActiveOrders] = useState<any[]>([]);
-  const [recentOrders, setRecentOrders] = useState<any[]>([]);
+  const [latestOrders, setLatestOrders] = useState<any[]>([]);
   const cleanupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const checkoutLockRef = useRef(false);
   const [recentReviews, setRecentReviews] = useState<any[]>([]);
@@ -798,7 +798,7 @@ export default function LiffMenuPage() {
       const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
       if (!userId) return;
       try {
-        const { data: recentOrdersData, error } = await supabase
+        const { data: recentOrders, error } = await supabase
           .from('pos_orders')
           .select(`*, items:pos_order_items(*)`)
           .eq('line_user_id', userId)
@@ -806,8 +806,8 @@ export default function LiffMenuPage() {
           .order('created_at', { ascending: false })
           .limit(3);
         
-        if (recentOrdersData && recentOrdersData.length > 0) {
-          setRecentOrders(recentOrdersData);
+        if (recentOrders && recentOrders.length > 0) {
+          setLatestOrders(recentOrders);
         }
       } catch (err) {
         console.error('Failed to fetch recent orders:', err);
@@ -1328,13 +1328,13 @@ export default function LiffMenuPage() {
     notesLabel: 'หมายเหตุเพิ่มเติมอาทิเช่น บ้านเลขที่ หรือจุดสังเกต'
   };
 
-  const handleReorderLatest = (e: React.MouseEvent) => {
+  const handleReorderOrder = (e: React.MouseEvent, orderToReorder: any) => {
     e.stopPropagation();
-    if (!latestOrder || !latestOrder.items) return;
+    if (!orderToReorder || !orderToReorder.items) return;
     if (!isShopEffectivelyOpen && !isPreorderMode) {
        setPendingPreorderAction(() => () => {
           let addedCount = 0;
-          latestOrder.items.forEach((orderItem: any) => {
+          orderToReorder.items.forEach((orderItem: any) => {
              const menuItem = items.find(i => i.id === orderItem.item_id);
              if (menuItem && menuItem.in_stock !== false) {
                 addToCart(menuItem, orderItem.selected_modifiers || [], orderItem.quantity || 1, true);
@@ -1351,7 +1351,7 @@ export default function LiffMenuPage() {
     
     // Add all available items to cart
     let addedCount = 0;
-    latestOrder.items.forEach((orderItem: any) => {
+    orderToReorder.items.forEach((orderItem: any) => {
        const menuItem = items.find(i => i.id === orderItem.item_id);
        if (menuItem && menuItem.in_stock !== false) {
           addToCart(menuItem, orderItem.selected_modifiers || [], orderItem.quantity || 1, isPreorderMode);
@@ -2051,70 +2051,68 @@ export default function LiffMenuPage() {
           })}
         </div>
 
-              {/* ⭐ Latest Orders */}
-        {!searchTerm && recentOrders.length > 0 && (
-          <section className="px-4 mb-6 pt-4">
-             <div className="flex items-center gap-2 mb-3 px-1">
-               <History size={16} className="text-gray-900" />
-               <h2 className="text-[14px] font-bold text-gray-900">
-                 {locale === 'en' ? 'Order Again' : locale === 'zh' ? 'Order Again' : 'สั่งอีกครั้งจากรายการเดิม'}
-               </h2>
-             </div>
-             <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 snap-x">
-                {recentOrders.map((order, orderIdx) => {
-                  const dateString = new Date(order.created_at).toLocaleDateString(locale === 'en' ? 'en-US' : 'th-TH', { month: 'short', day: 'numeric' });
+              {/* ⭐ Latest Order */}
+        {!searchTerm && latestOrders && latestOrders.length > 0 && (
+          <section className="px-4 mb-8 pt-4">
+            <h2 className="text-[14px] font-bold text-gray-900 mb-4 flex items-center gap-2">
+               <History size={16} className="text-gray-500" />
+               {locale === 'en' ? 'Order Again' : locale === 'zh' ? 'Order Again' : 'สั่งล่าสุดจากรายการเดิม'}
+            </h2>
+            <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide">
+               {latestOrders.map((order: any, idx: number) => {
                   return (
-                    <div key={order.id} className="shrink-0 w-[80%] snap-center p-5 bg-white border border-gray-100 rounded-2xl shadow-sm flex flex-col justify-between">
-                       <div className="flex items-center justify-between mb-4">
-                         <span className="text-[12px] font-medium text-gray-500">{dateString}</span>
-                         <button 
-                           onClick={(e) => handleReorderOrder(e, order)}
-                           className="bg-black text-white px-4 py-2 text-[10px] font-bold rounded-full active:scale-95 transition-all"
-                         >
-                           {locale === 'en' ? 'Order Again' : locale === 'zh' ? 'Order Again' : 'สั่งอีกครั้ง'}
-                         </button>
+                    <div key={idx} className="shrink-0 w-[85%] snap-center p-4 bg-white border border-gray-100 rounded-2xl shadow-sm flex flex-col">
+                       <div className="flex items-center justify-between mb-3 border-b border-gray-50 pb-2">
+                          <span className="text-[10px] text-gray-400 font-medium">
+                             {new Date(order.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}
+                          </span>
+                          <span className="text-[12px] font-bold text-emerald-600">฿{order.net_total}</span>
                        </div>
                        
-                       <div className="flex flex-col gap-2">
-                          {order.items.slice(0, 3).map((orderItem: any, idx: number) => {
+                       <div className="flex-1 mb-4 flex flex-col justify-center">
+                          {order.items.slice(0, 3).map((orderItem: any, i: number) => {
                              const mItem = items.find(i => i.id === orderItem.item_id);
                              if (!mItem) return null;
                              return (
-                                <div key={idx} className="flex items-center gap-3">
-                                   <div className="w-10 h-10 rounded-lg bg-gray-50 overflow-hidden flex-shrink-0">
-                                      {mItem.image_url ? (
-                                         <img src={mItem.image_url} className="w-full h-full object-cover" loading="lazy" decoding="async" />
-                                      ) : (
-                                         <div className="w-full h-full flex items-center justify-center text-gray-300">
-                                           <span className="text-[8px] font-bold">XYL</span>
-                                         </div>
-                                      )}
-                                   </div>
-                                   <div className="flex-1 min-w-0">
-                                      <p className="text-[12px] font-bold text-gray-900 truncate">{mItem.name}</p>
-                                      <p className="text-[10px] text-gray-500">x{orderItem.quantity}</p>
-                                   </div>
-                                </div>
-                             )
+                               <div key={i} className="flex items-center justify-between py-1">
+                                  <div className="flex items-center gap-2 overflow-hidden">
+                                    <span className="text-[12px] font-bold text-gray-800 px-1.5 py-0.5 rounded-md bg-gray-50 leading-none">
+                                      {orderItem.quantity}x
+                                    </span>
+                                    <span className="text-[13px] text-gray-700 truncate">{mItem.name}</span>
+                                  </div>
+                               </div>
+                             );
                           })}
                           {order.items.length > 3 && (
-                            <p className="text-[10px] text-gray-400 font-medium pl-13">+{order.items.length - 3} รายการอื่นๆ</p>
+                             <p className="text-[11px] text-gray-400 mt-1 italic">+ อีก {order.items.length - 3} รายการ</p>
                           )}
                        </div>
+
+                       <button 
+                         onClick={(e) => handleReorderOrder(e, order)}
+                         className="w-full bg-black text-white py-2.5 text-[12px] font-bold rounded-xl active:scale-95 transition-all flex items-center justify-center gap-2"
+                       >
+                         <ShoppingCart size={14} />
+                         {locale === 'en' ? 'Order Again' : locale === 'zh' ? 'Order Again' : 'สั่งเซ็ตนี้อีกครั้ง'}
+                       </button>
                     </div>
                   );
-                })}
-                
-                <div 
-                  onClick={() => router.push('/liff/history')}
-                  className="shrink-0 w-[40%] snap-center p-5 bg-gray-50 border border-gray-100 rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer active:scale-95 transition-all text-gray-500 hover:text-black hover:bg-gray-100"
-                >
-                  <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm">
-                    <ChevronRight size={20} />
-                  </div>
-                  <span className="text-[11px] font-bold">ดูประวัติทั้งหมด</span>
-                </div>
-             </div>
+               })}
+               
+               {/* View History Card */}
+               <div className="shrink-0 w-[40%] snap-center flex items-center justify-center">
+                  <button 
+                    onClick={() => router.push('/liff/history')}
+                    className="flex flex-col items-center justify-center gap-2 w-full h-full min-h-[140px] bg-[#f9f9f5] border border-gray-100 rounded-2xl active:scale-95 transition-all text-gray-500"
+                  >
+                     <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm text-gray-400">
+                       <ChevronRight size={20} />
+                     </div>
+                     <span className="text-[11px] font-bold mt-1">ดูประวัติทั้งหมด</span>
+                  </button>
+               </div>
+            </div>
           </section>
         )}
 
