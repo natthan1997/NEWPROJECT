@@ -44,6 +44,18 @@ const nextConfig = {
         source: '/menu',
         destination: '/liff/menu',
       },
+      {
+        source: '/member',
+        destination: '/liff/member',
+      },
+      {
+        source: '/liff/menu/member',
+        destination: '/liff/member',
+      },
+      {
+        source: '/liff/menu/liff/member',
+        destination: '/liff/member',
+      }
     ]
   },
 }
