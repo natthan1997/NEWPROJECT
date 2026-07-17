@@ -13,6 +13,16 @@ import { useI18n } from "@/lib/I18nContext";
 import RegistrationForm from './RegistrationForm';
 import Link from 'next/link';
 
+const ScanPointsIcon = ({ size = 24, className = "" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M3 7V5a2 2 0 0 1 2-2h2" />
+    <path d="M17 3h2a2 2 0 0 1 2 2v2" />
+    <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+    <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+    <path d="m12 15 2.09 1.1-.4-2.32 1.68-1.64-2.33-.34L12 9.6l-1.04 2.2-2.33.34 1.68 1.64-.4 2.32L12 15z" />
+  </svg>
+);
+
 export default function LiffMemberPage() {
   const { locale } = useI18n();
   const router = useRouter();
@@ -482,7 +492,7 @@ export default function LiffMemberPage() {
                 {claimLoading ? (
                   <div className="w-4 h-4 border-2 border-[#1A1A18] border-t-transparent rounded-full animate-spin" />
                 ) : (
-                  <Sparkles size={18} />
+                  <ScanPointsIcon size={18} />
                 )}
             </button>
             <motion.div 
