@@ -745,13 +745,12 @@ export default function LiffMenuPage() {
             item:pos_menu_items!pos_order_items_item_id_fkey (name)
           )
         `)
-        .not('comment', 'is', null)
+        .gt('rating', 0)
         .order('created_at', { ascending: false })
         .limit(20);
       
       if (data) {
-        const valid = data.filter(r => r.rating > 0 && r.comment && r.comment.trim() !== '');
-        setRecentReviews(valid.slice(0, 5));
+        setRecentReviews(data.slice(0, 10));
       }
 
       // Fetch rating stats
