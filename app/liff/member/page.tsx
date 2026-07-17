@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-  ChevronRight, ChevronLeft, Info, X, Gift, Phone, Globe, Facebook, MessageCircle, QrCode, Coins, Sparkles, AlertCircle, Loader2, CheckCircle2, HelpCircle
+  ChevronRight, ChevronLeft, Info, X, Gift, Phone, Globe, Facebook, MessageCircle, QrCode, Coins, Sparkles, AlertCircle, Loader2, CheckCircle2, HelpCircle, ArrowRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
@@ -473,19 +473,27 @@ export default function LiffMemberPage() {
         <div className="flex flex-col items-center flex-1">
             <h1 className="text-[14px] font-bold tracking-widest text-[#1A1A18]">{dict.title}</h1>
         </div>
-        <motion.button
-            onClick={handleCheckIn}
-            disabled={claimLoading || !!activeCheckInId}
-            animate={{ scale: [1, 1.1, 1], rotate: [0, -5, 5, -5, 0] }}
-            transition={{ repeat: Infinity, repeatDelay: 2.5, duration: 0.5 }}
-            className="w-10 h-10 flex items-center justify-center bg-[#1A1A18] text-emerald-400 rounded-full active:scale-95 transition-transform shadow-md relative"
-        >
-            {claimLoading ? <div className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" /> : <QrCode size={18} />}
-            <span className="absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border-2 border-white"></span>
-            </span>
-        </motion.button>
+        <div className="relative flex items-center">
+            <motion.div 
+                animate={{ x: [0, -4, 0] }}
+                transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+                className="absolute right-12 whitespace-nowrap text-[10px] font-bold text-gray-500 flex items-center gap-1 pointer-events-none"
+            >
+                {locale === 'en' ? 'Earn Points' : 'สะสมคะแนน'}
+                <ArrowRight size={12} className="text-gray-400" />
+            </motion.div>
+            <button
+                onClick={handleCheckIn}
+                disabled={claimLoading || !!activeCheckInId}
+                className="w-10 h-10 flex items-center justify-center bg-white text-[#1A1A18] rounded-full active:scale-95 transition-all shadow-sm border border-gray-200 relative overflow-hidden z-10"
+            >
+                {claimLoading ? (
+                  <div className="w-4 h-4 border-2 border-[#1A1A18] border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <QrCode size={18} />
+                )}
+            </button>
+        </div>
       </header>
 
       <main className="px-5 pt-6 relative z-10 max-w-lg mx-auto flex flex-col gap-8">
