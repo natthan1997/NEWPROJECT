@@ -4,7 +4,7 @@ import {
   Users, Search, UserPlus, Phone, Mail, Award, History, 
   ChevronRight, ArrowLeft, Loader2, Save, X, Edit2, 
   TrendingUp, TrendingDown, Star, LayoutGrid, List,
-  Coffee, Sparkles, CheckCircle2, ShieldCheck, UserCheck, Settings, Gift, Tag, QrCode, Download
+  Coffee, Sparkles, CheckCircle2, ShieldCheck, UserCheck, Settings, Gift, Tag, QrCode, Download, ShieldAlert
 } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import { useI18n } from "@/lib/I18nContext";
@@ -321,7 +321,11 @@ export default function POSMemberManager({
                                     </div>
                                     <div className="text-right font-bold">
                                         <div className="text-[12px] font-black text-[#1A1A18] tracking-tighter">{(member.points ?? 0).toLocaleString()} <span className="text-[7px] text-gray-300">{locale === 'en' ? 'คะแนน' : locale === 'zh' ? 'คะแนน' : 'คะแนน'}</span></div>
-                                        {member.line_user_id && <div className="text-[6px] text-emerald-500 font-black uppercase tracking-widest mt-1 flex items-center justify-end gap-1"><Sparkles size={6} /> {locale === 'en' ? ' เชื่อมต่อ LINE แล้ว' : locale === 'zh' ? ' เชื่อมต่อ LINE แล้ว' : ' เชื่อมต่อ LINE แล้ว'}</div>}
+                                        {member.phone ? (
+                                            <div className="text-[7px] text-emerald-500 font-black uppercase tracking-widest mt-1 flex items-center justify-end gap-1"><ShieldCheck size={7} /> {locale === 'en' ? 'Registered' : locale === 'zh' ? 'ลงทะเบียนแล้ว' : 'ลงทะเบียนแล้ว'}</div>
+                                        ) : (
+                                            <div className="text-[7px] text-amber-500 font-black uppercase tracking-widest mt-1 flex items-center justify-end gap-1"><ShieldAlert size={7} /> {locale === 'en' ? 'Unregistered' : locale === 'zh' ? 'ยังไม่ลงทะเบียน' : 'ยังไม่ลงทะเบียน'}</div>
+                                        )}
                                     </div>
                                 </button>
                             ))

@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react'
-import { Users, Search, QrCode, Phone, ChevronRight, UserPlus, Loader2, Star, Coffee, X, Layers, Download } from 'lucide-react'
+import { Users, Search, QrCode, Phone, ChevronRight, UserPlus, Loader2, Star, Coffee, X, Layers, Download, ShieldAlert, ShieldCheck } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import { useI18n } from "@/lib/I18nContext";
 import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
@@ -167,8 +167,14 @@ export default function POSCustomerSelect({ onSelect, selectedCustomer, onClose,
                                                 </div>
                                                 <div className="text-left font-bold">
                                                     <div className="text-sm font-black uppercase tracking-tight">{c.display_name || c.full_name}</div>
-                                                    <div className="text-[10px] text-gray-400 font-bold flex items-center gap-2">
-                                                        <Phone size={10} /> {c.phone || 'ไม่ระบุเบอร์'}
+                                                    <div className="text-[10px] text-gray-400 font-bold flex items-center gap-2 mt-1">
+                                                        {c.phone ? (
+                                                            <div className="flex items-center gap-1 text-emerald-500"><ShieldCheck size={10} /> ลงทะเบียนแล้ว</div>
+                                                        ) : (
+                                                            <div className="flex items-center gap-1 text-amber-500"><ShieldAlert size={10} /> ยังไม่ลงทะเบียน</div>
+                                                        )}
+                                                        <span className="text-gray-300">|</span>
+                                                        <div className="flex items-center gap-1"><Phone size={10} /> {c.phone || 'ไม่ระบุเบอร์'}</div>
                                                     </div>
                                                 </div>
                                             </div>
