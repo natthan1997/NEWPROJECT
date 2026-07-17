@@ -2073,56 +2073,46 @@ export default function LiffMenuPage() {
             <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide">
                {latestOrders.map((order: any, idx: number) => {
                   return (
-                    <div key={idx} className="shrink-0 w-[260px] snap-center p-3.5 bg-white border border-gray-200/60 rounded-[18px] shadow-sm flex flex-col">
-                       <div className="flex items-center justify-between mb-3 border-b border-gray-100 pb-2.5">
-                          <span className="text-[11px] text-gray-500 font-medium">
-                             {new Date(order.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })} • {new Date(order.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                          <span className="text-[12px] font-bold text-gray-900">฿{order.net_total}</span>
-                       </div>
-                       
-                       <div className="flex-1 mb-3">
-                          <div className="flex gap-2">
+                    <div key={idx} className="shrink-0 w-[240px] snap-center p-4 bg-white border border-gray-100/80 rounded-[24px] shadow-[0_4px_16px_-4px_rgba(0,0,0,0.03)] flex flex-col">
+                       <div className="flex items-start justify-between mb-4">
+                          <div className="flex -space-x-2.5">
                             {order.items.slice(0, 3).map((orderItem: any, i: number) => {
                                const mItem = items.find(it => it.id === orderItem.item_id);
-                               if (!mItem) return null;
                                return (
-                                 <div key={i} className="relative w-[52px] h-[52px] shrink-0">
-                                   <div className="w-full h-full rounded-xl bg-gray-50 border border-gray-100 overflow-hidden">
-                                     {mItem.image_url ? (
-                                       <img src={mItem.image_url} alt={mItem.name} className="w-full h-full object-cover" />
-                                     ) : (
-                                       <div className="w-full h-full flex items-center justify-center text-gray-300">
-                                         <Coffee size={20} />
-                                       </div>
-                                     )}
-                                   </div>
-                                   {orderItem.quantity > 1 && (
-                                     <div className="absolute -top-1.5 -right-1.5 bg-gray-900 text-white text-[10px] font-bold px-1.5 h-5 min-w-[20px] flex items-center justify-center rounded-full border-[1.5px] border-white z-10 shadow-sm">
-                                       {orderItem.quantity}
-                                     </div>
-                                   )}
+                                 <div key={i} className="relative w-10 h-10 rounded-full border-[2px] border-white bg-gray-50 overflow-hidden shadow-[0_2px_4px_rgba(0,0,0,0.02)]" style={{ zIndex: 10 - i }}>
+                                    {mItem?.image_url ? (
+                                      <img src={mItem.image_url} alt="" className="w-full h-full object-cover" />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center text-gray-300">
+                                        <ShoppingCart size={14} />
+                                      </div>
+                                    )}
                                  </div>
                                );
                             })}
                             {order.items.length > 3 && (
-                               <div className="w-[52px] h-[52px] rounded-xl bg-gray-50 border border-gray-100 flex flex-col items-center justify-center shrink-0">
-                                  <span className="text-[11px] font-bold text-gray-500">+{order.items.length - 3}</span>
+                               <div className="relative w-10 h-10 rounded-full border-[2px] border-white bg-gray-50 flex items-center justify-center shadow-[0_2px_4px_rgba(0,0,0,0.02)]" style={{ zIndex: 0 }}>
+                                  <span className="text-[10px] font-bold text-gray-500">+{order.items.length - 3}</span>
                                </div>
                             )}
                           </div>
-                          
-                          <div className="text-[11px] text-gray-500 mt-2.5 line-clamp-1 font-medium leading-relaxed">
+                          <span className="text-[13px] font-bold text-gray-900 mt-1">฿{order.net_total}</span>
+                       </div>
+                       
+                       <div className="mb-5 flex-1">
+                          <h3 className="text-[12px] font-bold text-gray-900 line-clamp-1 mb-1 leading-relaxed">
                             {order.items.map((i: any) => items.find(it => it.id === i.item_id)?.name || '').filter(Boolean).join(', ')}
-                          </div>
+                          </h3>
+                          <p className="text-[11px] text-gray-400 font-medium">
+                             {new Date(order.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })} • {new Date(order.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
+                          </p>
                        </div>
 
                        <button 
                          onClick={(e) => handleReorderOrder(e, order)}
-                         className="w-full bg-gray-900 hover:bg-black text-white py-2.5 text-[12px] font-bold rounded-xl active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm"
+                         className="w-full bg-[#f9f9f9] hover:bg-gray-100 text-gray-800 py-2.5 text-[12px] font-bold rounded-full active:scale-95 transition-all flex items-center justify-center gap-2 border border-gray-100/50"
                        >
-                         <ShoppingCart size={14} />
-                         {locale === 'en' ? 'Order Again' : locale === 'zh' ? 'Order Again' : 'สั่งเซ็ตนี้อีกครั้ง'}
+                         {locale === 'en' ? 'Reorder' : locale === 'zh' ? 'Reorder' : 'สั่งเซ็ตนี้อีกครั้ง'}
                        </button>
                     </div>
                   );
