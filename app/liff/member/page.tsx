@@ -159,7 +159,15 @@ export default function LiffMemberPage() {
               showConfirmButton: false,
               timer: 2000
             }).then(() => {
-              window.location.href = 'https://line.me/R/ti/p/@xylstudio';
+              try {
+                if (window.liff && window.liff.isInClient()) {
+                  window.liff.openWindow({ url: 'https://line.me/R/ti/p/@xylstudio', external: false });
+                } else {
+                  window.location.href = 'https://line.me/R/ti/p/@xylstudio';
+                }
+              } catch (e) {
+                window.location.href = 'https://line.me/R/ti/p/@xylstudio';
+              }
             });
         } else {
             alert(result.error || 'Failed to register');
