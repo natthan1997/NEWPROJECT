@@ -152,7 +152,15 @@ export default function LiffMemberPage() {
         const result = await res.json();
         
         if (result.success) {
-            fetchData();
+            Swal.fire({
+              icon: 'success',
+              title: 'สมัครสมาชิกสำเร็จ!',
+              text: 'กำลังพากลับไปยังหน้าแชทของร้าน...',
+              showConfirmButton: false,
+              timer: 2000
+            }).then(() => {
+              window.location.href = 'https://line.me/R/ti/p/@xylstudio';
+            });
         } else {
             alert(result.error || 'Failed to register');
         }
