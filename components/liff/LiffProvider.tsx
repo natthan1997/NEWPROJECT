@@ -90,22 +90,24 @@ export const LiffProvider = ({ children }: { children: React.ReactNode }) => {
   // --- Fetch: App-level data (shared across all LIFF pages) ---
   const fetchCoreData = useCallback(async (userId?: string) => {
     try {
-      const [catRes, bannerRes, bsRes, statusRes] = await Promise.all([
-        supabase.from('pos_menu_categories').select('*').order('order_index'),
+      const fetchMenuCache = fetch('/api/cache/menu').then(r => r.json()).catch(() => null);
+      
+      const [bannerRes, statusRes, menuCache] = await Promise.all([
         supabase.from('pos_banners').select('*').eq('is_active', true).order('order_index').limit(5),
-        supabase
-          .from('pos_menu_items')
-          .select('*, modifiers:pos_item_modifier_links(group_id)')
-          .eq('is_active', true)
-          .or('is_popular.eq.true,is_recommended.eq.true')
-          .order('name', { ascending: true })
-          .limit(6),
         supabase.from('pos_shop_settings').select('*').order('updated_at', { ascending: false }).limit(1).maybeSingle(),
+        fetchMenuCache
       ]);
 
-      if (catRes.data) setCategories(catRes.data);
+      if (menuCache && menuCache.data) {
+        if (menuCache.data.categories) setCategories(menuCache.data.categories);
+        if (menuCache.data.items) {
+          const items = menuCache.data.items;
+          const popular = items.filter((i: any) => i.is_popular || i.is_recommended).slice(0, 6);
+          setBestSellers(sortMenuItemsByOrder(popular));
+        }
+      }
+
       if (bannerRes.data) setBanners(bannerRes.data);
-      if (bsRes.data) setBestSellers(sortMenuItemsByOrder(bsRes.data));
       if (statusRes.data) setShopStatus(statusRes.data);
 
       // Active orders (requires userId)

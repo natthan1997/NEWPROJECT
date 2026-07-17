@@ -344,21 +344,22 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
                 <div>
                   <div className="flex items-center gap-2">
                     <div className="text-xs font-black uppercase tracking-widest text-[#1A1A18]">
-                      {order.order_number}
+                      {order.order_type === 'dine_in' && order.table_number ? `โต๊ะ ${order.table_number}` : `#${String(order.queue_number || 0).padStart(3, '0')}`}
                     </div>
                     {order.customer ? (
                       <span className="bg-sage-100 px-1.5 py-0.5 text-[10px] font-black tracking-widest text-sage-800 uppercase flex items-center gap-1">
                         <User size={10} />
                         {order.customer.full_name || order.customer.display_name || order.customer.phone || 'สมาชิก'}
                       </span>
-                    ) : order.queue_number ? (
+                    ) : null}
+                    {order.order_number ? (
                       <span className="bg-gray-100 px-1.5 py-0.5 text-[10px] font-black tracking-widest text-gray-700">
-                        คิว #{String(order.queue_number).padStart(3, '0')}
+                        {order.order_number}
                       </span>
                     ) : null}
                     {order.order_type === 'dine_in' && order.table_number && (
                       <span className="bg-amber-100 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-tighter text-amber-700">
-                        Table {order.table_number}
+                        คิว #{String(order.queue_number || 0).padStart(3, '0')}
                       </span>
                     )}
                     <span className="bg-gray-100 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-tighter text-gray-500">

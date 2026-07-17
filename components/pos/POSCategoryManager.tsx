@@ -13,6 +13,7 @@ interface Category {
   order_index?: number
   branch_id?: string | null
   item_count?: number
+  estimated_prep_minutes?: number
 }
 
 interface POSCategoryManagerProps {
@@ -33,6 +34,7 @@ export default function POSCategoryManager({ shopSettings, onCategoriesChange }:
 
   // Form state
   const [formName, setFormName] = useState('')
+  const [formPrepMinutes, setFormPrepMinutes] = useState(2)
 
   const branchId = shopSettings?.branch_id || null
 
@@ -100,12 +102,14 @@ export default function POSCategoryManager({ shopSettings, onCategoriesChange }:
 
   const openAdd = () => {
     setFormName('')
+    setFormPrepMinutes(2)
     setEditingCat(null)
     setIsAddOpen(true)
   }
 
   const openEdit = (cat: Category) => {
     setFormName(cat.name)
+    setFormPrepMinutes(cat.estimated_prep_minutes ?? 2)
     setEditingCat(cat)
     setIsAddOpen(true)
   }
@@ -117,6 +121,7 @@ export default function POSCategoryManager({ shopSettings, onCategoriesChange }:
       const payload: any = {
         name: formName.trim(),
         branch_id: branchId,
+        estimated_prep_minutes: formPrepMinutes,
       }
 
       if (editingCat) {
@@ -286,6 +291,8 @@ export default function POSCategoryManager({ shopSettings, onCategoriesChange }:
                     <div className="text-[12px] font-medium text-gray-400 flex items-center gap-2 mt-0.5">
                       <span>ลำดับที่ {idx + 1}</span>
                       <span className="w-1 h-1 rounded-full bg-gray-300" />
+                      <span>ทำเสร็จใน {cat.estimated_prep_minutes ?? 2} นาที/จาน</span>
+                      <span className="w-1 h-1 rounded-full bg-gray-300" />
                       <span className={`${(cat.item_count || 0) > 0 ? 'text-emerald-600 font-bold' : ''}`}>
                         {cat.item_count || 0} รายการ
                       </span>
@@ -375,6 +382,20 @@ export default function POSCategoryManager({ shopSettings, onCategoriesChange }:
                     onChange={e => setFormName(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && handleSave()}
                     placeholder="เช่น อาหารจานหลัก, เครื่องดื่ม..."
+                    className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-[15px] font-bold outline-none focus:bg-white focus:border-black focus:ring-4 focus:ring-black/5 transition-all"
+                  />
+                </div>
+
+                <div className="mb-6">
+                  <label className="block text-[11px] font-black uppercase tracking-widest text-gray-500 mb-2 ml-1">
+                    เวลาที่ใช้เตรียม/ทำ (นาที ต่อ 1 จาน)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formPrepMinutes}
+                    onChange={e => setFormPrepMinutes(Number(e.target.value))}
+                    onKeyDown={e => e.key === 'Enter' && handleSave()}
                     className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-[15px] font-bold outline-none focus:bg-white focus:border-black focus:ring-4 focus:ring-black/5 transition-all"
                   />
                 </div>

@@ -73,7 +73,8 @@ export default function POSKitchen({
           type: 'flex',
           orderData: {
             status,
-            orderNumber: targetOrder.order_number,
+            orderNumber: `#${String(targetOrder.queue_number || 0).padStart(3, '0')}`,
+            receiptNumber: targetOrder.order_number,
             orderId: targetOrder.id,
             totalAmount: Number(targetOrder.net_total ?? targetOrder.total_amount ?? 0),
             deliveryFee: Number(targetOrder.delivery_fee || 0),
@@ -113,10 +114,10 @@ export default function POSKitchen({
                                     </span>
                                 </div>
                                 <h3 className={`text-5xl font-black tracking-tighter ${isDelivery ? 'text-white' : 'text-black'}`}>
-                                    {order.order_number}
+                                    {order.order_type === 'dine_in' && order.table_number ? `โต๊ะ ${order.table_number}` : `#${String(order.queue_number || 0).padStart(3, '0')}`}
                                 </h3>
                                 <p className={`text-[11px] font-bold uppercase mt-2 opacity-50 ${isDelivery ? 'text-white' : 'text-black'}`}>
-                                    Table: {order.table_number || 'N/A'} • {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    {order.order_number} • {order.order_type === 'dine_in' && order.table_number ? `คิว: #${String(order.queue_number || 0).padStart(3, '0')} • ` : ''}{new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </p>
                             </div>
                             <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${isDelivery ? 'bg-black/20 text-white' : 'bg-black text-white'}`}>
@@ -208,7 +209,8 @@ export default function POSKitchen({
                                      type: 'flex',
                                      orderData: {
                                        status: 'cancelled',
-                                       orderNumber: order.order_number,
+                                       orderNumber: `#${String(order.queue_number || 0).padStart(3, '0')}`,
+                                       receiptNumber: order.order_number,
                                        orderId: order.id,
                                        totalAmount: Number(order.net_total ?? order.total_amount ?? 0),
                                         items: (order.items || []).map((item: any) => {

@@ -182,9 +182,14 @@ export default function LiffHistoryPage() {
                   <div className="flex justify-between items-start mb-6">
                      <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <p className="text-[10px] font-black uppercase tracking-tighter text-gray-900">
-                             {order.order_number?.startsWith('#') ? order.order_number : `#${order.order_number || order.id.slice(0,8).toUpperCase()}`}
-                          </p>
+                          <div className="flex flex-col gap-0.5">
+                            <p className="text-[12px] font-black uppercase tracking-tighter text-gray-900">
+                               {order.order_type === 'dine_in' && order.table_number ? `โต๊ะ ${order.table_number}` : `#${String(order.queue_number || 0).padStart(3, '0')}`}
+                            </p>
+                            <p className="text-[7px] font-bold uppercase tracking-widest text-gray-400">
+                               {order.order_number}
+                            </p>
+                          </div>
                           <span className={`px-2 py-0.5 rounded-none text-[7px] font-black uppercase tracking-widest ${
                             order.status === 'completed' || order.status === 'delivered' ? 'bg-emerald-50 text-emerald-600' : 
                             order.status === 'cancelled' ? 'bg-red-50 text-red-500' : 'bg-amber-50 text-amber-600'

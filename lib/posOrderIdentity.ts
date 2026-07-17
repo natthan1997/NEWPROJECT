@@ -34,7 +34,13 @@ const fallbackOrderNumber = (prefix: string) => {
     String(now.getMonth() + 1).padStart(2, '0'),
     String(now.getDate()).padStart(2, '0'),
   ].join('')
-  return `${prefix}#${datePart}-${String(Date.now()).slice(-4)}`
+  // Generate random 4 alphanumeric characters for the suffix
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  let suffix = ''
+  for (let i = 0; i < 4; i++) {
+    suffix += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return `${prefix}#${datePart}-${suffix}`
 }
 
 export const reservePOSOrderIdentity = async (
@@ -126,11 +132,9 @@ export const reservePOSOrderIdentity = async (
   const queueNumber = latestQueue + 1
 
   if (!existingOrderNumber) {
-    if (options.orderType === 'dine_in' && options.tableName) {
-      orderNumber = options.tableName
-    } else {
-      orderNumber = fallbackOrderNumber(prefix)
-    }
+    // Note: We don't use tableName as orderNumber anymore. 
+    // It's always INV-... for receipt tracking.
+    orderNumber = fallbackOrderNumber(prefix)
   }
 
   return { orderNumber, queueNumber }

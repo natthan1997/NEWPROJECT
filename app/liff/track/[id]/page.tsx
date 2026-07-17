@@ -253,7 +253,8 @@ export default function LiffTrackPage() {
         </button>
         <div className="text-center">
           <h1 className="text-[11px] font-black uppercase tracking-[0.3em] text-[#1A1A18]">{locale === 'en' ? 'Track orders' : locale === 'zh' ? '追踪订单' : 'ติดตามออเดอร์'}</h1>
-          <p className="text-[7px] font-bold text-emerald-500 uppercase mt-0.5 tracking-widest">{locale === 'en' ? 'Order number:' : locale === 'zh' ? '订单号：' : 'เลขที่ออเดอร์: '}{order.order_number?.startsWith('#') ? order.order_number : `#${order.order_number || String(id).slice(0,8).toUpperCase()}`}</p>
+          <p className="text-[12px] font-black text-emerald-500 uppercase mt-0.5 tracking-widest">{order.order_type === 'dine_in' && order.table_number ? `โต๊ะ ${order.table_number}` : `${locale === 'en' ? 'Order:' : locale === 'zh' ? '订单号：' : 'เลขที่ออเดอร์: '}#${String(order.queue_number || 0).padStart(3, '0')}`}</p>
+          <p className="text-[7px] font-bold text-gray-400 uppercase mt-0.5 tracking-widest">{order.order_number}</p>
         </div>
         <button onClick={() => router.push('/liff/history')} className="w-10 h-10 rounded-none bg-gray-50 flex items-center justify-center text-gray-400 active:scale-95 transition-all">
           <History size={18} />
@@ -312,7 +313,7 @@ export default function LiffTrackPage() {
 
            {/* 🏷️ STATUS CARD */}
            <div className="text-center space-y-4 pt-6 border-t border-gray-50">
-              {estimatedDeliveryTime && !isCompleted && status !== 'cancelled' && (
+              {estimatedDeliveryTime && !isCompleted && status !== 'cancelled' && status !== 'pending' && (
                 <div className="bg-emerald-50 text-emerald-700 py-3 px-4 border border-emerald-100 flex items-center justify-between mx-4 mb-4">
                   <span className="text-[10px] font-black uppercase tracking-widest">{locale === 'en' ? 'Estimated Time' : locale === 'zh' ? '预计时间' : 'คาดว่าจะได้รับเวลา'}</span>
                   <span className="text-sm font-black tracking-widest">

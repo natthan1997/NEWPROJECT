@@ -230,8 +230,15 @@ export async function POST(req: Request) {
       : now;
 
     const baseTime = latestCompletionTime.getTime() > now.getTime() ? latestCompletionTime : now;
-    const totalItemsCount = items.reduce((acc: number, item: any) => acc + (Number(item.quantity) || 1), 0);
-    const prepDurationMinutes = totalItemsCount * 2; // 2 minutes per item
+    
+    // Fetch Category Prep Time Mapping
+    const { data: catData } = await supabase.from('pos_menu_categories').select('id, estimated_prep_minutes');
+    const prepTimeMap = new Map(catData?.map(c => [c.id, c.estimated_prep_minutes ?? 2]));
+
+    const prepDurationMinutes = items.reduce((acc: number, item: any) => {
+      const prepTime = prepTimeMap.get(item.category_id) ?? 2;
+      return acc + (prepTime * (Number(item.quantity) || 1));
+    }, 0);
     const estimatedPrepCompletion = new Date(baseTime.getTime() + prepDurationMinutes * 60000);
 
     // 4. CREATE THE ORDER RECORD
@@ -248,6 +255,7 @@ export async function POST(req: Request) {
       delivery_address: deliveryAddress,
       delivery_latitude: deliveryLatitude,
       delivery_longitude: deliveryLongitude,
+      delivery_distance_km: typeof deliveryDistance === 'number' ? deliveryDistance : null,
       delivery_fee: deliveryFee,
       status: initialStatus,
       order_source: 'liff',
@@ -272,12 +280,9 @@ export async function POST(req: Request) {
       if (!/(queue_number|estimated_prep_completion|delivery_distance_km)/i.test(orderInsertResult.error.message)) {
         throw orderInsertResult.error
       }
-
       const fallbackInsertPayload = { ...orderInsertPayload }
-      delete fallbackInsertPayload.queue_number
       delete fallbackInsertPayload.estimated_prep_completion
       delete fallbackInsertPayload.delivery_distance_km
-
       const fallbackInsertResult = await supabase
         .from('pos_orders')
         .insert(fallbackInsertPayload)

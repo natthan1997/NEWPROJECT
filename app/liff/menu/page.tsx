@@ -9,6 +9,7 @@ import {
   ChevronRight,
   MapPin,
   Plus,
+  PlusCircle,
   Minus,
   ShoppingCart,
   Search,
@@ -734,7 +735,15 @@ export default function LiffMenuPage() {
     const fetchRecentReviews = async () => {
       const { data } = await supabase
         .from('pos_orders')
-        .select('customer_name, customer_image, rating, comment')
+        .select(`
+          customer_name, 
+          customer_image, 
+          rating, 
+          comment,
+          pos_order_items (
+            item:pos_menu_items (name)
+          )
+        `)
         .not('comment', 'is', null)
         .order('created_at', { ascending: false })
         .limit(20);
@@ -1243,12 +1252,18 @@ export default function LiffMenuPage() {
   useEffect(() => {
     if (activeBranch?.branch_id && activeBranch.branch_id !== shopSettings?.branch_id) {
       const fetchBranchMenus = async () => {
-        let catQuery = supabase.from('pos_menu_categories').select('*').order('order_index').or(`branch_id.eq.${activeBranch.branch_id},branch_id.is.null`);
-        let itemQuery = supabase.from('pos_menu_items').select('*, modifiers:pos_item_modifier_links(group_id)').eq('is_active', true).order('name', { ascending: true }).or(`branch_id.eq.${activeBranch.branch_id},branch_id.is.null`);
-        
-        const [{ data: cData }, { data: iData }] = await Promise.all([catQuery, itemQuery]);
-        if (cData && cData.length > 0) setCategories(cData);
-        if (iData && iData.length > 0) setItems(sortMenuItemsByOrder(iData));
+        try {
+          const response = await fetch(`/api/cache/menu?branchId=${activeBranch.branch_id}`);
+          if (response.ok) {
+            const json = await response.json();
+            if (json.data) {
+              if (json.data.categories && json.data.categories.length > 0) setCategories(json.data.categories);
+              if (json.data.items && json.data.items.length > 0) setItems(sortMenuItemsByOrder(json.data.items));
+            }
+          }
+        } catch (err) {
+          console.error('Failed to fetch branch menu cache', err);
+        }
       };
       fetchBranchMenus();
     }
@@ -2040,34 +2055,40 @@ export default function LiffMenuPage() {
               {/* ⭐ Latest Order */}
         {!searchTerm && latestOrder && latestOrder.items && latestOrder.items.length > 0 && (
           <section className="px-4 mb-6 pt-4">
-             <div className="bg-white border border-gray-100 p-4 shadow-sm relative">
-                <div className="flex items-start justify-between mb-3">
+             <div className="bg-white border border-gray-100 p-5 rounded-[16px] shadow-sm relative">
+                <div className="flex items-start justify-between mb-4">
                    <div>
-                     <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-800 flex items-center gap-2">
-                       <History size={12} className="text-gray-400" />
-                       {locale === 'en' ? 'Latest Order • สั่งล่าสุด' : 'Latest Order • สั่งล่าสุด'}
+                     <h2 className="text-[12px] font-bold text-gray-900 flex items-center gap-2">
+                       <History size={14} className="text-gray-500" />
+                       {locale === 'en' ? 'Latest Order' : locale === 'zh' ? 'Latest Order' : 'สั่งล่าสุด'}
                      </h2>
-                     <p className="text-[9px] font-bold text-gray-400 uppercase mt-1 tracking-widest">
-                       {latestOrder.items.length} {locale === 'en' ? 'Items' : 'รายการ'}
+                     <p className="text-[10px] font-medium text-gray-500 mt-0.5">
+                       {latestOrder.items.length} {locale === 'en' ? 'items' : locale === 'zh' ? 'items' : 'รายการ'}
                      </p>
                    </div>
                    <button 
                      onClick={handleReorderLatest}
-                     className="bg-black text-white px-3 py-1.5 text-[9px] font-black uppercase tracking-widest active:scale-95 transition-all"
+                     className="bg-black text-white px-4 py-2 text-[10px] font-bold rounded-full active:scale-95 transition-all"
                    >
-                     {locale === 'en' ? 'Order Again' : 'สั่งอีกครั้ง'}
+                     {locale === 'en' ? 'Order Again' : locale === 'zh' ? 'Order Again' : 'สั่งอีกครั้ง'}
                    </button>
                 </div>
                 
-                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
                    {latestOrder.items.map((orderItem: any, idx: number) => {
                       const mItem = items.find(i => i.id === orderItem.item_id);
                       if (!mItem) return null;
                       return (
-                         <div key={idx} className="shrink-0 w-[60px] flex flex-col gap-1">
-                            <div className="w-[60px] h-[60px] bg-gray-50 border border-gray-100 overflow-hidden relative">
-                               {mItem.image_url && <img src={mItem.image_url} className="w-full h-full object-cover" loading="lazy" decoding="async" />}
-                               <div className="absolute bottom-0 right-0 bg-black text-white text-[7px] font-black px-1">
+                         <div key={idx} className="shrink-0 w-[64px] flex flex-col gap-1 relative">
+                            <div className="w-[64px] h-[64px] rounded-[12px] bg-gray-50 overflow-hidden relative">
+                               {mItem.image_url ? (
+                                  <img src={mItem.image_url} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                               ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-gray-300">
+                                    <span className="text-[10px] font-bold">XYL</span>
+                                  </div>
+                               )}
+                               <div className="absolute top-0 right-0 bg-black/80 backdrop-blur-sm text-white text-[9px] font-bold px-1.5 py-0.5 rounded-bl-[8px]">
                                  x{orderItem.quantity}
                                </div>
                             </div>
@@ -2082,145 +2103,48 @@ export default function LiffMenuPage() {
         {/* ⭐ Tier 1.5: Regulars (Smart Favorites) Moved to Top */}
         {!searchTerm && regularItemIds.length > 0 && (
           <section id="category-regulars" className="px-4 mb-10 pt-4 scroll-spy-section">
-            <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-400 mb-6 px-1 flex items-center gap-2">
-              <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
-              {locale === 'en' ? 'Your Regulars • เมนูประจำของคุณ' : locale === 'zh' ? 'Your Regulars • เมนูประจำของคุณ' : 'Your Regulars • เมนูประจำของคุณ'}
+            <h2 className="text-[14px] font-bold text-gray-900 mb-4 px-1 flex items-center gap-2">
+              {locale === 'en' ? 'Your Regulars' : locale === 'zh' ? 'Your Regulars' : 'เมนูประจำของคุณ'}
             </h2>
             <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide">
-              {items.filter(i => regularItemIds.includes(i.id)).slice(0, 4).map(item => (
-                <div key={item.id} className={`snap-start shrink-0 w-[140px] bg-white border border-gray-100 flex flex-col group overflow-hidden relative ${item.in_stock === false ? 'opacity-60 grayscale' : ''}`}>
-                   <div className={`relative aspect-[4/3] bg-gray-50 overflow-hidden ${item.in_stock !== false ? 'cursor-pointer' : 'cursor-not-allowed'}`} onClick={() => item.in_stock !== false && addToCart(item)}>
-                     {item.image_url && <img src={item.image_url} alt={getPrimaryMenuName(item)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" decoding="async" />}
+              {items.filter(i => regularItemIds.includes(i.id)).slice(0, 4).map(item => {
+                const cartQty = cart.filter(c => c.id === item.id).reduce((sum, c) => sum + c.quantity, 0);
+                return (
+                <div key={item.id} className={`snap-start shrink-0 w-[160px] flex flex-col group relative ${item.in_stock === false ? 'opacity-60 grayscale' : ''}`}>
+                   <div className={`relative aspect-[4/5] rounded-[16px] overflow-hidden ${item.in_stock !== false ? 'cursor-pointer' : 'cursor-not-allowed'}`} onClick={() => item.in_stock !== false && addToCart(item)}>
+                     {item.image_url && <img src={item.image_url} alt={getPrimaryMenuName(item)} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" decoding="async" />}
                      {item.in_stock === false && (
                         <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/35 backdrop-blur-[2px] pointer-events-none">
                            <div className="flex flex-col items-center gap-2">
-                             <span className="bg-red-600 text-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] shadow-lg">สินค้าหมด</span>
-                             <span className="bg-white/90 text-red-600 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.18em] shadow-sm">Unavailable</span>
+                             <span className="bg-red-600 text-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] shadow-lg rounded-full">สินค้าหมด</span>
                            </div>
                         </div>
                      )}
-                     <div className="absolute bottom-2 right-2 px-2 py-0.5 bg-yellow-500/90 backdrop-blur-md text-white text-[6px] font-black uppercase tracking-widest z-30 flex items-center gap-1">
-                       <Star className="w-2 h-2 fill-white" />
-                       Regular
+                     <div className="absolute top-2 left-2 px-2.5 py-1 bg-white/95 backdrop-blur-sm rounded-full shadow-sm text-yellow-600 text-[10px] font-bold z-30 flex items-center gap-1">
+                       <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
+                       ประจำ
                      </div>
                    </div>
-                   <div className="p-3 relative z-10 flex flex-col justify-between flex-1">
+                   <div className="pt-2 flex flex-col justify-between flex-1">
                       <div>
-                        <h3 className="text-[10px] font-bold text-gray-800 line-clamp-1">{getPrimaryMenuName(item)}</h3>
+                        <h3 className="text-[13px] font-bold text-gray-900 line-clamp-1">{getPrimaryMenuName(item)}</h3>
                         {getSecondaryMenuName(item, locale === 'zh' ? 'zh' : 'en') && (
-                          <p className="mt-1 text-[8px] font-semibold text-gray-500 line-clamp-1">
+                          <p className="mt-0.5 text-[11px] font-medium text-gray-500 line-clamp-1">
                             {getSecondaryMenuName(item, locale === 'zh' ? 'zh' : 'en')}
                           </p>
                         )}
                       </div>
-                      <div className="mt-4 flex items-center justify-between">
-                         <span className="text-[10px] font-bold text-gray-900">฿{item.sale_price}</span>
-                         <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if(item.in_stock !== false) addToCart(item);
-                            }}
-                            disabled={item.in_stock === false}
-                            className={`w-6 h-6 flex items-center justify-center bg-black text-white hover:bg-gray-800 transition-colors ${item.in_stock === false ? 'opacity-50 cursor-not-allowed' : ''}`}
-                         >
-                           <Plus className="w-3 h-3" />
-                         </button>
-                      </div>
-                   </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Banner Carousel */}
-        {/* 🏆 Tier 1: Signature Series (Recommended) */}
-        {!searchTerm && (
-          <section className="px-4 mb-10 pt-4 scroll-spy-section" id="category-all">
-            <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-600 mb-6 flex items-center gap-3">
-              <Star size={12} fill="currentColor" /> {locale === 'en' ? 'Signature Series • Recommended menu' : locale === 'zh' ? '招牌系列 • 推荐菜单' : 'Signature Series • เมนูแนะนำ'}</h2>
-            <div className="grid grid-cols-2 gap-4">
-              {items.filter(i => i.is_recommended).slice(0, 4).map(item => (
-                <div key={item.id} className={`bg-white border border-gray-100 flex flex-col group overflow-hidden shadow-sm relative ${item.in_stock === false ? 'opacity-60 grayscale' : ''}`}>
-                   <div className={`relative aspect-square bg-gray-50 overflow-hidden ${item.in_stock !== false ? 'cursor-pointer' : 'cursor-not-allowed'}`} onClick={() => item.in_stock !== false && addToCart(item)}>
-                     {item.image_url && <img src={item.image_url} alt={getPrimaryMenuName(item)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" decoding="async" />}
-                     {item.in_stock === false && (
-                        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/35 backdrop-blur-[2px] pointer-events-none">
-                           <div className="flex flex-col items-center gap-2">
-                             <span className="bg-red-600 text-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] shadow-lg">สินค้าหมด</span>
-                             <span className="bg-white/90 text-red-600 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.18em] shadow-sm">Unavailable</span>
-                           </div>
-                        </div>
-                     )}
-                     <div className="absolute top-2 left-2 px-2 py-0.5 bg-amber-400 text-white text-[6px] font-black uppercase tracking-widest z-30">Signature</div>
-                   </div>
-                   <div className="p-3 relative z-10">
-                      <h3 className="text-[11px] font-black text-black line-clamp-1 uppercase tracking-tighter">{getPrimaryMenuName(item)}</h3>
-                      {getSecondaryMenuName(item, locale === 'zh' ? 'zh' : 'en') && (
-                        <p className="mt-1 text-[9px] font-semibold text-gray-500 line-clamp-1">
-                          {getSecondaryMenuName(item, locale === 'zh' ? 'zh' : 'en')}
-                        </p>
-                      )}
-                      <div className="flex justify-between items-center mt-2">
-                        <span className="text-[11px] font-black text-emerald-600">{locale === 'en' ? '฿' : locale === 'zh' ? '฿' : '฿'}{item.sale_price}</span>
-                        <button disabled={item.in_stock === false} onClick={() => item.in_stock !== false && addToCart(item)} className={`w-8 h-8 flex items-center justify-center rounded-none shadow-lg transition-all ${item.in_stock === false ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-black text-white active:scale-90'}`}>
-                          <Plus size={14} />
-                        </button>
-                      </div>
-                   </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-
-        {/* ❤️ Tier 2: Most Loved (Best Sellers) */}
-        {!searchTerm && bestSellingIds.length > 0 && (
-          <section id="category-popular" className="px-4 mb-10 scroll-spy-section">
-            <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-400 mb-6 px-1">{locale === 'en' ? 'Most Loved • เมนูยอดนิยม' : locale === 'zh' ? 'Most Loved • เมนูยอดนิยม' : 'Most Loved • เมนูยอดนิยม'}</h2>
-            <div className="grid grid-cols-2 gap-4">
-              {bestSellingIds.filter(id => items.some(i => i.id === id)).slice(0, 4).map((id, index) => {
-                const item = items.find(i => i.id === id);
-                if (!item) return null;
-                return (
-                <div key={item.id} className={`bg-white border border-gray-100 flex flex-col group overflow-hidden relative ${item.in_stock === false ? 'opacity-60 grayscale' : ''}`}>
-                   <div className={`relative aspect-[4/3] bg-gray-50 overflow-hidden ${item.in_stock !== false ? 'cursor-pointer' : 'cursor-not-allowed'}`} onClick={() => item.in_stock !== false && addToCart(item)}>
-                     {item.image_url && <img src={item.image_url} alt={getPrimaryMenuName(item)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" decoding="async" />}
-                     {item.in_stock === false && (
-                        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/35 backdrop-blur-[2px] pointer-events-none">
-                           <div className="flex flex-col items-center gap-2">
-                             <span className="bg-red-600 text-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] shadow-lg">สินค้าหมด</span>
-                             <span className="bg-white/90 text-red-600 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.18em] shadow-sm">Unavailable</span>
-                           </div>
-                        </div>
-                     )}
-                     
-                     {/* 🥇 NEW RANK BADGE */}
-                     <div className="absolute top-0 left-0 z-30">
-                        <div className={`w-8 h-8 flex items-center justify-center text-white font-black shadow-lg
-                          ${index === 0 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600' : 
-                            index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-400' : 
-                            index === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-700' : 
-                            'bg-gradient-to-br from-gray-700 to-gray-900'}
-                        `} style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%)' }}>
-                          <span className="text-[12px] pb-1">#{index + 1}</span>
-                        </div>
-                     </div>
-
-                   </div>
-                   <div className="p-3 relative z-10">
-                      <h3 className="text-[10px] font-bold text-gray-800 line-clamp-1">{getPrimaryMenuName(item)}</h3>
-                      {getSecondaryMenuName(item, locale === 'zh' ? 'zh' : 'en') && (
-                        <p className="mt-1 text-[8px] font-semibold text-gray-500 line-clamp-1">
-                          {getSecondaryMenuName(item, locale === 'zh' ? 'zh' : 'en')}
-                        </p>
-                      )}
-                      <div className="flex justify-between items-center mt-1">
-                        <span className="text-[10px] font-black">{locale === 'en' ? '฿' : locale === 'zh' ? '฿' : '฿'}{item.sale_price}</span>
-                        <button disabled={item.in_stock === false} onClick={() => item.in_stock !== false && addToCart(item)} className={`w-7 h-7 border flex items-center justify-center rounded-none transition-all ${item.in_stock === false ? 'border-gray-200 bg-gray-100 text-gray-300 cursor-not-allowed' : 'border-gray-100 text-gray-400 hover:bg-black hover:text-white'}`}>
-                          <Plus size={12} />
-                        </button>
+                      <div className="mt-1 flex items-center justify-between">
+                         <span className="text-[13px] font-bold text-gray-900">฿{item.sale_price}</span>
+                         {cartQty > 0 ? (
+                           <button onClick={(e) => { e.stopPropagation(); addToCart(item); }} className="w-7 h-7 flex items-center justify-center rounded-full border border-black bg-white text-black font-bold text-[12px] hover:bg-gray-50 transition-colors">
+                             {cartQty}
+                           </button>
+                         ) : (
+                           <button onClick={(e) => { e.stopPropagation(); if(item.in_stock !== false) addToCart(item); }} disabled={item.in_stock === false} className={`w-7 h-7 flex items-center justify-center rounded-full transition-colors ${item.in_stock === false ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-black text-white hover:bg-gray-800'}`}>
+                             <Plus className="w-4 h-4" />
+                           </button>
+                         )}
                       </div>
                    </div>
                 </div>
@@ -2229,30 +2153,167 @@ export default function LiffMenuPage() {
           </section>
         )}
 
-        {/* 🌟 Social Proof Divider */}
-        {recentReviews.length > 0 && !searchTerm && (
-          <div className="my-12 px-4 py-10 bg-[#f9f9f5] border-y border-gray-50 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-10 opacity-5 -rotate-12 translate-x-1/2 -translate-y-1/2">
-                <Star size={120} fill="currentColor" className="text-amber-500" />
-            </div>
-            <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-400 mb-8 px-1 text-center">{locale === 'en' ? 'ความประทับใจจากลูกค้าของเรา' : locale === 'zh' ? 'ความประทับใจจากลูกค้าของเรา' : 'ความประทับใจจากลูกค้าของเรา'}</h2>
-            <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
-              {recentReviews.map((rev, idx) => (
-                <div key={idx} className="flex-shrink-0 w-72 p-8 bg-white border border-gray-100 rounded-none shadow-sm relative">
-                   <div className="flex items-center gap-1 mb-4">
-                       {[...Array(5)].map((_, i) => (
-                         <Star key={i} size={10} fill={i < rev.rating ? "#F6C144" : "none"} stroke={i < rev.rating ? "#F6C144" : "#E2E8F0"} />
-                       ))}
-                   </div>
-                   {rev.comment && rev.comment.trim() !== '' && (
-                     <p className="text-[11px] font-bold text-gray-800 italic mb-6 leading-relaxed line-clamp-2">"{rev.comment.trim()}"</p>
-                   )}
-                   <div className="flex items-center gap-3">
-                     <div className="w-6 h-6 rounded-none bg-gray-200 overflow-hidden">
-                       {rev.customer_image && <img src={rev.customer_image} className="w-full h-full object-cover" loading="lazy" decoding="async" />}
+        {/* Banner Carousel */}
+        {/* 🏆 Tier 1: Signature Series (Recommended) */}
+        {!searchTerm && (
+          <section className="px-4 mb-10 pt-4 scroll-spy-section" id="category-all">
+            <h2 className="text-[14px] font-bold text-gray-900 mb-4 px-1 flex items-center gap-2">
+              {locale === 'en' ? 'Recommended menu' : locale === 'zh' ? '推荐菜单' : 'เมนูแนะนำ'}
+            </h2>
+            <div className="grid grid-cols-2 gap-4 pb-4">
+              {items.filter(i => i.is_recommended).slice(0, 4).map((item, index) => {
+                const cartQty = cart.filter(c => c.id === item.id).reduce((sum, c) => sum + c.quantity, 0);
+                return (
+                <div key={item.id} className={`flex flex-col group relative ${item.in_stock === false ? 'opacity-60 grayscale' : ''}`}>
+                   <div className={`relative aspect-[4/5] rounded-[16px] overflow-hidden ${item.in_stock !== false ? 'cursor-pointer' : 'cursor-not-allowed'}`} onClick={() => item.in_stock !== false && addToCart(item)}>
+                     {item.image_url && <img src={item.image_url} alt={getPrimaryMenuName(item)} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" decoding="async" />}
+                     {item.in_stock === false && (
+                        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/35 backdrop-blur-[2px] pointer-events-none">
+                           <div className="flex flex-col items-center gap-2">
+                             <span className="bg-red-600 text-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] shadow-lg rounded-full">สินค้าหมด</span>
+                           </div>
+                        </div>
+                     )}
+                     <div className="absolute top-2 left-2 px-2.5 py-1 bg-white/95 backdrop-blur-sm rounded-full shadow-sm text-red-500 text-[10px] font-bold z-30 flex items-center gap-1">
+                       <span className="text-[10px]">🔥</span>
+                       แนะนำ #{index + 1}
                      </div>
-                     <span className="text-[9px] font-black uppercase text-emerald-600 tracking-[0.2em]">{rev.customer_name || 'ลูกค้าคนสำคัญ'}</span>
                    </div>
+                   <div className="pt-2 flex flex-col justify-between flex-1">
+                      <div>
+                        <h3 className="text-[13px] font-bold text-gray-900 line-clamp-1">{getPrimaryMenuName(item)}</h3>
+                        {getSecondaryMenuName(item, locale === 'zh' ? 'zh' : 'en') && (
+                          <p className="mt-0.5 text-[11px] font-medium text-gray-500 line-clamp-1">
+                            {getSecondaryMenuName(item, locale === 'zh' ? 'zh' : 'en')}
+                          </p>
+                        )}
+                      </div>
+                      <div className="mt-1 flex items-center justify-between">
+                         <span className="text-[13px] font-bold text-gray-900">฿{item.sale_price}</span>
+                         {cartQty > 0 ? (
+                           <button onClick={(e) => { e.stopPropagation(); addToCart(item); }} className="w-7 h-7 flex items-center justify-center rounded-full border border-black bg-white text-black font-bold text-[12px] hover:bg-gray-50 transition-colors">
+                             {cartQty}
+                           </button>
+                         ) : (
+                           <button onClick={(e) => { e.stopPropagation(); if(item.in_stock !== false) addToCart(item); }} disabled={item.in_stock === false} className={`w-7 h-7 flex items-center justify-center rounded-full transition-colors ${item.in_stock === false ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-black text-white hover:bg-gray-800'}`}>
+                             <Plus className="w-4 h-4" />
+                           </button>
+                         )}
+                      </div>
+                   </div>
+                </div>
+              )})}
+            </div>
+          </section>
+        )}
+
+
+        {/* ❤️ Tier 2: Most Loved (Best Sellers) */}
+        {!searchTerm && bestSellingIds.length > 0 && (
+          <section id="category-popular" className="px-4 mb-10 scroll-spy-section">
+            <h2 className="text-[14px] font-bold text-gray-900 mb-4 px-1">
+              {locale === 'en' ? 'Most Loved' : locale === 'zh' ? '最受欢迎' : 'เมนูยอดนิยม'}
+            </h2>
+            <div className="grid grid-cols-2 gap-4 pb-4">
+              {bestSellingIds.filter(id => items.some(i => i.id === id)).slice(0, 4).map((id, index) => {
+                const item = items.find(i => i.id === id);
+                if (!item) return null;
+                const cartQty = cart.filter(c => c.id === item.id).reduce((sum, c) => sum + c.quantity, 0);
+                return (
+                <div key={item.id} className={`flex flex-col group relative ${item.in_stock === false ? 'opacity-60 grayscale' : ''}`}>
+                   <div className={`relative aspect-[4/5] rounded-[16px] overflow-hidden ${item.in_stock !== false ? 'cursor-pointer' : 'cursor-not-allowed'}`} onClick={() => item.in_stock !== false && addToCart(item)}>
+                     {item.image_url && <img src={item.image_url} alt={getPrimaryMenuName(item)} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" decoding="async" />}
+                     {item.in_stock === false && (
+                        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/35 backdrop-blur-[2px] pointer-events-none">
+                           <div className="flex flex-col items-center gap-2">
+                             <span className="bg-red-600 text-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] shadow-lg rounded-full">สินค้าหมด</span>
+                           </div>
+                        </div>
+                     )}
+                     
+                     <div className="absolute top-2 left-2 px-2.5 py-1 bg-white/95 backdrop-blur-sm rounded-full shadow-sm text-red-500 text-[10px] font-bold z-30 flex items-center gap-1">
+                       <span className="text-[10px]">🔥</span>
+                       ขายดี #{index + 1}
+                     </div>
+
+                   </div>
+                   <div className="pt-2 flex flex-col justify-between flex-1">
+                      <div>
+                        <h3 className="text-[13px] font-bold text-gray-900 line-clamp-1">{getPrimaryMenuName(item)}</h3>
+                        {getSecondaryMenuName(item, locale === 'zh' ? 'zh' : 'en') && (
+                          <p className="mt-0.5 text-[11px] font-medium text-gray-500 line-clamp-1">
+                            {getSecondaryMenuName(item, locale === 'zh' ? 'zh' : 'en')}
+                          </p>
+                        )}
+                      </div>
+                      <div className="mt-1 flex items-center justify-between">
+                         <span className="text-[13px] font-bold text-gray-900">฿{item.sale_price}</span>
+                         {cartQty > 0 ? (
+                           <button onClick={(e) => { e.stopPropagation(); addToCart(item); }} className="w-7 h-7 flex items-center justify-center rounded-full border border-black bg-white text-black font-bold text-[12px] hover:bg-gray-50 transition-colors">
+                             {cartQty}
+                           </button>
+                         ) : (
+                           <button onClick={(e) => { e.stopPropagation(); if(item.in_stock !== false) addToCart(item); }} disabled={item.in_stock === false} className={`w-7 h-7 flex items-center justify-center rounded-full transition-colors ${item.in_stock === false ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-black text-white hover:bg-gray-800'}`}>
+                             <Plus className="w-4 h-4" />
+                           </button>
+                         )}
+                      </div>
+                   </div>
+                </div>
+              )})}
+            </div>
+          </section>
+        )}
+
+        {/* 🌟 Reviews Section */}
+        {recentReviews.length > 0 && !searchTerm && (
+          <div className="my-8 px-4">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Star size={20} fill="#F6C144" stroke="#F6C144" />
+                  <span className="text-xl font-bold text-gray-900">5.0</span>
+                  <span className="text-sm text-gray-500">(178 เรตติ้ง)</span>
+                </div>
+                <p className="text-sm text-gray-600">
+                  มี 61 คนบอกว่าร้านนี้ <span className="text-emerald-600 font-medium">รสชาติถูกปาก</span>
+                </p>
+              </div>
+              <button className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                <ChevronRight size={20} className="text-emerald-600" />
+              </button>
+            </div>
+            
+            <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 snap-x">
+              {recentReviews.map((rev, idx) => (
+                <div key={idx} className="flex-shrink-0 w-[85%] snap-center p-5 bg-white border border-gray-100 rounded-2xl shadow-sm flex flex-col justify-between">
+                   <div>
+                     <div className="flex items-center justify-between mb-3">
+                         <div className="flex items-center gap-1">
+                           {[...Array(5)].map((_, i) => (
+                             <Star key={i} size={14} fill={i < rev.rating ? "#F6C144" : "none"} stroke={i < rev.rating ? "#F6C144" : "#E2E8F0"} />
+                           ))}
+                         </div>
+                         <span className="text-[13px] text-gray-400">{rev.customer_name || 'ลูกค้าคนสำคัญ'}</span>
+                     </div>
+                     {rev.comment && rev.comment.trim() !== '' && (
+                       <p className="text-[14px] text-gray-800 mb-4 leading-relaxed line-clamp-2">{rev.comment.trim()}</p>
+                     )}
+                   </div>
+                   {rev.pos_order_items && rev.pos_order_items.length > 0 && (
+                     <div className="flex flex-wrap gap-2 mt-auto">
+                       {rev.pos_order_items.slice(0, 2).map((oi: any, i: number) => {
+                         const itemName = Array.isArray(oi.item) ? oi.item[0]?.name : oi.item?.name;
+                         if (!itemName) return null;
+                         return (
+                           <div key={i} className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-50/50 text-emerald-600 rounded-lg border border-emerald-100 text-[12px] font-medium">
+                             <PlusCircle size={12} className="text-emerald-600" />
+                             <span className="truncate max-w-[120px]">{itemName}</span>
+                           </div>
+                         );
+                       })}
+                     </div>
+                   )}
                 </div>
               ))}
             </div>
@@ -2269,59 +2330,55 @@ export default function LiffMenuPage() {
             );
             if (catItems.length === 0) return null;
             return (
-              <div key={cat.id} id={`category-${cat.id}`} className="space-y-6 scroll-spy-section pt-4">
-                <div className="flex items-center gap-4">
-                    <h2 className="text-[11px] font-black uppercase tracking-[0.3em] text-black whitespace-nowrap">{cat.name}</h2>
-                    <div className="h-px bg-gray-100 w-full" />
+              <div key={cat.id} id={`category-${cat.id}`} className="scroll-spy-section pt-8 px-4">
+                <div className="mb-4">
+                    <h2 className="text-[16px] font-bold text-gray-900">{cat.name}</h2>
                 </div>
-                <div className="space-y-4">
-                  {catItems.map(item => (
-                    <div key={item.id} className={`group bg-white border border-gray-100 p-4 transition-all hover:border-emerald-100 flex gap-5 ${item.in_stock === false ? 'opacity-60 grayscale' : ''}`}>
-                       <div
-                         className={`relative w-24 h-24 flex-shrink-0 bg-gray-50 overflow-hidden ${item.in_stock !== false ? 'cursor-pointer' : 'cursor-not-allowed'}`}
-                         onClick={() => item.in_stock !== false && addToCart(item)}
-                       >
-                         {item.image_url && <img src={item.image_url} alt={getPrimaryMenuName(item)} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" loading="lazy" decoding="async" />}
-                         {item.in_stock === false && (
-                            <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/35 backdrop-blur-[2px] pointer-events-none">
-                               <div className="flex flex-col items-center gap-2">
-                                 <span className="bg-red-600 text-white px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.18em] shadow-lg">สินค้าหมด</span>
-                                 <span className="bg-white/90 text-red-600 px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.16em] shadow-sm">Unavailable</span>
-                               </div>
-                            </div>
-                         )}
-                       </div>
-                       <div className="flex-1 flex flex-col justify-between py-1">
+                <div className="flex flex-col">
+                  {catItems.map(item => {
+                    const cartQty = cart.filter(c => c.id === item.id).reduce((sum, c) => sum + c.quantity, 0);
+                    return (
+                    <div key={item.id} className={`flex gap-4 py-4 border-b border-gray-100 last:border-b-0 ${item.in_stock === false ? 'opacity-60 grayscale' : ''}`}>
+                       {/* Left: Image (if exists) */}
+                       {item.image_url && (
+                         <div className={`relative w-[96px] h-[96px] rounded-[12px] shrink-0 overflow-hidden ${item.in_stock !== false ? 'cursor-pointer' : 'cursor-not-allowed'}`} onClick={() => item.in_stock !== false && addToCart(item)}>
+                           <img src={item.image_url} alt={getPrimaryMenuName(item)} className="w-full h-full object-cover transition-transform duration-700" decoding="async" />
+                         </div>
+                       )}
+                       {/* Right: Info */}
+                       <div className="flex-1 flex flex-col justify-between" onClick={() => item.in_stock !== false && addToCart(item)}>
                           <div>
-                            <h3 className="text-[12px] font-black uppercase tracking-tighter text-[#1A1A18] mb-1">{getPrimaryMenuName(item)}</h3>
-                            {getSecondaryMenuName(item, locale === 'zh' ? 'zh' : 'en') && (
-                              <p className="text-[9px] font-semibold text-gray-500 mb-1 line-clamp-1">
-                                {getSecondaryMenuName(item, locale === 'zh' ? 'zh' : 'en')}
-                              </p>
-                            )}
-                            {item.description?.trim() && (
-                              <p className="text-[9px] font-medium text-gray-400 line-clamp-2 leading-relaxed">
+                            <h3 className="text-[14px] font-bold text-gray-900 leading-snug line-clamp-2">{getPrimaryMenuName(item)}</h3>
+                            {item.description?.trim() ? (
+                              <p className="mt-1 text-[10px] font-medium text-gray-500 leading-relaxed">
                                 {item.description}
                               </p>
-                            )}
+                            ) : getSecondaryMenuName(item, locale === 'zh' ? 'zh' : 'en') ? (
+                              <p className="mt-1 text-[10px] font-medium text-gray-500 line-clamp-2">
+                                {getSecondaryMenuName(item, locale === 'zh' ? 'zh' : 'en')}
+                              </p>
+                            ) : null}
                           </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm font-black text-black">{locale === 'en' ? '฿' : locale === 'zh' ? '฿' : '฿'}{item.sale_price}</span>
-                            <button
-                              disabled={item.in_stock === false}
-                              onClick={() => item.in_stock !== false && addToCart(item)}
-                              className={`px-5 py-2 text-[9px] font-black uppercase tracking-widest transition-all shadow-sm ${
-                                item.in_stock === false
-                                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                  : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white'
-                              }`}
-                            >
-                                {item.in_stock === false ? 'สินค้าหมด' : 'ADD TO CART'}
-                            </button>
+                          
+                          <div className="mt-2 flex items-end justify-between">
+                             <span className="text-[14px] font-bold text-gray-900">
+                               ฿{item.sale_price} {item.in_stock === false && <span className="text-gray-400 font-normal ml-1">หมด</span>}
+                             </span>
+                             {item.in_stock !== false && (
+                               cartQty > 0 ? (
+                                 <button onClick={(e) => { e.stopPropagation(); addToCart(item); }} className="w-7 h-7 flex items-center justify-center rounded-full border border-black bg-white text-black font-bold text-[12px] hover:bg-gray-50 transition-colors shrink-0">
+                                   {cartQty}
+                                 </button>
+                               ) : (
+                                 <button onClick={(e) => { e.stopPropagation(); addToCart(item); }} className="w-7 h-7 flex items-center justify-center rounded-full bg-black text-white hover:bg-gray-800 transition-colors shrink-0">
+                                   <Plus className="w-4 h-4" />
+                                 </button>
+                               )
+                             )}
                           </div>
                        </div>
                     </div>
-                  ))}
+                  )})}
                 </div>
               </div>
             );

@@ -328,8 +328,36 @@ export default function POSTerminal({
 }: POSTerminalProps) {
   // --- INTERNAL STATES ---
   const router = useRouter()
-  const [items, setItems] = useState<MenuItem[]>([])
-  const [categories, setCategories] = useState<any[]>([])
+  const [items, setItems] = useState<MenuItem[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('pos_cached_items')
+        if (cached) return JSON.parse(cached)
+      } catch (e) {}
+    }
+    return []
+  })
+  const [categories, setCategories] = useState<any[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('pos_cached_categories')
+        if (cached) return JSON.parse(cached)
+      } catch (e) {}
+    }
+    return []
+  })
+  const [isInitialLoading, setIsInitialLoading] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('pos_cached_items')
+        if (cached) {
+          const parsed = JSON.parse(cached)
+          if (Array.isArray(parsed) && parsed.length > 0) return false
+        }
+      } catch(e) {}
+    }
+    return true
+  })
   const [activeCampaigns, setActiveCampaigns] = useState<any[]>([])
   const [tables, setTables] = useState<POSTable[]>([])
   const [successAudio, setSuccessAudio] = useState<HTMLAudioElement | null>(null)
@@ -1286,30 +1314,34 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     return activeOrders.length + 1
   }
 
-  const fetchTrueQueueNumber = async (currentOrderId?: string | null): Promise<number> => {
-    if (currentOrderId) {
-      const { data: existing } = await supabase
-        .from('pos_orders')
-        .select('queue_number')
-        .eq('id', currentOrderId)
-        .maybeSingle();
-      if (existing && existing.queue_number) {
-        return existing.queue_number;
+  const fetchOrderIdentity = async (currentOrderId?: string | null): Promise<{ queueNumber: number, orderNumber: string }> => {
+    try {
+      const res = await fetch('/api/pos/order-identity', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderType,
+          branchId: shopSettings?.branch_id || activeShift?.branch_id || null,
+          shiftId: activeShift?.id || null,
+          existingOrderId: currentOrderId || null,
+          tableName: selectedTable?.table_number || null,
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return { 
+          queueNumber: data.queueNumber, 
+          orderNumber: data.orderNumber 
+        };
       }
+    } catch (e) {
+       console.error("Failed to fetch order identity from API", e);
     }
-
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
-    const { data: maxData } = await supabase
-      .from('pos_orders')
-      .select('queue_number')
-      .not('queue_number', 'is', null)
-      .gte('created_at', startOfToday.toISOString())
-      .order('queue_number', { ascending: false })
-      .limit(1);
-
-    const maxQueue = Number(maxData?.[0]?.queue_number) || 0;
-    return maxQueue + 1;
+    
+    return {
+       queueNumber: 1, 
+       orderNumber: editingOrderNumber || `ORDER-${Date.now()}` 
+    }
   };
 
   const activePrintData = useMemo(() => {
@@ -1630,7 +1662,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   // Re-fetch menu items & tables when branch becomes known (shopSettings loads async after profile)
   useEffect(() => {
     if (shopSettings?.branch_id !== undefined) {
-      fetchItems(true)
+      fetchItems(false)
       fetchTables()
       fetchPromotions()
     }
@@ -1645,7 +1677,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   }, [syncPulse])
 
   const initData = async () => {
-    await Promise.all([fetchItems(true), fetchTables(), refreshPendingOrders(), fetchCampaigns(), fetchTiers()])
+    await Promise.all([fetchTables(), refreshPendingOrders(), fetchCampaigns(), fetchTiers()])
   }
 
   const fetchTiers = async () => {
@@ -1895,11 +1927,20 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       const json = await response.json();
 
       if (json.data) {
-        if (json.data.categories) setCategories(json.data.categories);
-        if (json.data.items) setItems(sortMenuItemsByOrder(json.data.items as any[]));
+        if (json.data.categories) {
+          setCategories(json.data.categories);
+          localStorage.setItem('pos_cached_categories', JSON.stringify(json.data.categories));
+        }
+        if (json.data.items) {
+          const sorted = sortMenuItemsByOrder(json.data.items as any[]);
+          setItems(sorted);
+          localStorage.setItem('pos_cached_items', JSON.stringify(sorted));
+        }
       }
     } catch (e) {
       console.error('XYL STUDIO POS Data Error:', e)
+    } finally {
+      setIsInitialLoading(false)
     }
   }
 
@@ -2370,8 +2411,12 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 	    try {
 	      let finalOrderId = editingOrderId
 	      let finalOrderNumber = editingOrderNumber || ''
-	      let finalQueueNumber = await fetchTrueQueueNumber(editingOrderId)
+	      let finalQueueNumber = 0;
 	      let existingComparableItems: any[] = []
+
+          const identity = await fetchOrderIdentity(editingOrderId)
+          finalOrderNumber = identity.orderNumber
+          finalQueueNumber = identity.queueNumber
 
 	      if (editingOrderId) {
           const { data: existingRows, error: existingRowsError } = await supabase
@@ -2392,10 +2437,6 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
           if (newItems.length === 0) {
             throw new Error('บิลนี้พักไว้แล้ว กรุณาเพิ่มรายการใหม่ก่อนส่งออเดอร์เพิ่ม')
           }
-
-          finalQueueNumber = await fetchTrueQueueNumber(editingOrderId)
-        } else {
-          finalQueueNumber = await fetchTrueQueueNumber()
         }
 
         // WATERFALL QUEUE CALCULATION (Auto Queue Algorithm)
@@ -2700,7 +2741,9 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         console.log(`[GP] platform=${deliveryPlatform}, gpPercent=${gpPercent}%, cartTotal=${cartTotal}`);
       }
       const deliveryGpAmount = (cartTotal * gpPercent) / 100;
-		      finalQueueNumber = await fetchTrueQueueNumber(editingOrderId)
+      const identity = await fetchOrderIdentity(editingOrderId)
+		      finalQueueNumber = identity.queueNumber
+              finalOrderNumber = identity.orderNumber
 
         let estimatedPrepCompletionStr: string | undefined = undefined;
         if (!editingOrderId) {
@@ -3245,6 +3288,11 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                   })()}
                 </button>
               ))}
+            </div>
+          ) : isInitialLoading ? (
+            <div className="flex flex-col items-center justify-center h-full text-gray-400 opacity-50 py-20">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-400 mb-4"></div>
+              <p className="text-sm font-black uppercase tracking-widest">{locale === 'en' ? 'Loading menu...' : locale === 'zh' ? '正在加载菜单...' : 'กำลังโหลดเมนู...'}</p>
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-gray-400 opacity-50 py-20">

@@ -1280,7 +1280,8 @@ function DiscountsVoidsReport({ discountTotal, voidedOrders }: any) {
                           <div key={idx} className="px-5 py-4">
                               <div className="flex items-start justify-between gap-3">
                                   <div>
-                                      <div className="text-[13px] font-black text-[#1A1A18]">{o.order_number}</div>
+                                      <div className="text-[13px] font-black text-[#1A1A18]">{o.order_type === 'dine_in' && o.table_number ? `โต๊ะ ${o.table_number}` : `#${String(o.queue_number || 0).padStart(3, '0')}`}</div>
+                                      <div className="mt-1 text-[11px] font-black text-gray-400">{o.order_number}</div>
                                       <div className="mt-1 text-[11px] font-black text-gray-400">{new Date(o.updated_at || o.created_at).toLocaleString('th-TH')}</div>
                                   </div>
                                   <div className="text-[14px] font-black text-red-500">฿{o.total_amount.toLocaleString()}</div>
@@ -1323,7 +1324,10 @@ function DiscountsVoidsReport({ discountTotal, voidedOrders }: any) {
                         {voidedOrders.map((o: any, idx: number) => (
                             <tr key={idx} className="hover:bg-gray-50 transition-all">
                                 <td className="px-6 py-4 text-[10px] font-black">{new Date(o.updated_at || o.created_at).toLocaleString('th-TH')}</td>
-                                <td className="px-6 py-4 text-[11px] font-black uppercase">{o.order_number}</td>
+                                <td className="px-6 py-4">
+                                  <div className="text-[11px] font-black uppercase">{o.order_type === 'dine_in' && o.table_number ? `โต๊ะ ${o.table_number}` : `#${String(o.queue_number || 0).padStart(3, '0')}`}</div>
+                                  <div className="text-[9px] font-black text-gray-400 uppercase">{o.order_number}</div>
+                                </td>
                                 <td className="px-6 py-4 text-[11px] font-black">{o.profiles?.display_name || o.profiles?.full_name || o.profiles?.first_name || o.cashier_name || 'ไม่ระบุ'}</td>
                                 <td className="px-6 py-4 text-[11px] font-bold text-gray-500">{o.void_reason || '-'}</td>
                                 <td className="px-6 py-4 text-[11px] font-black text-right text-red-500">฿{o.total_amount.toLocaleString()}</td>
