@@ -2073,47 +2073,49 @@ export default function LiffMenuPage() {
             <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide">
                {latestOrders.map((order: any, idx: number) => {
                   return (
-                    <div key={idx} className="shrink-0 w-[240px] snap-center p-4 bg-white border border-gray-100/80 rounded-[24px] shadow-[0_4px_16px_-4px_rgba(0,0,0,0.03)] flex flex-col">
-                       <div className="flex items-start justify-between mb-4">
-                          <div className="flex -space-x-2.5">
+                    <div key={idx} className="shrink-0 w-[200px] snap-center p-3.5 bg-white border border-gray-100/80 rounded-[20px] shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] flex flex-col justify-between">
+                       <div className="flex items-start justify-between mb-3">
+                          <div className="flex -space-x-2">
                             {order.items.slice(0, 3).map((orderItem: any, i: number) => {
                                const mItem = items.find(it => it.id === orderItem.item_id);
                                return (
-                                 <div key={i} className="relative w-10 h-10 rounded-full border-[2px] border-white bg-gray-50 overflow-hidden shadow-[0_2px_4px_rgba(0,0,0,0.02)]" style={{ zIndex: 10 - i }}>
+                                 <div key={i} className="relative w-9 h-9 rounded-full border-[2px] border-white bg-gray-50 overflow-hidden shadow-[0_2px_4px_rgba(0,0,0,0.02)]" style={{ zIndex: 10 - i }}>
                                     {mItem?.image_url ? (
                                       <img src={mItem.image_url} alt="" className="w-full h-full object-cover" />
                                     ) : (
                                       <div className="w-full h-full flex items-center justify-center text-gray-300">
-                                        <ShoppingCart size={14} />
+                                        <ShoppingCart size={12} />
                                       </div>
                                     )}
                                  </div>
                                );
                             })}
                             {order.items.length > 3 && (
-                               <div className="relative w-10 h-10 rounded-full border-[2px] border-white bg-gray-50 flex items-center justify-center shadow-[0_2px_4px_rgba(0,0,0,0.02)]" style={{ zIndex: 0 }}>
-                                  <span className="text-[10px] font-bold text-gray-500">+{order.items.length - 3}</span>
+                               <div className="relative w-9 h-9 rounded-full border-[2px] border-white bg-gray-50 flex items-center justify-center shadow-[0_2px_4px_rgba(0,0,0,0.02)]" style={{ zIndex: 0 }}>
+                                  <span className="text-[9px] font-bold text-gray-500">+{order.items.length - 3}</span>
                                </div>
                             )}
                           </div>
-                          <span className="text-[13px] font-bold text-gray-900 mt-1">฿{order.net_total}</span>
+                          
+                          <button 
+                            onClick={(e) => handleReorderOrder(e, order)}
+                            className="w-8 h-8 flex items-center justify-center bg-gray-900 hover:bg-black text-white rounded-full active:scale-95 transition-all shadow-sm shrink-0"
+                          >
+                            <Plus size={16} strokeWidth={2.5} />
+                          </button>
                        </div>
                        
-                       <div className="mb-5 flex-1">
-                          <h3 className="text-[12px] font-bold text-gray-900 line-clamp-1 mb-1 leading-relaxed">
+                       <div className="mt-1">
+                          <h3 className="text-[12px] font-bold text-gray-900 line-clamp-1 mb-1">
                             {order.items.map((i: any) => items.find(it => it.id === i.item_id)?.name || '').filter(Boolean).join(', ')}
                           </h3>
-                          <p className="text-[11px] text-gray-400 font-medium">
-                             {new Date(order.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })} • {new Date(order.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
-                          </p>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] text-gray-400 font-medium">
+                               {new Date(order.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })}
+                            </span>
+                            <span className="text-[12px] font-bold text-gray-900">฿{order.net_total}</span>
+                          </div>
                        </div>
-
-                       <button 
-                         onClick={(e) => handleReorderOrder(e, order)}
-                         className="w-full bg-[#f9f9f9] hover:bg-gray-100 text-gray-800 py-2.5 text-[12px] font-bold rounded-full active:scale-95 transition-all flex items-center justify-center gap-2 border border-gray-100/50"
-                       >
-                         {locale === 'en' ? 'Reorder' : locale === 'zh' ? 'Reorder' : 'สั่งเซ็ตนี้อีกครั้ง'}
-                       </button>
                     </div>
                   );
                })}
