@@ -251,6 +251,7 @@ export default function LiffMenuPage() {
   const cleanupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const checkoutLockRef = useRef(false);
   const [recentReviews, setRecentReviews] = useState<any[]>([]);
+  const [reviewStats, setReviewStats] = useState({ average: 5.0, count: 0 });
   const [bestSellingIds, setBestSellingIds] = useState<string[]>([]);
   const [bestSellingCounts, setBestSellingCounts] = useState<Record<string, number>>({});
   const [pickupTime, setPickupTime] = useState('');
@@ -751,6 +752,18 @@ export default function LiffMenuPage() {
       if (data) {
         const valid = data.filter(r => r.rating > 0 && r.comment && r.comment.trim() !== '');
         setRecentReviews(valid.slice(0, 5));
+      }
+
+      // Fetch rating stats
+      const { data: statsData } = await supabase
+        .from('pos_orders')
+        .select('rating')
+        .gt('rating', 0);
+        
+      if (statsData && statsData.length > 0) {
+        const count = statsData.length;
+        const avg = statsData.reduce((acc, curr) => acc + curr.rating, 0) / count;
+        setReviewStats({ average: avg, count });
       }
     };
 
@@ -2288,16 +2301,13 @@ export default function LiffMenuPage() {
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <Star size={20} fill="#F6C144" stroke="#F6C144" />
-                  <span className="text-xl font-bold text-gray-900">5.0</span>
-                  <span className="text-sm text-gray-500">(178 เรตติ้ง)</span>
+                  <span className="text-xl font-bold text-gray-900">{reviewStats.average.toFixed(1)}</span>
+                  <span className="text-sm text-gray-500">({reviewStats.count} เรตติ้ง)</span>
                 </div>
                 <p className="text-sm text-gray-600">
-                  มี 61 คนบอกว่าร้านนี้ <span className="text-emerald-600 font-medium">รสชาติถูกปาก</span>
+                  เสียงตอบรับจากลูกค้า <span className="text-black font-medium">ที่สั่งอาหารกับเรา</span>
                 </p>
               </div>
-              <button className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0">
-                <ChevronRight size={20} className="text-emerald-600" />
-              </button>
             </div>
             
             <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 snap-x">
@@ -2322,8 +2332,8 @@ export default function LiffMenuPage() {
                          const itemName = Array.isArray(oi.item) ? oi.item[0]?.name : oi.item?.name;
                          if (!itemName) return null;
                          return (
-                           <div key={i} className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-50/50 text-emerald-600 rounded-lg border border-emerald-100 text-[12px] font-medium">
-                             <PlusCircle size={12} className="text-emerald-600" />
+                           <div key={i} className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-50 text-gray-700 rounded-lg border border-gray-100 text-[12px] font-medium">
+                             <PlusCircle size={12} className="text-gray-400" />
                              <span className="truncate max-w-[120px]">{itemName}</span>
                            </div>
                          );
