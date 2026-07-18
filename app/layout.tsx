@@ -55,7 +55,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="th" className="h-full">
+    <html lang="th">
       <head>
         <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
@@ -76,9 +76,9 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${inter.className} h-full overflow-x-hidden antialiased`}>
+      <body className={`${inter.className} antialiased`}>
         <ClientProviders>
-          <div className="xyl-shell min-h-screen w-full pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] bg-white">
+          <div className="xyl-shell min-h-screen w-full overflow-x-hidden pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] bg-white">
             <AppChrome>{children}</AppChrome>
           </div>
         </ClientProviders>
