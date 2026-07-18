@@ -260,6 +260,7 @@ export default function LiffMenuPage() {
   const [pickupTimeDraft, setPickupTimeDraft] = useState('');
   const [showPreorderConfirmModal, setShowPreorderConfirmModal] = useState(false);
   const [pendingPreorderAction, setPendingPreorderAction] = useState<(() => void) | null>(null);
+  const [reorderAlertMessage, setReorderAlertMessage] = useState<string | null>(null);
   
   const [shopSettings, setShopSettings] = useState<any>({
     is_open: true,
@@ -1361,11 +1362,11 @@ export default function LiffMenuPage() {
 
        if (addedCount > 0) {
           if (outOfStockNames.length > 0) {
-             alert(`เพิ่มลงตะกร้าแล้ว แต่มีรายการที่หมดและไม่ได้เพิ่ม:\n- ${outOfStockNames.join('\n- ')}`);
+             setReorderAlertMessage(`เพิ่มรายการที่พร้อมขายลงตะกร้าแล้ว\nแต่มีรายการที่หมดและไม่ได้เพิ่ม:\n- ${outOfStockNames.join('\n- ')}`);
           }
           setIsCartOpen(true);
        } else {
-          alert('ขออภัย สินค้าในออเดอร์นี้หมดหรือไม่มีจำหน่ายแล้ว');
+          setReorderAlertMessage('ขออภัย สินค้าในออเดอร์นี้หมดหรือไม่มีจำหน่ายแล้ว');
        }
     };
 
@@ -1388,11 +1389,11 @@ export default function LiffMenuPage() {
     
     if (addedCount > 0) {
       if (outOfStockNames.length > 0) {
-         alert(`เพิ่มลงตะกร้าแล้ว แต่มีรายการที่หมดและไม่ได้เพิ่ม:\n- ${outOfStockNames.join('\n- ')}`);
+         setReorderAlertMessage(`เพิ่มรายการที่พร้อมขายลงตะกร้าแล้ว\nแต่มีรายการที่หมดและไม่ได้เพิ่ม:\n- ${outOfStockNames.join('\n- ')}`);
       }
       setIsCartOpen(true);
     } else {
-      alert('ขออภัย สินค้าในออเดอร์นี้หมดหรือไม่มีจำหน่ายแล้ว');
+      setReorderAlertMessage('ขออภัย สินค้าในออเดอร์นี้หมดหรือไม่มีจำหน่ายแล้ว');
     }
   };
 
@@ -2093,13 +2094,31 @@ export default function LiffMenuPage() {
             </h2>
             <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide">
                {latestOrders.map((order: any, idx: number) => {
-                  const reorderTotal = order.items.reduce((sum: number, orderItem: any) => {
+                  let reorderTotal = 0;
+                  const hasSomeOut = order.items.some((orderItem: any) => {
                      const mItem = items.find(it => it.id === orderItem.item_id);
-                     if (mItem && mItem.in_stock !== false) {
-                        return sum + (orderItem.total_price || 0);
-                     }
-                     return sum;
-                  }, 0);
+                     return !mItem || mItem.in_stock === false;
+                  });
+
+                  if (!hasSomeOut) {
+                      reorderTotal = order.net_total;
+                  } else {
+                      reorderTotal = order.items.reduce((sum: number, orderItem: any) => {
+                         const mItem = items.find(it => it.id === orderItem.item_id);
+                         if (mItem && mItem.in_stock !== false) {
+                            let itemPrice = orderItem.total_price || orderItem.price || orderItem.subtotal;
+                            if (itemPrice === undefined) {
+                               let currentPrice = mItem.sale_price;
+                               if (orderItem.selected_modifiers) {
+                                   currentPrice += orderItem.selected_modifiers.reduce((modSum: number, mod: any) => modSum + (mod.price || 0), 0);
+                               }
+                               itemPrice = currentPrice * (orderItem.quantity || 1);
+                            }
+                            return sum + itemPrice;
+                         }
+                         return sum;
+                      }, 0);
+                  }
 
                   const allItemsOut = order.items.every((orderItem: any) => {
                      const mItem = items.find(it => it.id === orderItem.item_id);
@@ -3707,6 +3726,27 @@ export default function LiffMenuPage() {
         .pac-matched { color: #10b981; }
         .pac-icon { display: none; }
       `}</style>
+      
+      {/* Custom Reorder Alert Modal */}
+      {reorderAlertMessage && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+           <div className="bg-white rounded-[24px] p-6 w-full max-w-[320px] shadow-2xl flex flex-col items-center text-center animate-in zoom-in-95 duration-200">
+              <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center mb-4">
+                 <AlertCircle className="w-6 h-6 text-orange-500" strokeWidth={2.5} />
+              </div>
+              <h3 className="text-[16px] font-bold text-gray-900 mb-2">แจ้งเตือน</h3>
+              <p className="text-[14px] text-gray-500 whitespace-pre-wrap mb-6 leading-relaxed">
+                 {reorderAlertMessage}
+              </p>
+              <button 
+                onClick={() => setReorderAlertMessage(null)}
+                className="w-full py-3.5 bg-gray-900 text-white rounded-full font-bold text-[15px] active:scale-[0.98] transition-all"
+              >
+                 รับทราบ
+              </button>
+           </div>
+        </div>
+      )}
     </div>
   );
 }
