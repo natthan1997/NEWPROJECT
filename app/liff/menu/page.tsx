@@ -1344,35 +1344,52 @@ export default function LiffMenuPage() {
   const handleReorderOrder = (e: React.MouseEvent, orderToReorder: any) => {
     e.stopPropagation();
     if (!orderToReorder || !orderToReorder.items) return;
-    if (!isShopEffectivelyOpen && !isPreorderMode) {
-       setPendingPreorderAction(() => () => {
-          let addedCount = 0;
-          orderToReorder.items.forEach((orderItem: any) => {
-             const menuItem = items.find(i => i.id === orderItem.item_id);
-             if (menuItem && menuItem.in_stock !== false) {
-                addToCart(menuItem, orderItem.selected_modifiers || [], orderItem.quantity || 1, true);
-                addedCount++;
-             }
-          });
-          if (addedCount > 0) {
-             setIsCartOpen(true);
+
+    let addedCount = 0;
+    let outOfStockNames: string[] = [];
+    
+    const processItems = () => {
+       orderToReorder.items.forEach((orderItem: any) => {
+          const menuItem = items.find(i => i.id === orderItem.item_id);
+          if (menuItem && menuItem.in_stock !== false) {
+             addToCart(menuItem, orderItem.selected_modifiers || [], orderItem.quantity || 1, true); // Use true for forcePreorder if needed, but we handle it below
+             addedCount++;
+          } else {
+             outOfStockNames.push(menuItem ? menuItem.name : 'สินค้าบางรายการ');
           }
        });
+
+       if (addedCount > 0) {
+          if (outOfStockNames.length > 0) {
+             alert(`เพิ่มลงตะกร้าแล้ว แต่มีรายการที่หมดและไม่ได้เพิ่ม:\n- ${outOfStockNames.join('\n- ')}`);
+          }
+          setIsCartOpen(true);
+       } else {
+          alert('ขออภัย สินค้าในออเดอร์นี้หมดหรือไม่มีจำหน่ายแล้ว');
+       }
+    };
+
+    if (!isShopEffectivelyOpen && !isPreorderMode) {
+       setPendingPreorderAction(() => processItems);
        setShowPreorderConfirmModal(true);
        return;
     }
     
-    // Add all available items to cart
-    let addedCount = 0;
+    // Process items normally
     orderToReorder.items.forEach((orderItem: any) => {
        const menuItem = items.find(i => i.id === orderItem.item_id);
        if (menuItem && menuItem.in_stock !== false) {
           addToCart(menuItem, orderItem.selected_modifiers || [], orderItem.quantity || 1, isPreorderMode);
           addedCount++;
+       } else {
+          outOfStockNames.push(menuItem ? menuItem.name : 'สินค้าบางรายการ');
        }
     });
     
     if (addedCount > 0) {
+      if (outOfStockNames.length > 0) {
+         alert(`เพิ่มลงตะกร้าแล้ว แต่มีรายการที่หมดและไม่ได้เพิ่ม:\n- ${outOfStockNames.join('\n- ')}`);
+      }
       setIsCartOpen(true);
     } else {
       alert('ขออภัย สินค้าในออเดอร์นี้หมดหรือไม่มีจำหน่ายแล้ว');
@@ -2076,14 +2093,29 @@ export default function LiffMenuPage() {
             </h2>
             <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide">
                {latestOrders.map((order: any, idx: number) => {
+                  const reorderTotal = order.items.reduce((sum: number, orderItem: any) => {
+                     const mItem = items.find(it => it.id === orderItem.item_id);
+                     if (mItem && mItem.in_stock !== false) {
+                        return sum + (orderItem.total_price || 0);
+                     }
+                     return sum;
+                  }, 0);
+
+                  const allItemsOut = order.items.every((orderItem: any) => {
+                     const mItem = items.find(it => it.id === orderItem.item_id);
+                     return !mItem || mItem.in_stock === false;
+                  });
+
+                  // If literally everything is out of stock, we can still show it but grayed out
                   return (
-                    <div key={idx} className="shrink-0 w-[200px] snap-center p-3.5 bg-white border border-gray-100/80 rounded-[20px] shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] flex flex-col justify-between">
+                    <div key={idx} className={`shrink-0 w-[200px] snap-center p-3.5 bg-white border border-gray-100/80 rounded-[20px] shadow-[0_2px_12px_-4px_rgba(0,0,0,0.04)] flex flex-col justify-between ${allItemsOut ? 'opacity-60 grayscale' : ''}`}>
                        <div className="flex items-start justify-between mb-3">
                           <div className="flex -space-x-2">
                             {order.items.slice(0, 3).map((orderItem: any, i: number) => {
                                const mItem = items.find(it => it.id === orderItem.item_id);
+                               const isOut = !mItem || mItem.in_stock === false;
                                return (
-                                 <div key={i} className="relative w-9 h-9 rounded-full border-[2px] border-white bg-gray-50 overflow-hidden shadow-[0_2px_4px_rgba(0,0,0,0.02)]" style={{ zIndex: 10 - i }}>
+                                 <div key={i} className={`relative w-9 h-9 rounded-full border-[2px] border-white overflow-hidden shadow-[0_2px_4px_rgba(0,0,0,0.02)] ${isOut ? 'bg-gray-200 opacity-60 grayscale' : 'bg-gray-50'}`} style={{ zIndex: 10 - i }}>
                                     {mItem?.image_url ? (
                                       <img src={mItem.image_url} alt="" className="w-full h-full object-cover" />
                                     ) : (
@@ -2117,7 +2149,12 @@ export default function LiffMenuPage() {
                             <span className="text-[11px] text-gray-400 font-medium">
                                {new Date(order.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })}
                             </span>
-                            <span className="text-[12px] font-bold text-gray-900">฿{order.net_total}</span>
+                            <div className="flex flex-col items-end">
+                               <span className="text-[12px] font-bold text-gray-900">฿{reorderTotal}</span>
+                               {reorderTotal !== order.net_total && (
+                                 <span className="text-[9px] text-red-500 font-medium">ไม่รวมรายการที่หมด</span>
+                               )}
+                            </div>
                           </div>
                        </div>
                     </div>
