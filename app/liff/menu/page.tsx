@@ -1921,7 +1921,8 @@ export default function LiffMenuPage() {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -5 }}
                         transition={{ duration: 0.2 }}
-                        className={`text-[10px] font-bold leading-none ${(!isShopEffectivelyOpen && !isPreorderMode) ? 'animate-pulse text-red-500' : 'text-orange-500'}`}
+                        className={`text-[9px] font-black uppercase tracking-[0.02em] leading-none ${(!isShopEffectivelyOpen && !isPreorderMode) ? 'animate-pulse' : ''}`}
+                        style={{ color: isPreorderMode ? '#f59e0b' : openingHoursText }}
                     >
                         {isPreorderMode ? '● สั่งซื้อล่วงหน้า' : closeMessage}
                     </motion.span>
@@ -1934,13 +1935,12 @@ export default function LiffMenuPage() {
            {memberInfo && (
              <button 
                onClick={() => router.push('/liff/member')}
-               className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 text-gray-900 border border-gray-100 rounded-full active:scale-95 transition-all shadow-sm"
+               className="flex items-center gap-1 pl-1 pr-2 py-1 bg-white border border-gray-100 rounded-full active:scale-95 transition-all shadow-sm"
              >
-               <Star size={12} className="fill-[#F6C144] text-[#F6C144]" />
-               <div className="flex items-baseline gap-1">
-                  <span className="text-[12px] font-bold leading-none">{memberInfo.points || 0}</span>
-                  <span className="text-[9px] font-semibold text-gray-400 leading-none">PTS</span>
+               <div className="bg-gray-50 rounded-full p-1">
+                 <Star size={10} className="fill-[#F6C144] text-[#F6C144]" />
                </div>
+               <span className="text-[11px] font-bold text-gray-900 leading-none pt-0.5">{memberInfo.points || 0}</span>
              </button>
            )}
            <button onClick={() => router.push('/liff/history')} className="w-9 h-9 rounded-full bg-white flex items-center justify-center border border-gray-200 shadow-sm active:scale-90 transition-all text-gray-700 hover:bg-gray-50">
