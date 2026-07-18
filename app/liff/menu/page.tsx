@@ -7,6 +7,7 @@ import { PromoBannerSlider } from '@/components/pos/PromoBannerSlider';
 import {
   ShoppingBag,
   ChevronRight,
+  ChevronDown,
   MapPin,
   Plus,
   PlusCircle,
@@ -1899,15 +1900,19 @@ export default function LiffMenuPage() {
   return (
     <div className="flex flex-col min-h-screen bg-[#fcfcf9]">
 
-      <header className="sticky top-0 z-[100] bg-white/80 backdrop-blur-md border-b border-gray-100 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2 cursor-pointer max-w-[80%]" onClick={() => setIsAddressSelectorOpen(true)}>
-          <div className={`p-2 rounded-none ${(addressShort && addressShort !== 'เลือกที่อยู่จัดส่ง' && addressShort !== ':') ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500 animate-pulse'}`}>
-            <MapPin size={16} />
+      <header className="sticky top-0 z-[100] bg-white/90 backdrop-blur-xl border-b border-gray-100/50 px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-3 cursor-pointer max-w-[65%]" onClick={() => setIsAddressSelectorOpen(true)}>
+          <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 shadow-sm ${(addressShort && addressShort !== 'เลือกที่อยู่จัดส่ง' && addressShort !== ':') ? 'bg-gray-900 text-white' : 'bg-red-50 text-red-500 animate-pulse'}`}>
+            <MapPin size={16} strokeWidth={2.5} />
           </div>
-          <div className="flex flex-col min-w-0 flex-1 ml-1.5">
-            <span className="text-[7px] font-black uppercase tracking-[0.2em] text-gray-400 mb-0.5 leading-none">{(addressShort && addressShort !== 'เลือกที่อยู่จัดส่ง' && addressShort !== ':') ? '🚚 กำลังจัดส่งไปที่' : '📍 ระบุตำแหน่ง'}</span>
-            <h1 className="text-[12px] font-black truncate uppercase tracking-tight leading-tight">{(addressShort && addressShort !== 'เลือกที่อยู่จัดส่ง' && addressShort !== ':') ? addressShort : 'กรุณาระบุที่อยู่จัดส่ง'}</h1>
-            <div className="flex items-center min-h-[14px] overflow-hidden">
+          <div className="flex flex-col min-w-0">
+            <span className="text-[10px] font-medium text-gray-400 mb-0.5 leading-none">{(addressShort && addressShort !== 'เลือกที่อยู่จัดส่ง' && addressShort !== ':') ? 'จัดส่งไปที่' : 'ระบุตำแหน่ง'}</span>
+            <div className="flex items-center gap-1">
+               <h1 className="text-[13px] font-bold text-gray-900 truncate leading-tight">{(addressShort && addressShort !== 'เลือกที่อยู่จัดส่ง' && addressShort !== ':') ? addressShort : 'เลือกลงตำแหน่งจัดส่ง'}</h1>
+               <ChevronDown size={12} className="text-gray-400 shrink-0" />
+            </div>
+            
+            <div className="flex items-center min-h-[14px] overflow-hidden mt-0.5">
                 <AnimatePresence mode="wait">
                   {isMounted && (closeMessage || isPreorderMode) && (
                     <motion.span 
@@ -1916,31 +1921,30 @@ export default function LiffMenuPage() {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -5 }}
                         transition={{ duration: 0.2 }}
-                        className={`text-[9px] font-black uppercase tracking-[0.02em] leading-none ${(!isShopEffectivelyOpen && !isPreorderMode) ? 'animate-pulse' : ''}`}
-                        style={{ color: isPreorderMode ? '#f59e0b' : openingHoursText }}
+                        className={`text-[10px] font-bold leading-none ${(!isShopEffectivelyOpen && !isPreorderMode) ? 'animate-pulse text-red-500' : 'text-orange-500'}`}
                     >
-                        {isPreorderMode ? '● สั่งซื้อล่วงหน้าสำหรับรับวันพรุ่งนี้' : closeMessage}
+                        {isPreorderMode ? '● สั่งซื้อล่วงหน้า' : closeMessage}
                     </motion.span>
                   )}
                 </AnimatePresence>
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
            {memberInfo && (
              <button 
                onClick={() => router.push('/liff/member')}
-               className="flex flex-col items-end group active:scale-95 transition-all"
+               className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 text-gray-900 border border-gray-100 rounded-full active:scale-95 transition-all shadow-sm"
              >
-               <span className="text-[7px] font-black uppercase text-gray-400 tracking-widest group-hover:text-emerald-500 transition-colors">My Points</span>
-               <div className="flex items-center gap-1.5">
-                 <span className="text-[11px] font-[900] text-emerald-500">{memberInfo.points || 0}</span>
-                 <div className="w-1.5 h-1.5 bg-emerald-500 rounded-none group-hover:scale-125 transition-transform" />
+               <Star size={12} className="fill-[#F6C144] text-[#F6C144]" />
+               <div className="flex items-baseline gap-1">
+                  <span className="text-[12px] font-bold leading-none">{memberInfo.points || 0}</span>
+                  <span className="text-[9px] font-semibold text-gray-400 leading-none">PTS</span>
                </div>
              </button>
            )}
-           <button onClick={() => router.push('/liff/history')} className="w-8 h-8 rounded-none bg-gray-50 flex items-center justify-center border border-gray-100 active:scale-90 transition-all">
-             {(loading || liffLoading) ? <XYLLoader mini /> : <History size={14} />}
+           <button onClick={() => router.push('/liff/history')} className="w-9 h-9 rounded-full bg-white flex items-center justify-center border border-gray-200 shadow-sm active:scale-90 transition-all text-gray-700 hover:bg-gray-50">
+             {(loading || liffLoading) ? <XYLLoader mini /> : <History size={16} strokeWidth={2} />}
            </button>
         </div>
       </header>
