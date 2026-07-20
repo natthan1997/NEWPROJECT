@@ -9,10 +9,6 @@
     {
       "path": "/api/cron/birthday-rewards",
       "schedule": "0 0 1 * *"
-    },
-    {
-      "path": "/api/line/remind-attendance",
-      "schedule": "*/5 * * * *"
     }
   ]
 }
