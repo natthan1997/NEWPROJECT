@@ -32,6 +32,7 @@ import POSShopStatusModal from '@/components/pos/POSShopStatusModal'
 import { printKitchenTicket, printCustomerReceipt } from '@/lib/printerUtils'
 import { printGraphicModeCustomerReceipt, printGraphicModeKitchenTicket } from '@/lib/graphicPrinter'
 import { playAppSound } from '@/lib/audioUtils'
+import Swal from 'sweetalert2'
 
 // XYL POS Components
 import POSLayout from '@/components/pos/POSLayout'
@@ -54,6 +55,7 @@ import POSMenuAppConfig from '@/components/pos/POSMenuAppConfig'
 import XYLLoader from '@/components/loaders/XYLLoader'
 import POSBranchSelectModal from '@/components/pos/POSBranchSelectModal'
 import POSErrorBoundary from '@/components/pos/POSErrorBoundary'
+import POSStaffClockModal from '@/components/pos/POSStaffClockModal'
 import { useI18n } from "@/lib/I18nContext";
 
 type POSView =
@@ -122,6 +124,7 @@ function RestaurantOSPageContent() {
   const [showCustomerModal, setShowCustomerModal] = useState(false)
   const [isCartExpanded, setIsCartExpanded] = useState(false)
   const [showPendingModal, setShowPendingModal] = useState(false)
+  const [isStaffClockModalOpen, setIsStaffClockModalOpen] = useState(false)
 
   // LIFTED STATES for Coupon Claims & Auto-Routing
   const [claimingCoupons, setClaimingCoupons] = useState<any[]>([])
@@ -294,6 +297,43 @@ function RestaurantOSPageContent() {
       supabase.removeChannel(channel)
     }
   }, [activeShift?.id, checkActiveShift, profile?.id])
+
+  // Listener for Staff Calls (from Customer QR)
+  useEffect(() => {
+    if (!profile?.id) return
+
+    const currentBranchId = shopSettings?.branch_id || urlBranchId;
+
+    const alertChannel = supabase.channel('pos-alerts')
+    alertChannel
+      .on('broadcast', { event: 'staff_call' }, (payload) => {
+        const data = payload.payload;
+        // Only alert if the branch matches the current branch (or if branch isn't set, alert all)
+        if (!data.branch_id || !currentBranchId || data.branch_id === currentBranchId) {
+          playAppSound('table_call');
+          Swal.fire({
+            title: `<div style="font-size: 1.25rem; font-weight: 900; color: #1A1A18; display: flex; align-items: center; gap: 8px;">🛎️ โต๊ะ ${data.table_number || data.table_id.substring(0,4)}</div>`,
+            html: `<div style="font-size: 0.95rem; font-weight: 700; color: #f97316;">เรียกเก็บเงิน / พนักงาน</div>`,
+            showConfirmButton: false,
+            position: 'top-end',
+            toast: true,
+            timer: 15000,
+            timerProgressBar: true,
+            showCloseButton: true,
+            background: '#ffffff',
+            customClass: {
+              popup: 'rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.2)] border border-gray-100',
+              timerProgressBar: 'bg-orange-500'
+            }
+          })
+        }
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(alertChannel)
+    }
+  }, [shopSettings?.branch_id, urlBranchId, profile?.id])
 
   const initData = async () => {
     // Only show full-screen loader if we don't have a shift or settings yet (Initial Load)
@@ -631,13 +671,16 @@ function RestaurantOSPageContent() {
       setSyncPulse(prev => prev + 1)
     }
 
+    const handleTimeClockOpen = () => setIsStaffClockModalOpen(true)
     window.addEventListener('xyl-pos-shift-refresh', handleShiftRefresh as EventListener)
+    window.addEventListener('open-pos-timeclock', handleTimeClockOpen)
 
     return () => {
       supabase.removeChannel(channel)
       supabase.removeChannel(broadcastChannel)
       supabase.removeChannel(couponChannel)
       window.removeEventListener('xyl-pos-shift-refresh', handleShiftRefresh as EventListener)
+      window.removeEventListener('open-pos-timeclock', handleTimeClockOpen)
     }
   }, [profile, activeShift, shopSettings])
 
@@ -1202,6 +1245,12 @@ function RestaurantOSPageContent() {
           currentStatus={shopSettings?.status || 'open'}
           onUpdateStatus={handleUpdateStatus}
           hasActiveShift={!!activeShift}
+        />
+
+        <POSStaffClockModal
+          isOpen={isStaffClockModalOpen}
+          onClose={() => setIsStaffClockModalOpen(false)}
+          shopSettings={shopSettings}
         />
       </POSLayout>
 

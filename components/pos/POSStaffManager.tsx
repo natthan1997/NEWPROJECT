@@ -86,7 +86,8 @@ export default function POSStaffManager({
     const { error } = await supabase.from('profiles').update({
         staff_level: editingStaff.staff_level,
         staff_type: editingStaff.staff_type,
-        is_pos_account: editingStaff.is_pos_account
+        is_pos_account: editingStaff.is_pos_account,
+        pin_code: editingStaff.pin_code || null
     }).eq('id', editingStaff.id)
     if (!error) {
         setIsEditorOpen(false)
@@ -175,6 +176,17 @@ export default function POSStaffManager({
                               <option value="cafe">CAFE OPERATIONS</option>
                               <option value="general">GENERAL DUTY</option>
                           </select>
+                      </div>
+                      <div className="space-y-3 font-bold border-none">
+                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#1A1A18]/50 font-bold">{locale === 'en' ? 'STAFF PIN / รหัสพนักงาน (4-6 หลัก)' : locale === 'zh' ? 'STAFF PIN / รหัสพนักงาน' : 'STAFF PIN / รหัสพนักงาน (4-6 หลัก)'}</label>
+                          <input 
+                              type="password" 
+                              maxLength={6}
+                              value={editingStaff.pin_code || ''} 
+                              onChange={e => setEditingStaff({...editingStaff, pin_code: e.target.value.replace(/[^0-9]/g, '')})} 
+                              placeholder="เช่น 1234"
+                              className="w-full bg-[#fcfcf9] border border-[#F0F0E8] py-5 px-6 text-sm outline-none font-black text-black placeholder:text-gray-300 tracking-[0.5em]"
+                          />
                       </div>
                       <div className="space-y-3 font-bold border-none pt-4">
                           <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#1A1A18]/50 font-bold">POS ONLY ACCOUNT / บัญชีประจำเครื่อง POS</label>
