@@ -3364,7 +3364,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         <div className="mx-auto font-bold min-h-full pb-32">
           {filteredItems.length > 0 ? (
             <div
-              className={`grid font-bold ${viewMode === 'list' ? 'gap-3 sm:gap-4 xl:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3' : 'gap-2 sm:gap-3 lg:gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6'}`}
+              className={`grid font-bold ${viewMode === 'list' ? 'gap-3 sm:gap-4 xl:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3' : 'gap-2 sm:gap-3 lg:gap-4 grid-cols-4'}`}
             >
               {filteredItems.map(item => (
                 <div 
