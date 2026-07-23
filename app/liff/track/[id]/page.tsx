@@ -9,7 +9,9 @@ import {
   ShoppingBag,
   History,
   Navigation,
-  Check
+  Check,
+  X,
+  AlertCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
@@ -98,6 +100,35 @@ export default function LiffTrackPage() {
   const [queueAhead, setQueueAhead] = useState(0);
   const [isOnline, setIsOnline] = useState(true); // 📡 Connectivity Pulse
   const [estimatedDeliveryTime, setEstimatedDeliveryTime] = useState<Date | null>(null);
+
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [isCancelling, setIsCancelling] = useState(false);
+
+  const handleCancelOrder = async () => {
+    if (!cancelReason) return;
+    setIsCancelling(true);
+    try {
+      const res = await fetch('/api/orders/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, reason: cancelReason })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setShowCancelModal(false);
+        fetchOrder(); 
+      } else {
+        alert(data.message || (locale === 'en' ? 'Cannot cancel order' : 'ไม่สามารถยกเลิกออเดอร์ได้'));
+        setShowCancelModal(false);
+        fetchOrder(); 
+      }
+    } catch (err) {
+      alert(locale === 'en' ? 'An error occurred' : 'เกิดข้อผิดพลาดในการยกเลิก');
+    } finally {
+      setIsCancelling(false);
+    }
+  };
 
   const fetchQueuePosition = async (orderRow: any) => {
     try {
@@ -365,6 +396,18 @@ export default function LiffTrackPage() {
                    </p>
                 </motion.div>
               </AnimatePresence>
+
+              {/* 🚫 CANCEL ORDER BUTTON */}
+              {status === 'pending' && (
+                <div className="mt-4 flex justify-center">
+                   <button 
+                     onClick={() => setShowCancelModal(true)}
+                     className="px-6 py-2 border border-red-200 text-red-500 rounded-none text-[9px] font-black uppercase tracking-widest active:scale-95 transition-all bg-white shadow-sm"
+                   >
+                     {locale === 'en' ? 'Cancel Order' : locale === 'zh' ? '取消订单' : 'ยกเลิกออเดอร์'}
+                   </button>
+                </div>
+              )}
 
               {/* 🌟 RATING SYSTEM */}
               {isCompleted && (
