@@ -401,6 +401,7 @@ export default function POSTerminal({
 
   // MODIFIER STATES
   const [modifierModalItem, setModifierModalItem] = useState<MenuItem | null>(null)
+  const [optionsModalItem, setOptionsModalItem] = useState<MenuItem | null>(null)
   const [modifierGroups, setModifierGroups] = useState<any[]>([])
   const [tempSelectedModifiers, setTempSelectedModifiers] = useState<any[]>([])
   const [tempQuantity, setTempQuantity] = useState(1)
@@ -532,8 +533,26 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   const userRole = profile?.role || 'staff'
   const canToggleStock = userRole === 'admin' || shopSettings?.role_permissions?.[userRole]?.includes('menu-stock-toggle')
 
-  const toggleItemStock = async (e: React.MouseEvent, item: MenuItem) => {
-    e.stopPropagation()
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null)
+
+  const handlePressStart = (e: React.TouchEvent | React.MouseEvent, item: MenuItem) => {
+    if (!canToggleStock) return
+    longPressTimer.current = setTimeout(() => {
+      setOptionsModalItem(item)
+      if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
+        window.navigator.vibrate(50)
+      }
+    }, 500)
+  }
+
+  const handlePressCancel = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current)
+      longPressTimer.current = null
+    }
+  }
+
+  const toggleItemStock = async (item: MenuItem) => {
     try {
       const newStockStatus = item.in_stock === false ? true : false
       // Optimistic update
@@ -3255,9 +3274,26 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
               className={`grid gap-3 sm:gap-4 xl:gap-6 font-bold ${viewMode === 'list' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'}`}
             >
               {filteredItems.map(item => (
-                <div key={item.id} className="relative group h-full flex flex-col">
+                <div 
+                  key={item.id} 
+                  className="relative group h-full flex flex-col select-none touch-manipulation"
+                  style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
+                  onContextMenu={(e) => {
+                    e.preventDefault()
+                    if (canToggleStock) setOptionsModalItem(item)
+                  }}
+                  onTouchStart={(e) => handlePressStart(e, item)}
+                  onTouchEnd={handlePressCancel}
+                  onTouchMove={handlePressCancel}
+                  onMouseDown={(e) => handlePressStart(e, item)}
+                  onMouseUp={handlePressCancel}
+                  onMouseLeave={handlePressCancel}
+                >
                   <button
-                    onClick={(e) => item.in_stock !== false && handleProductClick(e, item)}
+                    onClick={(e) => {
+                      handlePressCancel() // Cancel long press if clicked quickly
+                      if (item.in_stock !== false) handleProductClick(e, item)
+                    }}
                     disabled={item.in_stock === false}
                     className={`relative w-full h-full flex border border-[#E5E5DF] bg-white rounded-2xl p-3 sm:p-4 text-left font-bold transition-all duration-300 ${item.in_stock === false ? 'opacity-60 grayscale cursor-not-allowed' : 'hover:border-black/30 hover:shadow-xl hover:-translate-y-1'} ${viewMode === 'list' ? 'flex-row gap-4 items-center' : 'flex-col'}`}
                   >
@@ -3314,15 +3350,6 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                     )
                   })()}
                 </button>
-                {canToggleStock && (
-                  <button
-                    onClick={(e) => toggleItemStock(e, item)}
-                    title={item.in_stock === false ? "Mark as Available" : "Mark as Out of Stock"}
-                    className={`absolute top-2 right-2 z-30 p-2 sm:p-2.5 rounded-full shadow-md backdrop-blur-md transition-all duration-300 border ${item.in_stock === false ? 'bg-red-500/90 text-white border-red-600 hover:bg-red-600 scale-100 hover:scale-110' : 'bg-white/80 text-gray-700 border-gray-200 hover:bg-white hover:text-black hover:border-black/20 hover:scale-110 opacity-0 group-hover:opacity-100'}`}
-                  >
-                    <Power size={14} className={item.in_stock === false ? '' : 'text-emerald-600'} />
-                  </button>
-                )}
               </div>
               ))}
             </div>
@@ -4411,6 +4438,39 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       )}
       
       {/* 10. MODIFIER SELECTION MODAL - PREMIUM REDESIGN */}
+      {/* MENU ITEM OPTIONS MODAL */}
+      {optionsModalItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setOptionsModalItem(null)}></div>
+          <div className="relative w-full max-w-xs bg-white rounded-3xl overflow-hidden shadow-2xl flex flex-col font-bold">
+            <div className="bg-[#1A1A18] text-white p-5 text-center">
+              <h3 className="text-lg font-black">{getPrimaryMenuName(optionsModalItem)}</h3>
+              <p className="text-sm opacity-70 mt-1">{locale === 'en' ? 'Item Options' : locale === 'zh' ? '选项' : 'ตัวเลือกเมนู'}</p>
+            </div>
+            <div className="p-4 flex flex-col gap-3">
+              {canToggleStock && (
+                <button
+                  onClick={() => {
+                    toggleItemStock(optionsModalItem)
+                    setOptionsModalItem(null)
+                  }}
+                  className={`w-full py-4 rounded-2xl flex items-center justify-center gap-2 border-2 transition-all ${optionsModalItem.in_stock === false ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' : 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'}`}
+                >
+                  <Power size={20} />
+                  <span>{optionsModalItem.in_stock === false ? (locale === 'en' ? 'Mark as Available' : locale === 'zh' ? '标记为有货' : 'เปิดขายสินค้านี้') : (locale === 'en' ? 'Mark as Out of Stock' : locale === 'zh' ? '标记为无货' : 'ปิดขาย (สินค้าหมด)')}</span>
+                </button>
+              )}
+              <button
+                onClick={() => setOptionsModalItem(null)}
+                className="w-full py-4 rounded-2xl bg-gray-100 text-gray-700 border-2 border-transparent hover:bg-gray-200 transition-all mt-2"
+              >
+                {locale === 'en' ? 'Cancel' : locale === 'zh' ? '取消' : 'ยกเลิก'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {modifierModalItem && (
         <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4 font-bold sm:p-8">
           <div
