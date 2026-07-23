@@ -603,6 +603,123 @@ export default function POSDrawerManager({
     }
   }
 
+  const handlePrintHistoryZReport = async () => {
+    if (!selectedHistoryShiftId || !historyStats) return
+    const shift = historyShifts.find(s => s.id === selectedHistoryShiftId)
+    if (!shift) return
+
+    let printers = shopSettings?.printers || []
+    let receiptPrinters = printers.filter((p: any) => p.type === 'receipt' || p.type === 'both')
+    
+    if (receiptPrinters.length === 0) {
+      let ip = localStorage.getItem('xylem_printer_ip')
+      if (ip) {
+        receiptPrinters = [{ ip, type: 'receipt', model: 'xprinter-xp-n160ii' }]
+      }
+    }
+    
+    if (receiptPrinters.length > 0) {
+      const orderTypeGroups = new Map<string, { label: string; count: number }>()
+      const txGroups = new Map<string, { label: string; amount: number }>()
+      const paymentSummary = { cash: 0, transfer: 0, card: 0, other: 0 }
+      const paymentCounts = { cash: 0, transfer: 0, card: 0, other: 0 }
+      let discountTotal = 0
+
+      const normalizePaymentBucket = (method?: string | null) => {
+        const normalized = String(method || '').toLowerCase()
+        if (normalized === 'cash' || normalized === 'cod') return 'cash'
+        if (normalized === 'card' || normalized === 'credit_card') return 'card'
+        if (normalized === 'bank_transfer' || normalized === 'transfer' || normalized === 'promptpay' || normalized === 'qr') return 'transfer'
+        return 'other'
+      }
+
+      const orderTypeLabel = (type?: string | null) => {
+        switch ((type || '').replace(/_/g, '-').toLowerCase()) {
+          case 'dine-in': return 'ทานที่ร้าน'
+          case 'takeaway': return 'สั่งกลับบ้าน'
+          case 'delivery': return 'เดลิเวอรี่'
+          default: return type ? type.toUpperCase() : 'ไม่ระบุ'
+        }
+      }
+
+      const validOrders = historyStats.orderRows || []
+      validOrders.forEach((order: any) => {
+        const status = String(order.status || '').toLowerCase()
+        if (['cancelled', 'void', 'refunded'].includes(status)) return
+        const hasPaymentRows = Array.isArray(order.pos_order_payments) && order.pos_order_payments.length > 0
+        const isSoldOrder = ['paid', 'completed', 'delivered'].includes(status) || Boolean(order.paid_at) || hasPaymentRows
+        if (!isSoldOrder) return
+
+        discountTotal += Number(order.discount_amount || 0)
+
+        const orderTypeKey = order.order_type || 'unknown'
+        const existingOrderType = orderTypeGroups.get(orderTypeKey) || { label: orderTypeLabel(order.order_type), count: 0 }
+        existingOrderType.count += 1
+        orderTypeGroups.set(orderTypeKey, existingOrderType)
+
+        const payments = order.pos_order_payments || []
+        payments.forEach((payment: any) => {
+          const bucket = normalizePaymentBucket(payment.payment_method)
+          paymentSummary[bucket] += Number(payment.amount || 0)
+          paymentCounts[bucket] += 1
+        })
+
+        if (payments.length === 0) {
+          const bucket = normalizePaymentBucket(order.payment_method)
+          const amount = Number(order.net_total ?? order.total_amount ?? 0)
+          paymentSummary[bucket] += amount
+          paymentCounts[bucket] += 1
+        }
+      })
+
+      const payInTotal = historyTransactions.filter((t: any) => t.type === 'pay_in').reduce((acc: number, curr: any) => acc + Number(curr.amount || 0), 0)
+      const payOutTotal = historyTransactions.filter((t: any) => t.type === 'pay_out').reduce((acc: number, curr: any) => acc + Number(curr.amount || 0), 0)
+      txGroups.set('pay_in', { label: `รับเงินเข้าระหว่างกะ (${historyTransactions.filter((t: any) => t.type === 'pay_in').length} ครั้ง)`, amount: payInTotal })
+      txGroups.set('pay_out', { label: `จ่ายเงินออกระหว่างกะ (${historyTransactions.filter((t: any) => t.type === 'pay_out').length} ครั้ง)`, amount: payOutTotal })
+
+      const paymentBreakdown = [
+        { label: 'เงินสด', amount: paymentSummary.cash, count: paymentCounts.cash },
+        { label: 'โอนเงิน / QR', amount: paymentSummary.transfer, count: paymentCounts.transfer },
+        { label: 'บัตรเครดิต / เดบิต', amount: paymentSummary.card, count: paymentCounts.card },
+      ]
+      if (paymentSummary.other > 0) paymentBreakdown.push({ label: 'อื่น ๆ', amount: paymentSummary.other, count: paymentCounts.other })
+
+      const reportData = {
+        shiftId: shift.id,
+        openedAt: new Date(shift.opened_at).toLocaleString(),
+        closedAt: new Date(shift.closed_at || new Date()).toLocaleString(),
+        staffName: 'Staff (Historical)', // Cannot easily map past staff name without more queries
+        startCash: shift.start_cash || 0,
+        orderCount: validOrders.length,
+        cashOrderCount: paymentCounts.cash,
+        nonCashOrderCount: paymentCounts.transfer + paymentCounts.card + paymentCounts.other,
+        expectedCash: historyStats.expected || 0,
+        actualCash: shift.close_cash || 0,
+        difference: (shift.close_cash || 0) - (historyStats.expected || 0),
+        cashSales: paymentSummary.cash,
+        transferSales: paymentSummary.transfer,
+        cardSales: paymentSummary.card,
+        otherSales: paymentSummary.other,
+        discountTotal,
+        payInTotal,
+        payOutTotal,
+        paymentBreakdown,
+        orderTypeBreakdown: Array.from(orderTypeGroups.values()).sort((a, b) => b.count - a.count),
+        transactionBreakdown: Array.from(txGroups.values()),
+        notes: (shift.close_cash || 0) === (historyStats.expected || 0)
+          ? 'ยอดตรงตามระบบ (พิมพ์ย้อนหลัง)'
+          : 'ยอดไม่ตรงตามระบบ (พิมพ์ย้อนหลัง)'
+      }
+      const printShopData = { name: shopSettings?.name || 'XYL STUDIO', branch: shopSettings?.branch_name }
+      try {
+        for (const rp of receiptPrinters) {
+           if (!rp.ip) continue;
+           await printGraphicModeZReport(rp.ip, reportData, printShopData, rp.model, rp.encoding)
+        }
+      } catch (e) { console.error(e) }
+    }
+  }
+
     return (
         <main className="flex-1 overflow-y-auto p-2 sm:p-10 bg-[#FDFDFB] custom-scrollbar font-bold overflow-x-hidden">
             {viewMode === 'history' ? (
