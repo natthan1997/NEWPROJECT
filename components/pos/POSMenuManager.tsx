@@ -44,6 +44,7 @@ export default function POSMenuManager({
   const [isSaving, setIsSaving] = useState(false)
 
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null)
+  const [originalFile, setOriginalFile] = useState<File | null>(null)
   const [crop, setCrop] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null)
@@ -455,6 +456,7 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
       const file = e.target.files?.[0]
       if (!file) return
       
+      setOriginalFile(file)
       const objectUrl = URL.createObjectURL(file)
       setCropImageSrc(objectUrl)
       setIsCropping(true)
@@ -498,8 +500,47 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
       setEditingItem({ ...editingItem, image_url: uploadResult.publicUrl })
       setIsCropping(false)
       setCropImageSrc(null)
+      setOriginalFile(null)
     } catch (error: any) {
       alert('Error cropping/uploading image: ' + error.message)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleUseOriginal = async () => {
+    if (!originalFile) return
+
+    setIsSaving(true)
+    try {
+      const fileExt = originalFile.name.split('.').pop() || 'jpeg'
+      const fileName = `${Math.random()}.${fileExt}`
+      const filePath = `pos-menus/${fileName}`
+
+      const { data: { session } } = await supabase.auth.getSession()
+
+      const formData = new FormData()
+      formData.append('file', originalFile)
+      formData.append('bucket', 'marketplace-images')
+      formData.append('path', filePath)
+
+      const uploadRes = await fetch('/api/admin/storage/upload', {
+        method: 'POST',
+        headers: {
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
+        },
+        body: formData
+      })
+
+      const uploadResult = await uploadRes.json()
+      if (!uploadRes.ok) throw new Error(uploadResult.error || 'Failed to upload file')
+
+      setEditingItem({ ...editingItem, image_url: uploadResult.publicUrl })
+      setIsCropping(false)
+      setCropImageSrc(null)
+      setOriginalFile(null)
+    } catch (error: any) {
+      alert('Error uploading original image: ' + error.message)
     } finally {
       setIsSaving(false)
     }
@@ -1346,6 +1387,7 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
               <button onClick={() => {
                 setIsCropping(false)
                 setCropImageSrc(null)
+                setOriginalFile(null)
               }} className="p-2 hover:bg-gray-100 transition-colors">
                 <X size={20} />
               </button>
@@ -1384,11 +1426,20 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
                   onClick={() => {
                     setIsCropping(false)
                     setCropImageSrc(null)
+                    setOriginalFile(null)
                   }}
                   className="px-6 py-3 border border-gray-200 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-gray-50 transition-colors"
                 >
                   Cancel
                 </button>
+                {originalFile && (
+                  <button
+                    onClick={handleUseOriginal}
+                    className="px-6 py-3 border border-gray-200 bg-white text-[#1A1A18] text-[10px] font-black uppercase tracking-[0.2em] hover:bg-gray-50 transition-colors"
+                  >
+                    Use Original Size
+                  </button>
+                )}
                 <button
                   onClick={handleConfirmCrop}
                   className="px-6 py-3 bg-[#1A1A18] text-white text-[10px] font-black uppercase tracking-[0.2em] hover:bg-black transition-colors"
