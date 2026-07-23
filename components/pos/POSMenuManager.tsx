@@ -4,7 +4,7 @@ import {
   Plus, Search, Edit3, Trash2, Filter, 
   MoreVertical, Check, X, Loader2, Image as ImageIcon,
   ChevronRight, RefreshCcw, Save, Trash, LayoutGrid,
-  Menu as MenuIcon, LogOut, Settings, List, Star, ToggleRight, CheckCircle2, XCircle, Upload, AlertCircle
+  Menu as MenuIcon, LogOut, Settings, List, Star, ToggleRight, CheckCircle2, XCircle, Upload, AlertCircle, Crop
 } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
@@ -12,6 +12,8 @@ import { motion, AnimatePresence, Reorder } from 'framer-motion'
 import { useI18n } from "@/lib/I18nContext";
 import { getMenuSearchText, getPrimaryMenuName, getSecondaryMenuName } from '@/lib/posMenuLabels'
 import { sortMenuItemsByOrder, withMenuSortOrder } from '@/lib/posMenuOrder'
+import Cropper from 'react-easy-crop'
+import getCroppedImg from '@/lib/cropImage'
 
 interface POSMenuManagerProps {
   profile: any
@@ -40,6 +42,12 @@ export default function POSMenuManager({
   const [isEditorOpen, setIsEditorOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<any>(null)
   const [isSaving, setIsSaving] = useState(false)
+
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null)
+  const [crop, setCrop] = useState({ x: 0, y: 0 })
+  const [zoom, setZoom] = useState(1)
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null)
+  const [isCropping, setIsCropping] = useState(false)
 
   const userLevel = profile?.staff_level || 'staff'
   const userRole = profile?.role === 'admin' ? 'admin' : userLevel === 'manager' ? 'manager' : 'staff'
@@ -443,40 +451,53 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
     }
   }
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0]
       if (!file) return
       
-      setIsSaving(true)
-      try {
-          const fileExt = file.name.split('.').pop()
-          const fileName = `${Math.random()}.${fileExt}`
-          const filePath = `pos-menus/${fileName}`
-          
-          const { data: { session } } = await supabase.auth.getSession()
-          
-          const formData = new FormData()
-          formData.append('file', file)
-          formData.append('bucket', 'marketplace-images')
-          formData.append('path', filePath)
+      const objectUrl = URL.createObjectURL(file)
+      setCropImageSrc(objectUrl)
+      setIsCropping(true)
+      e.target.value = ''
+  }
 
-          const uploadRes = await fetch('/api/admin/storage/upload', {
-            method: 'POST',
-            headers: {
-              ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
-            },
-            body: formData
-          })
+  const handleConfirmCrop = async () => {
+    if (!cropImageSrc || !croppedAreaPixels) return
 
-          const uploadResult = await uploadRes.json()
-          if (!uploadRes.ok) throw new Error(uploadResult.error || 'Failed to upload file')
-              
-          setEditingItem({ ...editingItem, image_url: uploadResult.publicUrl })
-      } catch (error: any) {
-          alert('Error uploading image: ' + error.message)
-      } finally {
-          setIsSaving(false)
-      }
+    setIsSaving(true)
+    try {
+      const croppedBlob = await getCroppedImg(cropImageSrc, croppedAreaPixels)
+      const fileExt = 'jpeg'
+      const fileName = `${Math.random()}.${fileExt}`
+      const filePath = `pos-menus/${fileName}`
+
+      const file = new File([croppedBlob], fileName, { type: 'image/jpeg' })
+      const { data: { session } } = await supabase.auth.getSession()
+
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('bucket', 'marketplace-images')
+      formData.append('path', filePath)
+
+      const uploadRes = await fetch('/api/admin/storage/upload', {
+        method: 'POST',
+        headers: {
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
+        },
+        body: formData
+      })
+
+      const uploadResult = await uploadRes.json()
+      if (!uploadRes.ok) throw new Error(uploadResult.error || 'Failed to upload file')
+
+      setEditingItem({ ...editingItem, image_url: uploadResult.publicUrl })
+      setIsCropping(false)
+      setCropImageSrc(null)
+    } catch (error: any) {
+      alert('Error cropping/uploading image: ' + error.message)
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleDeleteItem = async (id: string) => {
