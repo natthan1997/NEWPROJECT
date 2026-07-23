@@ -1804,14 +1804,17 @@ export default function LiffMenuPage() {
     if (currentBranchId) {
       settingsQuery = settingsQuery.eq('branch_id', currentBranchId);
     }
-    const { data: currentSettingsRows } = await settingsQuery;
-    const currentSettings = currentSettingsRows?.[0];
 
     let shiftQuery = supabase.from('pos_shifts').select('id').eq('status', 'open').limit(1);
     if (currentBranchId) {
       shiftQuery = shiftQuery.eq('branch_id', currentBranchId);
     }
-    const { data: activeShifts } = await shiftQuery;
+
+    const [{ data: currentSettingsRows }, { data: activeShifts }] = await Promise.all([
+      settingsQuery,
+      shiftQuery
+    ]);
+    const currentSettings = currentSettingsRows?.[0];
 
     const now = new Date();
     let effectivelyOpen = !!activeShifts?.length;

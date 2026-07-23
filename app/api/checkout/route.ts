@@ -88,29 +88,66 @@ export async function POST(req: Request) {
       }
     )
 
-    let settingsQuery = supabase
-      .from('pos_shop_settings')
-      .select('status, is_open, status_expiry, branch_id')
+    // Group initial queries to run concurrently for performance
+    let settingsQuery = supabase.from('pos_shop_settings').select('status, is_open, status_expiry, branch_id').limit(1)
+    if (branchId) settingsQuery = settingsQuery.eq('branch_id', branchId)
+
+    let shiftQuery = supabase.from('pos_shifts').select('id').eq('status', 'open').limit(1)
+    if (branchId) shiftQuery = shiftQuery.eq('branch_id', branchId)
+
+    const duplicateCutoff = new Date(Date.now() - 60_000).toISOString()
+    let duplicateQuery = supabase
+      .from('pos_orders')
+      .select('id, order_number, created_at, total_amount, delivery_address, reference_name, customer_name, line_user_id, pos_order_items(item_id, quantity, unit_price, selected_modifiers)')
+      .eq('order_source', 'liff')
+      .eq('order_type', orderType)
+      .eq('payment_method', 'cod')
+      .in('status', ['pending', 'accepted', 'preparing', 'shipping'])
+      .gte('created_at', duplicateCutoff)
+      .order('created_at', { ascending: false })
+      .limit(8)
+    if (branchId) duplicateQuery = duplicateQuery.eq('branch_id', branchId)
+    if (lineUserId) duplicateQuery = duplicateQuery.eq('line_user_id', lineUserId)
+    else if (phoneNumber) duplicateQuery = duplicateQuery.eq('reference_name', phoneNumber)
+
+    let memberQuery: any = lineUserId 
+      ? supabase.from('pos_members').select('id').eq('line_user_id', lineUserId).maybeSingle()
+      : Promise.resolve({ data: null })
+
+    const startOfToday = new Date()
+    startOfToday.setHours(0, 0, 0, 0)
+    let queueQuery = supabase
+      .from('pos_orders')
+      .select('estimated_prep_completion')
+      .in('status', ['pending', 'paid', 'accepted', 'preparing'])
+      .gte('created_at', startOfToday.toISOString())
+      .order('estimated_prep_completion', { ascending: false })
       .limit(1)
 
-    if (branchId) {
-      settingsQuery = settingsQuery.eq('branch_id', branchId)
-    }
+    let catQuery = supabase.from('pos_menu_categories').select('id, estimated_prep_minutes')
 
-    const { data: settingsRows } = await settingsQuery
+    const itemIds = items.map((i: any) => i.id || i.item_id)
+    let dbItemsQuery = supabase.from('pos_menu_items').select('id, cost_price').in('id', itemIds)
+
+    const [
+      { data: settingsRows },
+      { data: activeShifts },
+      { data: duplicateCandidates },
+      { data: member },
+      { data: latestQueueData },
+      { data: catData },
+      { data: dbItems }
+    ] = await Promise.all([
+      settingsQuery,
+      shiftQuery,
+      duplicateQuery,
+      memberQuery,
+      queueQuery,
+      catQuery,
+      dbItemsQuery
+    ])
+
     const currentSettings = settingsRows?.[0]
-
-    let shiftQuery = supabase
-      .from('pos_shifts')
-      .select('id')
-      .eq('status', 'open')
-      .limit(1)
-
-    if (branchId) {
-      shiftQuery = shiftQuery.eq('branch_id', branchId)
-    }
-
-    const { data: activeShifts } = await shiftQuery
     const activeShift = activeShifts?.[0] || null
     const hasActiveShift = !!activeShifts?.length
 
@@ -161,23 +198,7 @@ export async function POST(req: Request) {
     const combinedComment = combinedCommentParts.length > 0 ? combinedCommentParts.join('\n') : null
 
     // De-dupe accidental double-taps / repeated LIFF submissions in a short window.
-    const duplicateCutoff = new Date(Date.now() - 60_000).toISOString()
-    let duplicateQuery = supabase
-      .from('pos_orders')
-      .select('id, order_number, created_at, total_amount, delivery_address, reference_name, customer_name, line_user_id, pos_order_items(item_id, quantity, unit_price, selected_modifiers)')
-      .eq('order_source', 'liff')
-      .eq('order_type', orderType)
-      .eq('payment_method', paymentMethod)
-      .in('status', ['pending', 'accepted', 'preparing', 'shipping'])
-      .gte('created_at', duplicateCutoff)
-      .order('created_at', { ascending: false })
-      .limit(8)
 
-    if (branchId) duplicateQuery = duplicateQuery.eq('branch_id', branchId)
-    if (lineUserId) duplicateQuery = duplicateQuery.eq('line_user_id', lineUserId)
-    else if (phoneNumber) duplicateQuery = duplicateQuery.eq('reference_name', phoneNumber)
-
-    const { data: duplicateCandidates } = await duplicateQuery
     const trimmedAddress = String(deliveryAddress || '').trim()
     const duplicateOrder = (duplicateCandidates || []).find((candidate: any) => {
       const sameTotal = Math.abs(Number(candidate?.total_amount || 0) - totalAmount) < 0.01
@@ -207,23 +228,11 @@ export async function POST(req: Request) {
       shiftId: activeShift?.id || null,
     })
 
-    // Look up customer by lineUserId
-    let customerId = null
-    if (lineUserId) {
-      const { data: member } = await supabase.from('pos_members').select('id').eq('line_user_id', lineUserId).maybeSingle()
-      if (member) customerId = member.id
-    }
+    // Look up customer by lineUserId (result already fetched via Promise.all)
+    let customerId = member?.id || null
 
-    // WATERFALL QUEUE CALCULATION (Auto Queue Algorithm)
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
-    const { data: latestQueueData } = await supabase
-      .from('pos_orders')
-      .select('estimated_prep_completion')
-      .in('status', ['pending', 'paid', 'accepted', 'preparing'])
-      .gte('created_at', startOfToday.toISOString())
-      .order('estimated_prep_completion', { ascending: false })
-      .limit(1);
+    // WATERFALL QUEUE CALCULATION (Auto Queue Algorithm) (already fetched via Promise.all)
+
 
     const latestCompletionTime = latestQueueData?.[0]?.estimated_prep_completion 
       ? new Date(latestQueueData[0].estimated_prep_completion) 
@@ -231,8 +240,7 @@ export async function POST(req: Request) {
 
     const baseTime = latestCompletionTime.getTime() > now.getTime() ? latestCompletionTime : now;
     
-    // Fetch Category Prep Time Mapping
-    const { data: catData } = await supabase.from('pos_menu_categories').select('id, estimated_prep_minutes');
+    // Fetch Category Prep Time Mapping (already fetched via Promise.all)
     const prepTimeMap = new Map(catData?.map(c => [c.id, c.estimated_prep_minutes ?? 2]));
 
     const prepDurationMinutes = items.reduce((acc: number, item: any) => {
@@ -298,9 +306,7 @@ export async function POST(req: Request) {
       order = orderInsertResult.data
     }
 
-    // 5. INSERT ORDER ITEMS
-    const itemIds = items.map((i: any) => i.id || i.item_id);
-    const { data: dbItems } = await supabase.from('pos_menu_items').select('id, cost_price').in('id', itemIds);
+    // 5. INSERT ORDER ITEMS (dbItems already fetched via Promise.all)
 
     const orderItems = items.map((item: any) => {
       const dbItem = dbItems?.find((d: any) => d.id === (item.id || item.item_id));
