@@ -29,7 +29,8 @@ import {
   Map as MapIcon,
   Pencil,
   Check,
-  Trash2
+  Trash2,
+  ChevronLeft
 } from 'lucide-react';
 import XYLLoader from '@/components/loaders/XYLLoader';
 import { motion, AnimatePresence, type PanInfo } from 'framer-motion';
@@ -149,6 +150,11 @@ export default function LiffMenuPage() {
   const router = useRouter();
   const supabase = createClient();
   const searchParams = useSearchParams();
+
+  const redirectTo = searchParams.get('path');
+  if (redirectTo && redirectTo.startsWith('/')) {
+    return <div className="h-screen bg-[#fcfcf9]" />;
+  }
   
   // 🛡️ Boutique Shared Context
   const { 
@@ -176,6 +182,8 @@ export default function LiffMenuPage() {
   const [isFetchingItems, setIsFetchingItems] = useState(true);
   const [items, setItems] = useState<MenuItem[]>([]);
   const [activeCategoryId, setActiveCategoryId] = useState<string>('all');
+  const isManualScrolling = useRef(false);
+  const manualScrollTimeout = useRef<any>(null);
   const [regularItemIds, setRegularItemIds] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [lang, setLang] = useState<'th' | 'en'>('th');
@@ -1117,24 +1125,50 @@ export default function LiffMenuPage() {
     { id: 'uncategorized', name: 'อื่นๆ' }
   ];
 
-  // Scroll Spy for categories
+  // Scroll Spy for categories with cached offsets
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
-    const handleScroll = () => {
-      const scrollPosition = window.scrollY + 120; // Offset for sticky header
-      
+    let sectionOffsets: { id: string; top: number; bottom: number }[] = [];
+    
+    const calculateOffsets = () => {
       const sections = document.querySelectorAll('.scroll-spy-section');
-      let currentActiveId = 'all';
+      const tempOffsets: { id: string; top: number; bottom: number }[] = [];
       
       sections.forEach((section) => {
-        const sectionTop = (section as HTMLElement).offsetTop;
-        const sectionHeight = (section as HTMLElement).offsetHeight;
+        const rect = section.getBoundingClientRect();
+        const top = rect.top + window.scrollY;
+        const height = (section as HTMLElement).offsetHeight;
+        const rawId = section.id.replace('category-', '');
+        const mappedId = (rawId === 'regulars' || rawId === 'popular' || rawId === 'all') ? 'all' : rawId;
         
-        if (scrollPosition >= sectionTop && scrollPosition < sectionTop + sectionHeight) {
-          currentActiveId = section.id.replace('category-', '');
-        }
+        tempOffsets.push({
+          id: mappedId,
+          top: top,
+          bottom: top + height
+        });
       });
+      sectionOffsets = tempOffsets;
+    };
+
+    calculateOffsets();
+    
+    window.addEventListener('resize', calculateOffsets);
+    const initTimeout = setTimeout(calculateOffsets, 500);
+    const initTimeout2 = setTimeout(calculateOffsets, 1500);
+
+    const handleScroll = () => {
+      if (isManualScrolling.current) return;
+      
+      const scrollPosition = window.scrollY + 175; // Offset for header + tabs
+      let currentActiveId = 'all';
+      
+      for (const section of sectionOffsets) {
+        if (scrollPosition >= section.top && scrollPosition < section.bottom) {
+          currentActiveId = section.id;
+          break;
+        }
+      }
 
       if (window.scrollY < 100) {
         currentActiveId = 'all';
@@ -1142,7 +1176,6 @@ export default function LiffMenuPage() {
       
       setActiveCategoryId((prevId) => {
         if (prevId !== currentActiveId) {
-          // Scroll the tab into view
           const tab = document.getElementById(`tab-${currentActiveId}`);
           const container = document.getElementById('category-tabs-container');
           if (tab && container) {
@@ -1159,10 +1192,10 @@ export default function LiffMenuPage() {
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     
-    const timeout = setTimeout(handleScroll, 100);
-
     return () => {
-      clearTimeout(timeout);
+      clearTimeout(initTimeout);
+      clearTimeout(initTimeout2);
+      window.removeEventListener('resize', calculateOffsets);
       window.removeEventListener('scroll', handleScroll);
     };
   }, [categories, items]);
@@ -1406,7 +1439,7 @@ export default function LiffMenuPage() {
        return;
     }
 
-    if (item.modifiers && Array.isArray(item.modifiers) && item.modifiers.length > 0 && selectedModifiers.length === 0) {
+    if (item.modifiers && Array.isArray(item.modifiers) && item.modifiers.length > 0 && selectedModifiers.length === 0 && pendingItem?.id !== item.id) {
         console.log("Fetching modifiers for item:", item.name, item.modifiers);
         const groupIds = item.modifiers.map((m: any) => m.group_id);
         const { data: groups, error: fetchError } = await supabase
@@ -1918,58 +1951,104 @@ export default function LiffMenuPage() {
   return (
     <div className="flex flex-col min-h-screen bg-[#fcfcf9]">
 
-      <header className="sticky top-0 z-[100] bg-white/90 backdrop-blur-xl border-b border-gray-100/50 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3 cursor-pointer max-w-[65%]" onClick={() => setIsAddressSelectorOpen(true)}>
-          <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 shadow-sm ${(addressShort && addressShort !== 'เลือกที่อยู่จัดส่ง' && addressShort !== ':') ? 'bg-gray-900 text-white' : 'bg-red-50 text-red-500 animate-pulse'}`}>
-            <MapPin size={16} strokeWidth={2.5} />
-          </div>
-          <div className="flex flex-col min-w-0">
-            <span className="text-[10px] font-medium text-gray-400 mb-0.5 leading-none">{(addressShort && addressShort !== 'เลือกที่อยู่จัดส่ง' && addressShort !== ':') ? 'จัดส่งไปที่' : 'ระบุตำแหน่ง'}</span>
-            <div className="flex items-center gap-1">
-               <h1 className="text-[13px] font-bold text-gray-900 truncate leading-tight">{(addressShort && addressShort !== 'เลือกที่อยู่จัดส่ง' && addressShort !== ':') ? addressShort : 'เลือกลงตำแหน่งจัดส่ง'}</h1>
-               <ChevronDown size={12} className="text-gray-400 shrink-0" />
-            </div>
-            
-            <div className="flex items-center min-h-[14px] overflow-hidden mt-0.5">
-                <AnimatePresence mode="wait">
-                  {isMounted && (closeMessage || isPreorderMode) && (
-                    <motion.span 
-                        key={isPreorderMode ? 'preorder' : closeMessage}
-                        initial={{ opacity: 0, y: 5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -5 }}
-                        transition={{ duration: 0.2 }}
-                        className={`text-[9px] font-black uppercase tracking-[0.02em] leading-none ${(!isShopEffectivelyOpen && !isPreorderMode) ? 'animate-pulse' : ''}`}
-                        style={{ color: isPreorderMode ? '#f59e0b' : openingHoursText }}
-                    >
-                        {isPreorderMode ? '● สั่งซื้อล่วงหน้า' : closeMessage}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-            </div>
+      <header className="sticky top-0 z-[100] h-[72px] bg-white px-4 flex items-center justify-between">
+        <div className="flex flex-col min-w-0 cursor-pointer max-w-[65%] select-none" onClick={() => setIsAddressSelectorOpen(true)}>
+          <span className="text-[10px] font-medium text-gray-400 mb-0.5 leading-none">
+            {(addressShort && addressShort !== 'เลือกที่อยู่จัดส่ง' && addressShort !== ':') ? 'จัดส่งไปที่' : 'ระบุตำแหน่ง'}
+          </span>
+          <div className="flex items-center gap-1">
+             <h1 className="text-[13px] font-bold text-gray-900 truncate leading-tight">
+               {(addressShort && addressShort !== 'เลือกที่อยู่จัดส่ง' && addressShort !== ':') ? addressShort : 'เลือกลงตำแหน่งจัดส่ง'}
+             </h1>
+             <ChevronDown size={12} className="text-gray-400 shrink-0" />
           </div>
         </div>
         <div className="flex items-center gap-2">
-           {memberInfo && (
+           {memberInfo?.phone ? (
              <button 
                onClick={() => router.push('/liff/member')}
-               className="flex items-center gap-1 pl-1 pr-2 py-1 bg-white border border-gray-100 rounded-full active:scale-95 transition-all shadow-sm"
+               className="flex items-center gap-1.5 pl-1.5 pr-3 py-1 bg-white border border-gray-200/80 rounded-full active:scale-95 transition-all shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
              >
-               <div className="bg-gray-50 rounded-full p-1">
+               <div className="bg-gray-50 rounded-full p-1 shrink-0">
                  <Star size={10} className="fill-[#F6C144] text-[#F6C144]" />
                </div>
                <span className="text-[11px] font-bold text-gray-900 leading-none pt-0.5">{memberInfo.points || 0}</span>
              </button>
+           ) : (
+             <div 
+               onClick={() => router.push('/liff/member')}
+               className="relative flex items-center justify-center cursor-pointer active:scale-95 transition-all"
+             >
+               <div className="w-9 h-9 rounded-full bg-white border border-gray-200/80 shadow-[0_2px_8px_rgba(0,0,0,0.04)] flex items-center justify-center shrink-0">
+                 <div className="bg-gray-50 rounded-full p-1.5">
+                   <Star size={12} className="fill-[#F6C144] text-[#F6C144]" />
+                 </div>
+               </div>
+               <motion.span 
+                 animate={{ y: [0, -3, 0] }}
+                 transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                 className="absolute -bottom-3.5 text-[8.5px] font-bold text-gray-500 whitespace-nowrap tracking-tight"
+               >
+                 สมัครสมาชิก
+               </motion.span>
+             </div>
            )}
-           <button onClick={() => router.push('/liff/history')} className="w-9 h-9 rounded-full bg-white flex items-center justify-center border border-gray-200 shadow-sm active:scale-90 transition-all text-gray-700 hover:bg-gray-50">
+           <button onClick={() => router.push('/liff/history')} className="w-9 h-9 rounded-full bg-white flex items-center justify-center border border-gray-200/80 shadow-[0_2px_8px_rgba(0,0,0,0.04)] active:scale-90 transition-all text-gray-700 hover:bg-gray-50 shrink-0">
              {(loading || liffLoading) ? <XYLLoader mini /> : <History size={16} strokeWidth={2} />}
            </button>
         </div>
       </header>
 
 <main className="flex-1 pb-32">
-        <div className="mb-4 aspect-[16/7] overflow-hidden relative bg-gray-100">
+        <div className="relative w-full h-64 sm:h-[320px] bg-black overflow-hidden shrink-0">
            <PromoBannerSlider />
+           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent pointer-events-none"></div>
+           
+           {/* Shop Name and Star Rating overlay on gradient */}
+           <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-8 flex items-end justify-between text-white z-10 pointer-events-none select-none">
+                <div className="flex flex-col gap-0.5">
+                     <h1 className="text-xl sm:text-2xl font-black tracking-tight drop-shadow-sm uppercase">
+                         {shopSettings?.opening_hours?.name_th || shopSettings?.name || 'XYL STUDIO'}
+                     </h1>
+                     {(shopSettings?.opening_hours?.branch_name_th || shopSettings?.branch_name) && (
+                         <p className="text-white/60 text-[10px] sm:text-xs font-bold tracking-widest uppercase drop-shadow-sm">
+                             {shopSettings?.opening_hours?.branch_name_th || shopSettings?.branch_name}
+                         </p>
+                     )}
+                </div>
+                
+                <div className="flex flex-col items-end gap-1.5 shrink-0">
+                     {reviewStats.count > 0 && (
+                          <div className="flex items-center gap-1.5 bg-black/40 backdrop-blur-md px-2.5 py-1 border border-white/10 rounded-full shadow-sm">
+                              <Star size={11} className="fill-[#F6C144] text-[#F6C144]" />
+                              <span className="text-[11px] font-black tracking-wider leading-none pt-0.5">
+                                  {reviewStats.average.toFixed(1)}
+                              </span>
+                              <span className="text-[9px] text-white/50 font-bold leading-none pt-0.5">
+                                  ({reviewStats.count})
+                              </span>
+                          </div>
+                     )}
+                     {isMounted && (closeMessage || isPreorderMode) && (
+                          <div 
+                              className={`flex items-center gap-1.5 bg-black/40 backdrop-blur-md px-2.5 py-1 border border-white/10 rounded-full shadow-sm text-[9px] font-black uppercase tracking-wider ${(!isShopEffectivelyOpen && !isPreorderMode) ? 'animate-pulse' : ''}`}
+                              style={{ color: isPreorderMode ? '#f59e0b' : '#ffffff' }}
+                          >
+                              <span 
+                                  className="w-1.5 h-1.5 rounded-full shrink-0" 
+                                  style={{ 
+                                      backgroundColor: isPreorderMode 
+                                          ? '#f59e0b' 
+                                          : (!isShopEffectivelyOpen ? '#ef4444' : '#10b981') 
+                                  }}
+                              />
+                              <span>
+                                  {isPreorderMode ? 'Pre-Order' : closeMessage?.replace('● ', '').replace('●', '').trim()}
+                              </span>
+                          </div>
+                     )}
+                </div>
+           </div>
         </div>
 
         <AnimatePresence>
@@ -2051,38 +2130,59 @@ export default function LiffMenuPage() {
           ) : null}
         </AnimatePresence>
 
-        {/* Search */}
-        <div className="px-4 space-y-3">
-          <div className="relative group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={14} />
-            <input
-              type="text" placeholder={t.search} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-gray-50 border border-gray-100 pl-10 pr-4 py-2.5 text-xs text-black font-medium"
-            />
-          </div>
-        </div>
-        
-        {/* Categories (Sticky) */}
-        <div className="sticky top-[58px] z-[90] bg-[#fcfcf9] px-2 pt-2 flex gap-4 overflow-x-auto no-scrollbar border-b border-gray-100" id="category-tabs-container">
-          {[{ id: 'all', name: t.all }, ...categories.map(c => ({ id: c.id, name: c.name }))].map(category => {
-            return (
-              <button
-                key={category.id}
-                id={`tab-${category.id}`}
-                onClick={() => {
-                  setActiveCategoryId(category.id);
-                  const el = document.getElementById(category.id === 'all' ? 'category-all' : `category-${category.id}`);
-                  if (el) {
-                    const y = el.getBoundingClientRect().top + window.scrollY - 110;
-                    window.scrollTo({ top: y, behavior: 'smooth' });
-                  }
-                }}
-                className={`px-3 py-3 text-[14px] transition-all whitespace-nowrap shrink-0 ${activeCategoryId === category.id ? 'font-bold text-black border-b-2 border-black' : 'font-medium text-gray-400 border-b-2 border-transparent hover:text-gray-600'}`}
-              >
-                {category.name}
-              </button>
-            );
-          })}
+        {/* Category Navigation - Mockup Style */}
+        {/* Category Navigation - Mockup Style */}
+        <div className="sticky top-[72px] z-40 bg-white border-b border-gray-100/80 shadow-[0_8px_20px_rgba(0,0,0,0.02)] flex flex-col w-full">
+            <div className="flex overflow-x-auto scrollbar-hide px-4 sm:px-10 items-end min-h-[46px]" id="category-tabs-container">
+                <button 
+                    id="tab-all"
+                    onClick={() => {
+                        if (manualScrollTimeout.current) clearTimeout(manualScrollTimeout.current);
+                        isManualScrolling.current = true;
+                        setActiveCategoryId('all');
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        manualScrollTimeout.current = setTimeout(() => {
+                            isManualScrolling.current = false;
+                        }, 800);
+                    }}
+                    className={`flex-shrink-0 px-4 py-2.5 text-[11px] font-bold uppercase tracking-widest transition-colors border-b-2 whitespace-nowrap ${activeCategoryId === 'all' ? 'border-black text-black' : 'border-transparent text-gray-400 hover:text-black'}`}
+                >
+                    {t.all}
+                </button>
+                {categories.map(cat => (
+                    <button 
+                        key={cat.id}
+                        id={`tab-${cat.id}`}
+                        onClick={() => {
+                            if (manualScrollTimeout.current) clearTimeout(manualScrollTimeout.current);
+                            isManualScrolling.current = true;
+                            setActiveCategoryId(cat.id);
+                            const el = document.getElementById(`category-${cat.id}`);
+                            if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 160, behavior: 'smooth' });
+                            manualScrollTimeout.current = setTimeout(() => {
+                                isManualScrolling.current = false;
+                            }, 800);
+                        }}
+                        className={`flex-shrink-0 px-4 py-2.5 text-[11px] font-bold uppercase tracking-widest transition-colors border-b-2 whitespace-nowrap ${activeCategoryId === cat.id ? 'border-black text-black' : 'border-transparent text-gray-400 hover:text-black'}`}
+                    >
+                        {cat.name}
+                    </button>
+                ))}
+            </div>
+            
+            {/* Search Bar - Mockup Style */}
+            <div className="px-4 pb-3 pt-1 bg-white">
+                <div className="bg-gray-50 border border-gray-100 flex items-center gap-2 px-4 py-2 rounded-full text-gray-400 focus-within:bg-white focus-within:border-gray-300 focus-within:text-gray-900 transition-all shadow-inner-sm liff-no-focus">
+                    <Search size={15} strokeWidth={2.5} />
+                    <input 
+                      type="text" 
+                      placeholder={t.search}
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="bg-transparent border-none focus:!border-none focus:!border-transparent focus:!outline-none focus:!ring-0 focus:!ring-offset-0 focus:!ring-transparent focus-visible:!ring-0 focus-visible:!ring-offset-0 focus-visible:!outline-none text-xs w-full font-medium p-0 h-6 leading-none shadow-none focus:shadow-none" 
+                    />
+                </div>
+            </div>
         </div>
 
               {/* ⭐ Latest Order */}
@@ -2998,155 +3098,167 @@ export default function LiffMenuPage() {
           >
             {addressView === 'list' ? (
               <>
-                <header className="px-6 pt-6 pb-5 border-b border-black/5 bg-white/95 backdrop-blur-md flex items-start justify-between gap-4">
-                  <div>
-                    <h2 className="text-[20px] font-black tracking-tight text-[#1A1A18] leading-none">{locale === 'en' ? 'Delivery Setup' : 'ตำแหน่งจัดส่ง'}</h2>
-                  </div>
-                  <button onClick={() => setIsAddressSelectorOpen(false)} className="w-8 h-8 flex items-center justify-center bg-neutral-100 rounded-full active:scale-90 transition-all text-neutral-500">
-                    <X size={16} />
+                <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-black/5 flex items-center justify-between px-4 py-4 h-[72px]">
+                  <button onClick={() => setIsAddressSelectorOpen(false)} className="w-10 h-10 flex items-center justify-center text-gray-400 active:scale-95 transition-transform">
+                    <ChevronLeft size={24} />
                   </button>
+                  <div className="flex-1 text-center">
+                    <h2 className="text-[16px] font-black uppercase text-[#1A1A18] tracking-[0.1em]">{locale === 'en' ? 'Delivery Setup' : 'ตำแหน่งจัดส่ง'}</h2>
+                  </div>
+                  <div className="w-10 h-10 flex-none" />
                 </header>
 
-                <div className="flex-1 overflow-y-auto no-scrollbar bg-[#FAFAFA]">
-                  <div className="p-4 space-y-4 pb-28">
-                    {/* 📍 Current Target Section */}
-                    <section className="bg-white p-5 rounded-3xl border border-neutral-100 relative overflow-hidden">
-                      <div className="relative cursor-pointer group active:scale-[0.99] transition-all" onClick={() => openNewAddressFlow(false)}>
-                        <div className="flex items-center justify-between">
-                          <p className="text-[10px] font-black tracking-[0.2em] uppercase text-emerald-500">Current Target</p>
-                          <div className="flex items-center gap-1 px-2 py-1 bg-neutral-50 rounded-md text-[9px] font-black uppercase tracking-widest text-neutral-500 group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors">
-                            <MapPin size={10} /> {locale === 'en' ? 'Edit Map' : 'แก้แผนที่'}
+                <div className="flex-1 overflow-y-auto no-scrollbar bg-white">
+                  <div className="px-6 py-5 space-y-6 pb-28">
+                    
+                    {/* Active Selected Location Summary */}
+                    <div className="p-5 rounded-2xl bg-neutral-50 border border-neutral-100">
+                      <p className="text-[10px] font-black uppercase tracking-wider text-neutral-400">
+                        {locale === 'en' ? 'Current Delivery To' : 'จัดส่งที่อยู่นี้'}
+                      </p>
+                      
+                      <div className="mt-2 flex items-start justify-between gap-4">
+                        <div className="min-w-0 flex-1">
+                          <h4 className="text-[16px] font-black text-black leading-snug truncate">
+                            {addressShort && addressShort !== 'เลือกที่อยู่จัดส่ง' ? addressShort : 'ยังไม่ได้ระบุตำแหน่ง'}
+                          </h4>
+                          {address && (
+                            <p className="mt-1 text-[12px] text-neutral-500 leading-relaxed line-clamp-2">
+                              {address}
+                            </p>
+                          )}
+                          
+                          {/* Inline Delivery Fee */}
+                          <div className="mt-3 flex items-center gap-1.5 text-[11px] font-bold text-neutral-600">
+                            <Truck size={12} className="text-neutral-400" />
+                            <span>{locale === 'en' ? 'Delivery Fee' : 'ค่าจัดส่ง'} :</span>
+                            <span className="text-black font-black">
+                              {effectiveDeliveryFee === -1 ? 'นอกพื้นที่จัดส่ง' : effectiveDeliveryFee > 0 ? `฿${effectiveDeliveryFee.toLocaleString()}` : 'ฟรี (FREE)'}
+                            </span>
                           </div>
                         </div>
-                        <h3 className="mt-3 text-[16px] font-black tracking-tight leading-tight text-[#1A1A18] truncate">
-                          {addressShort && addressShort !== 'เลือกที่อยู่จัดส่ง' ? addressShort : 'ยังไม่ได้ระบุตำแหน่ง'}
-                        </h3>
-                        {address && <p className="mt-1.5 text-[12px] text-neutral-500 leading-relaxed line-clamp-2">{address}</p>}
-                      </div>
 
-                      <div className="grid grid-cols-2 gap-3 mt-5 pt-5 border-t border-neutral-50">
+                        {/* Edit Pin on Map */}
                         <button
-                          onClick={() => detectLocation({ openMap: false, applyToCheckout: true })}
-                          disabled={isLocatingAddress}
-                          className="h-11 bg-emerald-50 text-emerald-700 rounded-xl text-[11px] font-black tracking-[0.1em] uppercase flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.98] transition-all hover:bg-emerald-100"
+                          onClick={() => openNewAddressFlow(false)}
+                          className="flex-none w-10 h-10 rounded-full bg-black text-white hover:bg-neutral-900 active:scale-95 transition-all flex items-center justify-center shadow-md shadow-black/10"
+                          title={locale === 'en' ? 'Edit Pin' : 'แก้ไขตำแหน่งบนแผนที่'}
                         >
-                          {isLocatingAddress ? <XYLLoader mini /> : <><Target size={14} /> ตำแหน่งตอนนี้</>}
+                          <MapPin size={16} />
                         </button>
-                        <div className="h-11 bg-neutral-50 text-neutral-700 rounded-xl text-[12px] font-black tracking-widest uppercase flex items-center justify-center gap-2 border border-neutral-100 px-3">
-                          <Truck size={14} className="text-emerald-500" /> {locale === 'en' ? 'Fee' : 'ค่าส่ง'} 
-                          <span className="text-emerald-600 flex items-center gap-1">
-                            {effectiveDeliveryFee === -1 ? 'อยู่นอกพื้นที่' : effectiveDeliveryFee > 0 ? `฿${effectiveDeliveryFee.toLocaleString()}` : (
-                              <>
-                                {deliveryFee > 0 && <span className="line-through text-gray-400">฿{deliveryFee}</span>}
-                                <span>FREE</span>
-                              </>
-                            )}
-                          </span>
-                        </div>
                       </div>
-                    </section>
+                    </div>
+
+                    {/* Quick GPS Location Action */}
+                    <button
+                      onClick={() => detectLocation({ openMap: false, applyToCheckout: true })}
+                      disabled={isLocatingAddress}
+                      className="w-full h-11 border border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-800 rounded-xl text-[12px] font-black tracking-widest uppercase flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.98] transition-all"
+                    >
+                      {isLocatingAddress ? <XYLLoader mini /> : <><Target size={14} className="text-black" /> {locale === 'en' ? 'Use Current Location' : 'ใช้ตำแหน่งปัจจุบันของคุณ'}</>}
+                    </button>
+
+                    {/* Divider */}
+                    <div className="h-px bg-neutral-100"></div>
 
                     {/* 🏠 Saved Addresses Section */}
-                    <section className="bg-white rounded-3xl border border-neutral-100 overflow-hidden">
-                      <div className="px-5 py-4 flex items-center justify-between gap-3 border-b border-neutral-50">
-                        <h3 className="text-[14px] font-black tracking-tight text-black">{locale === 'en' ? 'Saved Addresses' : 'ที่อยู่ของคุณ'}</h3>
+                    <div>
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-[14px] font-black tracking-tight text-black">
+                          {locale === 'en' ? 'Saved Addresses' : 'ที่อยู่ของคุณ'}
+                        </h3>
                         <button 
                           onClick={() => openNewAddressFlow(true)}
-                          className="px-3 py-1.5 bg-emerald-50 rounded-full text-[10px] font-black tracking-widest text-emerald-600 uppercase flex items-center gap-1 active:scale-95 transition-all"
+                          className="flex items-center gap-1 text-[11px] font-black tracking-wider text-black hover:text-neutral-600 transition-colors uppercase active:scale-95"
                         >
-                          <Plus size={12} strokeWidth={3} />
-                          {locale === 'en' ? 'Add New' : 'เพิ่มใหม่'}
+                          <Plus size={14} strokeWidth={3.5} />
+                          {locale === 'en' ? 'Add New' : 'เพิ่มที่อยู่ใหม่'}
                         </button>
                       </div>
 
-                      <div className="p-4 space-y-3">
+                      <div className="space-y-4">
                         {savedAddresses.length > 0 ? savedAddresses.map((addr) => {
                           const { locale } = useI18n();
                           const isSelected = selectedAddressId === addr.id;
 
                           return (
-                            <div key={addr.id} className="relative rounded-2xl bg-red-500 overflow-hidden">
-                              <button 
-                                onClick={() => deleteSavedAddress(addr.id)}
-                                className="absolute inset-y-0 right-0 w-[100px] flex items-center justify-center text-white active:scale-95 transition-transform"
-                              >
-                                <div className="flex flex-col items-center gap-1 opacity-90">
-                                  <Trash2 size={22} />
-                                  <span className="text-[11px] font-black uppercase tracking-wider">{locale === 'en' ? 'Delete' : 'ลบ'}</span>
+                            <div 
+                              key={addr.id} 
+                              onClick={() => applyAddressSelection(addr)}
+                              className="group relative py-3.5 flex items-start gap-4 cursor-pointer transition-all border-b border-neutral-100 last:border-0"
+                            >
+                              {/* Left Icon */}
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-none transition-colors ${
+                                isSelected ? 'bg-black text-white' : 'bg-neutral-50 text-neutral-400 group-hover:bg-neutral-100'
+                              }`}>
+                                {addr.label === 'Home' ? <HomeIcon size={14} /> : addr.label === 'Work' ? <Briefcase size={14} /> : <MapPin size={14} />}
+                              </div>
+
+                              {/* Center Address Text */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className={`text-[11px] font-black uppercase tracking-wider ${
+                                    isSelected ? 'text-black' : 'text-neutral-500'
+                                  }`}>
+                                    {addr.label || 'Other'}
+                                  </span>
+                                  {addr.is_primary && (
+                                    <span className="px-1.5 py-0.5 rounded text-[8px] font-bold tracking-widest uppercase bg-amber-50 text-amber-600 border border-amber-100">
+                                      หลัก
+                                    </span>
+                                  )}
+                                  {isSelected && (
+                                    <span className="w-1.5 h-1.5 rounded-full bg-black"></span>
+                                  )}
                                 </div>
-                              </button>
-                              <motion.div
-                                drag="x"
-                                dragDirectionLock={true}
-                                dragConstraints={{ left: -100, right: 0 }}
-                                dragElastic={{ left: 0.1, right: 0 }}
-                                animate={{ x: swipedAddressId === addr.id ? -100 : 0 }}
-                                onDragEnd={(e, { offset }) => {
-                                  if (offset.x < -40) {
-                                    setSwipedAddressId(addr.id);
-                                  } else {
-                                    setSwipedAddressId(null);
-                                  }
-                                }}
-                                onClick={() => {
-                                  if (swipedAddressId === addr.id) {
-                                    setSwipedAddressId(null);
-                                  }
-                                }}
-                                className={`p-4 rounded-2xl transition-colors border relative z-10 ${isSelected ? 'border-emerald-500 bg-[#f4faec]' : 'border-neutral-100 bg-white'}`}
-                              >
-                                <div className="flex items-start gap-4">
-                                  <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-none transition-colors ${isSelected ? 'bg-emerald-500 text-white' : 'bg-neutral-100 text-neutral-400'}`}>
-                                    {addr.label === 'Home' ? <HomeIcon size={18} /> : addr.label === 'Work' ? <Briefcase size={18} /> : <MapPin size={18} />}
+
+                                <p className={`mt-1 text-[13px] font-bold leading-tight truncate ${isSelected ? 'text-black font-black' : 'text-neutral-700'}`}>
+                                  {addr.full_address}
+                                </p>
+                                {addr.address_detail && (
+                                  <p className="mt-0.5 text-[11px] text-neutral-400 truncate">
+                                    {addr.address_detail}
+                                  </p>
+                                )}
+                              </div>
+
+                              {/* Right Inline Action Controls */}
+                              <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                                <button
+                                  onClick={() => openEditAddressFlow(addr)}
+                                  className="w-7 h-7 rounded-md text-neutral-400 hover:text-black hover:bg-neutral-50 flex items-center justify-center active:scale-95 transition-all"
+                                  title={locale === 'en' ? 'Edit' : 'แก้ไข'}
+                                >
+                                  <Pencil size={12} />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    if (confirm(locale === 'en' ? 'Delete this address?' : 'ต้องการลบที่อยู่นี้ใช่หรือไม่?')) {
+                                      deleteSavedAddress(addr.id);
+                                    }
+                                  }}
+                                  className="w-7 h-7 rounded-md text-neutral-400 hover:text-red-600 hover:bg-red-50 flex items-center justify-center active:scale-95 transition-all"
+                                  title={locale === 'en' ? 'Delete' : 'ลบ'}
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                                {isSelected && (
+                                  <div className="w-7 h-7 rounded-md bg-black text-white flex items-center justify-center">
+                                    <Check size={12} strokeWidth={3.5} />
                                   </div>
-
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <span className={`text-[11px] font-black tracking-[0.1em] uppercase ${isSelected ? 'text-emerald-700' : 'text-neutral-500'}`}>{addr.label || 'Other'}</span>
-                                      {addr.is_primary && <span className="px-2 py-0.5 rounded-md text-[9px] font-black tracking-[0.1em] uppercase bg-amber-50 text-amber-600 border border-amber-100">{locale === 'en' ? 'Main' : 'หลัก'}</span>}
-                                      {isSelected && <span className="px-2 py-0.5 rounded-md text-[9px] font-black tracking-[0.1em] uppercase bg-emerald-100 text-emerald-700 border border-emerald-200">{locale === 'en' ? 'Current' : 'เลือกอยู่'}</span>}
-                                    </div>
-
-                                    <p className={`mt-2 text-[13px] font-black leading-snug tracking-tight line-clamp-2 ${isSelected ? 'text-[#1A1A18]' : 'text-neutral-700'}`}>{addr.full_address}</p>
-                                    {addr.address_detail && (
-                                      <p className={`mt-1 text-[11px] font-bold ${isSelected ? 'text-emerald-600/80' : 'text-neutral-400'}`}>{addr.address_detail}</p>
-                                    )}
-                                  </div>
-                                </div>
-
-                                <div className="flex gap-2 mt-4 pt-4 border-t border-neutral-100/50">
-                                  <button
-                                    onClick={() => applyAddressSelection(addr)}
-                                    className={`flex-1 h-9 rounded-xl text-[10px] font-black tracking-[0.1em] uppercase active:scale-[0.98] transition-all ${isSelected ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-500/20' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}
-                                  >
-                                    {locale === 'en' ? 'Use' : 'ใช้ที่อยู่นี้'}
-                                  </button>
-                                  <button
-                                    onClick={() => openEditAddressFlow(addr)}
-                                    className="w-16 h-9 rounded-xl border border-neutral-200 bg-white text-neutral-600 text-[10px] font-black tracking-[0.1em] uppercase flex items-center justify-center active:scale-[0.98] transition-all hover:bg-neutral-50"
-                                  >
-                                    <Pencil size={12} />
-                                  </button>
-                                  <button
-                                    onClick={() => setPrimaryAddress(addr)}
-                                    disabled={Boolean(addr.is_primary) || isProcessing}
-                                    className={`w-16 h-9 rounded-xl border text-[10px] font-black tracking-[0.1em] uppercase active:scale-[0.98] transition-all disabled:opacity-50 disabled:bg-neutral-50 flex items-center justify-center ${addr.is_primary ? 'border-neutral-100 bg-neutral-50 text-amber-500' : 'border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50'}`}
-                                  >
-                                    ★
-                                  </button>
-                                </div>
-                              </motion.div>
+                                )}
+                              </div>
                             </div>
                           );
                         }) : (
-                          <div className="py-10 px-6 text-center bg-neutral-50 rounded-2xl border border-dashed border-neutral-200">
-                            <MapPin size={24} className="text-neutral-300 mx-auto mb-3" />
-                            <p className="text-[13px] font-black tracking-tight text-[#1A1A18]">{locale === 'en' ? 'No saved addresses' : 'ยังไม่มีที่อยู่'}</p>
-                            <p className="mt-1 text-[11px] font-bold text-neutral-500">{locale === 'en' ? 'Add a new address to use later' : 'เพิ่มที่อยู่ใหม่เพื่อความสะดวก'}</p>
+                          <div className="py-10 px-6 text-center bg-neutral-50 rounded-2xl border border-dashed border-neutral-100">
+                            <MapPin size={20} className="text-neutral-300 mx-auto mb-2" />
+                            <p className="text-[12px] font-black tracking-tight text-neutral-800">{locale === 'en' ? 'No saved addresses' : 'ยังไม่มีที่อยู่บันทึกไว้'}</p>
+                            <p className="mt-0.5 text-[10px] font-bold text-neutral-400">{locale === 'en' ? 'Add a new address to use later' : 'เพิ่มที่อยู่ใหม่เพื่อความสะดวก'}</p>
                           </div>
                         )}
                       </div>
-                    </section>
+                    </div>
                   </div>
                 </div>
               </>
@@ -3263,8 +3375,8 @@ export default function LiffMenuPage() {
                       )}
                       
                       {deliveryDistance > 0 && (
-                        <div className="mt-3 flex items-center gap-2 text-[11px] font-black tracking-widest uppercase text-emerald-600">
-                          <Target size={14} />
+                        <div className="mt-3 flex items-center gap-2 text-[11px] font-black tracking-widest uppercase text-black">
+                          <Target size={14} className="text-black" />
                           <span>{deliveryDistance.toFixed(1)} km</span>
                         </div>
                       )}
@@ -3272,12 +3384,12 @@ export default function LiffMenuPage() {
                   </div>
 
                   {isMapSheetExpanded && (effectiveDeliveryFee > 0 || isFreeDelivery) && (
-                    <div className="mt-5 p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center justify-between">
-                      <span className="text-[12px] font-black uppercase tracking-wider text-emerald-800">{locale === 'en' ? 'Est. Delivery Fee' : 'ค่าจัดส่งประมาณ'}</span>
-                      <span className="text-[16px] font-black text-emerald-600 flex items-center gap-2">
+                    <div className="mt-5 p-4 bg-neutral-50 border border-neutral-100 rounded-2xl flex items-center justify-between">
+                      <span className="text-[12px] font-black uppercase tracking-wider text-neutral-800">{locale === 'en' ? 'Est. Delivery Fee' : 'ค่าจัดส่งประมาณ'}</span>
+                      <span className="text-[16px] font-black text-black flex items-center gap-2">
                         {effectiveDeliveryFee === -1 ? 'อยู่นอกพื้นที่' : effectiveDeliveryFee > 0 ? `฿${effectiveDeliveryFee.toLocaleString()}` : (
                            <>
-                             {deliveryFee > 0 && <span className="line-through text-emerald-300 text-sm">฿{deliveryFee}</span>}
+                             {deliveryFee > 0 && <span className="line-through text-neutral-400 text-sm">฿{deliveryFee}</span>}
                              <span>FREE</span>
                            </>
                         )}
@@ -3308,7 +3420,7 @@ export default function LiffMenuPage() {
           >
              <header className="px-6 pt-6 pb-5 border-b border-black/5 flex items-center justify-between gap-4 bg-white/95 backdrop-blur-md">
                 <div>
-                 <p className="text-[10px] font-black tracking-[0.24em] uppercase text-emerald-600">Delivery Details</p>
+                 <p className="text-[10px] font-black tracking-[0.24em] uppercase text-black">Delivery Details</p>
                  <h2 className="mt-2 text-[28px] font-black tracking-tight text-black leading-none">{locale === 'en' ? 'Address Details' : 'รายละเอียดที่จัดส่ง'}</h2>
                 </div>
                <button onClick={() => setIsAddressDetailOpen(false)} className="p-3 bg-neutral-100 rounded-full active:scale-90 transition-all text-neutral-500"><X size={20} /></button>
@@ -3320,7 +3432,7 @@ export default function LiffMenuPage() {
                    <input 
                       type="text" value={addressDetail} onChange={e => setAddressDetail(e.target.value)}
                       placeholder={locale === 'en' ? 'e.g. G Tower Floor 24...' : 'เช่น อาคาร G Tower ชั้น 24...'}
-                      className="w-full h-14 bg-white border border-neutral-200 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all outline-none"
+                      className="w-full h-14 bg-white border border-neutral-200 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-black focus:border-black transition-all outline-none"
                    />
                 </section>
 
@@ -3332,7 +3444,7 @@ export default function LiffMenuPage() {
                     </div>
                     <button
                       onClick={() => setSaveToAddressBook(!saveToAddressBook)}
-                      className={`relative w-12 h-6 rounded-full transition-colors ${saveToAddressBook ? 'bg-emerald-500' : 'bg-neutral-200'}`}
+                      className={`relative w-12 h-6 rounded-full transition-colors ${saveToAddressBook ? 'bg-black' : 'bg-neutral-200'}`}
                     >
                       <span className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${saveToAddressBook ? 'translate-x-6' : 'translate-x-0'}`} />
                     </button>
@@ -3354,7 +3466,7 @@ export default function LiffMenuPage() {
                                 onClick={() => setAddressLabel(item.id)}
                                 className={`flex-1 h-12 flex items-center justify-center gap-2 rounded-lg border transition-all ${
                                   addressLabel === item.id 
-                                    ? 'bg-emerald-50 border-emerald-500 text-emerald-700' 
+                                    ? 'bg-black border-black text-white' 
                                     : 'bg-white border-neutral-200 text-neutral-500'
                                 }`}
                               >
@@ -3368,7 +3480,7 @@ export default function LiffMenuPage() {
                           <span className="text-[12px] font-black text-neutral-700">{locale === 'en' ? 'Set as primary address' : 'ตั้งเป็นที่อยู่หลัก'}</span>
                           <button
                             onClick={() => setIsPrimary(!isPrimary)}
-                            className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${isPrimary ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-neutral-300 bg-white'}`}
+                            className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${isPrimary ? 'bg-black border-black text-white' : 'border-neutral-300 bg-white'}`}
                           >
                             {isPrimary && <CheckCircle2 size={14} />}
                           </button>
@@ -3378,10 +3490,10 @@ export default function LiffMenuPage() {
                   </AnimatePresence>
                  </section>
 
-                 <section className="p-4 bg-emerald-50 rounded-xl border border-emerald-100/50 flex gap-3">
-                    <Clock size={18} className="text-emerald-500 shrink-0" />
+                 <section className="p-4 bg-neutral-50 rounded-xl border border-neutral-100 flex gap-3">
+                    <Clock size={18} className="text-black shrink-0" />
                     <div>
-                       <p className="text-[11px] font-black text-emerald-800 leading-snug">{locale === 'en' ? 'Clear details help us deliver faster.' : 'ข้อมูลที่ชัดเจนช่วยให้เราส่งอาหารถึงคุณได้เร็วขึ้น'}</p>
+                       <p className="text-[11px] font-black text-neutral-800 leading-snug">{locale === 'en' ? 'Clear details help us deliver faster.' : 'ข้อมูลที่ชัดเจนช่วยให้เราส่งอาหารถึงคุณได้เร็วขึ้น'}</p>
                     </div>
                  </section>
 

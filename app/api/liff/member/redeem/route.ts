@@ -54,18 +54,19 @@ export async function POST(req: Request) {
 
     if (updateError) throw updateError;
 
-    // Create member coupon
-    const { error: insertCouponError } = await supabaseAdmin
-      .from('pos_member_coupons')
-      .insert([{
-        member_id: member.id,
-        coupon_id: coupon.id,
-        coupon_name: coupon.name,
-        discount_type: coupon.discount_type,
-        discount_value: coupon.discount_value,
-        applicable_categories: coupon.applicable_categories,
-        status: 'active'
-      }]);
+     // Create member coupon
+     const { error: insertCouponError } = await supabaseAdmin
+       .from('pos_member_coupons')
+       .insert([{
+         member_id: member.id,
+         coupon_id: coupon.id,
+         coupon_name: coupon.name,
+         discount_type: coupon.discount_type,
+         discount_value: coupon.discount_value,
+         applicable_categories: coupon.applicable_categories,
+         image_url: coupon.image_url,
+         status: 'active'
+       }]);
 
     if (insertCouponError) throw insertCouponError;
 

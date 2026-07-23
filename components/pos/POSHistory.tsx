@@ -1,13 +1,13 @@
-'use client';
 import React, { useState, useEffect, useCallback } from 'react'
-import { Receipt, Trash2, RefreshCw, Printer, PencilLine, User } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Receipt, Trash2, RefreshCw, Printer, PencilLine, User, ChevronDown, ChevronUp } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import POSPinModal from './POSPinModal'
 import { useI18n } from "@/lib/I18nContext";
 import { printCustomerReceipt } from '@/lib/printerUtils'
 import { printGraphicModeCustomerReceipt } from '@/lib/graphicPrinter'
 
-export default function POSHistory({ shopSettings, profile, activeShift, onSetView, fetchShiftStats }: any) {
+export default function POSHistory({ shopSettings, profile, activeShift, onSetView, fetchShiftStats, setViewExtraHeader }: any) {
     const { locale } = useI18n();
   const [completedOrders, setCompletedOrders] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
@@ -21,7 +21,8 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
   const [paymentEditMethod, setPaymentEditMethod] = useState<string>('cash')
   const [paymentEditOpen, setPaymentEditOpen] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
-
+  const [filterType, setFilterType] = useState<'all'|'store'|'delivery'|'cancelled'>('all')
+  const [filterDropdownOpen, setFilterDropdownOpen] = useState(false)
   const fetchCompletedOrders = useCallback(async () => {
     setLoading(true)
     try {
@@ -60,6 +61,38 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
   useEffect(() => {
     fetchCompletedOrders()
   }, [fetchCompletedOrders])
+
+  // Inject header actions into global POS layout
+  useEffect(() => {
+    if (setViewExtraHeader) {
+      setViewExtraHeader(
+        <div className="flex items-center gap-2 sm:gap-3">
+          <input 
+            type="date" 
+            value={selectedDate.toLocaleDateString('en-CA')}
+            onChange={(e) => {
+              if (e.target.value) {
+                const newDate = new Date(e.target.value);
+                setSelectedDate(newDate);
+              }
+            }}
+            className="appearance-none bg-transparent text-neutral-800 text-[10px] sm:text-[11px] font-black uppercase tracking-widest cursor-pointer focus:outline-none transition-all duration-200 border-none px-1 sm:px-3 w-[110px] sm:w-auto text-center"
+          />
+          <button
+            onClick={fetchCompletedOrders}
+            disabled={loading}
+            className="flex items-center gap-2 border border-neutral-200 bg-white px-3 py-2 sm:px-4 text-[10px] font-black uppercase tracking-widest text-neutral-600 transition-all hover:bg-neutral-50 disabled:opacity-50 rounded-xl"
+          >
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            <span className="hidden sm:inline">{locale === 'en' ? 'Refresh' : locale === 'zh' ? '刷新' : 'รีเฟรช'}</span>
+          </button>
+        </div>
+      )
+    }
+    return () => {
+      if (setViewExtraHeader) setViewExtraHeader(null)
+    }
+  }, [selectedDate, loading, locale, fetchCompletedOrders, setViewExtraHeader])
 
   const checkManagerPin = (
     onSuccessCallback: () => void,
@@ -295,258 +328,302 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
   }
 
   return (
-    <div className="flex h-full flex-col bg-[#FDFDFB]">
-      <header className="flex-shrink-0 flex items-center justify-between border-b border-[#F0F0E8] bg-white p-6 sm:p-10">
-        <div className="flex flex-col">
-          <h2 className="text-xl sm:text-2xl font-black tracking-tighter uppercase text-[#1A1A18] flex items-center gap-3">
-            <Receipt className="text-emerald-500" /> 
-            {locale === 'en' ? '              ประวัติการขาย           ' : locale === 'zh' ? '              ประวัติการขาย           ' : '              ประวัติการขาย           '}</h2>
-          <p className="mt-1 text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-widest">
-            Sales History · {completedOrders.length} {locale === 'en' ? ' รายการ           ' : locale === 'zh' ? ' รายการ           ' : ' รายการ           '}</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <input 
-            type="date" 
-            value={selectedDate.toLocaleDateString('en-CA')}
-            onChange={(e) => {
-              if (e.target.value) {
-                const newDate = new Date(e.target.value);
-                setSelectedDate(newDate);
-              }
-            }}
-            className="border border-[#F0F0E8] bg-white px-3 py-2 text-[10px] font-black uppercase tracking-widest text-gray-500 focus:outline-none"
-          />
-          <button
-            onClick={fetchCompletedOrders}
-            disabled={loading}
-            className="flex items-center gap-2 border border-[#F0F0E8] bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gray-500 transition-all hover:bg-black hover:text-white disabled:opacity-50"
-          >
-          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-          {locale === 'en' ? 'Refresh' : locale === 'zh' ? '刷新' : '           รีเฟรช         '}</button>
-        </div>
-      </header>
+    <div className="flex h-full flex-col bg-white text-[#1A1A18] selection:bg-emerald-100">
 
-      <div className="flex-1 overflow-y-auto p-4 sm:p-10 space-y-3">
+      <div className="flex-1 overflow-y-auto px-6 py-6">
+        
+        {!loading && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+            <div className="bg-white rounded-2xl p-5 border border-black/5 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+              <span className="text-[10px] font-black uppercase text-neutral-400 tracking-widest mb-2">{locale === 'en' ? 'Total Orders' : 'ออเดอร์ทั้งหมด'}</span>
+              <div className="flex items-end gap-2">
+                <span className="text-4xl font-black tracking-tighter text-[#1A1A18]">{completedOrders.length}</span>
+                <span className="text-[10px] font-bold text-neutral-400 mb-1.5">{locale === 'en' ? 'Orders' : 'รายการ'}</span>
+              </div>
+            </div>
+            
+            <div className="relative">
+              <div 
+                onClick={() => setFilterDropdownOpen(!filterDropdownOpen)}
+                className="cursor-pointer bg-emerald-50/50 rounded-2xl p-5 border border-emerald-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow h-full"
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <span className="text-[10px] font-black uppercase text-emerald-600/70 tracking-widest">
+                    {filterType === 'all' ? (locale === 'en' ? 'All Types' : 'ทุกประเภท') : filterType === 'store' ? (locale === 'en' ? 'Store Orders' : 'หน้าร้าน') : filterType === 'delivery' ? (locale === 'en' ? 'Delivery' : 'เดลิเวอรี') : (locale === 'en' ? 'Cancelled' : 'ยกเลิก')}
+                  </span>
+                  <ChevronDown size={14} className={`text-emerald-600/50 transition-transform ${filterDropdownOpen ? 'rotate-180' : ''}`} />
+                </div>
+                <div className="flex items-end gap-2">
+                  <span className="text-4xl font-black tracking-tighter text-emerald-600">
+                    {completedOrders.filter(o => filterType === 'all' ? true : filterType === 'cancelled' ? o.status === 'cancelled' : filterType === 'store' ? (o.order_type !== 'delivery' && o.status !== 'cancelled') : (o.order_type === 'delivery' && o.status !== 'cancelled')).length}
+                  </span>
+                  <span className="text-[10px] font-bold text-emerald-600/60 mb-1.5">{locale === 'en' ? 'Orders' : 'รายการ'}</span>
+                </div>
+              </div>
+
+              <AnimatePresence>
+                {filterDropdownOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-[0_8px_40px_rgb(0,0,0,0.12)] border border-black/5 z-50 overflow-hidden"
+                  >
+                    <div 
+                      onClick={() => { setFilterType('all'); setFilterDropdownOpen(false) }}
+                      className="px-5 py-4 hover:bg-neutral-50 cursor-pointer border-b border-neutral-100 text-[14px] font-bold text-[#1A1A18]"
+                    >
+                      {locale === 'en' ? 'All Types' : 'ทุกประเภท'}
+                    </div>
+                    <div 
+                      onClick={() => { setFilterType('store'); setFilterDropdownOpen(false) }}
+                      className="px-5 py-4 hover:bg-neutral-50 cursor-pointer border-b border-neutral-100 text-[14px] font-bold text-[#1A1A18]"
+                    >
+                      {locale === 'en' ? 'Store Orders (Dine-in / Takeaway)' : 'หน้าร้าน (ทานที่ร้าน / กลับบ้าน)'}
+                    </div>
+                    <div 
+                      onClick={() => { setFilterType('delivery'); setFilterDropdownOpen(false) }}
+                      className="px-5 py-4 hover:bg-neutral-50 cursor-pointer border-b border-neutral-100 text-[14px] font-bold text-[#1A1A18]"
+                    >
+                      {locale === 'en' ? 'Delivery' : 'เดลิเวอรี'}
+                    </div>
+                    <div 
+                      onClick={() => { setFilterType('cancelled'); setFilterDropdownOpen(false) }}
+                      className="px-5 py-4 hover:bg-neutral-50 cursor-pointer text-[14px] font-bold text-red-500"
+                    >
+                      {locale === 'en' ? 'Cancelled' : 'ยกเลิก'}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+        )}
+
         {loading && (
           <div className="flex flex-col items-center justify-center py-20 text-gray-300">
             <RefreshCw size={32} className="mb-4 animate-spin opacity-50" />
             <p className="text-[12px] font-black uppercase tracking-widest">{locale === 'en' ? 'Loading...' : locale === 'zh' ? '加载中...' : 'กำลังโหลด...'}</p>
           </div>
         )}
-        {!loading && completedOrders.map(order => (
-          <div key={order.id} className="flex flex-col mb-3">
-            <div
-              onClick={() => setExpandedOrderId(expandedOrderId === order.id ? null : order.id)}
-              className="group flex flex-col items-center justify-between border bg-white p-6 transition-all hover:border-[#1A1A18] sm:flex-row shadow-sm cursor-pointer"
-            >
-              <div className="flex items-center gap-8 font-bold">
-                <Receipt size={32} className="text-emerald-500" />
-                <div>
-                  <div className="flex items-center gap-2">
-                    <div className="text-xs font-black uppercase tracking-widest text-[#1A1A18]">
-                      {order.order_type === 'dine_in' && order.table_number ? `โต๊ะ ${order.table_number}` : `#${String(order.queue_number || 0).padStart(3, '0')}`}
-                    </div>
-                    {order.customer ? (
-                      <span className="bg-sage-100 px-1.5 py-0.5 text-[10px] font-black tracking-widest text-sage-800 uppercase flex items-center gap-1">
-                        <User size={10} />
-                        {order.customer.full_name || order.customer.display_name || order.customer.phone || 'สมาชิก'}
-                      </span>
-                    ) : null}
-                    {order.order_number ? (
-                      <span className="bg-gray-100 px-1.5 py-0.5 text-[10px] font-black tracking-widest text-gray-700">
-                        {order.order_number}
-                      </span>
-                    ) : null}
-                    {order.order_type === 'dine_in' && order.table_number && (
-                      <span className="bg-amber-100 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-tighter text-amber-700">
-                        คิว #{String(order.queue_number || 0).padStart(3, '0')}
-                      </span>
-                    )}
-                    <span className="bg-gray-100 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-tighter text-gray-500">
-                      {formatPaymentMethodLabel(getOrderPaymentMethod(order))}
-                    </span>
-                    {order.order_type === 'delivery' && order.delivery_platform && (
-                      <span className="bg-orange-100 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-tighter text-orange-700">
-                        {order.delivery_platform}
-                      </span>
-                    )}
-                    {order.order_source === 'liff' && Number(order.delivery_fee || 0) > 0 && (
-                      <span className="bg-emerald-100 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-tighter text-emerald-700">
-                        ส่ง ฿{Number(order.delivery_fee).toLocaleString()}
-                      </span>
-                    )}
-                    {order.reference_name && (
-                      <span className="bg-blue-100 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-tighter text-blue-700">
-                        #{order.reference_name}
-                      </span>
-                    )}
-                    {order.status === 'cancelled' && (
-                      <span className="bg-red-100 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-tighter text-red-600">
-                        {locale === 'en' ? '                         ยกเลิกแล้ว                       ' : locale === 'zh' ? '                         ยกเลิกแล้ว                       ' : '                         ยกเลิกแล้ว                       '}</span>
-                    )}
-                  </div>
-                  <div className="mt-1 text-[10px] text-gray-400">
-                    {new Date(order.created_at).toLocaleTimeString()}
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-4 flex w-full items-center justify-between gap-6 sm:mt-0 sm:w-auto">
-                <div className="text-right">
-                  <div className="text-xs font-black text-gray-400 line-through">
-                    {order.discount_amount > 0 ? `฿${(Number(order.total_amount)).toLocaleString()}` : ''}
-                  </div>
-                  <div className={`text-xl font-black tracking-tighter ${order.status === 'cancelled' ? 'text-gray-300 line-through' : 'text-emerald-600'}`}>
-                    {locale === 'en' ? '                     ฿' : locale === 'zh' ? '                     ฿' : '                     ฿'}{(Number(order.net_total ?? order.total_amount)).toLocaleString()}
-                  </div>
-                  {Number(order.delivery_gp_amount) > 0 && order.status !== 'cancelled' && (
-                    <div className="text-[10px] font-black text-red-500 mt-0.5">
-                      GP {order.delivery_platform?.toUpperCase()}: -฿{Number(order.delivery_gp_amount).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}
-                    </div>
-                  )}
-                  {Number(order.delivery_gp_amount) > 0 && order.status !== 'cancelled' && (
-                    <div className="text-[10px] font-black text-blue-600 mt-0.5">
-                      รับจริง: ฿{(Number(order.net_total ?? order.total_amount) - Number(order.delivery_gp_amount)).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}
-                    </div>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handlePrintReceipt(order) }}
-                    disabled={printingOrderId === order.id}
-                    className="group/btn flex h-10 w-10 items-center justify-center border border-black bg-black text-white transition-all hover:bg-gray-900 disabled:opacity-50"
-                    title="พิมพ์ใบเสร็จ"
+        {!loading && completedOrders.length > 0 && (
+          <div className="divide-y divide-neutral-100">
+            {completedOrders
+              .filter(o => {
+                if (filterType === 'cancelled') return o.status === 'cancelled'
+                if (filterType === 'store') return o.order_type !== 'delivery' && o.status !== 'cancelled'
+                if (filterType === 'delivery') return o.order_type === 'delivery' && o.status !== 'cancelled'
+                return true
+              })
+              .map((order, idx) => {
+              const isExpanded = expandedOrderId === order.id;
+              return (
+                <div key={order.id} className={`transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${isExpanded ? 'bg-white p-5 sm:p-7 rounded-[1.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.06)] ring-1 ring-black/5 my-4 relative z-10' : 'py-5 border-b border-neutral-100 hover:bg-neutral-50/50'}`}>
+                  <div 
+                    onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
+                    className="flex justify-between items-start cursor-pointer select-none gap-3 w-full"
                   >
-                    <Printer size={16} className={printingOrderId === order.id ? 'animate-pulse' : ''} />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      checkManagerPin(
-                        () => openPaymentEdit(order),
-                        'แก้ไขช่องทางชำระเงิน',
-                        'กรุณาใส่รหัสผู้จัดการเพื่อแก้ไขรูปแบบการชำระเงิน'
-                      )
-                    }}
-                    className="group/btn flex h-10 w-10 items-center justify-center border border-blue-200 bg-blue-50 text-blue-600 transition-all hover:bg-blue-600 hover:text-white"
-                    title="แก้ไขช่องทางชำระเงิน"
-                  >
-                    <PencilLine size={16} />
-                  </button>
-                  {order.status !== 'cancelled' && (
-                    <button onClick={(e) => { e.stopPropagation(); handleVoidCompletedOrder(order) }} className="group/btn flex h-10 w-10 items-center justify-center border border-red-200 bg-red-50 text-red-600 transition-all hover:bg-red-600 hover:text-white" title={locale === 'en' ? 'ทำลายบิล' : locale === 'zh' ? 'ทำลายบิล' : 'ทำลายบิล'}>
-                      <Trash2 size={16} />
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {expandedOrderId === order.id && (
-              <div className="bg-[#FDFDFB] p-6 border-b border-l border-r border-[#F0F0E8] text-sm animate-in slide-in-from-top-2">
-                <div className="font-black text-xs uppercase tracking-widest text-gray-500 mb-4 pb-2 border-b border-dashed border-gray-200">
-                  {locale === 'en' ? '                   รายการสินค้าในบิล (Order Items)                 ' : locale === 'zh' ? '                   รายการสินค้าในบิล (Order Items)                 ' : '                   รายการสินค้าในบิล (Order Items)                 '}</div>
-                <div className="space-y-3">
-                  {order.pos_order_items?.map((item: any, idx: number) => (
-                    <div key={idx} className="flex justify-between items-start font-bold">
-                      <div className="flex gap-3">
-                        <span className="text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded text-xs min-w-[24px] text-center">
-                          {item.quantity}x
+                    <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-[16px] sm:text-[18px] font-black uppercase tracking-tight text-black truncate">
+                          {order.order_type === 'dine_in' && order.table_number ? `โต๊ะ ${order.table_number}` : `#${String(order.queue_number || 0).padStart(3, '0')}`}
+                        </p>
+                        <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest whitespace-nowrap ${
+                            order.status === 'cancelled' ? 'bg-red-50 text-red-500' : 'bg-emerald-50 text-emerald-600'
+                          }`}>
+                            {order.status === 'cancelled' ? (locale === 'en' ? 'CANCELLED' : 'ยกเลิก') : (locale === 'en' ? 'COMPLETED' : 'สำเร็จ')}
                         </span>
-                        <div>
-                          <div className="text-[#1A1A18]">{item.item?.name || 'Unknown Item'}</div>
-                          {item.note && <div className="text-xs text-gray-400 font-medium">{locale === 'en' ? 'note:' : locale === 'zh' ? '笔记：' : 'หมายเหตุ: '}{item.note}</div>}
-                          {item.selected_modifiers && item.selected_modifiers.length > 0 && (
-                            <div className="text-[10px] text-gray-400 font-medium flex flex-wrap gap-1 mt-1">
-                              {item.selected_modifiers.map((m: any, i: number) => {
-                                const modifierLabel = m?.is_note
-                                  ? `หมายเหตุ: ${m?.value || m?.name || ''}`
-                                  : m?.value && m.value !== m.name
-                                    ? `${m.name}: ${m.value}`
-                                    : m?.name || ''
+                        {order.order_number ? (
+                          <span className="text-[11px] font-bold text-neutral-400 whitespace-nowrap">
+                            {order.order_number}
+                          </span>
+                        ) : null}
+                      </div>
 
-                                if (!modifierLabel) return null
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-neutral-100 text-neutral-600">
+                          {order.order_type === 'dine_in' ? 'ทานที่ร้าน' : order.order_type === 'delivery' ? 'จัดส่ง' : 'กลับบ้าน'}
+                        </span>
 
-                                return (
-                                  <span key={i} className="bg-white border px-1 rounded">
-                                    + {modifierLabel}
-                                  </span>
-                                )
-                              })}
+                        {order.customer ? (
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-sage-50 text-sage-600 flex items-center gap-1">
+                            <User size={10} /> {order.customer.full_name || order.customer.display_name || order.customer.phone || 'สมาชิก'}
+                          </span>
+                        ) : null}
+
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-neutral-100 text-neutral-600">
+                          {formatPaymentMethodLabel(getOrderPaymentMethod(order))}
+                        </span>
+
+                        {order.order_type === 'delivery' && order.delivery_platform && (
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-orange-50 text-orange-600">
+                            {order.delivery_platform}
+                          </span>
+                        )}
+                        
+                        {order.order_source === 'liff' && Number(order.delivery_fee || 0) > 0 && (
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-600">
+                            ส่ง ฿{Number(order.delivery_fee).toLocaleString()}
+                          </span>
+                        )}
+                        {order.reference_name && (
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-blue-50 text-blue-600">
+                            #{order.reference_name}
+                          </span>
+                        )}
+                      </div>
+                      
+                      <p className="text-[11px] font-bold text-neutral-400 mt-0.5">
+                        {new Date(order.created_at).toLocaleDateString('th-TH', { 
+                          day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' 
+                        })}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col items-end justify-between self-stretch shrink-0 min-h-[4rem]">
+                      <div className="text-right">
+                        <span className={`text-[16px] sm:text-[20px] font-black tracking-tight ${order.status === 'cancelled' ? 'text-neutral-300 line-through' : 'text-black'}`}>
+                          {locale === 'en' ? '฿' : '฿'}{(Number(order.net_total ?? order.total_amount)).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="text-neutral-400 bg-neutral-50 p-1.5 sm:p-2 rounded-full hover:bg-neutral-100 transition-colors mt-auto">
+                        {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      </div>
+                    </div>
+                  </div>
+
+                  <AnimatePresence initial={false}>
+                    {isExpanded && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                        className="overflow-hidden"
+                      >
+                        <div className="mt-4 pt-4 border-t border-neutral-100">
+                      <div className="space-y-3 mb-6">
+                        {order.pos_order_items?.map((item: any, idx: number) => (
+                          <div key={idx} className="flex justify-between items-start py-1 text-[14px]">
+                            <div className="flex min-w-0 items-start gap-3">
+                              <span className="text-[13px] font-black text-neutral-400 bg-neutral-50 px-2 py-0.5 rounded-md">{item.quantity}x</span>
+                              <div className="min-w-0">
+                                <h4 className="font-bold text-neutral-800 uppercase tracking-tight leading-tight">{item.item?.name || 'Unknown Item'}</h4>
+                                {item.note && <p className="mt-1 text-[12px] font-semibold text-neutral-400 leading-snug">หมายเหตุ: {item.note}</p>}
+                                {item.selected_modifiers && item.selected_modifiers.length > 0 && (
+                                  <p className="mt-1 text-[12px] font-semibold text-neutral-400 leading-snug">
+                                    {item.selected_modifiers.map((m: any) => m?.is_note ? `หมายเหตุ: ${m?.value || m?.name || ''}` : (m?.value && m.value !== m.name ? `${m.name}: ${m.value}` : m?.name || '')).filter(Boolean).join(', ')}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                            <span className="font-black text-neutral-900 ml-4">
+                              {locale === 'en' ? '฿' : '฿'}{(Number(item.subtotal) || (Number(item.unit_price) * Number(item.quantity)) || 0).toLocaleString()}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="mt-4 pt-4 border-t border-neutral-100 space-y-2 font-bold text-[12px] text-neutral-500 max-w-sm ml-auto">
+                        <div className="flex justify-between">
+                          <span>{locale === 'en' ? 'Subtotal' : 'ยอดรวม'}</span>
+                          <span>{locale === 'en' ? '฿' : '฿'}{(Number(order.total_amount)).toLocaleString()}</span>
+                        </div>
+                        {Number(order.discount_amount) > 0 && (
+                          <div className="flex justify-between text-red-500">
+                            <span>{locale === 'en' ? 'Discount' : 'ส่วนลด'}</span>
+                            <span>{locale === 'en' ? '- ฿' : '- ฿'}{(Number(order.discount_amount)).toLocaleString()}</span>
+                          </div>
+                        )}
+                        {Number(order.service_charge_amount) > 0 && (
+                          <div className="flex justify-between">
+                            <span>Service Charge</span>
+                            <span>{locale === 'en' ? '฿' : '฿'}{(Number(order.service_charge_amount)).toLocaleString()}</span>
+                          </div>
+                        )}
+                        {Number(order.tax_amount) > 0 && (
+                          <div className="flex justify-between">
+                            <span>VAT</span>
+                            <span>{locale === 'en' ? '฿' : '฿'}{(Number(order.tax_amount)).toLocaleString()}</span>
+                          </div>
+                        )}
+                        {order.order_source === 'liff' && Number(order.delivery_fee) > 0 && (
+                          <div className="flex justify-between text-emerald-600">
+                            <span>ค่าส่ง / Delivery Fee</span>
+                            <span>{locale === 'en' ? '฿' : '฿'}{Number(order.delivery_fee).toLocaleString()}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="pt-5 mt-5 border-t border-neutral-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 flex-wrap">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-black uppercase text-neutral-400 tracking-wider leading-none mb-1">{locale === 'en' ? 'Net Total' : 'ยอดสุทธิ'}</span>
+                          <span className="text-[24px] font-black tracking-tight text-black">{locale === 'en' ? '฿' : '฿'}{(Number(order.net_total ?? order.total_amount)).toLocaleString()}</span>
+                          {Number(order.delivery_gp_amount) > 0 && order.status !== 'cancelled' && (
+                            <div className="text-[12px] font-black text-red-500 mt-1">
+                              GP {order.delivery_platform?.toUpperCase()}: -฿{Number(order.delivery_gp_amount).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}
+                              <span className="text-blue-600 ml-3">รับจริง: ฿{(Number(order.net_total ?? order.total_amount) - Number(order.delivery_gp_amount)).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</span>
                             </div>
                           )}
                         </div>
-                      </div>
-                      <div className="text-[#1A1A18]">
-                        {locale === 'en' ? '                         ฿' : locale === 'zh' ? '                         ฿' : '                         ฿'}{(Number(item.subtotal) || (Number(item.unit_price) * Number(item.quantity)) || 0).toLocaleString()}
+                        
+                        <div className="flex gap-3 w-full sm:w-auto">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handlePrintReceipt(order) }}
+                            disabled={printingOrderId === order.id}
+                            className="flex-1 sm:flex-none h-12 px-5 border border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-700 rounded-xl text-[12px] font-black uppercase tracking-wider active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                          >
+                            <Printer size={16} className={printingOrderId === order.id ? 'animate-pulse' : ''} /> 
+                            {locale === 'en' ? 'Print' : 'พิมพ์บิล'}
+                          </button>
+                          
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              checkManagerPin(
+                                () => openPaymentEdit(order),
+                                'แก้ไขช่องทางชำระเงิน',
+                                'กรุณาใส่รหัสผู้จัดการเพื่อแก้ไขรูปแบบการชำระเงิน'
+                              )
+                            }}
+                            className="flex-1 sm:flex-none h-12 px-5 border border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-700 rounded-xl text-[12px] font-black uppercase tracking-wider active:scale-95 transition-all flex items-center justify-center gap-2"
+                          >
+                            <PencilLine size={16} />
+                            {locale === 'en' ? 'Edit Pay' : 'แก้ชำระ'}
+                          </button>
+                          
+                          {order.status !== 'cancelled' && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleVoidCompletedOrder(order) }}
+                              className="flex-1 sm:flex-none h-12 px-5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-[12px] font-black uppercase tracking-wider active:scale-95 transition-all flex items-center justify-center gap-2"
+                            >
+                              <Trash2 size={16} />
+                              {locale === 'en' ? 'Void' : 'ยกเลิกบิล'}
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  ))}
+                  </motion.div>
+                  )}
+                </AnimatePresence>
                 </div>
-                
-                <div className="mt-6 pt-4 border-t border-dashed border-gray-200 space-y-1 font-bold text-xs text-gray-500">
-                  <div className="flex justify-between">
-                    <span>{locale === 'en' ? 'ยอดรวม (Subtotal)' : locale === 'zh' ? 'ยอดรวม (Subtotal)' : 'ยอดรวม (Subtotal)'}</span>
-                    <span>{locale === 'en' ? '฿' : locale === 'zh' ? '฿' : '฿'}{(Number(order.total_amount)).toLocaleString()}</span>
-                  </div>
-                  {Number(order.discount_amount) > 0 && (
-                    <div className="flex justify-between text-red-500">
-                      <span>{locale === 'en' ? 'ส่วนลด (Discount)' : locale === 'zh' ? 'ส่วนลด (Discount)' : 'ส่วนลด (Discount)'}</span>
-                      <span>{locale === 'en' ? '- ฿' : locale === 'zh' ? '- ฿' : '- ฿'}{(Number(order.discount_amount)).toLocaleString()}</span>
-                    </div>
-                  )}
-                  {Number(order.service_charge_amount) > 0 && (
-                    <div className="flex justify-between">
-                      <span>Service Charge</span>
-                      <span>{locale === 'en' ? '฿' : locale === 'zh' ? '฿' : '฿'}{(Number(order.service_charge_amount)).toLocaleString()}</span>
-                    </div>
-                  )}
-                  {Number(order.tax_amount) > 0 && (
-                    <div className="flex justify-between">
-                      <span>VAT</span>
-                      <span>{locale === 'en' ? '฿' : locale === 'zh' ? '฿' : '฿'}{(Number(order.tax_amount)).toLocaleString()}</span>
-                    </div>
-                  )}
-                  {order.order_source === 'liff' && Number(order.delivery_fee) > 0 && (
-                    <div className="flex justify-between text-emerald-600">
-                      <span>ค่าส่ง / Delivery Fee</span>
-                      <span>{locale === 'en' ? '฿' : locale === 'zh' ? '฿' : '฿'}{Number(order.delivery_fee).toLocaleString()}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between text-[#1A1A18] text-base font-black pt-2 border-t border-gray-100 mt-2">
-                    <span>{locale === 'en' ? 'ยอดสุทธิ (Net Total)' : locale === 'zh' ? 'ยอดสุทธิ (Net Total)' : 'ยอดสุทธิ (Net Total)'}</span>
-                    <span className="text-emerald-600">{locale === 'en' ? '฿' : locale === 'zh' ? '฿' : '฿'}{(Number(order.net_total ?? order.total_amount)).toLocaleString()}</span>
-                  </div>
-                  {Number(order.delivery_gp_amount) > 0 && (
-                    <div className="mt-3 pt-3 border-t border-dashed border-red-200 space-y-1">
-                      <div className="flex justify-between text-red-600 font-black">
-                        <span className="flex items-center gap-2">
-                          <span className="bg-red-100 text-red-700 text-[8px] font-black uppercase tracking-widest px-2 py-0.5">GP</span>
-                          {locale === 'en' ? `หักค่า GP ${order.delivery_platform?.toUpperCase() || ''}` : `หักค่า GP ${order.delivery_platform?.toUpperCase() || ''}`}
-                        </span>
-                        <span>- ฿{(Number(order.delivery_gp_amount)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                      </div>
-                      <div className="flex justify-between text-[#1A1A18] text-sm font-black pt-1">
-                        <span>{locale === 'en' ? 'ยอดสุทธิหลังหัก GP (Net Received)' : 'ยอดสุทธิหลังหัก GP (Net Received)'}</span>
-                        <span className="text-blue-700">฿{(Number(order.net_total ?? order.total_amount) - Number(order.delivery_gp_amount)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+              );
+            })}
           </div>
-        ))}
+        )}
         {!loading && completedOrders.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-gray-300">
-            <Receipt size={48} className="mb-4 opacity-50" />
-            <p className="text-[12px] font-black uppercase tracking-widest">
-              {locale === 'en' ? '               ไม่มีประวัติการขายวันนี้             ' : locale === 'zh' ? '               ไม่มีประวัติการขายวันนี้             ' : '               ไม่มีประวัติการขายวันนี้             '}</p>
+            <Receipt size={48} className="mb-4 opacity-50 text-neutral-300" />
+            <p className="text-[12px] font-black uppercase tracking-widest text-neutral-400">
+              {locale === 'en' ? 'No Order History' : 'ไม่พบประวัติการขายวันนี้'}
+            </p>
             <button
               onClick={fetchCompletedOrders}
-              className="mt-6 flex items-center gap-2 border border-gray-200 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:border-black hover:text-black transition-all"
+              className="mt-6 flex items-center gap-2 border border-neutral-200 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-neutral-500 hover:bg-neutral-50 transition-all rounded-xl"
             >
-              <RefreshCw size={12} /> {locale === 'en' ? ' โหลดใหม่อีกครั้ง             ' : locale === 'zh' ? ' โหลดใหม่อีกครั้ง             ' : ' โหลดใหม่อีกครั้ง             '}</button>
+              <RefreshCw size={12} /> {locale === 'en' ? 'Refresh' : 'โหลดใหม่อีกครั้ง'}
+            </button>
           </div>
         )}
       </div>
@@ -568,10 +645,10 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
       {paymentEditOpen && paymentEditOrder && (
         <div className="fixed inset-0 z-[2100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setPaymentEditOpen(false)} />
-          <div className="relative w-full max-w-md rounded-[2rem] bg-white p-6 shadow-2xl">
+          <div className="relative w-full max-w-md rounded-none border border-black bg-[#fcfcf9] p-6 shadow-none">
             <div className="mb-5">
-              <div className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-500">Payment Method</div>
-              <h3 className="mt-2 text-2xl font-black text-[#1A1A18]">แก้ไขช่องทางชำระเงิน</h3>
+              <div className="text-[10px] font-black uppercase tracking-[0.3em] text-[#1A1A18]">Payment Method</div>
+              <h3 className="mt-2 text-2xl font-black text-[#1A1A18] uppercase tracking-tighter">แก้ไขช่องทางชำระเงิน</h3>
               <p className="mt-2 text-sm font-bold text-gray-500">
                 {paymentEditOrder.order_number} · {paymentEditOrder.customer_name || 'Guest'}
               </p>
@@ -581,7 +658,7 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
               <select
                 value={paymentEditMethod}
                 onChange={(e) => setPaymentEditMethod(e.target.value)}
-                className="h-14 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 text-base font-black text-[#1A1A18] outline-none focus:border-[#1A1A18] focus:bg-white"
+                className="h-14 w-full rounded-none border border-black bg-white px-4 text-base font-black text-[#1A1A18] outline-none focus:bg-white"
               >
                 <option value="cash">เงินสด</option>
                 <option value="transfer">โอนเงิน</option>
@@ -592,7 +669,7 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
               <button
                 type="button"
                 onClick={savePaymentEdit}
-                className="w-full rounded-2xl bg-[#1A1A18] py-4 text-[12px] font-black uppercase tracking-[0.2em] text-white transition-all hover:bg-black"
+                className="w-full rounded-none border border-black bg-[#1A1A18] py-4 text-[12px] font-black uppercase tracking-[0.2em] text-white transition-all hover:bg-white hover:text-black"
               >
                 บันทึกการเปลี่ยนแปลง
               </button>
@@ -600,7 +677,7 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
               <button
                 type="button"
                 onClick={() => setPaymentEditOpen(false)}
-                className="w-full py-2 text-[11px] font-black uppercase tracking-[0.2em] text-gray-400 hover:text-gray-600"
+                className="w-full border border-black bg-white py-4 text-[12px] font-black uppercase tracking-[0.2em] text-[#1A1A18] hover:bg-gray-100"
               >
                 ปิด
               </button>

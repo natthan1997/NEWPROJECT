@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { sortMenuItemsByOrder } from '@/lib/posMenuOrder';
+import XYLLoader from '@/components/loaders/XYLLoader';
 
 declare global {
   interface Window {
@@ -88,8 +89,27 @@ export const LiffProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   // --- Fetch: App-level data (shared across all LIFF pages) ---
-  const fetchCoreData = useCallback(async (userId?: string) => {
+  const fetchCoreData = useCallback(async (userId?: string, preloadedData?: any) => {
     try {
+      if (preloadedData && preloadedData.success) {
+        if (preloadedData.banners) setBanners(preloadedData.banners);
+        if (preloadedData.shopStatus) setShopStatus(preloadedData.shopStatus);
+        if (preloadedData.activeOrders) setActiveOrders(preloadedData.activeOrders);
+        if (preloadedData.member) setMemberInfo(preloadedData.member);
+        
+        if (preloadedData.menu) {
+          const menuData = preloadedData.menu;
+          if (menuData.categories) setCategories(menuData.categories);
+          if (menuData.items) {
+            const items = menuData.items;
+            const popular = items.filter((i: any) => i.is_popular || i.is_recommended).slice(0, 6);
+            setBestSellers(sortMenuItemsByOrder(popular));
+          }
+        }
+        return;
+      }
+
+      // Fallback client-side fetching logic
       const fetchMenuCache = fetch('/api/cache/menu').then(r => r.json()).catch(() => null);
       
       const [bannerRes, statusRes, menuCache] = await Promise.all([
@@ -195,6 +215,9 @@ export const LiffProvider = ({ children }: { children: React.ReactNode }) => {
         await liff.init({ liffId: liffId.trim() });
 
         let userId: string | undefined;
+        let initResponseData: any = null;
+
+        const cachedUserId = localStorage.getItem('xylem_line_user_id');
 
         if (liff.isLoggedIn()) {
           const profile = await liff.getProfile();
@@ -206,42 +229,83 @@ export const LiffProvider = ({ children }: { children: React.ReactNode }) => {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ lineUserId: profile.userId, displayName: profile.displayName, avatarUrl: profile.pictureUrl })
           });
-          const json = await res.json();
-          const memberData = json.member;
+          const json = await res.json().catch(() => null);
+          initResponseData = json;
+          const memberData = json?.member;
 
-          if (memberData?.phone) setPhone(memberData.phone);
-          if (memberData?.address) {
-            setAddress(memberData.address);
-            setAddressShort(formatAddressShort(memberData.address));
-          }
-
-          if (!memberData?.address) {
-            const { data: orderData } = await supabase
-              .from('pos_orders')
-              .select('delivery_address')
-              .eq('line_user_id', profile.userId)
-              .not('delivery_address', 'is', null)
-              .order('created_at', { ascending: false })
-              .limit(1)
-              .maybeSingle();
-            if (orderData?.delivery_address) {
-              setAddress(orderData.delivery_address);
-              setAddressShort(formatAddressShort(orderData.delivery_address));
+          if (!cachedUserId || loading) {
+            if (memberData?.phone) setPhone(memberData.phone);
+            if (memberData?.address) {
+              setAddress(memberData.address);
+              setAddressShort(formatAddressShort(memberData.address));
             }
+
+            if (!memberData?.address && json?.lastDeliveryAddress) {
+              setAddress(json.lastDeliveryAddress);
+              setAddressShort(formatAddressShort(json.lastDeliveryAddress));
+            }
+            fetchCoreData(userId, initResponseData);
+          } else {
+            // Optimistic preloaded was active, just silently sync member info update in background
+            if (json?.member) setMemberInfo(json.member);
+          }
+        } else {
+          // Guest mode: fetch consolidated data in one fast server-side call
+          if (!cachedUserId || loading) {
+            const res = await fetch('/api/liff/member/init', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ lineUserId: null })
+            });
+            initResponseData = await res.json().catch(() => null);
+            fetchCoreData(userId, initResponseData);
           }
         }
-
-        // 🚀 Fetch all core data immediately after identity resolution
-        fetchCoreData(userId);
       } catch (err: any) {
         console.error('LIFF Init Error:', err);
         setError(err.message || String(err));
-        fetchCoreData(); // Load data even on error
+        if (loading) {
+          fetchCoreData();
+        }
       } finally {
         setLoading(false);
       }
     };
 
+    const runOptimisticLoad = async () => {
+      const cachedUserId = typeof window !== 'undefined' ? localStorage.getItem('xylem_line_user_id') : null;
+      if (cachedUserId) {
+        try {
+          const res = await fetch('/api/liff/member/init', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lineUserId: cachedUserId })
+          });
+          const json = await res.json().catch(() => null);
+          
+          if (json && json.success) {
+            const memberData = json.member;
+            if (memberData) {
+              setMemberInfo(memberData);
+              if (memberData.phone) setPhone(memberData.phone);
+              if (memberData.address) {
+                setAddress(memberData.address);
+                setAddressShort(formatAddressShort(memberData.address));
+              }
+            }
+            if (!memberData?.address && json.lastDeliveryAddress) {
+              setAddress(json.lastDeliveryAddress);
+              setAddressShort(formatAddressShort(json.lastDeliveryAddress));
+            }
+            fetchCoreData(cachedUserId, json);
+            setLoading(false);
+          }
+        } catch (e) {
+          console.error('Optimistic Preload error:', e);
+        }
+      }
+    };
+
+    runOptimisticLoad();
     initLiff();
   }, [liffId]);
 
@@ -288,5 +352,13 @@ export const LiffProvider = ({ children }: { children: React.ReactNode }) => {
     setActiveOrders,
   };
 
-  return <LiffContext.Provider value={value}>{children}</LiffContext.Provider>;
+  return (
+    <LiffContext.Provider value={value}>
+      {(loading || !isDataReady) ? (
+        <XYLLoader tagline="กำลังดาวน์โหลดข้อมูล..." />
+      ) : (
+        children
+      )}
+    </LiffContext.Provider>
+  );
 };

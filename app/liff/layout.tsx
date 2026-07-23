@@ -1,10 +1,12 @@
 'use client';
 
 import { LiffProvider } from '@/components/liff/LiffProvider';
+import XYLLoader from '@/components/loaders/XYLLoader';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { Suspense, useEffect } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import Script from 'next/script';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
 
@@ -25,19 +27,18 @@ function LiffPathRedirector() {
 
 export default function LiffLayout({ children }: { children: React.ReactNode }) {
   return (
-    <Suspense fallback={
-       <div className="flex h-screen items-center justify-center bg-[#fcfcf9]">
-         <div className="w-12 h-12 border-4 border-emerald-100 border-t-emerald-600 rounded-full animate-spin"></div>
-       </div>
-    }>
-      <LiffPathRedirector />
-      <Elements stripe={stripePromise}>
-        <LiffProvider>
-          <div className="bg-[#fcfcf9] min-h-screen max-w-md mx-auto w-full shadow-2xl relative text-[#1A1A18] font-sans selection:bg-emerald-100 antialiased overflow-x-clip">
-            {children}
-          </div>
-        </LiffProvider>
-      </Elements>
-    </Suspense>
+    <>
+      <Script src="https://static.line-scdn.net/liff/edge/2/sdk.js" strategy="afterInteractive" />
+      <Suspense fallback={<XYLLoader tagline="กำลังเริ่มทำงาน..." />}>
+        <LiffPathRedirector />
+        <Elements stripe={stripePromise}>
+          <LiffProvider>
+            <div className="bg-[#fcfcf9] min-h-screen max-w-md mx-auto w-full shadow-2xl relative text-[#1A1A18] font-sans selection:bg-emerald-100 antialiased overflow-x-clip">
+              {children}
+            </div>
+          </LiffProvider>
+        </Elements>
+      </Suspense>
+    </>
   );
 }

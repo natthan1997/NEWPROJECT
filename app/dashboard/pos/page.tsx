@@ -55,7 +55,6 @@ import POSMenuAppConfig from '@/components/pos/POSMenuAppConfig'
 import XYLLoader from '@/components/loaders/XYLLoader'
 import POSBranchSelectModal from '@/components/pos/POSBranchSelectModal'
 import POSErrorBoundary from '@/components/pos/POSErrorBoundary'
-import POSStaffClockModal from '@/components/pos/POSStaffClockModal'
 import { useI18n } from "@/lib/I18nContext";
 
 type POSView =
@@ -124,7 +123,6 @@ function RestaurantOSPageContent() {
   const [showCustomerModal, setShowCustomerModal] = useState(false)
   const [isCartExpanded, setIsCartExpanded] = useState(false)
   const [showPendingModal, setShowPendingModal] = useState(false)
-  const [isStaffClockModalOpen, setIsStaffClockModalOpen] = useState(false)
 
   // LIFTED STATES for Coupon Claims & Auto-Routing
   const [claimingCoupons, setClaimingCoupons] = useState<any[]>([])
@@ -671,16 +669,13 @@ function RestaurantOSPageContent() {
       setSyncPulse(prev => prev + 1)
     }
 
-    const handleTimeClockOpen = () => setIsStaffClockModalOpen(true)
     window.addEventListener('xyl-pos-shift-refresh', handleShiftRefresh as EventListener)
-    window.addEventListener('open-pos-timeclock', handleTimeClockOpen)
 
     return () => {
       supabase.removeChannel(channel)
       supabase.removeChannel(broadcastChannel)
       supabase.removeChannel(couponChannel)
       window.removeEventListener('xyl-pos-shift-refresh', handleShiftRefresh as EventListener)
-      window.removeEventListener('open-pos-timeclock', handleTimeClockOpen)
     }
   }, [profile, activeShift, shopSettings])
 
@@ -1049,7 +1044,7 @@ function RestaurantOSPageContent() {
     { id: 'inventory', label: 'สต็อก', icon: Package, roles: ['admin', 'manager', 'staff'], group: 'management' },
     { id: 'reports', label: 'รายงาน', icon: BarChart3, roles: ['admin'], group: 'management' },
     { id: 'staff', label: 'พนักงาน', icon: Users, roles: ['admin'], group: 'management' },
-    { id: 'menu-management', label: 'จัดการเมนู', icon: Utensils, roles: ['admin', 'manager'], group: 'management' },
+    { id: 'menu-management', label: 'จัดการเมนู', icon: Utensils, roles: ['admin', 'manager', 'staff'], group: 'management' },
     { id: 'management', label: 'จัดการระบบ', icon: Settings, roles: ['admin', 'manager'], group: 'management' },
     { id: 'settings', label: 'ตั้งค่าร้าน', icon: Settings, roles: ['admin', 'manager'], group: 'management' },
   ]
@@ -1245,12 +1240,6 @@ function RestaurantOSPageContent() {
           currentStatus={shopSettings?.status || 'open'}
           onUpdateStatus={handleUpdateStatus}
           hasActiveShift={!!activeShift}
-        />
-
-        <POSStaffClockModal
-          isOpen={isStaffClockModalOpen}
-          onClose={() => setIsStaffClockModalOpen(false)}
-          shopSettings={shopSettings}
         />
       </POSLayout>
 

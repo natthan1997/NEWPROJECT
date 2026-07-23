@@ -98,98 +98,114 @@ async function handleReminderRequest(req: NextRequest) {
       const hasCheckedIn = logs?.some(l => l.profile_id === staff.id && l.type === 'check_in')
       const hasCheckedOut = logs?.some(l => l.profile_id === staff.id && l.type === 'check_out')
 
-      // Case: Staff checked in today but has not checked out yet (Active working)
-      if (hasCheckedIn && !hasCheckedOut) {
-        const shiftEnd = staff.shift_end || '17:30'
-        const [endHrs, endMins] = shiftEnd.split(':').map(Number)
-        const shiftEndMins = endHrs * 60 + endMins
+      const shiftStart = staff.shift_start || '08:30'
+      const [startHrs, startMins] = shiftStart.split(':').map(Number)
+      const shiftStartMinsTotal = startHrs * 60 + startMins
 
-        // Trigger condition: within 15 minutes of shift end OR past shift end
-        const isTimeForReminder = currentMins >= shiftEndMins - 15
+      const shiftEnd = staff.shift_end || '17:30'
+      const [endHrs, endMins] = shiftEnd.split(':').map(Number)
+      const shiftEndMinsTotal = endHrs * 60 + endMins
 
-        if (isTimeForReminder) {
-          // Check if already notified/reminded today via our query tag '%ลงเวลาออกงาน%' in notifications
-          const { data: alreadyNotified } = await supabase
-            .from('notifications')
-            .select('id')
-            .eq('user_id', staff.id)
-            .eq('notification_category', 'system')
-            .gte('created_at', localTodayStart)
-            .lte('created_at', localTodayEnd)
-            .ilike('message', '%ลงเวลาออกงาน%')
+      let reminderType: 'check_in' | 'check_out' | null = null;
+      let targetTimeStr = '';
+      let reminderReason = '';
 
-          const hasBeenNotifiedToday = alreadyNotified && alreadyNotified.length > 0
+      // Check-in Reminder Logic: within 15-30 mins of shift start, and hasn't checked in
+      if (!hasCheckedIn) {
+        if (currentMins >= shiftStartMinsTotal - 30 && currentMins <= shiftStartMinsTotal + 15) {
+          reminderType = 'check_in';
+          targetTimeStr = shiftStart;
+          reminderReason = 'ลงเวลาเข้างาน';
+        }
+      } 
+      // Check-out Reminder Logic: within 15 mins of shift end or past it, and checked in but hasn't checked out
+      else if (hasCheckedIn && !hasCheckedOut) {
+        if (currentMins >= shiftEndMinsTotal - 15) {
+          reminderType = 'check_out';
+          targetTimeStr = shiftEnd;
+          reminderReason = 'ลงเวลาออกงาน';
+        }
+      }
 
-          if (!hasBeenNotifiedToday) {
-            // Find LINE User ID
-            let lineUserId: string | null = null
-            if (staff.email && staff.email.endsWith('@line.xylemlandscape.com')) {
-              lineUserId = staff.email.split('@')[0]
-            } else {
-              lineUserId = lineUserMap.get(staff.id) || null
-            }
+      if (reminderType) {
+        // Check if already notified/reminded today for THIS specific action
+        const { data: alreadyNotified } = await supabase
+          .from('notifications')
+          .select('id')
+          .eq('user_id', staff.id)
+          .eq('notification_category', 'system')
+          .gte('created_at', localTodayStart)
+          .lte('created_at', localTodayEnd)
+          .ilike('message', `%${reminderReason}%`)
 
-            if (lineUserId) {
-              const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://xylem-landscape.vercel.app'
-              const reminderText = `สวัสดีครับคุณ ${staff.full_name} 🌸\n\nเตือนความจำ: ใกล้ถึงเวลาเลิกงานของคุณแล้ว (${shiftEnd}) หรือเลยเวลาเลิกงานมาแล้ว อย่าลืมเข้าไปกดลงเวลาออกงาน (Check Out) ในระบบด้วยนะครับ เพื่อความถูกต้องในการบันทึกเวลาทำงานและค่าแรงครับ! 📋\n\n🔗 ลงเวลาออกงานที่นี่: ${appUrl}/dashboard/staff`
+        const hasBeenNotifiedToday = alreadyNotified && alreadyNotified.length > 0
 
-              try {
-                // Send LINE Push Message
-                await sendLineNotification(lineUserId, reminderText)
+        if (!hasBeenNotifiedToday) {
+          // Find LINE User ID
+          let lineUserId: string | null = null
+          if (staff.email && staff.email.endsWith('@line.xylemlandscape.com')) {
+            lineUserId = staff.email.split('@')[0]
+          } else {
+            lineUserId = lineUserMap.get(staff.id) || null
+          }
 
-                // Save in-app notification to prevent duplicate remind triggers
-                await supabase.from('notifications').insert({
-                  user_id: staff.id,
-                  title: 'แจ้งเตือน: ลงเวลาออกงาน',
-                  message: `เตือนความจำ: ใกล้ถึงเวลาเลิกงานของคุณแล้ว (${shiftEnd}) อย่าลืมลงเวลาออกงาน (Check Out) ด้วยนะครับ`,
-                  type: 'warning',
-                  read: false,
-                  notification_category: 'system'
-                })
+          if (lineUserId) {
+            const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://xylem-landscape.vercel.app'
+            
+            try {
+              // Send LINE Flex Message (Dynamic check-in or check-out)
+              const { sendAttendanceReminderFlex } = require('@/lib/line');
+              await sendAttendanceReminderFlex(lineUserId, {
+                staffName: staff.full_name,
+                time: targetTimeStr,
+                type: reminderType,
+                appUrl
+              });
 
-                processedStaff.push({
-                  id: staff.id,
-                  name: staff.full_name,
-                  status: 'reminded',
-                  lineUserId
-                })
-              } catch (lineErr: any) {
-                console.error(`Failed to send LINE push message to ${staff.full_name}:`, lineErr)
-                processedStaff.push({
-                  id: staff.id,
-                  name: staff.full_name,
-                  status: 'line_send_failed',
-                  error: lineErr.message
-                })
-              }
-            } else {
+              // Save in-app notification to prevent duplicate remind triggers
+              await supabase.from('notifications').insert({
+                user_id: staff.id,
+                title: `แจ้งเตือน: ${reminderReason}`,
+                message: `เตือนความจำ: ใกล้ถึงเวลา ${targetTimeStr} อย่าลืม ${reminderReason} ด้วยนะครับ`,
+                type: reminderType === 'check_in' ? 'info' : 'warning',
+                read: false,
+                notification_category: 'system'
+              })
+
               processedStaff.push({
                 id: staff.id,
                 name: staff.full_name,
-                status: 'no_line_id'
+                status: `reminded_${reminderType}`,
+                lineUserId
+              })
+            } catch (lineErr: any) {
+              console.error(`Failed to send LINE push message to ${staff.full_name}:`, lineErr)
+              processedStaff.push({
+                id: staff.id,
+                name: staff.full_name,
+                status: 'line_send_failed',
+                error: lineErr.message
               })
             }
           } else {
             processedStaff.push({
               id: staff.id,
               name: staff.full_name,
-              status: 'already_notified_today'
+              status: 'no_line_id'
             })
           }
         } else {
           processedStaff.push({
             id: staff.id,
             name: staff.full_name,
-            status: 'shift_not_yet_ended',
-            currentMins,
-            shiftEndMins
+            status: 'already_notified_today'
           })
         }
       } else {
         processedStaff.push({
           id: staff.id,
           name: staff.full_name,
-          status: hasCheckedOut ? 'already_checked_out' : 'not_checked_in_today'
+          status: hasCheckedOut ? 'already_checked_out' : 'not_time_yet'
         })
       }
     }

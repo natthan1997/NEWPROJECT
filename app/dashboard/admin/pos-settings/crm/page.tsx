@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Save, Plus, Trash2, Tag, Gift, Zap, Edit2, CheckCircle2, Award, AlertTriangle } from 'lucide-react';
+import { Save, Plus, Trash2, Tag, Gift, Zap, Edit2, CheckCircle2, Award, AlertTriangle, Upload, X, Image } from 'lucide-react';
 
 export default function LoyaltySettingsPage() {
   const [activeTab, setActiveTab] = useState<'tiers' | 'titles' | 'coupons' | 'campaigns'>('tiers');
@@ -115,6 +115,34 @@ export default function LoyaltySettingsPage() {
       await supabase.from('pos_loyalty_coupons').delete().eq('id', id);
     }
     setCoupons(coupons.filter(c => c.id !== id));
+  };
+
+  const [uploadingCouponId, setUploadingCouponId] = useState<string | null>(null);
+
+  const handleUploadCouponImage = async (couponId: string, file: File) => {
+    setUploadingCouponId(couponId);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `coupon_${Date.now()}.${fileExt}`;
+      const filePath = `coupons/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('images')
+        .getPublicUrl(filePath);
+
+      setCoupons(prev => prev.map(c => c.id === couponId ? { ...c, image_url: publicUrl } : c));
+    } catch (err: any) {
+      console.error('Error uploading coupon image:', err);
+      alert('Upload failed: ' + err.message);
+    } finally {
+      setUploadingCouponId(null);
+    }
   };
 
   
@@ -429,39 +457,80 @@ export default function LoyaltySettingsPage() {
             </div>
           </div>
           
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">ใช้แต้มแลก (Points required)</label>
-              <input 
-                type="number" 
-                value={coupon.cost_points} 
-                onChange={e => setCoupons(coupons.map(c => c.id === coupon.id ? { ...c, cost_points: parseInt(e.target.value) } : c))}
-                className="w-full border-gray-300 rounded-md text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">ประเภทส่วนลด</label>
-              <select 
-                value={coupon.discount_type} 
-                onChange={e => setCoupons(coupons.map(c => c.id === coupon.id ? { ...c, discount_type: e.target.value } : c))}
-                className="w-full border-gray-300 rounded-md text-sm"
-              >
-                <option value="free_item">ฟรี 1 รายการ (ลดของที่ถูกสุด)</option>
-                <option value="percent">ส่วนลด %</option>
-                <option value="fixed">ส่วนลดบาท</option>
-              </select>
-            </div>
-            {coupon.discount_type !== 'free_item' && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="md:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs text-gray-500 mb-1">มูลค่า (Value)</label>
+                <label className="block text-xs text-gray-500 mb-1">ใช้แต้มแลก (Points required)</label>
                 <input 
                   type="number" 
-                  value={coupon.discount_value || 0} 
-                  onChange={e => setCoupons(coupons.map(c => c.id === coupon.id ? { ...c, discount_value: parseFloat(e.target.value) } : c))}
+                  value={coupon.cost_points} 
+                  onChange={e => setCoupons(coupons.map(c => c.id === coupon.id ? { ...c, cost_points: parseInt(e.target.value) } : c))}
                   className="w-full border-gray-300 rounded-md text-sm"
                 />
               </div>
-            )}
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">ประเภทส่วนลด</label>
+                <select 
+                  value={coupon.discount_type} 
+                  onChange={e => setCoupons(coupons.map(c => c.id === coupon.id ? { ...c, discount_type: e.target.value } : c))}
+                  className="w-full border-gray-300 rounded-md text-sm"
+                >
+                  <option value="free_item">ฟรี 1 รายการ (ลดของที่ถูกสุด)</option>
+                  <option value="percent">ส่วนลด %</option>
+                  <option value="fixed">ส่วนลดบาท</option>
+                </select>
+              </div>
+              {coupon.discount_type !== 'free_item' ? (
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">มูลค่า (Value)</label>
+                  <input 
+                    type="number" 
+                    value={coupon.discount_value || 0} 
+                    onChange={e => setCoupons(coupons.map(c => c.id === coupon.id ? { ...c, discount_value: parseFloat(e.target.value) } : c))}
+                    className="w-full border-gray-300 rounded-md text-sm"
+                  />
+                </div>
+              ) : (
+                <div />
+              )}
+            </div>
+            
+            {/* Image upload preview & box */}
+            <div className="flex flex-col items-center justify-center border border-dashed border-gray-300 rounded-xl p-2 bg-gray-50/50 relative min-h-[110px]">
+              {coupon.image_url ? (
+                <div className="w-full h-full relative group rounded-lg overflow-hidden flex items-center justify-center">
+                  <img src={coupon.image_url} alt={coupon.name} className="w-full h-24 object-cover" />
+                  <button 
+                    onClick={() => setCoupons(coupons.map(c => c.id === coupon.id ? { ...c, image_url: null } : c))}
+                    className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Remove Image"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex flex-col items-center justify-center cursor-pointer py-4 w-full h-full text-gray-400 hover:text-blue-500 transition-colors">
+                  {uploadingCouponId === coupon.id ? (
+                    <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mb-1" />
+                  ) : (
+                    <Upload className="w-5 h-5 mb-1" />
+                  )}
+                  <span className="text-[10px] font-semibold uppercase tracking-wider">
+                    {uploadingCouponId === coupon.id ? 'Uploading...' : 'Upload Image'}
+                  </span>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={e => {
+                      const file = e.target.files?.[0];
+                      if (file) handleUploadCouponImage(coupon.id, file);
+                    }}
+                    className="hidden" 
+                    disabled={uploadingCouponId === coupon.id}
+                  />
+                </label>
+              )}
+            </div>
           </div>
         </div>
       ))}

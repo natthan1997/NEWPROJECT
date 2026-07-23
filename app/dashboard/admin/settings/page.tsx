@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { 
+import {
   Save, 
   Settings, 
   Building2, 
@@ -11,10 +11,12 @@ import {
   AlertCircle,
   Loader2,
   CheckCircle2,
-  MapPin
+  MapPin,
+  Image as ImageIcon
 } from 'lucide-react'
 import { useAuth } from '@/lib/AuthContext'
 import GoogleMapsLocationPicker from '@/components/GoogleMapsLocationPicker'
+import PromoBannerSettings from '@/components/admin/PromoBannerSettings'
 import { supabase } from '@/lib/supabaseClient'
 import { useI18n } from "@/lib/I18nContext";
 
@@ -404,6 +406,7 @@ export default function AdminSettingsPage() {
                     { id: 'general', label: 'General Profile', icon: Building2 },
                     { id: 'financial', label: 'Financials', icon: CreditCard },
                     { id: 'features', label: 'System Features', icon: Cpu },
+                    { id: 'banners', label: 'Promo Banners', icon: ImageIcon },
                     // { id: 'advanced', label: 'Advanced', icon: ShieldCheck },
                 ].map(tab => (
                     <button
@@ -745,6 +748,13 @@ export default function AdminSettingsPage() {
                                     </button>
                                 </div>
                             </div>
+                        </div>
+                    )}
+
+                    {/* --- TAB: BANNERS --- */}
+                    {activeTab === 'banners' && (
+                        <div className="bg-white p-8 sm:p-10 border border-[#E5E5E5]">
+                            <PromoBannerSettings />
                         </div>
                     )}
 

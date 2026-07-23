@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Plus, Search, Edit3, Trash2, Loader2, 
   ChevronRight, Save, LayoutGrid, X,
@@ -41,25 +41,28 @@ export default function POSTableManager({
   
   const [isLayoutMode, setIsLayoutMode] = useState(false)
   const [savingLayout, setSavingLayout] = useState(false)
+  const [activeZone, setActiveZone] = useState<string>('Main')
+  const [dbZones, setDbZones] = useState<any[]>([])
+  const [isShapePickerOpen, setIsShapePickerOpen] = useState(false)
 
   useEffect(() => {
     setViewExtraHeader(
       <div className="flex items-center justify-end flex-1 gap-2">
           {isLayoutMode ? (
-            <button onClick={handleSaveLayout} disabled={savingLayout} className="h-11 px-6 bg-emerald-600 text-white hover:bg-emerald-700 flex items-center justify-center gap-2 shadow-sm font-bold transition-all">
+            <button onClick={handleSaveLayout} disabled={savingLayout} className="h-11 px-4 lg:px-6 bg-emerald-600 text-white hover:bg-emerald-700 flex items-center justify-center gap-2 shadow-sm font-bold transition-all rounded-xl">
                 {savingLayout ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} 
-                <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">SAVE LAYOUT</span>
+                <span className="text-[10px] font-black uppercase tracking-widest hidden lg:inline">SAVE LAYOUT</span>
             </button>
           ) : (
-            <button onClick={() => setIsLayoutMode(true)} className="h-11 px-6 bg-white border border-[#F0F0E8] text-black hover:bg-gray-50 flex items-center justify-center gap-2 shadow-sm font-bold transition-all">
-                <Map size={16} /> <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">EDIT LAYOUT</span>
+            <button onClick={() => setIsLayoutMode(true)} className="h-11 px-4 lg:px-6 bg-white border border-neutral-200 text-black hover:bg-neutral-50 flex items-center justify-center gap-2 shadow-sm font-bold transition-all rounded-xl">
+                <Map size={16} /> <span className="text-[10px] font-black uppercase tracking-widest hidden lg:inline">EDIT LAYOUT</span>
             </button>
           )}
-          <button onClick={() => window.print()} className="h-11 px-6 bg-white text-[#1A1A18] border border-[#F0F0E8] hover:bg-gray-50 flex items-center justify-center gap-2 shadow-sm font-bold transition-all">
-              <Printer size={16} /> <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">PRINT ALL QR</span>
+          <button onClick={() => window.print()} className="h-11 px-4 lg:px-6 bg-white text-neutral-900 border border-neutral-200 hover:bg-neutral-50 flex items-center justify-center gap-2 shadow-sm font-bold transition-all rounded-xl">
+              <Printer size={16} /> <span className="text-[10px] font-black uppercase tracking-widest hidden lg:inline">PRINT QR</span>
           </button>
-          <button onClick={() => { setEditingTable({ table_number: '', capacity: 4, zone: 'Main', status: 'available', branch_id: shopSettings?.branch_id || null }); setIsEditorOpen(true); }} className="h-11 px-8 bg-[#1A1A18] text-white flex items-center justify-center gap-3 shadow-lg font-bold">
-              <Plus size={16} /> <span className="text-[10px] font-black uppercase tracking-widest font-bold">ADD TABLE</span>
+          <button onClick={() => setIsShapePickerOpen(true)} className="h-11 px-5 lg:px-8 bg-neutral-900 text-white flex items-center justify-center gap-3 shadow-lg font-bold rounded-xl hover:bg-black transition-all">
+              <Plus size={16} /> <span className="text-[10px] font-black uppercase tracking-widest font-bold hidden sm:inline">ADD TABLE</span>
           </button>
       </div>
     );
@@ -93,8 +96,21 @@ export default function POSTableManager({
     }
   }
 
+  const fetchZones = async () => {
+      const branchId = shopSettings?.branch_id;
+      let query = supabase.from('pos_zones').select('*');
+      if (branchId) {
+          query = query.or(`branch_id.eq.${branchId},branch_id.is.null`)
+      } else {
+          query = query.is('branch_id', null)
+      }
+      const { data, error } = await query;
+      if (!error && data) setDbZones(data);
+  }
+
   useEffect(() => {
     fetchTables()
+    fetchZones()
 
     const channel = supabase
       .channel('public:pos_tables')
@@ -102,6 +118,9 @@ export default function POSTableManager({
         if (!isLayoutMode) {
           fetchTables()
         }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_zones' }, () => {
+        fetchZones()
       })
       .subscribe()
 
@@ -238,152 +257,283 @@ export default function POSTableManager({
     }, 'image/png');
   }
 
+  const allZones = Array.from(new Set([...tables.map(t => t.zone || 'Main'), ...dbZones.map(z => z.name)]));
+  if (!allZones.includes('Main')) allZones.unshift('Main');
+
+  const handleAddZone = async () => {
+      const newZone = prompt('ระบุชื่อโซนใหม่ (เช่น Indoor, Outdoor, VIP):');
+      if (newZone && newZone.trim()) {
+          const zoneName = newZone.trim();
+          await supabase.from('pos_zones').insert({ name: zoneName, branch_id: shopSettings?.branch_id || null });
+          fetchZones();
+          setActiveZone(zoneName);
+      }
+  }
+
+  const handleDeleteZone = async (zoneName: string, e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!confirm(`ยืนยันการลบโซน "${zoneName}"?\n(โต๊ะในโซนนี้จะถูกย้ายไปโซน Main อัตโนมัติ)`)) return;
+      await supabase.from('pos_zones').delete().eq('name', zoneName).eq('branch_id', shopSettings?.branch_id || null);
+      await supabase.from('pos_tables').update({ zone: 'Main' }).eq('zone', zoneName);
+      fetchZones();
+      fetchTables();
+      setActiveZone('Main');
+  }
+
   return (
     <>
-      <div className="p-4 sm:p-10 font-bold overflow-y-auto no-scrollbar print:hidden">
+      <div className="p-4 sm:p-6 lg:p-10 font-sans print:hidden bg-neutral-50 h-full flex flex-col">
 
-        {/* 2. MAIN TABLE CANVAS */}
-        <div className="flex-1 mt-4 relative w-full h-[70vh] bg-[#fcfcf9] border border-gray-200 overflow-hidden shadow-inner"
-             style={{ backgroundImage: isLayoutMode ? 'radial-gradient(#d1d5db 1px, transparent 1px)' : 'none', backgroundSize: '20px 20px' }}>
-            {loading ? (
-               <div className="h-full flex items-center justify-center opacity-20 font-bold">
-                   <Loader2 className="animate-spin font-bold" size={48} />
-               </div>
-            ) : (
-               <>
-                  {tables.map(table => (
-                      <motion.div 
+        {/* TOP BAR / ZONES */}
+        <div className="flex items-center gap-3 mb-4 overflow-x-auto no-scrollbar pb-1">
+           {allZones.map(z => (
+               <button key={z} onClick={() => setActiveZone(z)} className={`px-6 py-3 rounded-2xl font-bold text-sm whitespace-nowrap transition-all flex items-center gap-2 ${activeZone === z ? 'bg-neutral-900 text-white shadow-md' : 'bg-white text-neutral-500 hover:bg-neutral-100 border border-neutral-200'}`}>
+                  {z}
+                  {isLayoutMode && z !== 'Main' && (
+                      <span onClick={(e) => handleDeleteZone(z, e)} className="p-1 -mr-2 text-neutral-400 hover:text-red-500 rounded-full hover:bg-red-50 transition-colors">
+                          <X size={14} />
+                      </span>
+                  )}
+               </button>
+           ))}
+           {!isLayoutMode && (
+               <button onClick={handleAddZone} className="px-5 py-3 rounded-2xl font-bold text-sm whitespace-nowrap bg-white text-indigo-500 hover:bg-indigo-50 border border-indigo-100 flex items-center gap-1.5 transition-colors shadow-sm shrink-0">
+                   <Plus size={16} /> สร้างโซน
+               </button>
+           )}
+        </div>
+
+        {/* 2. MAIN TABLE CANVAS (Scrollable on small devices) */}
+        <div className={`flex-1 mt-2 relative w-full rounded-[2.5rem] overflow-auto ${isLayoutMode ? 'bg-[#0f172a] border border-[#1e293b]' : 'bg-neutral-100/50 border border-neutral-200'}`}>
+            <div className="relative min-w-[1000px] min-h-[800px] w-full h-full"
+                 style={{ backgroundImage: isLayoutMode ? 'radial-gradient(#334155 2px, transparent 2px)' : 'none', backgroundSize: '32px 32px' }}>
+                {loading ? (
+                   <div className="absolute inset-0 flex items-center justify-center opacity-30">
+                       <Loader2 className="animate-spin text-neutral-400" size={48} />
+                   </div>
+                ) : (
+                   <>
+                      <AnimatePresence>
+                      {tables.filter(t => (t.zone || 'Main') === activeZone).map(table => (
+                          <motion.div 
                           key={table.id} 
                           drag={isLayoutMode}
                           dragMomentum={false}
                           onDragEnd={(e, info) => handleDragEnd(table.id, info)}
-                          initial={{ x: table.position_x || 0, y: table.position_y || 0 }}
-                          animate={{ x: table.position_x || 0, y: table.position_y || 0 }}
-                          className={`absolute w-24 h-24 sm:w-32 sm:h-32 flex flex-col items-center justify-center group transition-colors ${table.shape === 'circle' ? 'rounded-full' : 'rounded-none'} ${table.status === 'occupied' ? 'bg-red-500 border-red-600 text-white' : 'bg-white border-[#F0F0E8] text-black'} ${isLayoutMode ? 'cursor-grab active:cursor-grabbing border-2 border-blue-400 z-10 shadow-xl' : 'cursor-pointer border hover:border-black hover:shadow-2xl'}`}
+                          initial={{ x: table.position_x || 0, y: table.position_y || 0, opacity: 0, scale: 0.9 }}
+                          animate={{ x: table.position_x || 0, y: table.position_y || 0, opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.8 }}
+                          transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                          className={`absolute ${table.shape === 'rectangle' ? 'w-32 h-20 sm:w-40 sm:h-24' : (table.shape === 'rectangle_vertical' ? 'w-20 h-32 sm:w-24 sm:h-40' : 'w-20 h-20 sm:w-24 sm:h-24')} group ${isLayoutMode ? 'cursor-grab active:cursor-grabbing z-10' : 'cursor-pointer'}`}
                           onClick={() => {
                              if (isLayoutMode) {
-                                // Toggle shape between square and circle
-                                setTables(prev => prev.map(t => {
-                                   if (t.id === table.id) {
-                                      return { ...t, shape: (t.shape === 'circle' ? 'square' : 'circle') }
-                                   }
-                                   return t
-                                }))
+                                // do nothing on click in layout mode, they just drag
                              } else {
                                 setEditingTable(table); 
                                 setIsEditorOpen(true);
                              }
                           }}
                       >
-                          <div className={`text-3xl sm:text-4xl font-serif-luxury ${table.status === 'occupied' ? 'text-white' : 'text-[#1A1A18]'} lowercase italic font-bold pointer-events-none`}>{table.table_number}.</div>
-                          <div className="mt-2 flex flex-col items-center font-bold pointer-events-none">
-                              <span className={`text-[8px] font-black ${table.status === 'occupied' ? 'text-white/80' : 'text-gray-400'} uppercase tracking-widest hidden sm:block`}>SEATS: {table.capacity}</span>
-                              <div className={`mt-2 w-2 h-2 rounded-full ${table.status === 'available' ? 'bg-green-500' : 'bg-white shadow-[0_0_5px_rgba(255,255,255,0.8)]'}`}></div>
+                          {/* TABLE BODY (CLEAN) */}
+                          <div className={`relative w-full h-full flex flex-col items-center justify-center z-10 ${table.shape === 'circle' ? 'rounded-full' : (table.shape === 'rectangle' || table.shape === 'rectangle_vertical' ? 'rounded-[1.5rem]' : 'rounded-2xl')} ${isLayoutMode ? 'bg-slate-800 border-2 border-dashed border-slate-500 text-slate-300' : (table.status === 'occupied' ? 'bg-neutral-900 text-white shadow-lg' : 'bg-white border border-neutral-200 text-neutral-800 shadow-sm')} transition-all group-hover:border-neutral-400`}>
+                             {isLayoutMode && (
+                                <div className="absolute -top-2 -right-2 bg-indigo-500 text-white p-1 rounded-full shadow-md z-20">
+                                   <Edit3 size={12} />
+                                </div>
+                             )}
+                             <div className={`text-2xl sm:text-3xl font-bold tracking-tight pointer-events-none`}>{table.table_number}</div>
+                             <div className="mt-1 flex flex-col items-center pointer-events-none">
+                                 <span className={`text-[9px] sm:text-[10px] font-medium uppercase tracking-widest ${table.status === 'occupied' ? 'text-neutral-400' : 'text-neutral-500'}`}>Seats {table.capacity}</span>
+                             </div>
+                             
+                             {table.parent_table_id && (
+                                 <div className="absolute -bottom-3 bg-indigo-600 text-white text-[9px] px-3 py-1 rounded-full font-bold shadow-md whitespace-nowrap flex items-center gap-1">
+                                     🔗 โต๊ะ {tables.find(t => t.id === table.parent_table_id)?.table_number}
+                                 </div>
+                             )}
                           </div>
-                          
-                          {table.parent_table_id && (
-                              <div className="absolute -bottom-3 bg-indigo-500 text-white text-[8px] px-2 py-0.5 rounded-full font-bold shadow-md whitespace-nowrap">
-                                  🔗 รวมกับโต๊ะ {tables.find(t => t.id === table.parent_table_id)?.table_number}
-                              </div>
-                          )}
 
                           {!isLayoutMode && (
-                            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                                <button onClick={(e) => { e.stopPropagation(); setShowQrModal(table); }} className="p-1 sm:p-2 text-gray-400 hover:text-black bg-white/90 rounded"><QrCode size={14} /></button>
-                                <button onClick={(e) => { e.stopPropagation(); handleDeleteTable(table.id); }} className="p-1 sm:p-2 text-red-300 hover:text-red-500 bg-white/90 rounded transition-all"><Trash size={14} /></button>
+                            <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20">
+                                <button onClick={(e) => { e.stopPropagation(); setShowQrModal(table); }} className="p-2 text-neutral-500 hover:text-black bg-white shadow-md rounded-full border border-neutral-100 transition-all hover:scale-110"><QrCode size={14} /></button>
+                                <button onClick={(e) => { e.stopPropagation(); handleDeleteTable(table.id); }} className="p-2 text-red-400 hover:text-red-600 bg-white shadow-md rounded-full border border-neutral-100 transition-all hover:scale-110"><Trash size={14} /></button>
                             </div>
                           )}
                       </motion.div>
                   ))}
+                  </AnimatePresence>
                </>
             )}
+            </div>
         </div>
       </div>
 
-      {/* TABLE EDITOR (Slide-up or Full screen) */}
+      {/* TABLE EDITOR (Sleek Glassmorphic Slide-over) */}
+      <AnimatePresence>
       {isEditorOpen && (
-          <div className="fixed inset-0 z-[1200] flex items-center justify-end font-bold">
-              <div className="absolute inset-0 bg-[#1A1A18]/40 backdrop-blur-md animate-in fade-in duration-300 font-bold" onClick={() => setIsEditorOpen(false)}></div>
-              <div className="relative w-full sm:max-w-xl bg-white h-full shadow-2xl flex flex-col py-10 sm:py-20 px-6 sm:px-16 animate-in slide-in-from-right duration-500 font-bold overflow-y-auto no-scrollbar">
-                  <header className="mb-10 sm:mb-16 flex justify-between items-start font-bold">
-                      <div className="font-bold">
-                          <h2 className="font-serif-luxury text-4xl sm:text-5xl font-light tracking-tighter text-[#1A1A18] border-none font-bold">SPATIAL ENTRY</h2>
-                          <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#8C8A81] mt-4 font-bold font-bold font-bold">ARCHITECTURE • {editingTable.table_number || 'NEW'}</p>
+          <div className="fixed inset-0 z-[1200] flex items-center justify-end font-sans">
+              <motion.div 
+                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                 className="absolute inset-0 bg-neutral-900/20 backdrop-blur-sm" 
+                 onClick={() => setIsEditorOpen(false)}
+              />
+              <motion.div 
+                 initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                 className="relative w-full sm:max-w-md bg-white h-full shadow-2xl flex flex-col overflow-y-auto no-scrollbar border-l border-neutral-200"
+              >
+                  <header className="p-8 pb-6 border-b border-neutral-100 flex justify-between items-start sticky top-0 z-10 bg-white">
+                      <div>
+                          <h2 className="text-2xl font-black tracking-tighter text-neutral-900">Table Setup</h2>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 mt-1">{editingTable.table_number || 'New Table'}</p>
                       </div>
-                      <button onClick={() => setIsEditorOpen(false)} className="w-12 h-12 bg-gray-50 flex items-center justify-center font-bold font-bold"><X size={24} /></button>
+                      <button onClick={() => setIsEditorOpen(false)} className="w-10 h-10 bg-neutral-100 rounded-full flex items-center justify-center text-neutral-500 hover:bg-neutral-200 hover:text-black transition-colors"><X size={18} /></button>
                   </header>
 
-                  <div className="space-y-8 font-bold font-bold font-bold">
-                      <div className="space-y-3 font-bold border-none font-bold font-bold font-bold font-bold">
-                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#1A1A18]/50 font-bold font-bold font-bold">{locale === 'en' ? 'TABLE IDENTIFIER / หมายเลขโต๊ะ' : locale === 'zh' ? 'TABLE IDENTIFIER / หมายเลขโต๊ะ' : 'TABLE IDENTIFIER / หมายเลขโต๊ะ'}</label>
-                          <input type="text" value={editingTable.table_number} onChange={e => setEditingTable({...editingTable, table_number: e.target.value})} className="w-full bg-[#fcfcf9] border border-[#F0F0E8] py-5 px-6 text-sm outline-none focus:border-[#1A1A18] font-bold text-black font-bold font-bold font-bold font-bold" />
+                  <div className="p-8 space-y-6 flex-1">
+                      <div className="space-y-2">
+                          <label className="text-[11px] font-medium text-neutral-600">{locale === 'en' ? 'Table Number / Name' : 'หมายเลขโต๊ะ / ชื่อโต๊ะ'}</label>
+                          <input type="text" value={editingTable.table_number} onChange={e => setEditingTable({...editingTable, table_number: e.target.value})} className="w-full bg-white border border-neutral-200 rounded-xl py-3.5 px-4 text-sm outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition-all text-neutral-900 shadow-sm" placeholder="e.g. A1, 01, VIP-1" />
                       </div>
-                      <div className="grid grid-cols-2 gap-6 font-bold border-none font-bold font-bold font-bold font-bold">
-                        <div className="space-y-3 font-bold border-none font-bold font-bold font-bold font-bold font-bold">
-                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#1A1A18]/50 font-bold font-bold font-bold font-bold">SEATING CAPACITY</label>
-                            <input type="number" value={editingTable.capacity} onChange={e => setEditingTable({...editingTable, capacity: Number(e.target.value)})} className="w-full bg-[#fcfcf9] border border-[#F0F0E8] py-5 px-6 text-sm outline-none font-bold text-black font-bold font-bold border-none font-bold" />
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <label className="text-[11px] font-medium text-neutral-600">Capacity (Seats)</label>
+                            <input type="number" value={editingTable.capacity} onChange={e => setEditingTable({...editingTable, capacity: Number(e.target.value)})} className="w-full bg-white border border-neutral-200 rounded-xl py-3.5 px-4 text-sm outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition-all text-neutral-900 shadow-sm" min="1" />
                         </div>
-                        <div className="space-y-3 font-bold border-none font-bold font-bold font-bold font-bold font-bold">
-                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#1A1A18]/50 font-bold font-bold font-bold font-bold">{locale === 'en' ? 'ZONE / โซน' : locale === 'zh' ? 'ZONE / โซน' : 'ZONE / โซน'}</label>
-                            <select value={editingTable.zone} onChange={e => setEditingTable({...editingTable, zone: e.target.value})} className="w-full bg-[#fcfcf9] border border-[#F0F0E8] py-5 px-6 text-sm outline-none font-bold text-black font-bold font-bold border-none font-bold font-bold">
-                                <option value="Main">MAIN HALL</option>
-                                <option value="Outdoor">OUTDOOR</option>
-                                <option value="VIP">VIP LOUNGE</option>
+                        <div className="space-y-2">
+                            <label className="text-[11px] font-medium text-neutral-600">Zone</label>
+                            <select value={editingTable.zone || 'Main'} onChange={e => setEditingTable({...editingTable, zone: e.target.value})} className="w-full bg-white border border-neutral-200 rounded-xl py-3.5 px-4 text-sm outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition-all text-neutral-900 appearance-none shadow-sm">
+                                {allZones.map(z => (
+                                    <option key={z} value={z}>{z}</option>
+                                ))}
                             </select>
                         </div>
                       </div>
-                      <div className="space-y-3">
-                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#1A1A18]/50">MERGE WITH (รวมบิลกับโต๊ะ)</label>
+
+                      <div className="space-y-3 pt-2">
+                          <label className="text-[11px] font-medium text-neutral-600">รูปทรงโต๊ะ (Shape)</label>
+                          <div className="grid grid-cols-4 gap-2">
+                              <button onClick={() => setEditingTable({...editingTable, shape: 'square'})} className={`p-2 rounded-2xl border flex flex-col items-center justify-center gap-1.5 transition-all ${editingTable.shape === 'square' || !editingTable.shape ? 'border-indigo-500 bg-indigo-50/50 text-indigo-700 shadow-sm' : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300'}`}>
+                                  <div className="w-7 h-7 rounded-lg border-[3px] border-current"></div>
+                                  <span className="text-[9px] font-bold">จัตุรัส</span>
+                              </button>
+                              <button onClick={() => setEditingTable({...editingTable, shape: 'rectangle'})} className={`p-2 rounded-2xl border flex flex-col items-center justify-center gap-1.5 transition-all ${editingTable.shape === 'rectangle' ? 'border-indigo-500 bg-indigo-50/50 text-indigo-700 shadow-sm' : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300'}`}>
+                                  <div className="w-9 h-5 rounded-md border-[3px] border-current mt-1 mb-1"></div>
+                                  <span className="text-[9px] font-bold">ผืนผ้า(นอน)</span>
+                              </button>
+                              <button onClick={() => setEditingTable({...editingTable, shape: 'rectangle_vertical'})} className={`p-2 rounded-2xl border flex flex-col items-center justify-center gap-1.5 transition-all ${editingTable.shape === 'rectangle_vertical' ? 'border-indigo-500 bg-indigo-50/50 text-indigo-700 shadow-sm' : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300'}`}>
+                                  <div className="w-5 h-9 rounded-md border-[3px] border-current"></div>
+                                  <span className="text-[9px] font-bold">ผืนผ้า(ตั้ง)</span>
+                              </button>
+                              <button onClick={() => setEditingTable({...editingTable, shape: 'circle'})} className={`p-2 rounded-2xl border flex flex-col items-center justify-center gap-1.5 transition-all ${editingTable.shape === 'circle' ? 'border-indigo-500 bg-indigo-50/50 text-indigo-700 shadow-sm' : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300'}`}>
+                                  <div className="w-7 h-7 rounded-full border-[3px] border-current"></div>
+                                  <span className="text-[9px] font-bold">วงกลม</span>
+                              </button>
+                          </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1">Merge With (รวมบิลกับโต๊ะ)</label>
                           <select 
                             value={editingTable.parent_table_id || ''} 
                             onChange={e => setEditingTable({...editingTable, parent_table_id: e.target.value || null})} 
-                            className="w-full bg-indigo-50 border border-indigo-100 py-5 px-6 text-sm outline-none font-bold text-indigo-900"
+                            className="w-full bg-indigo-50 border border-indigo-100 rounded-2xl py-4 px-5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all font-bold text-indigo-900 appearance-none"
                           >
                               <option value="">-- ไม่รวมโต๊ะ (แยกบิลปกติ) --</option>
                               {tables.filter(t => t.id !== editingTable.id && !t.parent_table_id).map(t => (
                                   <option key={t.id} value={t.id}>รวมเข้ากับโต๊ะ {t.table_number}</option>
                               ))}
                           </select>
-                          <p className="text-xs text-indigo-500 mt-2 font-medium">หากเลือกรวมโต๊ะ บิลและคิวอาหารจะถูกส่งไปที่โต๊ะหลักทั้งหมด</p>
+                          <p className="text-[11px] text-indigo-500/80 mt-2 font-medium ml-1">หากเลือกรวมโต๊ะ บิลและคิวอาหารจะถูกส่งไปที่โต๊ะหลักทั้งหมด</p>
                       </div>
                       
-                      <div className="space-y-3 mt-6 pt-6 border-t border-gray-100">
-                          <label className="flex items-center gap-3 cursor-pointer group">
-                              <div className="relative">
+                      <div className="mt-8 pt-6 border-t border-neutral-100">
+                          <label className="flex items-center justify-between cursor-pointer group bg-neutral-50 p-4 rounded-2xl hover:bg-neutral-100 transition-colors">
+                              <div className="flex flex-col mr-4">
+                                  <span className="text-sm font-bold text-neutral-900">เปิดรับออเดอร์นอกเวลา (24/7)</span>
+                                  <span className="text-[11px] text-neutral-500 mt-1">ลูกค้าสามารถสั่งอาหารผ่าน QR โต๊ะนี้ได้ แม้จะปิดกะไปแล้ว</span>
+                              </div>
+                              <div className="relative shrink-0">
                                   <input 
                                       type="checkbox" 
                                       className="sr-only" 
                                       checked={!!editingTable.allow_after_hours}
                                       onChange={e => setEditingTable({...editingTable, allow_after_hours: e.target.checked})}
                                   />
-                                  <div className={`block w-10 h-6 rounded-full transition-colors ${editingTable.allow_after_hours ? 'bg-emerald-500' : 'bg-gray-200'}`}></div>
-                                  <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${editingTable.allow_after_hours ? 'transform translate-x-4' : ''}`}></div>
-                              </div>
-                              <div className="flex flex-col">
-                                  <span className="text-sm font-bold text-gray-900 group-hover:text-black">เปิดรับออเดอร์นอกเวลา (24/7)</span>
-                                  <span className="text-xs text-gray-500 font-medium">ลูกค้าสามารถสั่งอาหารผ่าน QR โต๊ะนี้ได้ แม้จะปิดกะไปแล้ว</span>
+                                  <div className={`block w-12 h-7 rounded-full transition-colors duration-300 ${editingTable.allow_after_hours ? 'bg-emerald-500' : 'bg-neutral-300'}`}></div>
+                                  <div className={`absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition-transform duration-300 shadow-sm ${editingTable.allow_after_hours ? 'transform translate-x-5' : ''}`}></div>
                               </div>
                           </label>
                       </div>
                   </div>
 
-                  <button onClick={handleSaveTable} disabled={isSaving} className="w-full mt-auto py-8 bg-[#1A1A18] text-white text-[11px] font-black uppercase tracking-[0.5em] transition-all font-bold">
-                    {isSaving ? <Loader2 className="animate-spin text-white font-bold font-bold font-bold font-bold" /> : 'SAVE ARCHITECTURE'}
-                  </button>
-              </div>
+                  <div className="p-6 bg-white border-t border-neutral-100">
+                    <button onClick={handleSaveTable} disabled={isSaving} className="w-full py-4 rounded-2xl bg-neutral-900 text-white text-[12px] font-black uppercase tracking-widest transition-all hover:bg-black hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2">
+                      {isSaving ? <Loader2 className="animate-spin text-white" size={16} /> : <Save size={16} />}
+                      Save Table
+                    </button>
+                  </div>
+              </motion.div>
           </div>
       )}
+      </AnimatePresence>
 
-      {/* QR MODAL */}
+      {/* VISUAL SHAPE PICKER MODAL */}
+      <AnimatePresence>
+      {isShapePickerOpen && (
+          <div className="fixed inset-0 z-[1300] flex items-center justify-center font-sans">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-neutral-900/40 backdrop-blur-sm" onClick={() => setIsShapePickerOpen(false)} />
+              <motion.div 
+                 initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                 className="relative bg-white p-8 rounded-[2rem] shadow-2xl max-w-sm w-full mx-4 flex flex-col gap-4 border border-neutral-100"
+              >
+                  <button onClick={() => setIsShapePickerOpen(false)} className="absolute top-6 right-6 w-8 h-8 flex items-center justify-center bg-neutral-100 rounded-full text-neutral-500 hover:bg-neutral-200 hover:text-black transition-colors"><X size={16} /></button>
+                  <h3 className="text-xl font-black text-center mb-4 tracking-tight">เลือกทรงโต๊ะ</h3>
+                  
+                  <button onClick={() => { setIsShapePickerOpen(false); setEditingTable({ table_number: '', capacity: 4, zone: activeZone, shape: 'square', status: 'available', branch_id: shopSettings?.branch_id || null }); setIsEditorOpen(true); }} className="flex items-center gap-4 p-4 border border-neutral-200 rounded-2xl hover:border-indigo-500 hover:bg-indigo-50 hover:shadow-md transition-all group text-left">
+                      <div className="w-12 h-12 bg-white rounded-2xl border-[3px] border-neutral-300 group-hover:border-indigo-500 shadow-sm shrink-0 transition-colors"></div>
+                      <div className="flex flex-col"><span className="font-bold text-neutral-900">โต๊ะสี่เหลี่ยมจัตุรัส</span><span className="text-[10px] font-medium text-neutral-500">2-4 ที่นั่ง (มาตรฐาน)</span></div>
+                  </button>
+                  
+                  <button onClick={() => { setIsShapePickerOpen(false); setEditingTable({ table_number: '', capacity: 6, zone: activeZone, shape: 'rectangle', status: 'available', branch_id: shopSettings?.branch_id || null }); setIsEditorOpen(true); }} className="flex items-center gap-4 p-4 border border-neutral-200 rounded-2xl hover:border-indigo-500 hover:bg-indigo-50 hover:shadow-md transition-all group text-left">
+                      <div className="w-14 h-9 bg-white rounded-xl border-[3px] border-neutral-300 group-hover:border-indigo-500 shadow-sm shrink-0 transition-colors"></div>
+                      <div className="flex flex-col"><span className="font-bold text-neutral-900">ผืนผ้า แนวนอน</span><span className="text-[10px] font-medium text-neutral-500">6-8 ที่นั่ง (แนวนอน)</span></div>
+                  </button>
+
+                  <button onClick={() => { setIsShapePickerOpen(false); setEditingTable({ table_number: '', capacity: 6, zone: activeZone, shape: 'rectangle_vertical', status: 'available', branch_id: shopSettings?.branch_id || null }); setIsEditorOpen(true); }} className="flex items-center gap-4 p-4 border border-neutral-200 rounded-2xl hover:border-indigo-500 hover:bg-indigo-50 hover:shadow-md transition-all group text-left">
+                      <div className="w-9 h-14 mx-2 bg-white rounded-xl border-[3px] border-neutral-300 group-hover:border-indigo-500 shadow-sm shrink-0 transition-colors"></div>
+                      <div className="flex flex-col"><span className="font-bold text-neutral-900">ผืนผ้า แนวตั้ง</span><span className="text-[10px] font-medium text-neutral-500">6-8 ที่นั่ง (แนวตั้ง)</span></div>
+                  </button>
+                  
+                  <button onClick={() => { setIsShapePickerOpen(false); setEditingTable({ table_number: '', capacity: 4, zone: activeZone, shape: 'circle', status: 'available', branch_id: shopSettings?.branch_id || null }); setIsEditorOpen(true); }} className="flex items-center gap-4 p-4 border border-neutral-200 rounded-2xl hover:border-indigo-500 hover:bg-indigo-50 hover:shadow-md transition-all group text-left">
+                      <div className="w-12 h-12 bg-white rounded-full border-[3px] border-neutral-300 group-hover:border-indigo-500 shadow-sm shrink-0 transition-colors"></div>
+                      <div className="flex flex-col"><span className="font-bold text-neutral-900">โต๊ะกลม</span><span className="text-[10px] font-medium text-neutral-500">4-6 ที่นั่ง (โต๊ะกลม)</span></div>
+                  </button>
+              </motion.div>
+          </div>
+      )}
+      </AnimatePresence>
+
+      {/* QR MODAL (Frosted Glass) */}
+      <AnimatePresence>
       {showQrModal && (
-        <div className="fixed inset-0 z-[3000] flex items-center justify-center">
-           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowQrModal(null)}></div>
-           <div className="relative animate-in zoom-in-95 bg-white p-10 flex flex-col items-center justify-center shadow-2xl">
-              <button onClick={() => setShowQrModal(null)} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-black"><X size={24} /></button>
-              <h3 className="text-xl font-black uppercase tracking-widest mb-2">Table {showQrModal.table_number}</h3>
-              <p className="text-xs text-gray-500 mb-8 font-bold uppercase tracking-widest text-center">Scan to Order</p>
+        <div className="fixed inset-0 z-[3000] flex items-center justify-center font-sans">
+           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-neutral-900/40 backdrop-blur-md" onClick={() => setShowQrModal(null)} />
+           <motion.div 
+             initial={{ opacity: 0, scale: 0.9, y: 20 }} 
+             animate={{ opacity: 1, scale: 1, y: 0 }} 
+             exit={{ opacity: 0, scale: 0.9, y: 20 }}
+             className="relative bg-white p-10 rounded-[2rem] flex flex-col items-center justify-center shadow-2xl max-w-sm w-full mx-4 border border-white/20"
+           >
+              <button onClick={() => setShowQrModal(null)} className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center bg-neutral-100 rounded-full text-neutral-500 hover:bg-neutral-200 hover:text-black transition-colors"><X size={16} /></button>
               
-              <div className="bg-white p-4 border-4 border-black mb-8 rounded-xl">
+              <div className="w-12 h-12 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-500 mb-4">
+                 <QrCode size={24} />
+              </div>
+              <h3 className="text-2xl font-black tracking-tighter mb-1 text-neutral-900">Table {showQrModal.table_number}</h3>
+              <p className="text-[10px] text-neutral-400 mb-8 font-bold uppercase tracking-widest text-center">Scan to Order</p>
+              
+              <div className="bg-white p-5 border border-neutral-100 shadow-sm mb-8 rounded-2xl">
                  <QRCodeCanvas 
                     id={`qr-canvas-${showQrModal.id}`}
                     value={`${typeof window !== 'undefined' ? window.location.origin : ''}/menu/${showQrModal.table_number}`} 
@@ -392,25 +542,26 @@ export default function POSTableManager({
                  />
               </div>
 
-              <div className="flex gap-2 w-full">
-                 <button 
-                    onClick={saveQrasPNG}
-                    className="flex-1 flex items-center gap-2 px-4 py-4 bg-gray-100 text-[#1A1A18] font-black uppercase tracking-widest text-sm justify-center transition-transform active:scale-95 hover:bg-gray-200"
-                 >
-                    <Download size={18} />
-                    Save PNG
-                 </button>
+              <div className="flex flex-col gap-3 w-full">
                  <button 
                     onClick={() => { printTableQRCode(showQrModal); setShowQrModal(null); }}
-                    className="flex-[2] flex items-center gap-3 px-8 py-4 bg-black text-white font-black uppercase tracking-widest text-sm justify-center transition-transform active:scale-95"
+                    className="w-full flex items-center gap-2 px-6 py-4 bg-neutral-900 text-white rounded-2xl font-black uppercase tracking-widest text-[11px] justify-center transition-all active:scale-95 hover:bg-black hover:shadow-lg"
                  >
-                    <Printer size={18} />
+                    <Printer size={16} />
                     Print QR Code
                  </button>
+                 <button 
+                    onClick={saveQrasPNG}
+                    className="w-full flex items-center gap-2 px-6 py-4 bg-neutral-100 text-neutral-700 rounded-2xl font-black uppercase tracking-widest text-[11px] justify-center transition-all active:scale-95 hover:bg-neutral-200"
+                 >
+                    <Download size={16} />
+                    Save as PNG
+                 </button>
               </div>
-           </div>
+           </motion.div>
         </div>
       )}
+      </AnimatePresence>
 
       {/* PRINT ALL QR TEMPLATE (Hidden from screen, visible on print) */}
       <div className="hidden print:block p-8">

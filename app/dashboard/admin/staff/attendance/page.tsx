@@ -10,15 +10,17 @@ import {
   CurrencyDollarIcon,
   CheckCircleIcon,
   XMarkIcon,
-  InformationCircleIcon
+  InformationCircleIcon,
+  ListBulletIcon,
+  Squares2X2Icon
 } from "@heroicons/react/24/outline";
-import {
+import { 
   calculateAttendanceStats,
   calculateDailyStats,
   calculateSalary,
   AttendanceLog,
 } from "@/lib/attendanceUtils";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isToday, isFuture } from "date-fns";
 import { th } from "date-fns/locale";
 import { useI18n } from "@/lib/I18nContext";
 
@@ -52,6 +54,7 @@ export default function AdminAttendancePage() {
   const [selectedStaff, setSelectedStaff] = useState<StaffSummary | null>(null);
   const [otApprovalMinutes, setOtApprovalMinutes] = useState<Record<string, number>>({});
   const [deductionAmount, setDeductionAmount] = useState<string>("");
+  const [viewMode, setViewMode] = useState<'calendar' | 'table'>('calendar');
 
   useEffect(() => {
     fetchData();
@@ -171,6 +174,16 @@ export default function AdminAttendancePage() {
     });
 
     const sortedDates = Object.keys(logsByDay).sort().reverse();
+    
+    // Calendar View Setup
+    const monthStart = startOfMonth(parseISO(selectedMonth + "-01"));
+    const monthEnd = endOfMonth(monthStart);
+    const startDate = startOfWeek(monthStart);
+    const endDate = endOfWeek(monthEnd);
+    const calendarDays = eachDayOfInterval({ start: startDate, end: endDate });
+    const weekDays = locale === 'th' 
+      ? ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.']
+      : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
     const handleApproveOT = async (logId: string, status: 'approved' | 'rejected', defaultMinutes: number) => {
       const minsToApprove = otApprovalMinutes[logId] ?? defaultMinutes;
@@ -218,14 +231,34 @@ export default function AdminAttendancePage() {
           <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-[#FAFAF8]">
             <div>
               <h2 className="text-xl font-bold text-gray-900">{selectedStaff.display_name}</h2>
-              <p className="text-sm text-gray-500">{locale === 'en' ? 'Monthly time stamp details' : locale === 'zh' ? '每月时间戳详细信息' : 'รายละเอียดการลงเวลา เดือน '}{format(parseISO(selectedMonth + "-01"), 'MMMM yyyy', { locale: th })}</p>
+              <div className="flex items-center gap-4 mt-1">
+                <p className="text-sm text-gray-500">{locale === 'en' ? 'Monthly time stamp details' : locale === 'zh' ? '每月时间戳详细信息' : 'รายละเอียดการลงเวลา เดือน '}{format(parseISO(selectedMonth + "-01"), 'MMMM yyyy', { locale: th })}</p>
+                
+                {/* View Toggle */}
+                <div className="flex bg-gray-200 p-1 rounded-lg">
+                  <button 
+                    onClick={() => setViewMode('calendar')}
+                    className={`flex items-center gap-1 px-3 py-1 text-xs font-bold rounded-md transition-colors ${viewMode === 'calendar' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                  >
+                    <Squares2X2Icon className="w-4 h-4" />
+                    {locale === 'en' ? 'Calendar' : locale === 'zh' ? '日历' : 'ปฏิทิน'}
+                  </button>
+                  <button 
+                    onClick={() => setViewMode('table')}
+                    className={`flex items-center gap-1 px-3 py-1 text-xs font-bold rounded-md transition-colors ${viewMode === 'table' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                  >
+                    <ListBulletIcon className="w-4 h-4" />
+                    {locale === 'en' ? 'List' : locale === 'zh' ? '列表' : 'รายการ'}
+                  </button>
+                </div>
+              </div>
             </div>
             <button onClick={() => setSelectedStaff(null)} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
               <XMarkIcon className="w-6 h-6 text-gray-500" />
             </button>
           </div>
           
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex-1 overflow-y-auto p-6 bg-white">
             <div className="grid grid-cols-3 gap-4 mb-8">
               <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
                 <div className="text-[10px] font-black uppercase text-gray-400 mb-1">{locale === 'en' ? 'work shift' : locale === 'zh' ? '轮班工作' : 'กะทำงาน'}</div>
@@ -264,105 +297,227 @@ export default function AdminAttendancePage() {
               </div>
             )}
 
-            <table className="w-full text-left">
-              <thead>
-                <tr className="text-[10px] font-black uppercase tracking-widest text-gray-400 border-b border-gray-100">
-                  <th className="pb-3">{locale === 'en' ? 'date' : locale === 'zh' ? '日期' : 'วันที่'}</th>
-                  <th className="pb-3">{locale === 'en' ? 'Attend work' : locale === 'zh' ? '参加工作' : 'เข้างาน'}</th>
-                  <th className="pb-3">{locale === 'en' ? 'finish work' : locale === 'zh' ? '完成工作' : 'เลิกงาน'}</th>
-                  <th className="pb-3 text-right">{locale === 'en' ? 'status' : locale === 'zh' ? '地位' : 'สถานะ'}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {sortedDates.map(date => {
-                  const dayData = logsByDay[date];
-                  const checkInTime = dayData.checkIn ? format(parseISO(dayData.checkIn), 'HH:mm') : '-';
-                  const checkOutTime = dayData.checkOut ? format(parseISO(dayData.checkOut), 'HH:mm') : '-';
-                  
-                  const dayStats = calculateDailyStats(
-                    dayData.checkIn,
-                    dayData.checkOut,
-                    selectedStaff.shift_start,
-                    selectedStaff.shift_end
-                  );
+            {viewMode === 'calendar' ? (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                {/* Calendar Header */}
+                <div className="grid grid-cols-7 mb-4">
+                  {weekDays.map((day, idx) => (
+                    <div key={day} className={`text-center text-xs font-black uppercase tracking-wider ${idx === 0 || idx === 6 ? 'text-gray-400' : 'text-gray-700'}`}>
+                      {day}
+                    </div>
+                  ))}
+                </div>
+                {/* Calendar Grid */}
+                <div className="grid grid-cols-7 gap-2">
+                  {calendarDays.map(day => {
+                    const dateStr = format(day, 'yyyy-MM-dd');
+                    const isCurrentMonth = isSameMonth(day, monthStart);
+                    const dayData = logsByDay[dateStr];
+                    const isTodayDate = isToday(day);
+                    const isFutureDate = isFuture(day);
+                    const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+                    
+                    let dayStats: ReturnType<typeof calculateDailyStats> | null = null;
+                    if (dayData && (dayData.checkIn || dayData.checkOut)) {
+                      dayStats = calculateDailyStats(
+                        dayData.checkIn,
+                        dayData.checkOut,
+                        selectedStaff.shift_start,
+                        selectedStaff.shift_end
+                      );
+                    }
 
-                  return (
-                    <tr key={date} className="text-sm">
-                      <td className="py-4 font-medium text-gray-700">
-                        {format(parseISO(date), 'dd MMM yyyy', { locale: th })}
-                      </td>
-                      <td className={`py-4 ${dayStats.lateMinutes > 0 ? 'text-red-600 font-bold' : 'text-gray-600'}`}>
-                        <div className="flex flex-col">
-                          <span>{checkInTime}</span>
-                          {dayStats.lateMinutes > 0 && (
-                            <span className="text-[10px] text-red-500">{locale === 'en' ? 'line' : locale === 'zh' ? '线' : 'สาย '}{dayStats.lateMinutes} {locale === 'en' ? 'n.' : locale === 'zh' ? '名词' : ' น.'}</span>
+                    return (
+                      <div 
+                        key={dateStr} 
+                        className={`min-h-[110px] p-2.5 rounded-xl border transition-all ${!isCurrentMonth ? 'opacity-30 border-transparent bg-transparent' : isTodayDate ? 'border-[#3A5A40] bg-[#FAFAF8] shadow-sm' : 'border-gray-100 bg-white hover:border-gray-200'}`}
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <span className={`text-sm font-bold flex items-center justify-center w-6 h-6 rounded-full ${isTodayDate ? 'bg-[#3A5A40] text-white' : isWeekend ? 'text-gray-400' : 'text-gray-900'}`}>
+                            {format(day, 'd')}
+                          </span>
+                          {/* Reason Icon if exists */}
+                          {dayData?.checkOutLog?.reason && (
+                            <div className="group relative">
+                              <InformationCircleIcon className="w-4 h-4 text-amber-500" />
+                              <div className="absolute right-0 bottom-full mb-1 hidden group-hover:block w-32 bg-gray-900 text-white text-[10px] p-2 rounded shadow-lg z-10">
+                                {dayData.checkOutLog.reason}
+                              </div>
+                            </div>
                           )}
                         </div>
-                      </td>
-                      <td className="py-4 text-gray-600">
-                        <div className="flex flex-col gap-1">
-                          <span>{checkOutTime}</span>
-                          
-                          {dayStats.otMinutes > 0 && dayData.checkOutLog && (
-                            <div className="mt-1 p-2 bg-gray-50 rounded border border-gray-100 w-full max-w-[200px]">
-                              <div className="text-[10px] font-bold text-gray-500 mb-1">{locale === 'en' ? 'Automatic calculation:' : locale === 'zh' ? '自动计算：' : 'คำนวณอัตโนมัติ: '}{dayStats.otMinutes} {locale === 'en' ? 'minute' : locale === 'zh' ? '分钟' : ' นาที'}</div>
-                              
+                        
+                        {/* Status/Logs Area */}
+                        <div className="flex flex-col gap-1.5">
+                          {dayData && dayData.checkIn ? (
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-[9px] font-black uppercase text-gray-400 tracking-widest">{locale === 'en' ? 'IN' : 'เข้า'}</span>
+                              <div className={`text-xs font-bold ${dayStats?.lateMinutes! > 0 ? 'text-red-600' : 'text-gray-900'}`}>
+                                {format(parseISO(dayData.checkIn), 'HH:mm')}
+                                {dayStats?.lateMinutes! > 0 && <span className="ml-1 text-[10px] text-red-500 bg-red-50 px-1 py-0.5 rounded">สาย</span>}
+                              </div>
+                            </div>
+                          ) : (
+                            isCurrentMonth && !isFutureDate && !isWeekend && (
+                              <div className="text-[10px] text-gray-300 font-medium italic mt-2">- {locale === 'en' ? 'Missing' : 'ขาดงาน'} -</div>
+                            )
+                          )}
+
+                          {dayData && dayData.checkOut && (
+                            <div className="flex flex-col gap-0.5 mt-1">
+                              <span className="text-[9px] font-black uppercase text-gray-400 tracking-widest">{locale === 'en' ? 'OUT' : 'ออก'}</span>
+                              <div className="text-xs font-bold text-gray-700">
+                                {format(parseISO(dayData.checkOut), 'HH:mm')}
+                              </div>
+                            </div>
+                          )}
+
+                          {dayStats?.otMinutes! > 0 && dayData?.checkOutLog && (
+                            <div className="mt-1.5 pt-1.5 border-t border-gray-100">
                               {dayData.checkOutLog.ot_status === 'approved' ? (
-                                <div className="text-[10px] text-green-600 font-bold flex items-center gap-1">
-                                  <CheckCircleIcon className="w-3 h-3" /> {locale === 'en' ? 'Approved (' : locale === 'zh' ? '得到正式认可的 （' : ' อนุมัติแล้ว ('}{dayData.checkOutLog.ot_approved_minutes} {locale === 'en' ? 'minute)' : locale === 'zh' ? '分钟）' : ' นาที)                                 '}</div>
+                                <div className="text-[10px] text-green-700 bg-green-50 px-1.5 py-1 rounded-md flex items-center justify-between font-bold">
+                                  <div className="flex items-center gap-1">
+                                    <CheckCircleIcon className="w-3 h-3" /> OT
+                                  </div>
+                                  <span>{dayData.checkOutLog.ot_approved_minutes}น.</span>
+                                </div>
                               ) : dayData.checkOutLog.ot_status === 'rejected' ? (
-                                <div className="text-[10px] text-red-600 font-bold flex items-center gap-1">
-                                  <XMarkIcon className="w-3 h-3" /> {locale === 'en' ? 'Not approved' : locale === 'zh' ? '未获批准' : ' ไม่อนุมัติ                                 '}</div>
+                                <div className="text-[10px] text-red-500 bg-red-50 px-1.5 py-1 rounded-md flex items-center justify-between font-bold">
+                                  <div className="flex items-center gap-1">
+                                    <XMarkIcon className="w-3 h-3" /> OT
+                                  </div>
+                                  <span>ปฏิเสธ</span>
+                                </div>
                               ) : (
-                                <div className="flex flex-col gap-2">
+                                <div className="flex flex-col gap-1.5 bg-[#FFF9E6] p-1.5 rounded-lg border border-[#FFEAB3]">
+                                  <div className="flex justify-between items-center text-[10px] font-bold text-[#D97706]">
+                                    <span>รอ OT</span>
+                                    <span>{dayStats?.otMinutes} น.</span>
+                                  </div>
                                   <div className="flex items-center gap-1">
                                     <input 
                                       type="number" 
-                                      className="border rounded px-1 py-0.5 text-xs w-16" 
-                                      placeholder={String(dayStats.otMinutes)}
-                                      value={otApprovalMinutes[dayData.checkOutLog.id] !== undefined ? otApprovalMinutes[dayData.checkOutLog.id] : dayStats.otMinutes}
+                                      className="border border-[#FDE68A] bg-white rounded flex-1 px-1 py-0.5 text-[10px] text-center w-full focus:outline-none focus:ring-1 focus:ring-[#F59E0B]"
+                                      placeholder={String(dayStats?.otMinutes)}
+                                      value={otApprovalMinutes[dayData.checkOutLog.id] !== undefined ? otApprovalMinutes[dayData.checkOutLog.id] : dayStats?.otMinutes}
                                       onChange={(e) => setOtApprovalMinutes({...otApprovalMinutes, [dayData.checkOutLog!.id]: Number(e.target.value)})}
                                     />
-                                    <span className="text-[10px]">{locale === 'en' ? 'minute' : locale === 'zh' ? '分钟' : 'นาที'}</span>
                                   </div>
                                   <div className="flex gap-1">
-                                    <button onClick={() => handleApproveOT(dayData.checkOutLog!.id, 'approved', dayStats.otMinutes)} className="bg-green-100 text-green-700 px-2 py-1 rounded text-[10px] font-bold flex-1">{locale === 'en' ? 'approve' : locale === 'zh' ? '批准' : 'อนุมัติ'}</button>
-                                    <button onClick={() => handleApproveOT(dayData.checkOutLog!.id, 'rejected', 0)} className="bg-red-100 text-red-700 px-2 py-1 rounded text-[10px] font-bold flex-1">{locale === 'en' ? 'refuse' : locale === 'zh' ? '拒绝' : 'ปฏิเสธ'}</button>
+                                    <button onClick={() => handleApproveOT(dayData.checkOutLog!.id, 'approved', dayStats?.otMinutes!)} className="bg-[#F59E0B] hover:bg-[#D97706] text-white rounded text-[10px] font-bold py-1 flex-1 transition-colors">อนุมัติ</button>
+                                    <button onClick={() => handleApproveOT(dayData.checkOutLog!.id, 'rejected', 0)} className="bg-white hover:bg-gray-50 text-gray-500 border border-[#FDE68A] rounded text-[10px] font-bold py-1 px-1.5 transition-colors">ปัดตก</button>
                                   </div>
                                 </div>
                               )}
                             </div>
                           )}
-
-                          {/* Display Reason if early check-out */}
-                          {selectedStaff.rawLogs.find(l => 
-                            l.type === 'check_out' && 
-                            format(parseISO(l.timestamp), 'yyyy-MM-dd') === date && 
-                            l.reason
-                          )?.reason && (
-                            <span className="text-[10px] text-amber-600 font-bold mt-1">
-                              {locale === 'en' ? 'reason:' : locale === 'zh' ? '原因：' : '                               เหตุผล: '}{selectedStaff.rawLogs.find(l => 
-                                l.type === 'check_out' && 
-                                format(parseISO(l.timestamp), 'yyyy-MM-dd') === date
-                              )?.reason}
-                            </span>
-                          )}
                         </div>
-                      </td>
-                      <td className="py-4 text-right">
-                        {dayStats.hasPendingOT ? (
-                          <span className="text-[10px] bg-amber-50 text-amber-600 px-2 py-0.5 rounded font-bold">{locale === 'en' ? 'Waiting for OT approval' : locale === 'zh' ? '等待 OT 批准' : 'รออนุมัติ OT'}</span>
-                        ) : dayStats.lateMinutes > 0 ? (
-                          <span className="text-[10px] bg-red-50 text-red-600 px-2 py-0.5 rounded font-bold">{locale === 'en' ? 'line' : locale === 'zh' ? '线' : 'สาย'}</span>
-                        ) : (
-                          <span className="text-[10px] bg-green-50 text-green-600 px-2 py-0.5 rounded font-bold">{locale === 'en' ? 'normal' : locale === 'zh' ? '普通的' : 'ปกติ'}</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="text-[10px] font-black uppercase tracking-widest text-gray-400 border-b border-gray-100">
+                    <th className="pb-3">{locale === 'en' ? 'date' : locale === 'zh' ? '日期' : 'วันที่'}</th>
+                    <th className="pb-3">{locale === 'en' ? 'Attend work' : locale === 'zh' ? '参加工作' : 'เข้างาน'}</th>
+                    <th className="pb-3">{locale === 'en' ? 'finish work' : locale === 'zh' ? '完成工作' : 'เลิกงาน'}</th>
+                    <th className="pb-3 text-right">{locale === 'en' ? 'status' : locale === 'zh' ? '地位' : 'สถานะ'}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {sortedDates.map(date => {
+                    const dayData = logsByDay[date];
+                    const checkInTime = dayData.checkIn ? format(parseISO(dayData.checkIn), 'HH:mm') : '-';
+                    const checkOutTime = dayData.checkOut ? format(parseISO(dayData.checkOut), 'HH:mm') : '-';
+                    
+                    const dayStats = calculateDailyStats(
+                      dayData.checkIn,
+                      dayData.checkOut,
+                      selectedStaff.shift_start,
+                      selectedStaff.shift_end
+                    );
+
+                    return (
+                      <tr key={date} className="text-sm">
+                        <td className="py-4 font-medium text-gray-700">
+                          {format(parseISO(date), 'dd MMM yyyy', { locale: th })}
+                        </td>
+                        <td className={`py-4 ${dayStats.lateMinutes > 0 ? 'text-red-600 font-bold' : 'text-gray-600'}`}>
+                          <div className="flex flex-col">
+                            <span>{checkInTime}</span>
+                            {dayStats.lateMinutes > 0 && (
+                              <span className="text-[10px] text-red-500">{locale === 'en' ? 'line' : locale === 'zh' ? '线' : 'สาย '}{dayStats.lateMinutes} {locale === 'en' ? 'n.' : locale === 'zh' ? '名词' : ' น.'}</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-4 text-gray-600">
+                          <div className="flex flex-col gap-1">
+                            <span>{checkOutTime}</span>
+                            
+                            {dayStats.otMinutes > 0 && dayData.checkOutLog && (
+                              <div className="mt-1 p-2 bg-gray-50 rounded border border-gray-100 w-full max-w-[200px]">
+                                <div className="text-[10px] font-bold text-gray-500 mb-1">{locale === 'en' ? 'Automatic calculation:' : locale === 'zh' ? '自动计算：' : 'คำนวณอัตโนมัติ: '}{dayStats.otMinutes} {locale === 'en' ? 'minute' : locale === 'zh' ? '分钟' : ' นาที'}</div>
+                                
+                                {dayData.checkOutLog.ot_status === 'approved' ? (
+                                  <div className="text-[10px] text-green-600 font-bold flex items-center gap-1">
+                                    <CheckCircleIcon className="w-3 h-3" /> {locale === 'en' ? 'Approved (' : locale === 'zh' ? '得到正式认可的 （' : ' อนุมัติแล้ว ('}{dayData.checkOutLog.ot_approved_minutes} {locale === 'en' ? 'minute)' : locale === 'zh' ? '分钟）' : ' นาที)                                 '}</div>
+                                ) : dayData.checkOutLog.ot_status === 'rejected' ? (
+                                  <div className="text-[10px] text-red-600 font-bold flex items-center gap-1">
+                                    <XMarkIcon className="w-3 h-3" /> {locale === 'en' ? 'Not approved' : locale === 'zh' ? '未获批准' : ' ไม่อนุมัติ                                 '}</div>
+                                ) : (
+                                  <div className="flex flex-col gap-2">
+                                    <div className="flex items-center gap-1">
+                                      <input 
+                                        type="number" 
+                                        className="border rounded px-1 py-0.5 text-xs w-16" 
+                                        placeholder={String(dayStats.otMinutes)}
+                                        value={otApprovalMinutes[dayData.checkOutLog.id] !== undefined ? otApprovalMinutes[dayData.checkOutLog.id] : dayStats.otMinutes}
+                                        onChange={(e) => setOtApprovalMinutes({...otApprovalMinutes, [dayData.checkOutLog!.id]: Number(e.target.value)})}
+                                      />
+                                      <span className="text-[10px]">{locale === 'en' ? 'minute' : locale === 'zh' ? '分钟' : 'นาที'}</span>
+                                    </div>
+                                    <div className="flex gap-1">
+                                      <button onClick={() => handleApproveOT(dayData.checkOutLog!.id, 'approved', dayStats.otMinutes)} className="bg-green-100 text-green-700 px-2 py-1 rounded text-[10px] font-bold flex-1">{locale === 'en' ? 'approve' : locale === 'zh' ? '批准' : 'อนุมัติ'}</button>
+                                      <button onClick={() => handleApproveOT(dayData.checkOutLog!.id, 'rejected', 0)} className="bg-red-100 text-red-700 px-2 py-1 rounded text-[10px] font-bold flex-1">{locale === 'en' ? 'refuse' : locale === 'zh' ? '拒绝' : 'ปฏิเสธ'}</button>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Display Reason if early check-out */}
+                            {selectedStaff.rawLogs.find(l => 
+                              l.type === 'check_out' && 
+                              format(parseISO(l.timestamp), 'yyyy-MM-dd') === date && 
+                              l.reason
+                            )?.reason && (
+                              <span className="text-[10px] text-amber-600 font-bold mt-1">
+                                {locale === 'en' ? 'reason:' : locale === 'zh' ? '原因：' : '                               เหตุผล: '}{selectedStaff.rawLogs.find(l => 
+                                  l.type === 'check_out' && 
+                                  format(parseISO(l.timestamp), 'yyyy-MM-dd') === date
+                                )?.reason}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-4 text-right">
+                          {dayStats.hasPendingOT ? (
+                            <span className="text-[10px] bg-amber-50 text-amber-600 px-2 py-0.5 rounded font-bold">{locale === 'en' ? 'Waiting for OT approval' : locale === 'zh' ? '等待 OT 批准' : 'รออนุมัติ OT'}</span>
+                          ) : dayStats.lateMinutes > 0 ? (
+                            <span className="text-[10px] bg-red-50 text-red-600 px-2 py-0.5 rounded font-bold">{locale === 'en' ? 'line' : locale === 'zh' ? '线' : 'สาย'}</span>
+                          ) : (
+                            <span className="text-[10px] bg-green-50 text-green-600 px-2 py-0.5 rounded font-bold">{locale === 'en' ? 'normal' : locale === 'zh' ? '普通的' : 'ปกติ'}</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       </div>

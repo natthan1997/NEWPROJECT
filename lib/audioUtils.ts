@@ -10,6 +10,7 @@ export const initAudio = async () => {
         // Preload sounds
         const sounds = [
             { id: 'pay', path: '/assets/sounds/pay.mp3' },
+            { id: 'table_call', path: '/assets/sounds/customerpay.m4a' },
             { id: 'notification', path: '/notification.wav' }
         ];
 
@@ -26,7 +27,7 @@ export const initAudio = async () => {
     }
 };
 
-export const playAppSound = async (soundId: 'pay' | 'notification') => {
+export const playAppSound = async (soundId: 'pay' | 'notification' | 'table_call') => {
     try {
         if (!audioCtx) {
             await initAudio();
@@ -50,7 +51,7 @@ export const playAppSound = async (soundId: 'pay' | 'notification') => {
             source.start(0);
         } else {
             // Fallback if not loaded, or if context is suspended (to avoid queuing ghost sounds)
-            const path = soundId === 'pay' ? '/assets/sounds/pay.mp3' : '/notification.wav';
+            const path = soundId === 'pay' ? '/assets/sounds/pay.mp3' : soundId === 'table_call' ? '/assets/sounds/customerpay.m4a' : '/notification.wav';
             const audio = new Audio(path);
             audio.play().catch(() => {
                 console.warn('Audio play prevented by browser autoplay policy');

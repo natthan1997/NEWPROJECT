@@ -113,8 +113,16 @@ export default function RewardsPage() {
                 key={reward.id} 
                 className="bg-white border border-gray-100 rounded-[20px] overflow-hidden flex flex-col shadow-sm"
               >
-                <div className="h-32 bg-gray-100 flex items-center justify-center relative">
-                    <Gift size={32} className="text-gray-400" />
+                <div className="h-32 bg-gray-100 flex items-center justify-center relative overflow-hidden">
+                    {reward.image_url ? (
+                      <img 
+                        src={reward.image_url} 
+                        alt={reward.name} 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Gift size={32} className="text-gray-400" />
+                    )}
                     
                     <div className="absolute top-2 right-2 bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full text-[9px] font-bold text-[#1A1A18] uppercase tracking-wider shadow-sm">
                         REDEEM

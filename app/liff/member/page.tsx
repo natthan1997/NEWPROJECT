@@ -272,6 +272,37 @@ export default function LiffMemberPage() {
     }
   };
 
+  const handleRedeemQuick = async (reward: any) => {
+    const points = memberInfo?.points || 0;
+    if (points < reward.cost_points) {
+      alert('คะแนนสะสมของคุณไม่เพียงพอสำหรับการแลกรางวัลนี้');
+      return;
+    }
+    
+    if (!confirm(`ยืนยันการใช้ ${reward.cost_points} พอยท์ เพื่อแลกคูปอง "${reward.name}" ใช่หรือไม่?`)) return;
+    
+    try {
+      setLoading(true);
+      const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
+      const res = await fetch('/api/liff/member/redeem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lineUserId: userId, couponId: reward.id })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('แลกคูปองสำเร็จ! คูปองถูกเก็บไว้ในบัญชีของคุณแล้ว');
+        setMemberInfo((prev: any) => prev ? { ...prev, points: prev.points - reward.cost_points } : null);
+      } else {
+        alert(data.error || 'Failed to redeem');
+      }
+    } catch (e) {
+      alert('Error connecting to server');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handlePlayMysteryBox = async () => {
       const currentPoints = memberInfo?.points || 0;
       if (currentPoints < MYSTERY_COST) return;
@@ -793,15 +824,35 @@ export default function LiffMemberPage() {
             <style jsx>{`div::-webkit-scrollbar { display: none; }`}</style>
             
             {quickRewards.length > 0 ? quickRewards.map((reward) => (
-                <div key={reward.id} onClick={() => router.push('/liff/rewards')} className="min-w-[160px] h-[120px] snap-center bg-white border border-gray-100 rounded-[20px] flex flex-col p-4 shadow-sm relative cursor-pointer active:scale-95 transition-transform">
-                    <div className="absolute top-3 right-3 bg-gray-50 border border-gray-100 px-2 py-0.5 rounded-full text-[9px] font-bold text-[#1A1A18] uppercase tracking-wider">
-                        REDEEM
+                <div 
+                  key={reward.id} 
+                  onClick={() => handleRedeemQuick(reward)} 
+                  className="min-w-[160px] h-[230px] snap-center bg-white border border-gray-100 rounded-[20px] overflow-hidden flex flex-col shadow-sm relative cursor-pointer active:scale-95 transition-transform"
+                >
+                    <div className="h-32 bg-gray-100 flex items-center justify-center relative overflow-hidden">
+                        {reward.image_url ? (
+                          <img 
+                            src={reward.image_url} 
+                            alt={reward.name} 
+                            className="w-full h-full object-cover" 
+                          />
+                        ) : (
+                          <Gift size={32} className="text-gray-400" />
+                        )}
+                        
+                        <div className="absolute top-2 right-2 bg-white/80 backdrop-blur-sm px-2 py-0.5 rounded-full text-[8px] font-bold text-[#1A1A18] uppercase tracking-wider shadow-sm">
+                            REDEEM
+                        </div>
                     </div>
-                    <Gift size={24} className="text-gray-400 mb-2" />
-                    <h4 className="text-[13px] font-bold text-[#1A1A18] leading-tight mb-1 line-clamp-2 pr-4">
-                        {reward.name}
-                    </h4>
-                    <p className="text-[12px] text-gray-500 mt-auto font-medium tracking-tight">ใช้ {reward.cost_points.toLocaleString()} พอยท์</p>
+                    
+                    <div className="p-3 flex-1 flex flex-col justify-between">
+                        <h4 className="text-[12px] font-medium text-gray-900 leading-tight line-clamp-2">
+                            {reward.name}
+                        </h4>
+                        <p className="text-[11px] font-bold text-[#1A1A18] mt-1">
+                            ใช้ {reward.cost_points.toLocaleString()} พอยท์
+                        </p>
+                    </div>
                 </div>
             )) : (
                 <div onClick={() => router.push('/liff/rewards')} className="min-w-[280px] h-[140px] snap-center bg-gray-100 rounded-[20px] flex items-center justify-center relative overflow-hidden cursor-pointer active:scale-95 transition-transform">

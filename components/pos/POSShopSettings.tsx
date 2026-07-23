@@ -4,12 +4,58 @@ import { Capacitor } from '@capacitor/core'
 import { PrinterSocket } from 'custom-printer-plugin'
 import { printCustomerReceipt, printKitchenTicket } from '@/lib/printerUtils'
 import { printGraphicModeCustomerReceipt, printGraphicModeKitchenTicket } from '@/lib/graphicPrinter'
-import { Plus, Loader2, Save, X, Settings, Clock, Bell, Info, Image as ImageIcon, Star, Gift, ChevronDown, ChevronUp, Upload, Trash2, Menu as MenuIcon, ChevronRight, ArrowLeft, ShieldCheck, QrCode, MapPin, Printer, Truck, Flag, RefreshCw, Store, Navigation, Percent } from 'lucide-react'
+import { Plus, Loader2, Save, X, Settings, Clock, Bell, Info, Image as ImageIcon, Star, Gift, ChevronDown, ChevronUp, Upload, Trash2, Menu as MenuIcon, ChevronRight, ArrowLeft, ShieldCheck, QrCode, MapPin, Printer, Truck, Flag, RefreshCw, Store, Navigation, Percent, Camera } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
 import POSCampaignsTab from './POSCampaignsTab'
 import AddressMapInput from '@/components/AddressMapInput'
 import { useI18n } from "@/lib/I18nContext";
+import Cropper from 'react-easy-crop'
+
+const createImage = (url: string): Promise<HTMLImageElement> =>
+  new Promise((resolve, reject) => {
+    const image = new Image()
+    image.addEventListener('load', () => resolve(image))
+    image.addEventListener('error', (error) => reject(error))
+    image.setAttribute('crossOrigin', 'anonymous')
+    image.src = url
+  })
+
+const getCroppedImg = async (imageSrc: string, pixelCrop: any): Promise<Blob> => {
+  const image = await createImage(imageSrc)
+  const canvas = document.createElement('canvas')
+  const ctx = canvas.getContext('2d')
+
+  if (!ctx) {
+    throw new Error('No 2d context')
+  }
+
+  canvas.width = pixelCrop.width
+  canvas.height = pixelCrop.height
+
+  ctx.drawImage(
+    image,
+    pixelCrop.x,
+    pixelCrop.y,
+    pixelCrop.width,
+    pixelCrop.height,
+    0,
+    0,
+    pixelCrop.width,
+    pixelCrop.height
+  )
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((file) => {
+      if (file) {
+        resolve(file)
+      } else {
+        reject(new Error('Canvas is empty'))
+      }
+    }, 'image/jpeg')
+  })
+}
+
 
 const permissionOptions = [
   { id: 'terminal', label: 'หน้าขาย (POS TERMINAL)', desc: 'หน้าขายหลักของระบบ POS สำหรับทำรายการขายหน้าร้าน' },
@@ -19,8 +65,12 @@ const permissionOptions = [
   { id: 'drawer', label: 'ลิ้นชักเงิน (DRAWER)', desc: 'ควบคุมประวัติการเปิด-ปิดกะลิ้นชักเก็บเงินสด' },
   { id: 'delivery', label: 'ศูนย์ส่งสินค้า (DELIVERY)', desc: 'จัดการออเดอร์เดลิเวอรี่และไรเดอร์' },
   { id: 'history', label: 'ประวัติการขาย (HISTORY)', desc: 'ดูบิลขายย้อนหลังและจัดการบิลที่ปิดแล้ว' },
+  { id: 'menu-management', label: 'จัดการเมนูหลัก (MENU MANAGEMENT)', desc: 'เข้าสู่หน้าจัดการเมนู หมวดหมู่ และการเรียงลำดับ' },
+  { id: 'menu-stock-toggle', label: 'อัปเดตสต็อกสินค้าด่วน (STOCK TOGGLE)', desc: 'กดสลับสถานะสินค้าหมด / พร้อมขายหน้าร้าน' },
+  { id: 'menu-edit-price', label: 'แก้ไขราคา & เมนู (EDIT MENU & PRICES)', desc: 'เพิ่ม/แก้ไข/ลบ รายการเมนู และปรับเปลี่ยนราคาขาย' },
   { id: 'inventory', label: 'สต็อกวัตถุดิบ (INVENTORY)', desc: 'ควบคุมสต็อกวัตถุดิบและส่วนประกอบอาหาร' },
   { id: 'modifiers', label: 'จัดการตัวเลือก (MODIFIERS)', desc: 'เพิ่ม/แก้ไขตัวเลือกเสริม (Modifiers) ของเมนูอาหาร' },
+  { id: 'recipes', label: 'จัดการสูตรอาหาร (RECIPES)', desc: 'ผูกสูตรอาหารเข้ากับสต็อกวัตถุดิบอัตโนมัติ' },
   { id: 'management', label: 'จัดการระบบ (MANAGEMENT)', desc: 'การจัดการข้อมูลเชิงลึกและระบบหลังบ้านของสาขา' },
   { id: 'settings', label: 'ตั้งค่าร้าน (SHOP SETTINGS)', desc: 'จัดการวันเวลาเปิดปิดร้าน แบนเนอร์ และสิทธิ์พนักงาน' },
   { id: 'reports', label: 'รายงานผล (REPORTS)', desc: 'รายงานยอดขายและสถิติสำคัญประจำกะ' },
@@ -56,12 +106,18 @@ export default function POSShopSettings({
   const [isSaving, setIsSaving] = useState(false)
   const [availableCoupons, setAvailableCoupons] = useState<any[]>([])
   const [activeTab, setActiveTab] = useState<string>('general')
+  const [showMobileMenu, setShowMobileMenu] = useState<boolean>(true)
   const [previewStoryIndex, setPreviewStoryIndex] = useState<number>(0)
   
   const [banners, setBanners] = useState<any[]>([])
   const [categories, setCategories] = useState<any[]>([])
   const [inventoryCategories, setInventoryCategories] = useState<any[]>([])
   const [isUploadingBanner, setIsUploadingBanner] = useState(false)
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const [crop, setCrop] = useState({ x: 0, y: 0 })
+  const [zoom, setZoom] = useState(1)
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null)
+  const [showCropModal, setShowCropModal] = useState(false)
 
   const [settings, setSettings] = useState<any>({
     id: null,
@@ -77,8 +133,8 @@ export default function POSShopSettings({
     longitude: 100.5018,
     address: '',
     role_permissions: {
-      manager: ['terminal', 'inventory', 'kitchen', 'tables', 'members', 'drawer', 'delivery', 'history', 'modifiers', 'settings'],
-      staff: ['terminal', 'inventory', 'kitchen', 'tables', 'members', 'drawer', 'delivery', 'history']
+      manager: ['terminal', 'menu-management', 'menu-stock-toggle', 'menu-edit-price', 'inventory', 'kitchen', 'tables', 'members', 'drawer', 'delivery', 'history', 'modifiers', 'recipes', 'settings'],
+      staff: ['terminal', 'menu-management', 'menu-stock-toggle', 'inventory', 'kitchen', 'tables', 'members', 'drawer', 'delivery', 'history']
     },
     printers: [],
     receipt_story_mode: false,
@@ -87,6 +143,12 @@ export default function POSShopSettings({
       { id: '2', title: 'บทที่ 2: แก้วที่สอง', content: '"รับเหมือนเดิมนะคะ" เธอพูดพร้อมส่งยิ้มบางๆ ผมพยักหน้า ทั้งที่ใจจริงอยากจะตอบไปว่ารับคุณด้วยได้ไหม' }
     ],
     receipt_payment_qr_image: '',
+    cover_url: '',
+    logo_url: '',
+    name_th: '',
+    name_en: '',
+    branch_name_th: '',
+    branch_name_en: '',
   })
 
   useEffect(() => {
@@ -148,8 +210,8 @@ export default function POSShopSettings({
                 status: effectiveStatus,
                 is_open: effectiveStatus === 'open',
                 role_permissions: data.role_permissions || {
-                    manager: ['terminal', 'inventory', 'kitchen', 'tables', 'members', 'drawer', 'delivery', 'history', 'modifiers', 'settings'],
-                    staff: ['terminal', 'inventory', 'kitchen', 'tables', 'members', 'drawer', 'delivery', 'history']
+                    manager: ['terminal', 'menu-management', 'menu-stock-toggle', 'menu-edit-price', 'inventory', 'kitchen', 'tables', 'members', 'drawer', 'delivery', 'history', 'modifiers', 'recipes', 'settings'],
+                    staff: ['terminal', 'menu-management', 'menu-stock-toggle', 'inventory', 'kitchen', 'tables', 'members', 'drawer', 'delivery', 'history']
                 },
                 printers: data.printers || [],
                 receipt_header: data.opening_hours?.receipt_header || '',
@@ -158,6 +220,12 @@ export default function POSShopSettings({
                 receipt_show_logo: data.opening_hours?.receipt_show_logo ?? true,
                 receipt_font_size: data.opening_hours?.receipt_font_size || 'normal',
                 receipt_payment_qr_image: data.opening_hours?.receipt_payment_qr_image || '',
+                cover_url: data.opening_hours?.cover_url || '',
+                logo_url: data.opening_hours?.logo_url || '',
+                name_th: data.opening_hours?.name_th || '',
+                name_en: data.opening_hours?.name_en || '',
+                branch_name_th: data.opening_hours?.branch_name_th || '',
+                branch_name_en: data.opening_hours?.branch_name_en || '',
                 address: data.opening_hours?.address || '',
                 loyalty_points_per_thb: data.opening_hours?.loyalty_points_per_thb || 10,
                 loyalty_earn_rate: data.opening_hours?.loyalty_earn_rate || 100,
@@ -233,6 +301,90 @@ export default function POSShopSettings({
         setSettings({ ...settings, delivery_fee_rules: rules });
     }
 
+  const handleBannerFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0]
+      const reader = new FileReader()
+      reader.addEventListener('load', () => {
+        setSelectedImage(reader.result as string)
+        setCrop({ x: 0, y: 0 })
+        setZoom(1)
+        setShowCropModal(true)
+      })
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const onCropComplete = (croppedArea: any, croppedAreaPixels: any) => {
+    setCroppedAreaPixels(croppedAreaPixels)
+  }
+
+  const handleCropAndUpload = async () => {
+    if (!selectedImage || !croppedAreaPixels) return
+
+    setIsUploadingBanner(true)
+    try {
+      const croppedBlob = await getCroppedImg(selectedImage, croppedAreaPixels)
+      
+      const fileExt = 'jpg'
+      const fileName = `banner_${Date.now()}.${fileExt}`
+      const filePath = `banners/${fileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('images')
+        .upload(filePath, croppedBlob, {
+          contentType: 'image/jpeg'
+        })
+
+      if (uploadError) throw uploadError
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('images')
+        .getPublicUrl(filePath)
+
+      const maxOrder = banners.length > 0 ? Math.max(...banners.map(b => b.order_index || 0)) : 0
+
+      const { data: newBanner, error: insertError } = await supabase
+        .from('pos_banners')
+        .insert({
+          image_url: publicUrl,
+          is_active: true,
+          order_index: maxOrder + 1
+        })
+        .select()
+        .single()
+
+      if (insertError) throw insertError
+
+      if (newBanner) {
+        setBanners([...banners, newBanner])
+      }
+      setShowCropModal(false)
+      setSelectedImage(null)
+    } catch (err: any) {
+      console.error('Error uploading banner:', err)
+      alert('Failed to upload banner: ' + err.message)
+    } finally {
+      setIsUploadingBanner(false)
+    }
+  }
+
+  const handleDeleteBanner = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this banner?')) return
+    try {
+      const { error } = await supabase.from('pos_banners').delete().eq('id', id)
+      if (error) throw error
+      setBanners(banners.filter(b => b.id !== id))
+    } catch (err: any) {
+      alert('Failed to delete: ' + err.message)
+    }
+  }
+
+  const handleCancelCrop = () => {
+    setShowCropModal(false)
+    setSelectedImage(null)
+  }
+
 const handleSave = async () => {
     if (!settings.branch_id && settings.id !== '00000000-0000-0000-0000-000000000001') {
         alert('ไม่พบรหัสสาขาของพนักงาน')
@@ -262,6 +414,12 @@ const handleSave = async () => {
         inhouse_delivery_config: settings.inhouse_delivery_config,
         mystery_box_cost: settings.mystery_box_cost,
         mystery_box_prizes: settings.mystery_box_prizes,
+        cover_url: settings.cover_url,
+        logo_url: settings.logo_url,
+        name_th: settings.name_th,
+        name_en: settings.name_en,
+        branch_name_th: settings.branch_name_th,
+        branch_name_en: settings.branch_name_en,
       },
       is_open: settings.status === 'open',
       updated_at: new Date().toISOString()
@@ -274,6 +432,12 @@ const handleSave = async () => {
     delete payload.receipt_show_logo;
     delete payload.receipt_font_size;
     delete payload.receipt_payment_qr_image;
+    delete payload.cover_url;
+    delete payload.logo_url;
+    delete payload.name_th;
+    delete payload.name_en;
+    delete payload.branch_name_th;
+    delete payload.branch_name_en;
     delete payload.loyalty_points_per_thb;
     delete payload.loyalty_earn_rate;
     delete payload.loyalty_earn_thb;
@@ -315,8 +479,8 @@ const handleSave = async () => {
                 status: effectiveStatus,
                 is_open: effectiveStatus === 'open',
                 role_permissions: data.role_permissions || {
-                    manager: ['terminal', 'inventory', 'kitchen', 'tables', 'members', 'drawer', 'delivery', 'history', 'modifiers', 'settings'],
-                    staff: ['terminal', 'inventory', 'kitchen', 'tables', 'members', 'drawer', 'delivery', 'history']
+                    manager: ['terminal', 'menu-management', 'menu-stock-toggle', 'menu-edit-price', 'inventory', 'kitchen', 'tables', 'members', 'drawer', 'delivery', 'history', 'modifiers', 'recipes', 'settings'],
+                    staff: ['terminal', 'menu-management', 'menu-stock-toggle', 'inventory', 'kitchen', 'tables', 'members', 'drawer', 'delivery', 'history']
                 },
                 printers: data.printers || [],
                 receipt_header: data.opening_hours?.receipt_header || '',
@@ -480,10 +644,9 @@ const handleSave = async () => {
 
                 <div className="flex flex-col lg:flex-row gap-8">
                     {/* SIDEBAR TABS */}
-                    <div className="w-full lg:w-64 flex-shrink-0 space-y-3">
+                    <div className={`w-full lg:w-64 flex-shrink-0 space-y-3 ${!showMobileMenu ? 'hidden lg:block' : 'block'}`}>
                         {[
-                            { id: 'general', icon: Info, label: 'ข้อมูลร้านค้า', desc: 'ที่อยู่, แจ้งเตือน' },
-                            { id: 'operational', icon: Clock, label: 'การจัดการร้าน', desc: 'เปิด/ปิดร้าน, เวลาทำการ' },
+                            { id: 'general', icon: Info, label: 'ข้อมูลร้านค้า', desc: 'ข้อมูลร้าน และ เวลาทำการ' },
                             { id: 'delivery', icon: Truck, label: 'เดลิเวอรี่', desc: 'ค่าส่ง, หัก GP' },
                             { id: 'receipt', icon: Printer, label: 'ตั้งค่าใบเสร็จ', desc: 'หัวบิล, โลโก้, ท้ายบิล' },
                             { id: 'kitchen', icon: MenuIcon, label: 'ห้องครัว', desc: 'ฟอนต์, ออเดอร์' },
@@ -497,7 +660,10 @@ const handleSave = async () => {
                             return (
                                 <button 
                                     key={tab.id}
-                                    onClick={() => setActiveTab(tab.id)}
+                                    onClick={() => {
+                                        setActiveTab(tab.id)
+                                        setShowMobileMenu(false)
+                                    }}
                                     className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all text-left ${isActive ? 'bg-black text-white shadow-xl shadow-black/10 scale-[1.02]' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-100 hover:border-gray-200'}`}
                                 >
                                     <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isActive ? 'bg-white/10' : 'bg-gray-100'}`}>
@@ -514,60 +680,207 @@ const handleSave = async () => {
                     </div>
 
                     {/* MAIN CONTENT AREA */}
-                    <div className="flex-1 min-w-0 pb-20">
+                    <div className={`flex-1 min-w-0 pb-20 ${showMobileMenu ? 'hidden lg:block' : 'block'}`}>
                         
+                        {/* MOBILE BACK BUTTON */}
+                        <div className="lg:hidden mb-6">
+                            <button 
+                                onClick={() => setShowMobileMenu(true)}
+                                className="flex items-center gap-2 text-sm font-bold text-gray-600 hover:text-black transition-colors"
+                            >
+                                <ChevronRight size={18} className="rotate-180" /> {locale === 'en' ? 'Back' : locale === 'zh' ? '返回' : 'ย้อนกลับ'}
+                            </button>
+                        </div>
+
                         {/* TAB: GENERAL */}
                         {activeTab === 'general' && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
-                                    <h3 className="text-xl font-black mb-2 flex items-center gap-3">
-                                        <Info className="text-blue-500" size={24} /> {locale === 'en' ? ' ข้อมูลร้านทั่วไป                                     ' : locale === 'zh' ? ' ข้อมูลร้านทั่วไป                                     ' : ' ข้อมูลร้านทั่วไป                                     '}</h3>
-                                    <p className="text-[12px] text-gray-500 font-bold mb-8">{locale === 'en' ? 'ข้อมูลสำหรับการแสดงผลและการติดต่อ' : locale === 'zh' ? 'ข้อมูลสำหรับการแสดงผลและการติดต่อ' : 'ข้อมูลสำหรับการแสดงผลและการติดต่อ'}</p>
-                                    
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                        <div className="space-y-3">
-                                            <label className="text-[11px] font-black uppercase tracking-widest text-gray-400">{locale === 'en' ? 'ชื่อร้าน (Shop Name)' : locale === 'zh' ? 'ชื่อร้าน (Shop Name)' : 'ชื่อร้าน (Shop Name)'}</label>
-                                            <input 
-                                                type="text" 
-                                                value={settings.name || ''}
-                                                onChange={e => setSettings({...settings, name: e.target.value})}
-                                                className="w-full bg-gray-50 border border-gray-200 rounded-xl py-4 px-5 text-[14px] font-bold outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all" 
-                                            />
+                                <div className="bg-white rounded-3xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
+                                    {/* Cover Photo / Banners Slider */}
+                                    <div className="relative h-48 sm:h-64 bg-gray-200">
+                                        {banners && banners.length > 0 ? (
+                                            <div className="flex w-full h-full overflow-x-auto snap-x snap-mandatory scroll-smooth" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                                                {banners.map((banner, index) => (
+                                                    <div key={banner.id} className="relative w-full h-full flex-shrink-0 snap-center">
+                                                        <img src={banner.image_url} alt={`Banner ${index + 1}`} className="w-full h-full object-cover" />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
+                                                <ImageIcon size={32} className="mb-2 opacity-50" />
+                                                <span className="text-xs font-bold">{locale === 'en' ? 'No Banners' : 'ยังไม่มีรูปภาพแบนเนอร์'}</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Redesigned Banner Management Strip */}
+                                    <div className="bg-gray-50 border-t border-gray-100 p-6 flex flex-col sm:flex-row items-start sm:items-center gap-6 justify-between">
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="text-xs font-black text-gray-900 mb-1">
+                                                {locale === 'en' ? 'Manage LIFF Banners' : 'จัดการรูปภาพแบนเนอร์ LINE LIFF'}
+                                            </h4>
+                                            <p className="text-[10px] font-bold text-gray-400">
+                                                {locale === 'en' ? 'Images will show in a slider at the top of your LIFF menu.' : 'รูปภาพจะเลื่อนแสดงที่ด้านบนสุดของหน้าระบบสั่งอาหาร LINE LIFF'}
+                                            </p>
+                                            
+                                            {banners && banners.length > 0 && (
+                                                <div className="flex flex-wrap gap-3 mt-4">
+                                                    {banners.map((banner, index) => (
+                                                        <div key={banner.id} className="relative w-20 h-10 rounded-lg overflow-hidden border border-gray-200 group/thumb shadow-sm bg-white">
+                                                            <img src={banner.image_url} alt="Thumbnail" className="w-full h-full object-cover" />
+                                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center">
+                                                                <button
+                                                                    onClick={() => handleDeleteBanner(banner.id)}
+                                                                    title={locale === 'en' ? 'Delete Banner' : 'ลบแบนเนอร์'}
+                                                                    className="w-7 h-7 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-90"
+                                                                >
+                                                                    <Trash2 size={12} />
+                                                                </button>
+                                                            </div>
+                                                            <div className="absolute bottom-0 right-0 bg-black/60 text-white text-[8px] px-1 rounded-tl-md font-bold leading-tight">
+                                                                #{index + 1}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
-                                        <div className="space-y-3">
-                                            <label className="text-[11px] font-black uppercase tracking-widest text-gray-400">{locale === 'en' ? 'ชื่อสาขา (Branch)' : locale === 'zh' ? 'ชื่อสาขา (Branch)' : 'ชื่อสาขา (Branch)'}</label>
-                                            <input 
-                                                type="text" 
-                                                value={settings.branch_name || ''}
-                                                onChange={e => setSettings({...settings, branch_name: e.target.value})}
-                                                className="w-full bg-gray-50 border border-gray-200 rounded-xl py-4 px-5 text-[14px] font-bold outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all" 
-                                            />
+                                        
+                                        <div className="flex-shrink-0">
+                                            <label className={`cursor-pointer inline-flex items-center gap-2 px-5 py-3 rounded-full text-xs font-black text-white bg-black hover:bg-gray-800 transition-all shadow-md active:scale-95 ${isUploadingBanner ? 'pointer-events-none opacity-50' : ''}`}>
+                                                {isUploadingBanner ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                                                {locale === 'en' ? 'Add Banner' : 'เพิ่มรูปแบนเนอร์'}
+                                                <input 
+                                                    type="file" 
+                                                    className="hidden" 
+                                                    accept="image/*"
+                                                    onChange={handleBannerFileSelect}
+                                                    disabled={isUploadingBanner}
+                                                />
+                                            </label>
                                         </div>
-                                        <div className="space-y-3">
-                                            <label className="text-[11px] font-black uppercase tracking-widest text-gray-400">{locale === 'en' ? 'เลขผู้เสียภาษี (Tax ID)' : locale === 'zh' ? 'เลขผู้เสียภาษี (Tax ID)' : 'เลขผู้เสียภาษี (Tax ID)'}</label>
-                                            <input 
-                                                type="text" 
-                                                value={settings.tax_id || ''}
-                                                onChange={e => setSettings({...settings, tax_id: e.target.value})}
-                                                className="w-full bg-gray-50 border border-gray-200 rounded-xl py-4 px-5 text-[14px] font-bold outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all" 
-                                            />
+                                    </div>
+
+                                    {/* Profile Photo & Info */}
+                                    <div className="px-6 sm:px-10 pb-10 relative">
+                                        <div className="flex flex-col sm:flex-row items-center sm:items-end gap-6 -mt-16 sm:-mt-20 mb-8">
+                                            <div className="relative group">
+                                                <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full border-4 border-white bg-white shadow-xl overflow-hidden">
+                                                    {settings.logo_url ? (
+                                                        <img src={settings.logo_url} alt="Logo" className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-400">
+                                                            <Store size={40} className="opacity-50" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <label className="absolute bottom-2 right-2 sm:bottom-4 sm:right-4 w-10 h-10 bg-black text-white rounded-full flex items-center justify-center shadow-lg cursor-pointer hover:scale-105 transition-transform">
+                                                    <Camera size={18} />
+                                                    <input 
+                                                        type="file" 
+                                                        className="hidden" 
+                                                        accept="image/*"
+                                                        onChange={(e) => {
+                                                            const file = e.target.files?.[0];
+                                                            if (file) {
+                                                                const reader = new FileReader();
+                                                                reader.onload = (e) => setSettings({...settings, logo_url: e.target?.result});
+                                                                reader.readAsDataURL(file);
+                                                            }
+                                                        }}
+                                                    />
+                                                </label>
+                                            </div>
+                                            <div className="text-center sm:text-left flex-1 pb-2">
+                                                <h3 className="text-2xl font-black">{settings.name_th || settings.name || (locale === 'en' ? 'Shop Name' : 'ชื่อร้าน')}</h3>
+                                                <p className="text-sm font-bold text-gray-500 mt-1">{settings.branch_name_th || settings.branch_name || (locale === 'en' ? 'Branch' : 'สาขา')}</p>
+                                            </div>
                                         </div>
-                                        <div className="space-y-3">
-                                            <label className="text-[11px] font-black uppercase tracking-widest text-gray-400">{locale === 'en' ? 'เบอร์โทร (Phone)' : locale === 'zh' ? 'เบอร์โทร (Phone)' : 'เบอร์โทร (Phone)'}</label>
-                                            <input 
-                                                type="text" 
-                                                value={settings.phone || ''}
-                                                onChange={e => setSettings({...settings, phone: e.target.value})}
-                                                className="w-full bg-gray-50 border border-gray-200 rounded-xl py-4 px-5 text-[14px] font-bold outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all" 
-                                            />
-                                        </div>
-                                        <div className="space-y-3 md:col-span-2">
-                                            <label className="text-[11px] font-black uppercase tracking-widest text-gray-400">{locale === 'en' ? 'ที่อยู่ (Address)' : locale === 'zh' ? 'ที่อยู่ (Address)' : 'ที่อยู่ (Address)'}</label>
-                                            <textarea 
-                                                value={settings.address || ''}
-                                                onChange={e => setSettings({...settings, address: e.target.value})}
-                                                className="w-full bg-gray-50 border border-gray-200 rounded-xl py-4 px-5 text-[14px] font-bold outline-none focus:ring-2 focus:ring-black focus:border-transparent min-h-[100px] resize-none transition-all"
-                                            />
+
+                                        <div className="space-y-6">
+                                            {/* Shop Name TH / EN */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <div className="relative">
+                                                    <input 
+                                                        type="text" 
+                                                        value={settings.name_th || settings.name || ''}
+                                                        onChange={e => setSettings({...settings, name_th: e.target.value, name: e.target.value})}
+                                                        className="w-full bg-transparent border border-gray-300 rounded-xl px-4 pt-6 pb-2 text-[15px] font-bold text-gray-900 outline-none focus:border-black focus:ring-1 focus:ring-black transition-all peer" 
+                                                        placeholder=" "
+                                                    />
+                                                    <label className="absolute left-4 top-2 text-[10px] font-bold uppercase tracking-widest text-gray-500 peer-focus:text-black transition-colors">{locale === 'en' ? 'Shop Name (Thai)' : 'ชื่อร้าน (ภาษาไทย)'}</label>
+                                                </div>
+                                                <div className="relative">
+                                                    <input 
+                                                        type="text" 
+                                                        value={settings.name_en || ''}
+                                                        onChange={e => setSettings({...settings, name_en: e.target.value})}
+                                                        className="w-full bg-transparent border border-gray-300 rounded-xl px-4 pt-6 pb-2 text-[15px] font-bold text-gray-900 outline-none focus:border-black focus:ring-1 focus:ring-black transition-all peer" 
+                                                        placeholder=" "
+                                                    />
+                                                    <label className="absolute left-4 top-2 text-[10px] font-bold uppercase tracking-widest text-gray-500 peer-focus:text-black transition-colors">{locale === 'en' ? 'Shop Name (English)' : 'ชื่อร้าน (ภาษาอังกฤษ)'}</label>
+                                                </div>
+                                            </div>
+
+                                            {/* Branch Name TH / EN */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <div className="relative">
+                                                    <input 
+                                                        type="text" 
+                                                        value={settings.branch_name_th || settings.branch_name || ''}
+                                                        onChange={e => setSettings({...settings, branch_name_th: e.target.value, branch_name: e.target.value})}
+                                                        className="w-full bg-transparent border border-gray-300 rounded-xl px-4 pt-6 pb-2 text-[15px] font-bold text-gray-900 outline-none focus:border-black focus:ring-1 focus:ring-black transition-all peer" 
+                                                        placeholder=" "
+                                                    />
+                                                    <label className="absolute left-4 top-2 text-[10px] font-bold uppercase tracking-widest text-gray-500 peer-focus:text-black transition-colors">{locale === 'en' ? 'Branch Name (Thai)' : 'ชื่อสาขา (ภาษาไทย)'}</label>
+                                                </div>
+                                                <div className="relative">
+                                                    <input 
+                                                        type="text" 
+                                                        value={settings.branch_name_en || ''}
+                                                        onChange={e => setSettings({...settings, branch_name_en: e.target.value})}
+                                                        className="w-full bg-transparent border border-gray-300 rounded-xl px-4 pt-6 pb-2 text-[15px] font-bold text-gray-900 outline-none focus:border-black focus:ring-1 focus:ring-black transition-all peer" 
+                                                        placeholder=" "
+                                                    />
+                                                    <label className="absolute left-4 top-2 text-[10px] font-bold uppercase tracking-widest text-gray-500 peer-focus:text-black transition-colors">{locale === 'en' ? 'Branch Name (English)' : 'ชื่อสาขา (ภาษาอังกฤษ)'}</label>
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Tax ID & Phone */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <div className="relative">
+                                                    <input 
+                                                        type="text" 
+                                                        value={settings.tax_id || ''}
+                                                        onChange={e => setSettings({...settings, tax_id: e.target.value})}
+                                                        className="w-full bg-transparent border border-gray-300 rounded-xl px-4 pt-6 pb-2 text-[15px] font-bold text-gray-900 outline-none focus:border-black focus:ring-1 focus:ring-black transition-all peer" 
+                                                        placeholder=" "
+                                                    />
+                                                    <label className="absolute left-4 top-2 text-[10px] font-bold uppercase tracking-widest text-gray-500 peer-focus:text-black transition-colors">{locale === 'en' ? 'Tax ID' : 'เลขประจำตัวผู้เสียภาษี'}</label>
+                                                </div>
+                                                <div className="relative">
+                                                    <input 
+                                                        type="text" 
+                                                        value={settings.phone || ''}
+                                                        onChange={e => setSettings({...settings, phone: e.target.value})}
+                                                        className="w-full bg-transparent border border-gray-300 rounded-xl px-4 pt-6 pb-2 text-[15px] font-bold text-gray-900 outline-none focus:border-black focus:ring-1 focus:ring-black transition-all peer" 
+                                                        placeholder=" "
+                                                    />
+                                                    <label className="absolute left-4 top-2 text-[10px] font-bold uppercase tracking-widest text-gray-500 peer-focus:text-black transition-colors">{locale === 'en' ? 'Phone Number' : 'เบอร์โทรศัพท์ติดต่อ'}</label>
+                                                </div>
+                                            </div>
+
+                                            {/* Address */}
+                                            <div className="relative">
+                                                <textarea 
+                                                    value={settings.address || ''}
+                                                    onChange={e => setSettings({...settings, address: e.target.value})}
+                                                    className="w-full bg-transparent border border-gray-300 rounded-xl px-4 pt-6 pb-2 text-[15px] font-bold text-gray-900 outline-none focus:border-black focus:ring-1 focus:ring-black transition-all peer min-h-[100px] resize-none"
+                                                    placeholder=" "
+                                                />
+                                                <label className="absolute left-4 top-2 text-[10px] font-bold uppercase tracking-widest text-gray-500 peer-focus:text-black transition-colors">{locale === 'en' ? 'Address' : 'ที่อยู่ร้าน'}</label>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -582,48 +895,6 @@ const handleSave = async () => {
                                         className="w-full bg-gray-50 border border-gray-200 rounded-xl py-4 px-5 text-[14px] font-bold outline-none focus:ring-2 focus:ring-black min-h-[120px] resize-none transition-all"
                                     />
                                 </div>
-                            </div>
-                        )}
-
-                        
-                        {activeTab === 'operational' && (
-                            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                {/* Section: Shop Status */}
-            <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
-              <h3 className="text-xl font-black mb-8 flex items-center gap-3">
-                <Store className="w-6 h-6 text-[#111111]" />
-                {locale === 'en' ? '                 สถานะร้านและการให้บริการ (Shop Status)               ' : locale === 'zh' ? '                 สถานะร้านและการให้บริการ (Shop Status)               ' : '                 สถานะร้านและการให้บริการ (Shop Status)               '}</h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between p-4 border border-[#E5E5E5] bg-[#FAFAFA]">
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-[#666666]">Emergency Toggle</p>
-                      <p className="text-sm font-medium">{locale === 'en' ? 'เปิด/ปิดรับออเดอร์ทันที' : locale === 'zh' ? 'เปิด/ปิดรับออเดอร์ทันที' : 'เปิด/ปิดรับออเดอร์ทันที'}</p>
-                    </div>
-                    <button
-                      onClick={() => setSettings({ ...settings, is_open: !settings.is_open })}
-                      className={`w-14 h-7 rounded-full p-1 transition-colors relative ${settings.is_open ? 'bg-[#111111]' : 'bg-[#E5E5E5]'}`}
-                    >
-                      <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${settings.is_open ? 'translate-x-7' : 'translate-x-0'}`} />
-                    </button>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-[#666666]">{locale === 'en' ? 'ข้อความประกาศ (Status Message)' : locale === 'zh' ? 'ข้อความประกาศ (Status Message)' : 'ข้อความประกาศ (Status Message)'}</label>
-                    <textarea
-                      value={settings.status_message || ''}
-                      onChange={(e) => setSettings({ ...settings, status_message: e.target.value })}
-                      className="w-full p-4 border border-[#E5E5E5] bg-white focus:border-[#111111] outline-none text-sm transition-colors min-h-[100px]"
-                      placeholder={locale === 'en' ? 'เช่น ร้านปิดรับออเดอร์ชั่วคราว ขออภัยในความไม่สะดวกครับ...' : locale === 'zh' ? 'เช่น ร้านปิดรับออเดอร์ชั่วคราว ขออภัยในความไม่สะดวกครับ...' : 'เช่น ร้านปิดรับออเดอร์ชั่วคราว ขออภัยในความไม่สะดวกครับ...'}
-                    />
-                  </div>
-                </div>
-
-                </div>
-            </div>
-
-            
                                 {/* Section: Opening Hours */}
             <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
               <h3 className="text-xl font-black mb-8 flex items-center gap-3">
@@ -1829,6 +2100,84 @@ const handleSave = async () => {
                         {isSaving ? 'SAVING...' : 'SAVE SETTINGS'}
                     </button>
                 </div>
+
+                {/* Image Crop Modal */}
+                {showCropModal && selectedImage && (
+                    <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[9999] flex flex-col justify-between p-6">
+                        {/* Header */}
+                        <div className="flex items-center justify-between text-white pb-4 border-b border-white/10">
+                            <div>
+                                <h3 className="text-lg font-black">{locale === 'en' ? 'Crop & Adjust Banner' : 'ปรับตำแหน่งและครอบรูปแบนเนอร์'}</h3>
+                                <p className="text-[10px] font-bold text-white/50">{locale === 'en' ? 'Drag to position, slide to zoom' : 'ลากรูปภาพเพื่อจัดตำแหน่ง, เลื่อนแถบด้านล่างเพื่อซูม'}</p>
+                            </div>
+                            <button
+                                onClick={handleCancelCrop}
+                                className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 transition-all flex items-center justify-center text-white"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Crop Area Wrapper */}
+                        <div className="relative flex-1 my-6 bg-black/40 rounded-3xl overflow-hidden border border-white/10">
+                            <Cropper
+                                image={selectedImage}
+                                crop={crop}
+                                zoom={zoom}
+                                aspect={16 / 9}
+                                onCropChange={setCrop}
+                                onCropComplete={onCropComplete}
+                                onZoomChange={setZoom}
+                            />
+                        </div>
+
+                        {/* Footer / Controls */}
+                        <div className="space-y-6 bg-black/40 backdrop-blur-md p-6 rounded-3xl border border-white/10">
+                            {/* Zoom Slider */}
+                            <div className="flex items-center gap-4 text-white">
+                                <span className="text-xs font-bold w-12 text-right">Zoom</span>
+                                <input
+                                    type="range"
+                                    value={zoom}
+                                    min={1}
+                                    max={3}
+                                    step={0.1}
+                                    aria-label="Zoom"
+                                    onChange={(e) => setZoom(Number(e.target.value))}
+                                    className="flex-1 accent-white cursor-pointer h-1 rounded-lg"
+                                />
+                                <span className="text-xs font-mono w-10 text-left">{zoom.toFixed(1)}x</span>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex items-center justify-end gap-3 pt-2">
+                                <button
+                                    onClick={handleCancelCrop}
+                                    className="px-6 py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-xs font-black uppercase tracking-wider transition-all"
+                                >
+                                    {locale === 'en' ? 'Cancel' : 'ยกเลิก'}
+                                </button>
+                                <button
+                                    onClick={handleCropAndUpload}
+                                    disabled={isUploadingBanner}
+                                    className="px-8 py-3 rounded-2xl bg-white text-black hover:bg-white/90 text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 disabled:opacity-50"
+                                >
+                                    {isUploadingBanner ? (
+                                        <>
+                                            <Loader2 size={16} className="animate-spin" />
+                                            {locale === 'en' ? 'Saving Banner...' : 'กำลังบันทึกรูป...'}
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Save size={16} />
+                                            {locale === 'en' ? 'Crop & Save' : 'ครอปและบันทึกแบนเนอร์'}
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
             </div>
           )}

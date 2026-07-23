@@ -500,6 +500,88 @@ export async function sendInventoryAlertFlex(to: string, data: { items: any[] })
   return await sendLinePushMessages(to, [flexMessage]);
 }
 
+export async function sendAttendanceReminderFlex(to: string, data: { staffName: string, time: string, type: 'check_in' | 'check_out', appUrl: string }) {
+  const { staffName, time, type, appUrl } = data;
+  
+  const isCheckIn = type === 'check_in';
+  const actionLabel = isCheckIn ? "กดลงเวลาเข้างาน" : "กดลงเวลาออกงาน";
+  const title = isCheckIn ? "ใกล้ถึงเวลาเข้างานแล้ว" : "ใกล้ถึงเวลาเลิกงานแล้ว";
+  const desc = isCheckIn ? "อย่าลืมกดลงเวลาเข้างานเพื่อเริ่มกะของคุณนะครับ!" : "อย่าลืมเคลียร์งานและกดลงเวลาออกงานเพื่อบันทึกกะของคุณนะครับ!";
+  const themeColor = isCheckIn ? "#10B981" : "#F59E0B";
+
+  const flexMessage: any = {
+    type: "flex",
+    altText: `แจ้งเตือนลงเวลา: ${actionLabel}`,
+    contents: {
+      type: "bubble",
+      body: {
+        type: "box",
+        layout: "vertical",
+        spacing: "md",
+        contents: [
+          { type: "text", text: "ATTENDANCE REMINDER", weight: "bold", color: "#A3A3A3", size: "xs" },
+          { type: "text", text: title, weight: "bold", size: "lg", color: "#1A1A18", wrap: true },
+          { type: "separator", margin: "lg" },
+          { 
+            type: "box", 
+            layout: "vertical", 
+            margin: "lg",
+            spacing: "sm",
+            contents: [
+              {
+                type: "box",
+                layout: "horizontal",
+                contents: [
+                  { type: "text", text: "พนักงาน:", size: "xs", color: "#A3A3A3", flex: 2 },
+                  { type: "text", text: staffName, size: "xs", color: "#1A1A18", weight: "bold", flex: 5 }
+                ]
+              },
+              {
+                type: "box",
+                layout: "horizontal",
+                contents: [
+                  { type: "text", text: "เวลากะ:", size: "xs", color: "#A3A3A3", flex: 2 },
+                  { type: "text", text: time, size: "xs", color: "#1A1A18", weight: "bold", flex: 5 }
+                ]
+              }
+            ]
+          },
+          {
+            type: "box",
+            layout: "vertical",
+            margin: "xl",
+            backgroundColor: "#FAFAF8",
+            paddingAll: "md",
+            contents: [
+              { type: "text", text: desc, size: "xs", color: "#70706B", wrap: true }
+            ]
+          }
+        ]
+      },
+      footer: {
+        type: "box",
+        layout: "vertical",
+        spacing: "sm",
+        contents: [
+          {
+            type: "button",
+            action: { 
+              type: "uri", 
+              label: actionLabel, 
+              uri: `${appUrl}/dashboard/staff`
+            },
+            style: "primary",
+            color: themeColor,
+            height: "sm"
+          }
+        ]
+      }
+    }
+  };
+
+  return await sendLinePushMessages(to, [flexMessage]);
+}
+
 async function sendLineMessage(mode: 'push' | 'reply', payload: { to?: string; replyToken?: string; messages: any[], notificationDisabled?: boolean }) {
   const accessToken = process.env.LINE_CHANNEL_ACCESS_TOKEN;
   if (!accessToken) throw new Error('LINE_CHANNEL_ACCESS_TOKEN is missing');

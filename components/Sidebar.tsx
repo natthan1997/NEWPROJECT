@@ -81,6 +81,7 @@ const copyByLocale: Record<Locale, Record<string, string>> = {
     staffAttendance: 'การลงเวลาและเงินเดือน',
     staffVerification: 'ตรวจสอบพนักงานใหม่',
     promotions: 'โปรโมชั่น',
+    staffDevelopment: 'การพัฒนาพนักงาน & KPI',
   },
   en: {
     dashboard: 'Dashboard',
@@ -127,6 +128,7 @@ const copyByLocale: Record<Locale, Record<string, string>> = {
     staffAttendance: 'Staff Attendance & Payroll',
     staffVerification: 'Staff Verification',
     promotions: 'Promotions',
+    staffDevelopment: 'Staff Development & KPI',
   },
   zh: {
     dashboard: '仪表盘',
@@ -172,6 +174,7 @@ const copyByLocale: Record<Locale, Record<string, string>> = {
     posSettings: 'POS与分支设置',
     staffVerification: '员工核查',
     promotions: '促销',
+    staffDevelopment: '员工发展与KPI',
   },
 }
 
@@ -356,6 +359,11 @@ export default function Sidebar({ isOpen, onMenuClick, isLocked, onLockToggle, o
             hidden: profile.staff_type === 'cafe'
           },
           {
+            name: copy.staffDevelopment || 'Staff Development',
+            href: '/dashboard/staff/development',
+            current: pathname.startsWith('/dashboard/staff/development'),
+          },
+          {
             name: copy.myTasks,
             href: '/dashboard/staff/tasks',
             current: pathname.startsWith('/dashboard/staff/tasks'),
@@ -404,6 +412,11 @@ export default function Sidebar({ isOpen, onMenuClick, isLocked, onLockToggle, o
               name: copy.staffAttendance || 'Attendance',
               href: '/dashboard/admin/staff/attendance',
               current: pathname.startsWith('/dashboard/admin/staff/attendance'),
+            },
+            {
+              name: copy.staffDevelopment || 'Staff Development',
+              href: '/dashboard/admin/staff/development',
+              current: pathname.startsWith('/dashboard/admin/staff/development'),
             },
             {
               name: copy.staffVerification || 'Staff Verification',

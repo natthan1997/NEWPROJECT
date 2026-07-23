@@ -60,31 +60,41 @@ function VoucherItem({ voucher, onUse, onCancel }: VoucherItemProps) {
       }`}
     >
       {/* Left Voucher Part */}
-      <div
-        className={`w-[90px] border-r border-dashed border-gray-200 flex flex-col items-center justify-center p-4 transition-colors duration-300 ${
-          isClaiming
-            ? 'bg-amber-50 text-amber-700'
-            : isActive
-            ? 'bg-gray-50 text-[#1A1A18]'
-            : 'bg-gray-50 text-gray-500'
-        }`}
-      >
-        <Ticket size={24} className="mb-2 opacity-50" />
-        <span className="text-xl font-bold leading-none tracking-tight">
-          {voucher.discount_type === 'percent'
-            ? `${Math.round(voucher.discount_value)}%`
-            : voucher.discount_type === 'free_item'
-            ? 'FREE'
-            : `${Math.round(voucher.discount_value)}`}
-        </span>
-        <span className="text-[9px] font-bold uppercase tracking-widest mt-1 opacity-70">
-          {voucher.discount_type === 'percent'
-            ? '%'
-            : voucher.discount_type === 'free_item'
-            ? 'ITEM'
-            : 'THB'}
-        </span>
-      </div>
+      {voucher.image_url ? (
+        <div className="w-[90px] border-r border-dashed border-gray-200 shrink-0 relative overflow-hidden bg-gray-100 flex items-center justify-center">
+          <img 
+            src={voucher.image_url} 
+            alt={voucher.coupon_name} 
+            className="w-full h-full object-cover" 
+          />
+        </div>
+      ) : (
+        <div
+          className={`w-[90px] border-r border-dashed border-gray-200 flex flex-col items-center justify-center p-4 transition-colors duration-300 ${
+            isClaiming
+              ? 'bg-amber-50 text-amber-700'
+              : isActive
+              ? 'bg-gray-50 text-[#1A1A18]'
+              : 'bg-gray-50 text-gray-500'
+          }`}
+        >
+          <Ticket size={24} className="mb-2 opacity-50" />
+          <span className="text-xl font-bold leading-none tracking-tight">
+            {voucher.discount_type === 'percent'
+              ? `${Math.round(voucher.discount_value)}%`
+              : voucher.discount_type === 'free_item'
+              ? 'FREE'
+              : `${Math.round(voucher.discount_value)}`}
+          </span>
+          <span className="text-[9px] font-bold uppercase tracking-widest mt-1 opacity-70">
+            {voucher.discount_type === 'percent'
+              ? '%'
+              : voucher.discount_type === 'free_item'
+              ? 'ITEM'
+              : 'THB'}
+          </span>
+        </div>
+      )}
 
       {/* Right Voucher Part */}
       <div className="flex-1 p-4 flex flex-col justify-between">
@@ -175,11 +185,18 @@ export default function MyRewardsPage() {
         setMemberInfo(member);
         const { data: couponsData } = await supabase
           .from('pos_member_coupons')
-          .select('*')
+          .select('*, pos_loyalty_coupons(image_url)')
           .eq('member_id', member.id)
           .order('created_at', { ascending: false });
 
-        if (couponsData) setVouchers(couponsData);
+        if (couponsData) {
+          // Normalize so it always has image_url
+          const normalizedCoupons = couponsData.map((c: any) => ({
+            ...c,
+            image_url: c.image_url || c.pos_loyalty_coupons?.image_url || null
+          }));
+          setVouchers(normalizedCoupons);
+        }
       }
     } catch (err) {
       console.error(err);

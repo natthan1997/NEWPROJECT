@@ -65,13 +65,17 @@ export function calculateDailyStats(
   if (checkOutTimestamp) {
     const time = new Date(checkOutTimestamp);
     const mins = time.getHours() * 60 + time.getMinutes();
-    // Overtime is auto-calculated only from late checkout
     if (mins > shiftEndMins) {
-      otMinutes = mins - shiftEndMins;
+      const rawOtMins = mins - shiftEndMins;
       
-      // If OT hasn't been explicitly rejected and hasn't been approved yet
-      if (otStatus === 'pending' || !otStatus) {
-        hasPendingOT = true;
+      // Calculate 30-minute blocks (requires at least 30 mins)
+      if (rawOtMins >= 30) {
+        otMinutes = Math.floor(rawOtMins / 30) * 30;
+        
+        // If OT hasn't been explicitly rejected and hasn't been approved yet
+        if (otStatus === 'pending' || !otStatus) {
+          hasPendingOT = true;
+        }
       }
     }
     

@@ -41,6 +41,11 @@ export default function POSMenuManager({
   const [editingItem, setEditingItem] = useState<any>(null)
   const [isSaving, setIsSaving] = useState(false)
 
+  const userLevel = profile?.staff_level || 'staff'
+  const userRole = profile?.role === 'admin' ? 'admin' : userLevel === 'manager' ? 'manager' : 'staff'
+  const rolePerms = shopSettings?.role_permissions?.[userRole]
+  const canEditMenu = profile?.role === 'admin' || !rolePerms || rolePerms.includes('menu-edit-price') || userRole === 'manager'
+
   const [allModifierGroups, setAllModifierGroups] = useState<any[]>([])
   const [itemModifierLinks, setItemModifierLinks] = useState<string[]>([])
 
@@ -219,13 +224,15 @@ export default function POSMenuManager({
                 </button>
               )}
               
-              <button 
-                  onClick={() => { setEditingItem({ name: '', name_en: '', name_zh: '', sale_price: 0, status: 'active', category_id: categories[0]?.id }); setIsEditorOpen(true); }} 
-                  className="h-10 px-6 rounded-full bg-[#1A1A18] text-white flex items-center justify-center gap-2 shadow-md shadow-black/10 font-black uppercase tracking-widest text-[10px] hover:bg-black transition-all active:scale-95"
-              >
-                  <Plus size={16} /> 
-                  <span className="hidden sm:inline">{locale === 'en' ? 'Add Menu' : locale === 'zh' ? 'เพิ่มรายการเมนู' : 'เพิ่มเมนู'}</span>
-              </button>
+              {canEditMenu && (
+                <button 
+                    onClick={() => { setEditingItem({ name: '', name_en: '', name_zh: '', sale_price: 0, status: 'active', category_id: categories[0]?.id }); setIsEditorOpen(true); }} 
+                    className="h-10 px-6 rounded-full bg-[#1A1A18] text-white flex items-center justify-center gap-2 shadow-md shadow-black/10 font-black uppercase tracking-widest text-[10px] hover:bg-black transition-all active:scale-95"
+                >
+                    <Plus size={16} /> 
+                    <span className="hidden sm:inline">{locale === 'en' ? 'Add Menu' : locale === 'zh' ? 'เพิ่มรายการเมนู' : 'เพิ่มเมนู'}</span>
+                </button>
+              )}
           </div>
       </div>
     );
@@ -592,20 +599,22 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
                
                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6 pb-20">
                    {/* Add Menu Ghost Card */}
-                   <button
-                       onClick={() => { setEditingItem({ name: '', name_en: '', name_zh: '', sale_price: 0, status: 'active', category_id: categories[0]?.id }); setIsEditorOpen(true); }}
-                       className="group relative flex flex-col items-center justify-center border-2 border-dashed border-gray-200 bg-gray-50/50 rounded-3xl min-h-[220px] transition-all hover:bg-white hover:border-black hover:shadow-lg"
-                   >
-                       <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center border border-gray-100 shadow-sm text-gray-400 group-hover:bg-[#1A1A18] group-hover:text-white group-hover:border-black transition-all duration-300">
-                           <Plus size={20} />
-                       </div>
-                       <span className="mt-4 text-[13px] font-black tracking-widest text-gray-400 group-hover:text-black uppercase">
-                           {locale === 'en' ? 'Add Menu' : 'เพิ่มเมนูใหม่'}
-                       </span>
-                   </button>
+                   {canEditMenu && (
+                     <button
+                         onClick={() => { setEditingItem({ name: '', name_en: '', name_zh: '', sale_price: 0, status: 'active', category_id: categories[0]?.id }); setIsEditorOpen(true); }}
+                         className="group relative flex flex-col items-center justify-center border-2 border-dashed border-gray-200 bg-gray-50/50 rounded-3xl min-h-[220px] transition-all hover:bg-white hover:border-black hover:shadow-lg"
+                     >
+                         <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center border border-gray-100 shadow-sm text-gray-400 group-hover:bg-[#1A1A18] group-hover:text-white group-hover:border-black transition-all duration-300">
+                             <Plus size={20} />
+                         </div>
+                         <span className="mt-4 text-[13px] font-black tracking-widest text-gray-400 group-hover:text-black uppercase">
+                             {locale === 'en' ? 'Add Menu' : 'เพิ่มเมนูใหม่'}
+                         </span>
+                     </button>
+                   )}
                    
                    {filteredItems.map(item => (
-                       <div key={item.id} className="group relative flex flex-col bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer" onClick={() => { setEditingItem(item); fetchItemLinks(item.id); setIsEditorOpen(true); }}>
+                       <div key={item.id} className="group relative flex flex-col bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer" onClick={() => { if (canEditMenu) { setEditingItem(item); fetchItemLinks(item.id); setIsEditorOpen(true); } }}>
                            <div className="aspect-square relative overflow-hidden bg-gray-50">
                                {item.image_url ? (
                                    <img loading="lazy" crossOrigin="anonymous"  src={item.image_url || ''} alt={item.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
@@ -646,10 +655,12 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
                                             <span className="text-[11px] text-gray-500 mr-1">฿</span>
                                             {item.sale_price.toLocaleString()}
                                         </div>
-                                        <div className="flex items-center gap-1">
-                                            <button onClick={(e) => { e.stopPropagation(); setEditingItem(item); fetchItemLinks(item.id); setIsEditorOpen(true); }} className="w-7 h-7 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center hover:bg-black hover:text-white transition-all"><Edit3 size={12} /></button>
-                                            <button onClick={(e) => { e.stopPropagation(); handleDeleteItem(item.id); }} className="w-7 h-7 rounded-full bg-red-50 text-red-400 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all"><Trash2 size={12} /></button>
-                                        </div>
+                                        {canEditMenu && (
+                                            <div className="flex items-center gap-1">
+                                                <button onClick={(e) => { e.stopPropagation(); setEditingItem(item); fetchItemLinks(item.id); setIsEditorOpen(true); }} className="w-7 h-7 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center hover:bg-black hover:text-white transition-all"><Edit3 size={12} /></button>
+                                                <button onClick={(e) => { e.stopPropagation(); handleDeleteItem(item.id); }} className="w-7 h-7 rounded-full bg-red-50 text-red-400 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all"><Trash2 size={12} /></button>
+                                            </div>
+                                        )}
                                    </div>
                                    <div className="flex items-center justify-between pt-3 border-t border-gray-100">
                                        <div className="flex flex-col">

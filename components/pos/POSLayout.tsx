@@ -132,16 +132,7 @@ export default function POSLayout({
             </nav>
 
             {/* Sidebar Footer */}
-            <footer className={`p-8 border-t font-bold flex-shrink-0 space-y-4 ${isDark ? 'border-white/5' : 'border-[#E5E5DF]'}`}>
-                <button 
-                    onClick={() => {
-                        // We will dispatch a custom event that page.tsx can listen to
-                        window.dispatchEvent(new CustomEvent('open-pos-timeclock'))
-                    }}
-                    className={`w-full h-16 rounded-none text-[12px] font-black uppercase tracking-[0.3em] flex items-center justify-center gap-4 transition-all font-bold ${isDark ? 'bg-[#3A5A40]/20 text-[#3A5A40] hover:bg-[#3A5A40] hover:text-white' : 'bg-gray-100 text-black hover:bg-black hover:text-white shadow-sm'}`}
-                >
-                    <ShieldCheck size={16} /> TIME CLOCK
-                </button>
+            <footer className={`p-8 border-t font-bold flex-shrink-0 ${isDark ? 'border-white/5' : 'border-[#E5E5DF]'}`}>
                 {!profile?.is_pos_account ? (
                     <Link 
                         href={getDashboardPath()}

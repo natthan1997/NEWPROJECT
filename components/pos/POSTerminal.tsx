@@ -60,7 +60,10 @@ import {
   Delete,
   Award,
   FlaskConical,
+  Undo2,
+  Power,
 } from 'lucide-react'
+import Swal from 'sweetalert2'
 import { QRCodeSVG } from 'qrcode.react'
 import { supabase, type Profile } from '@/lib/supabaseClient'
 import Link from 'next/link'
@@ -524,6 +527,30 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       return false
     }
     return true
+  }
+
+  const userRole = profile?.role || 'staff'
+  const canToggleStock = userRole === 'admin' || shopSettings?.role_permissions?.[userRole]?.includes('menu-stock-toggle')
+
+  const toggleItemStock = async (e: React.MouseEvent, item: MenuItem) => {
+    e.stopPropagation()
+    try {
+      const newStockStatus = item.in_stock === false ? true : false
+      // Optimistic update
+      setItems(prev => prev.map(i => i.id === item.id ? { ...i, in_stock: newStockStatus } : i))
+      const { error } = await supabase.from('pos_menu_items').update({ in_stock: newStockStatus }).eq('id', item.id)
+      if (error) throw error
+    } catch (err: any) {
+      console.error('Error toggling stock:', err)
+      // Revert on error
+      setItems(prev => prev.map(i => i.id === item.id ? { ...i, in_stock: item.in_stock } : i))
+      Swal.fire({
+        title: 'Error',
+        text: 'Failed to update stock status: ' + err.message,
+        icon: 'error',
+        confirmButtonColor: '#000',
+      })
+    }
   }
 
   const handleProductClick = (e: React.MouseEvent, item: MenuItem) => {
@@ -2695,7 +2722,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 	      playAppSound('pay');
 	      let finalOrderId = editingOrderId
 	      let finalOrderNumber = editingOrderNumber || ''
-	      let finalQueueNumber = await fetchTrueQueueNumber(editingOrderId)
+	      let finalQueueNumber = 0;
 	      const amountToPay = amount !== undefined ? amount : remainingTotal
         let pointsEarned = 0;
       const newTotalPaid = totalPaid + amountToPay
@@ -3228,29 +3255,29 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
               className={`grid gap-3 sm:gap-4 xl:gap-6 font-bold ${viewMode === 'list' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'}`}
             >
               {filteredItems.map(item => (
-                <button
-                  key={item.id}
-                  onClick={(e) => item.in_stock !== false && handleProductClick(e, item)}
-                  disabled={item.in_stock === false}
-                  className={`relative group flex border border-[#E5E5DF] bg-white rounded-2xl p-3 sm:p-4 text-left font-bold transition-all duration-300 ${item.in_stock === false ? 'opacity-60 grayscale cursor-not-allowed' : 'hover:border-black/30 hover:shadow-xl hover:-translate-y-1'} ${viewMode === 'list' ? 'flex-row gap-4 items-center' : 'flex-col'}`}
-                >
-                  {item.in_stock === false && (
-                    <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/35 backdrop-blur-[2px] rounded-2xl pointer-events-none">
-                       <div className="flex flex-col items-center gap-2">
-                         <span className="bg-red-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-lg">สินค้าหมด</span>
-                         <span className="bg-white/90 text-red-600 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-[0.18em] shadow-sm">Unavailable</span>
-                       </div>
-                    </div>
-                  )}
-                  {(() => {
-                    const primaryName = getPrimaryMenuName(item)
-                    const secondaryName = getSecondaryMenuName(item, locale === 'zh' ? 'zh' : 'en')
+                <div key={item.id} className="relative group h-full flex flex-col">
+                  <button
+                    onClick={(e) => item.in_stock !== false && handleProductClick(e, item)}
+                    disabled={item.in_stock === false}
+                    className={`relative w-full h-full flex border border-[#E5E5DF] bg-white rounded-2xl p-3 sm:p-4 text-left font-bold transition-all duration-300 ${item.in_stock === false ? 'opacity-60 grayscale cursor-not-allowed' : 'hover:border-black/30 hover:shadow-xl hover:-translate-y-1'} ${viewMode === 'list' ? 'flex-row gap-4 items-center' : 'flex-col'}`}
+                  >
+                    {item.in_stock === false && (
+                      <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/35 backdrop-blur-[2px] rounded-2xl pointer-events-none">
+                         <div className="flex flex-col items-center gap-2">
+                           <span className="bg-red-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-lg">สินค้าหมด</span>
+                           <span className="bg-white/90 text-red-600 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-[0.18em] shadow-sm">Unavailable</span>
+                         </div>
+                      </div>
+                    )}
+                    {(() => {
+                      const primaryName = getPrimaryMenuName(item)
+                      const secondaryName = getSecondaryMenuName(item, locale === 'zh' ? 'zh' : 'en')
 
-                    return (
-                      <>
-                        <div
-                          className={`relative overflow-hidden rounded-xl bg-gray-50 font-bold transition-all duration-500 shrink-0 ${viewMode === 'list' ? 'h-20 w-20' : 'mb-3 sm:mb-4 w-full aspect-[1/1] sm:aspect-[4/5]'}`}
-                        >
+                      return (
+                        <>
+                          <div
+                            className={`relative overflow-hidden rounded-xl bg-gray-50 font-bold transition-all duration-500 shrink-0 ${viewMode === 'list' ? 'h-20 w-20' : 'mb-3 sm:mb-4 w-full aspect-[1/1] sm:aspect-[4/5]'}`}
+                          >
                           {item.image_url ? (
                             <img loading="lazy" crossOrigin="anonymous" 
                               src={item.image_url || ''}
@@ -3287,6 +3314,16 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                     )
                   })()}
                 </button>
+                {canToggleStock && (
+                  <button
+                    onClick={(e) => toggleItemStock(e, item)}
+                    title={item.in_stock === false ? "Mark as Available" : "Mark as Out of Stock"}
+                    className={`absolute top-2 right-2 z-30 p-2 sm:p-2.5 rounded-full shadow-md backdrop-blur-md transition-all duration-300 border ${item.in_stock === false ? 'bg-red-500/90 text-white border-red-600 hover:bg-red-600 scale-100 hover:scale-110' : 'bg-white/80 text-gray-700 border-gray-200 hover:bg-white hover:text-black hover:border-black/20 hover:scale-110 opacity-0 group-hover:opacity-100'}`}
+                  >
+                    <Power size={14} className={item.in_stock === false ? '' : 'text-emerald-600'} />
+                  </button>
+                )}
+              </div>
               ))}
             </div>
           ) : isInitialLoading ? (
@@ -3316,7 +3353,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
               <motion.h3 
                 animate={isCartBumping ? { x: [-3, 3, -3, 3, 0], scale: [1, 1.02, 1] } : {}}
                 transition={{ duration: 0.3 }}
-                className="flex items-center gap-4 text-xl sm:text-2xl font-black uppercase tracking-tighter text-black"
+                className="flex flex-wrap items-center gap-2 sm:gap-4 text-xl sm:text-2xl font-black uppercase tracking-tighter text-black"
               >
                 <span>{locale === 'en' ? 'Order list' : locale === 'zh' ? '订单清单' : 'รายการสั่งซื้อ'}</span>
                 {editingOrderNumber && (
@@ -3325,12 +3362,26 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                   </span>
                 )}
               </motion.h3>
-              <button
-                onClick={() => setIsCartExpanded(false)}
-                className="p-2 transition-all hover:bg-gray-100 lg:hidden"
-              >
-                <X size={24} />
-              </button>
+              <div className="flex items-center gap-2">
+                {editingOrderId && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      resetOrderComposer();
+                    }}
+                    className="flex h-8 w-8 items-center justify-center text-gray-400 hover:text-black transition-colors"
+                    title={locale === 'en' ? 'Exit active held bill and start a new order' : 'ออกจากบิลพักปัจจุบันเพื่อเริ่มสั่งรายการใหม่'}
+                  >
+                    <Undo2 size={20} />
+                  </button>
+                )}
+                <button
+                  onClick={() => setIsCartExpanded(false)}
+                  className="p-2 transition-all hover:bg-gray-100 lg:hidden"
+                >
+                  <X size={24} />
+                </button>
+              </div>
             </div>
 
               <div className="flex w-full bg-gray-100 p-1 font-bold">

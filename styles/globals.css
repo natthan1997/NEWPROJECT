@@ -834,3 +834,20 @@ select {
     min-height: 100vh !important;
   }
 }
+
+/* LIFF inputs and select fields focus override */
+.liff-no-focus input,
+.liff-no-focus select {
+  -webkit-tap-highlight-color: transparent !important;
+}
+.liff-no-focus input:focus,
+.liff-no-focus input[type="text"]:focus,
+.liff-no-focus select:focus {
+  outline: none !important;
+  border-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  --tw-ring-color: transparent !important;
+  --tw-ring-shadow: none !important;
+  --tw-ring-offset-width: 0px !important;
+}
