@@ -585,6 +585,56 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     touchStartPos.current = null
   }
 
+  const tableLongPressTimer = useRef<NodeJS.Timeout | null>(null)
+  const isTableLongPressTriggered = useRef(false)
+  const tableTouchStartPos = useRef<{ x: number, y: number } | null>(null)
+
+  const handleTablePressStart = (e: React.TouchEvent | React.MouseEvent, targetTable: any, pendingForThisTable: any[], isOccupied: boolean, triggerMerge: () => void) => {
+    isTableLongPressTriggered.current = false
+    
+    if ('touches' in e) {
+      tableTouchStartPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+    } else {
+      tableTouchStartPos.current = { x: (e as React.MouseEvent).clientX, y: (e as React.MouseEvent).clientY }
+    }
+
+    tableLongPressTimer.current = setTimeout(() => {
+      isTableLongPressTriggered.current = true
+      if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
+        window.navigator.vibrate(50)
+      }
+      triggerMerge()
+    }, 600)
+  }
+
+  const handleTablePressMove = (e: React.TouchEvent | React.MouseEvent) => {
+    if (!tableTouchStartPos.current || !tableLongPressTimer.current) return
+    
+    let currentX, currentY;
+    if ('touches' in e) {
+      currentX = e.touches[0].clientX
+      currentY = e.touches[0].clientY
+    } else {
+      currentX = (e as React.MouseEvent).clientX
+      currentY = (e as React.MouseEvent).clientY
+    }
+
+    const diffX = Math.abs(currentX - tableTouchStartPos.current.x)
+    const diffY = Math.abs(currentY - tableTouchStartPos.current.y)
+
+    if (diffX > 30 || diffY > 30) {
+      handleTablePressCancel()
+    }
+  }
+
+  const handleTablePressCancel = () => {
+    if (tableLongPressTimer.current) {
+      clearTimeout(tableLongPressTimer.current)
+      tableLongPressTimer.current = null
+    }
+    tableTouchStartPos.current = null
+  }
+
   const toggleItemStock = async (item: MenuItem, closeMode: 'today' | 'indefinite' | null = null) => {
     try {
       const newStockStatus = item.in_stock === false ? true : false
