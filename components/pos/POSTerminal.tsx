@@ -3337,7 +3337,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
               {filteredItems.map(item => (
                 <div 
                   key={item.id} 
-                  className={`relative group flex flex-col select-none touch-manipulation ${viewMode === 'grid' ? 'aspect-square' : 'h-full'}`}
+                  className={`relative group select-none touch-manipulation w-full ${viewMode === 'grid' ? 'aspect-square block' : 'h-full flex flex-col'}`}
                   style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
                   onContextMenu={(e) => {
                     e.preventDefault()
@@ -3363,7 +3363,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                       if (item.in_stock !== false) handleProductClick(e, item)
                     }}
                     disabled={item.in_stock === false}
-                    className={`relative w-full h-full flex text-left font-bold transition-all duration-300 ${item.in_stock === false ? 'opacity-70 grayscale cursor-not-allowed' : 'hover:shadow-xl hover:-translate-y-1'} ${viewMode === 'list' ? 'border border-[#E5E5DF] bg-white rounded-2xl p-3 sm:p-4 flex-row gap-4 items-center' : 'rounded-[0.8rem] overflow-hidden border border-[#E5E5DF]/50 bg-gray-100'}`}
+                    className={`transition-all duration-300 outline-none ${item.in_stock === false ? 'opacity-70 grayscale cursor-not-allowed' : 'hover:shadow-xl hover:-translate-y-1'} ${viewMode === 'list' ? 'relative w-full h-full flex text-left font-bold border border-[#E5E5DF] bg-white rounded-2xl p-3 sm:p-4 flex-row gap-4 items-center' : 'absolute inset-0 w-full h-full flex text-left font-bold rounded-[0.8rem] overflow-hidden border border-[#E5E5DF]/50 bg-gray-100'}`}
                   >
                     {item.in_stock === false && (
                       <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/30 backdrop-blur-[2px] pointer-events-none">
