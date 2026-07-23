@@ -4,7 +4,7 @@ import {
   Plus, Search, Edit3, Trash2, Filter, 
   MoreVertical, Check, X, Loader2, Image as ImageIcon,
   ChevronRight, RefreshCcw, Save, Trash, LayoutGrid,
-  Menu as MenuIcon, LogOut, Settings, List, Star, ToggleRight, CheckCircle2, XCircle, Upload, AlertCircle, Crop
+  Menu as MenuIcon, LogOut, Settings, List, Star, ToggleRight, CheckCircle2, XCircle, Upload, AlertCircle, Crop, ZoomIn, ZoomOut
 } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
