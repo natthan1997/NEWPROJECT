@@ -538,7 +538,6 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   const touchStartPos = useRef<{ x: number, y: number } | null>(null)
 
   const handlePressStart = (e: React.TouchEvent | React.MouseEvent, item: MenuItem) => {
-    if (!canToggleStock) return
     isLongPressTriggered.current = false
     
     if ('touches' in e) {
@@ -571,8 +570,8 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     const diffX = Math.abs(currentX - touchStartPos.current.x)
     const diffY = Math.abs(currentY - touchStartPos.current.y)
 
-    // If moved more than 15 pixels, it's a scroll, so cancel the long press
-    if (diffX > 15 || diffY > 15) {
+    // If moved more than 30 pixels, it's a scroll, so cancel the long press
+    if (diffX > 30 || diffY > 30) {
       handlePressCancel()
     }
   }
@@ -4488,7 +4487,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
               <p className="text-sm opacity-70 mt-1">{locale === 'en' ? 'Item Options' : locale === 'zh' ? '选项' : 'ตัวเลือกเมนู'}</p>
             </div>
             <div className="p-4 flex flex-col gap-3">
-              {canToggleStock && (
+              {canToggleStock ? (
                 <button
                   onClick={() => {
                     toggleItemStock(optionsModalItem)
@@ -4499,6 +4498,10 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                   <Power size={20} />
                   <span>{optionsModalItem.in_stock === false ? (locale === 'en' ? 'Mark as Available' : locale === 'zh' ? '标记为有货' : 'เปิดขายสินค้านี้') : (locale === 'en' ? 'Mark as Out of Stock' : locale === 'zh' ? '标记为无货' : 'ปิดขาย (สินค้าหมด)')}</span>
                 </button>
+              ) : (
+                <div className="text-center text-gray-500 py-4 bg-gray-50 rounded-2xl border border-gray-200">
+                  {locale === 'en' ? 'You do not have permission to edit stock.' : locale === 'zh' ? '您没有权限编辑库存。' : 'คุณไม่มีสิทธิ์จัดการสต็อกสินค้า (ต้องเปิดสิทธิ์ในตั้งค่า)'}
+                </div>
               )}
               <button
                 onClick={() => setOptionsModalItem(null)}
