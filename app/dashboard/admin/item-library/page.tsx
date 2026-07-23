@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect, useMemo, useState, useCallback } from 'react'
 import Link from 'next/link'
-import { ImagePlus, Loader2, Plus, Save, Search, Trash2, X } from 'lucide-react'
+import { ImagePlus, Loader2, Plus, Save, Search, Trash2, X, Crop } from 'lucide-react'
 import Cropper from 'react-easy-crop'
 import getCroppedImg from '@/lib/cropImage'
 import { useAuth } from '@/lib/AuthContext'
@@ -960,7 +960,7 @@ export default function AdminItemLibraryPage() {
 
           <div className="space-y-3">
             <input value={editor.image_url} onChange={(e) => setEditor((prev) => ({ ...prev, image_url: e.target.value }))} className="w-full border border-[#E5E5E5] px-3 py-2.5 text-sm font-semibold outline-none focus:border-[#111111]" placeholder="Image URL" />
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
               <label className="flex cursor-pointer items-center justify-center gap-2 border border-dashed border-[#D6D6D6] bg-[#FAFAF7] px-4 py-4 text-xs font-bold uppercase tracking-[0.12em] text-[#444444] hover:border-[#111111] hover:bg-white transition-all">
                 {uploadingImage ? <Loader2 size={14} className="animate-spin" /> : <ImagePlus size={14} />}
                 {uploadingImage ? 'กำลังอัปโหลดรูป...' : (editor.image_url ? 'อัปโหลดรูปใหม่' : 'เลือกรูปจากเครื่อง')}
@@ -979,6 +979,18 @@ export default function AdminItemLibraryPage() {
                   }}
                 />
               </label>
+              <button
+                type="button"
+                onClick={() => {
+                  setCropImageSrc(editor.image_url)
+                  setIsCropping(true)
+                }}
+                disabled={!editor.image_url || uploadingImage}
+                className="inline-flex items-center justify-center border border-[#111111] bg-[#111111] px-4 py-4 text-xs font-bold uppercase tracking-[0.12em] text-white transition-all hover:bg-[#333333] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <Crop size={14} className="mr-2" />
+                {locale === 'en' ? 'Crop' : locale === 'zh' ? '裁剪' : 'จัดตำแหน่ง'}
+              </button>
               <button
                 type="button"
                 onClick={() => setEditor((prev) => ({ ...prev, image_url: '' }))}
