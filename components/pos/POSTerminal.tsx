@@ -4133,22 +4133,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                           <button
                             style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
                             onContextMenu={(e) => e.preventDefault()}
-                            onTouchStart={(e) => handleTablePressStart(e, targetTable, pendingForThisTable, isOccupied, handleMergeTable)}
-                            onTouchEnd={handleTablePressCancel}
-                            onTouchMove={handleTablePressMove}
-                            onMouseDown={(e) => handleTablePressStart(e, targetTable, pendingForThisTable, isOccupied, handleMergeTable)}
-                            onMouseUp={handleTablePressCancel}
-                            onMouseMove={handleTablePressMove}
-                            onMouseLeave={handleTablePressCancel}
                             onClick={(e) => {
-                              handleTablePressCancel();
-                              if (isTableLongPressTriggered.current) {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                isTableLongPressTriggered.current = false;
-                                return;
-                              }
-
                               if (selectedTable?.id === targetTable.id) {
                                 resetOrderComposer()
                                 setTotalPaid(0)
