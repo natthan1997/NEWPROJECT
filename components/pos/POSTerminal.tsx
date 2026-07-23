@@ -3459,20 +3459,20 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10 transition-colors duration-300"></div>
                           
                           <div className="relative z-10 flex-1 flex flex-col justify-end p-2.5 sm:p-3.5 font-bold text-white w-full">
-                            <div className="flex justify-between items-end w-full gap-2">
-                              <div className="flex flex-col overflow-hidden text-left flex-1">
+                            <div className="flex flex-col w-full gap-0.5 text-left">
+                              <div className="flex flex-col w-full">
                                 <h4 className="line-clamp-none text-[13px] sm:text-[15px] leading-tight font-black tracking-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
                                   {primaryName}
                                 </h4>
                                 {secondaryName && (
-                                  <p className="line-clamp-2 text-[8.5px] sm:text-[9.5px] leading-tight font-medium text-white/70 mt-0.5 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+                                  <p className="line-clamp-1 text-[8.5px] sm:text-[9.5px] leading-tight font-medium text-white/70 mt-0.5 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
                                     {secondaryName}
                                   </p>
                                 )}
                               </div>
-                              <div className="flex items-baseline shrink-0 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-                                <span className="text-[18px] sm:text-[22px] font-black leading-none">{getEffectiveItemUnitPrice(item).toLocaleString()}</span>
-                                <span className="text-[10px] sm:text-[11px] font-semibold ml-1 text-white/90">{locale === 'en' ? ' THB' : ' บาท'}</span>
+                              <div className="flex items-baseline drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] mt-0.5">
+                                <span className="text-[16px] sm:text-[19px] font-black leading-none">{getEffectiveItemUnitPrice(item).toLocaleString()}</span>
+                                <span className="text-[9px] sm:text-[10px] font-semibold ml-1 text-white/90">{locale === 'en' ? ' THB' : ' บาท'}</span>
                               </div>
                             </div>
                           </div>
