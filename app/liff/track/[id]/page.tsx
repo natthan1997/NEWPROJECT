@@ -398,7 +398,7 @@ export default function LiffTrackPage() {
               </AnimatePresence>
 
               {/* 🚫 CANCEL ORDER BUTTON */}
-              {status === 'pending' && (
+              {(status === 'pending' || status === 'payment_pending' || status === 'paid') && (
                 <div className="mt-4 flex justify-center">
                    <button 
                      onClick={() => setShowCancelModal(true)}

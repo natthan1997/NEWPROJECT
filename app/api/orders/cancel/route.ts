@@ -25,7 +25,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
-    if (order.status !== 'pending' && order.status !== 'payment_pending') {
+    if (order.status !== 'pending' && order.status !== 'payment_pending' && order.status !== 'paid') {
       return NextResponse.json({ 
         error: 'Cannot cancel order', 
         message: 'ออเดอร์นี้ไม่สามารถยกเลิกได้ เนื่องจากพนักงานหรือครัวได้รับออเดอร์แล้ว'
