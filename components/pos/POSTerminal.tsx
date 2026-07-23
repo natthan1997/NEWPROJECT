@@ -535,10 +535,18 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 
   const longPressTimer = useRef<NodeJS.Timeout | null>(null)
   const isLongPressTriggered = useRef(false)
+  const touchStartPos = useRef<{ x: number, y: number } | null>(null)
 
   const handlePressStart = (e: React.TouchEvent | React.MouseEvent, item: MenuItem) => {
     if (!canToggleStock) return
     isLongPressTriggered.current = false
+    
+    if ('touches' in e) {
+      touchStartPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+    } else {
+      touchStartPos.current = { x: (e as React.MouseEvent).clientX, y: (e as React.MouseEvent).clientY }
+    }
+
     longPressTimer.current = setTimeout(() => {
       isLongPressTriggered.current = true
       setOptionsModalItem(item)
@@ -548,11 +556,33 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     }, 600)
   }
 
+  const handlePressMove = (e: React.TouchEvent | React.MouseEvent) => {
+    if (!touchStartPos.current || !longPressTimer.current) return
+    
+    let currentX, currentY;
+    if ('touches' in e) {
+      currentX = e.touches[0].clientX
+      currentY = e.touches[0].clientY
+    } else {
+      currentX = (e as React.MouseEvent).clientX
+      currentY = (e as React.MouseEvent).clientY
+    }
+
+    const diffX = Math.abs(currentX - touchStartPos.current.x)
+    const diffY = Math.abs(currentY - touchStartPos.current.y)
+
+    // If moved more than 15 pixels, it's a scroll, so cancel the long press
+    if (diffX > 15 || diffY > 15) {
+      handlePressCancel()
+    }
+  }
+
   const handlePressCancel = () => {
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current)
       longPressTimer.current = null
     }
+    touchStartPos.current = null
   }
 
   const toggleItemStock = async (item: MenuItem) => {
@@ -3287,9 +3317,10 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                   }}
                   onTouchStart={(e) => handlePressStart(e, item)}
                   onTouchEnd={handlePressCancel}
-                  onTouchMove={handlePressCancel}
+                  onTouchMove={handlePressMove}
                   onMouseDown={(e) => handlePressStart(e, item)}
                   onMouseUp={handlePressCancel}
+                  onMouseMove={handlePressMove}
                   onMouseLeave={handlePressCancel}
                 >
                   <button
