@@ -405,6 +405,7 @@ export default function POSTerminal({
   const [modifierGroups, setModifierGroups] = useState<any[]>([])
   const [tempSelectedModifiers, setTempSelectedModifiers] = useState<any[]>([])
   const [tempQuantity, setTempQuantity] = useState(1)
+  const [editingCartItemIndex, setEditingCartItemIndex] = useState<number | null>(null)
 
   // --- ITEM DISCOUNT MODAL STATE ---
   const [itemDiscountModalItem, setItemDiscountModalItem] = useState<CartItem | null>(null)
@@ -2149,6 +2150,37 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     await fetchTables()
   }
 
+  const openEditCartItem = async (index: number) => {
+    const item = cart[index];
+    if (item.modifiers && item.modifiers.length > 0) {
+      const groupIds = item.modifiers.map((m: any) => m.group_id)
+      const { data: groups } = await supabase
+        .from('pos_menu_modifier_groups')
+        .select('*, options:pos_menu_modifiers(*)')
+        .in('id', groupIds)
+        .order('sort_order', { ascending: true })
+        .order('name', { ascending: true })
+
+      if (groups) {
+        const sortedGroups = groups.map(g => ({
+          ...g,
+          options: (g.options || []).sort(
+            (a: any, b: any) =>
+              (a.sort_order || 0) - (b.sort_order || 0) ||
+              (a.name || '').localeCompare(b.name || '')
+          ),
+        }))
+        setModifierGroups(sortedGroups)
+      }
+    } else {
+      setModifierGroups([])
+    }
+    setModifierModalItem(item as any)
+    setTempSelectedModifiers(item.selected_modifiers || [])
+    setTempQuantity(item.quantity || 1)
+    setEditingCartItemIndex(index)
+  }
+
   const addToCart = async (item: MenuItem, modifiers: any[] = [], qty: number = 1, fromModal: boolean = false) => {
     if (!activeShift) {
       onOpenShiftModal()
@@ -3586,44 +3618,47 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 
               {cart.length > 0 ? (
                 cart.map((item, idx) => (
-                  <div
-                    key={idx}
-                    onContextMenu={(e) => {
-                      e.preventDefault();
-                      setItemDiscountModalItem(item);
-                    }}
-                    className="animate-in slide-in-from-right group flex gap-6 duration-300"
-                  >
-                    <div className="relative h-24 w-20 overflow-hidden border border-gray-100 bg-gray-50 transition-all group-hover:shadow-lg">
-                      {item.image_url ? (
-                        <img loading="lazy" crossOrigin="anonymous" 
-                          src={item.image_url || ''}
-                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center bg-gray-100 text-gray-200">
-                          <ImageIcon size={24} />
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex flex-1 flex-col justify-between py-1">
-                      <div>
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h4 className="mb-1 text-[13px] font-black uppercase leading-tight text-black">
-                              {getPrimaryMenuName(item)}
-                            </h4>
-                            {getSecondaryMenuName(item, locale === 'zh' ? 'zh' : 'en') && (
-                              <p className="mb-1 text-[10px] font-semibold leading-snug text-gray-500">
-                                {getSecondaryMenuName(item, locale === 'zh' ? 'zh' : 'en')}
-                              </p>
-                            )}
-                            {item.customer_name && (
-                              <div className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mb-1">
-                                👤 {item.customer_name}
-                              </div>
-                            )}
-                           </div>
+                    <div
+                      key={idx}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        setItemDiscountModalItem(item);
+                      }}
+                      className="animate-in slide-in-from-right group flex gap-6 duration-300"
+                    >
+                      <div 
+                        className="relative h-24 w-20 overflow-hidden border border-gray-100 bg-gray-50 transition-all group-hover:shadow-lg cursor-pointer"
+                        onClick={() => openEditCartItem(idx)}
+                      >
+                        {item.image_url ? (
+                          <img loading="lazy" crossOrigin="anonymous" 
+                            src={item.image_url || ''}
+                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center bg-gray-100 text-gray-200">
+                            <ImageIcon size={24} />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex flex-1 flex-col justify-between py-1">
+                        <div>
+                          <div className="flex items-start justify-between">
+                            <div className="cursor-pointer" onClick={() => openEditCartItem(idx)}>
+                              <h4 className="mb-1 text-[13px] font-black uppercase leading-tight text-black group-hover:text-amber-600 transition-colors">
+                                {getPrimaryMenuName(item)}
+                              </h4>
+                              {getSecondaryMenuName(item, locale === 'zh' ? 'zh' : 'en') && (
+                                <p className="mb-1 text-[10px] font-semibold leading-snug text-gray-500">
+                                  {getSecondaryMenuName(item, locale === 'zh' ? 'zh' : 'en')}
+                                </p>
+                              )}
+                              {item.customer_name && (
+                                <div className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mb-1">
+                                  👤 {item.customer_name}
+                                </div>
+                              )}
+                             </div>
                           <div className="flex items-center gap-1">
                             <button
                               onClick={() => setSelectedRecipeItem(item)}
@@ -4603,7 +4638,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4 font-bold sm:p-8">
           <div
             className="absolute inset-0 bg-[#1A1A18]/40 backdrop-blur-md"
-            onClick={() => setModifierModalItem(null)}
+            onClick={() => { setModifierModalItem(null); setEditingCartItemIndex(null); }}
           ></div>
           <div className="animate-in zoom-in-95 relative flex max-h-[95vh] w-full max-w-4xl flex-col overflow-hidden rounded-[2.5rem] bg-white shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] duration-300 border border-white/20">
             <header className="relative flex items-center justify-between border-b border-gray-100 bg-white p-6 sm:p-8">
@@ -4632,7 +4667,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                 </div>
               </div>
               <button
-                onClick={() => setModifierModalItem(null)}
+                onClick={() => { setModifierModalItem(null); setEditingCartItemIndex(null); }}
                 className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-50 text-gray-400 transition-all hover:bg-gray-100 hover:text-black active:scale-95"
               >
                 <X size={20} />
@@ -4832,7 +4867,26 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                     <button
                       disabled={!canConfirm}
                       onClick={() => {
-                        addToCart(modifierModalItem, tempSelectedModifiers, tempQuantity, true)
+                        if (editingCartItemIndex !== null) {
+                          setCart(prev => {
+                            const copy = [...prev]
+                            copy[editingCartItemIndex] = {
+                              ...copy[editingCartItemIndex],
+                              selected_modifiers: tempSelectedModifiers,
+                              quantity: tempQuantity
+                            }
+                            if (copy[editingCartItemIndex].is_free_coupon_item) {
+                               const basePrice = getEffectiveItemUnitPrice(copy[editingCartItemIndex]);
+                               const modsPrice = tempSelectedModifiers.reduce((ma: number, m: any) => ma + ((m.price_adjustment || 0) * (m.qty || 1)), 0);
+                               copy[editingCartItemIndex].discount_amount = basePrice + modsPrice;
+                            }
+                            return copy
+                          })
+                          setModifierModalItem(null)
+                          setEditingCartItemIndex(null)
+                        } else {
+                          addToCart(modifierModalItem, tempSelectedModifiers, tempQuantity, true)
+                        }
                       }}
                       className={`relative flex h-[60px] w-full sm:w-auto sm:min-w-[200px] flex-1 items-center justify-center gap-3 rounded-[1.25rem] px-6 text-[14px] font-black uppercase tracking-widest transition-all overflow-hidden ${
                         canConfirm 
