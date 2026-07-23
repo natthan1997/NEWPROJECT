@@ -534,15 +534,18 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   const canToggleStock = userRole === 'admin' || shopSettings?.role_permissions?.[userRole]?.includes('menu-stock-toggle')
 
   const longPressTimer = useRef<NodeJS.Timeout | null>(null)
+  const isLongPressTriggered = useRef(false)
 
   const handlePressStart = (e: React.TouchEvent | React.MouseEvent, item: MenuItem) => {
     if (!canToggleStock) return
+    isLongPressTriggered.current = false
     longPressTimer.current = setTimeout(() => {
+      isLongPressTriggered.current = true
       setOptionsModalItem(item)
       if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
         window.navigator.vibrate(50)
       }
-    }, 500)
+    }, 600)
   }
 
   const handlePressCancel = () => {
@@ -3292,6 +3295,12 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                   <button
                     onClick={(e) => {
                       handlePressCancel() // Cancel long press if clicked quickly
+                      if (isLongPressTriggered.current) {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        isLongPressTriggered.current = false
+                        return
+                      }
                       if (item.in_stock !== false) handleProductClick(e, item)
                     }}
                     disabled={item.in_stock === false}
