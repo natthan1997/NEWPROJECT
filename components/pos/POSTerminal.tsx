@@ -4481,33 +4481,32 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       {optionsModalItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setOptionsModalItem(null)}></div>
-          <div className="relative w-full max-w-xs bg-white rounded-3xl overflow-hidden shadow-2xl flex flex-col font-bold">
-            <div className="bg-[#1A1A18] text-white p-5 text-center">
-              <h3 className="text-lg font-black">{getPrimaryMenuName(optionsModalItem)}</h3>
-              <p className="text-sm opacity-70 mt-1">{locale === 'en' ? 'Item Options' : locale === 'zh' ? '选项' : 'ตัวเลือกเมนู'}</p>
-            </div>
-            <div className="p-4 flex flex-col gap-3">
+          <div className="relative w-full max-w-[320px] bg-white rounded-[2rem] p-6 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.2)] flex flex-col items-center text-center font-bold">
+            <div className="w-12 h-1.5 bg-gray-200 rounded-full mb-5"></div>
+            <h3 className="text-[19px] font-black text-[#1A1A18] leading-tight px-4">{getPrimaryMenuName(optionsModalItem)}</h3>
+            
+            <div className="w-full mt-6 flex flex-col gap-3">
               {canToggleStock ? (
                 <button
                   onClick={() => {
                     toggleItemStock(optionsModalItem)
                     setOptionsModalItem(null)
                   }}
-                  className={`w-full py-4 rounded-2xl flex items-center justify-center gap-2 border-2 transition-all ${optionsModalItem.in_stock === false ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' : 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'}`}
+                  className={`w-full py-4 rounded-2xl flex items-center justify-center gap-2.5 font-bold transition-all ${optionsModalItem.in_stock === false ? 'bg-[#1A1A18] text-white hover:bg-black shadow-[0_8px_20px_-8px_rgba(0,0,0,0.5)]' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}
                 >
-                  <Power size={20} />
-                  <span>{optionsModalItem.in_stock === false ? (locale === 'en' ? 'Mark as Available' : locale === 'zh' ? '标记为有货' : 'เปิดขายสินค้านี้') : (locale === 'en' ? 'Mark as Out of Stock' : locale === 'zh' ? '标记为无货' : 'ปิดขาย (สินค้าหมด)')}</span>
+                  <Power size={20} strokeWidth={2.5} />
+                  <span className="text-[15px]">{optionsModalItem.in_stock === false ? (locale === 'en' ? 'Mark as Available' : locale === 'zh' ? '标记为有货' : 'เปิดขายเมนูนี้') : (locale === 'en' ? 'Mark as Out of Stock' : locale === 'zh' ? '标记为无货' : 'ปิดขาย (หมดชั่วคราว)')}</span>
                 </button>
               ) : (
-                <div className="text-center text-gray-500 py-4 bg-gray-50 rounded-2xl border border-gray-200">
-                  {locale === 'en' ? 'You do not have permission to edit stock.' : locale === 'zh' ? '您没有权限编辑库存。' : 'คุณไม่มีสิทธิ์จัดการสต็อกสินค้า (ต้องเปิดสิทธิ์ในตั้งค่า)'}
+                <div className="text-center text-[#1A1A18]/50 text-[13px] py-4 bg-gray-50 rounded-2xl font-medium">
+                  {locale === 'en' ? 'You do not have permission to edit stock.' : locale === 'zh' ? '您没有权限编辑库存。' : 'คุณไม่มีสิทธิ์เปิด/ปิดสต็อก'}
                 </div>
               )}
               <button
                 onClick={() => setOptionsModalItem(null)}
-                className="w-full py-4 rounded-2xl bg-gray-100 text-gray-700 border-2 border-transparent hover:bg-gray-200 transition-all mt-2"
+                className="w-full py-3.5 rounded-2xl text-gray-500 hover:bg-gray-50 hover:text-[#1A1A18] transition-all text-[15px] font-medium"
               >
-                {locale === 'en' ? 'Cancel' : locale === 'zh' ? '取消' : 'ยกเลิก'}
+                {locale === 'en' ? 'Cancel' : locale === 'zh' ? '取消' : 'ปิดหน้าต่าง'}
               </button>
             </div>
           </div>
