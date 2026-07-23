@@ -1,7 +1,9 @@
 'use client';
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState, useCallback } from 'react'
 import Link from 'next/link'
-import { ImagePlus, Loader2, Plus, Save, Search, Trash2 } from 'lucide-react'
+import { ImagePlus, Loader2, Plus, Save, Search, Trash2, X } from 'lucide-react'
+import Cropper from 'react-easy-crop'
+import getCroppedImg from '@/lib/cropImage'
 import { useAuth } from '@/lib/AuthContext'
 import {
   buildDocumentCategoryLabel,
@@ -368,6 +370,13 @@ export default function AdminItemLibraryPage() {
   const [error, setError] = useState('')
   const [uploadingImage, setUploadingImage] = useState(false)
 
+  // Image Crop State
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null)
+  const [crop, setCrop] = useState({ x: 0, y: 0 })
+  const [zoom, setZoom] = useState(1)
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null)
+  const [isCropping, setIsCropping] = useState(false)
+
   useEffect(() => {
     const run = async () => {
       if (!profile?.id || profile.role !== 'admin') return
@@ -685,6 +694,30 @@ export default function AdminItemLibraryPage() {
     setUploadingImage(false)
   }
 
+  const onCropComplete = useCallback((croppedArea: any, croppedAreaPixels: any) => {
+    setCroppedAreaPixels(croppedAreaPixels)
+  }, [])
+
+  const handleConfirmCrop = async () => {
+    if (!cropImageSrc || !croppedAreaPixels) return
+    try {
+      setUploadingImage(true)
+      const croppedFile = await getCroppedImg(cropImageSrc, croppedAreaPixels, 'menu-item.jpg')
+      if (croppedFile) {
+         await handleUploadImage(croppedFile)
+      } else {
+         setUploadingImage(false)
+      }
+      setIsCropping(false)
+      setCropImageSrc(null)
+      setZoom(1)
+    } catch (e) {
+      console.error(e)
+      setError('เกิดข้อผิดพลาดในการครอปรูปภาพ')
+      setUploadingImage(false)
+    }
+  }
+
   const handleDelete = async (group: ItemGroup) => {
     setDeletingId(group.key)
     setMessage('')
@@ -937,7 +970,11 @@ export default function AdminItemLibraryPage() {
                   className="hidden"
                   onChange={(event) => {
                     const file = event.target.files?.[0]
-                    void handleUploadImage(file)
+                    if (file) {
+                      const objectUrl = URL.createObjectURL(file)
+                      setCropImageSrc(objectUrl)
+                      setIsCropping(true)
+                    }
                     event.currentTarget.value = ''
                   }}
                 />
@@ -1049,6 +1086,82 @@ export default function AdminItemLibraryPage() {
             )}
           </div>
         </section>
+
+        {/* Cropper Modal */}
+        {isCropping && cropImageSrc && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[9999] flex flex-col justify-between p-6">
+            {/* Header */}
+            <div className="flex items-center justify-between text-white pb-4 border-b border-white/10">
+              <div>
+                <h3 className="text-lg font-black">{locale === 'en' ? 'Crop & Adjust Image' : 'ปรับตำแหน่งและครอบรูป'}</h3>
+                <p className="text-[10px] font-bold text-white/50">{locale === 'en' ? 'Drag to position, slide to zoom' : 'ลากรูปภาพเพื่อจัดตำแหน่ง, เลื่อนแถบด้านล่างเพื่อซูม'}</p>
+              </div>
+              <button
+                onClick={() => {
+                  setIsCropping(false)
+                  setCropImageSrc(null)
+                  setZoom(1)
+                }}
+                className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 transition-all flex items-center justify-center text-white"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Crop Area Wrapper */}
+            <div className="relative flex-1 my-6 bg-black/40 rounded-3xl overflow-hidden border border-white/10">
+              <Cropper
+                image={cropImageSrc}
+                crop={crop}
+                zoom={zoom}
+                aspect={1 / 1}
+                onCropChange={setCrop}
+                onCropComplete={onCropComplete}
+                onZoomChange={setZoom}
+              />
+            </div>
+
+            {/* Footer / Controls */}
+            <div className="space-y-6 bg-black/40 backdrop-blur-md p-6 rounded-3xl border border-white/10">
+              {/* Zoom Slider */}
+              <div className="flex items-center gap-4 text-white">
+                <span className="text-xs font-bold w-12 text-right">Zoom</span>
+                <input
+                  type="range"
+                  value={zoom}
+                  min={1}
+                  max={3}
+                  step={0.1}
+                  aria-label="Zoom"
+                  onChange={(e) => setZoom(Number(e.target.value))}
+                  className="flex-1 accent-white cursor-pointer h-1 rounded-lg"
+                />
+                <span className="text-xs font-mono w-10 text-left">{zoom.toFixed(1)}x</span>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  onClick={() => {
+                    setIsCropping(false)
+                    setCropImageSrc(null)
+                    setZoom(1)
+                  }}
+                  className="px-6 py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-xs font-black uppercase tracking-wider transition-all"
+                >
+                  {locale === 'en' ? 'Cancel' : 'ยกเลิก'}
+                </button>
+                <button
+                  onClick={handleConfirmCrop}
+                  disabled={uploadingImage}
+                  className="px-6 py-3 rounded-2xl bg-white text-black text-xs font-black uppercase tracking-wider hover:bg-gray-100 transition-all shadow-[0_0_20px_rgba(255,255,255,0.3)] disabled:opacity-50"
+                >
+                  {uploadingImage ? 'Uploading...' : locale === 'en' ? 'Confirm & Upload' : 'ยืนยันและอัปโหลด'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
