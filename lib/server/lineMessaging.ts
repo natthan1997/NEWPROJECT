@@ -1270,7 +1270,7 @@ export const buildRescheduleFlexMessage = (args: {
   visitCountText?: string | null
   appBaseUrl?: string | null
 }): LineFlexMessage => {
-  let baseUrl = (args.appBaseUrl || process.env.NEXT_PUBLIC_APP_URL || 'https://xylem-landscape.vercel.app').trim().replace(/\/$/, '')
+  let baseUrl = (args.appBaseUrl || process.env.NEXT_PUBLIC_APP_URL || 'https://xylstudio.com').trim().replace(/\/$/, '')
   if (baseUrl && !baseUrl.startsWith('http')) {
     baseUrl = `https://${baseUrl}`
   }

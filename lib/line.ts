@@ -101,7 +101,7 @@ export async function sendInventoryAuditFlex(to: string, data: {
             action: { 
               type: "uri", 
               label: "📦 ดูรายละเอียดสต็อก", 
-              uri: `${process.env.NEXT_PUBLIC_APP_URL || 'https://xylem-landscape.vercel.app'}/dashboard/admin/inventory` 
+              uri: `${process.env.NEXT_PUBLIC_APP_URL || 'https://xylstudio.com'}/dashboard/admin/inventory` 
             },
             style: "primary",
             color: "#1A1A18",
@@ -485,7 +485,7 @@ export async function sendInventoryAlertFlex(to: string, data: { items: any[] })
             action: { 
               type: "uri", 
               label: "🛒 ดูรายการที่ต้องซื้อทั้งหมด", 
-              uri: `${process.env.NEXT_PUBLIC_APP_URL || 'https://xylem-landscape.vercel.app'}/dashboard/admin/inventory/restock` 
+              uri: `${process.env.NEXT_PUBLIC_APP_URL || 'https://xylstudio.com'}/dashboard/admin/inventory/restock` 
             },
             style: "primary",
             color: "#EF4444",

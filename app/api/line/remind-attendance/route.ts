@@ -150,7 +150,7 @@ async function handleReminderRequest(req: NextRequest) {
           }
 
           if (lineUserId) {
-            const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://xylem-landscape.vercel.app'
+            const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://xylstudio.com'
             
             try {
               // Send LINE Flex Message (Dynamic check-in or check-out)
