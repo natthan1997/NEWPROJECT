@@ -531,6 +531,63 @@ export default function LiffTrackPage() {
         </div>
       </main>
 
+      {/* 🚫 CANCEL MODAL */}
+      <AnimatePresence>
+        {showCancelModal && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60 backdrop-blur-sm p-4 pb-8"
+          >
+             <motion.div 
+               initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+               transition={{ type: "spring", damping: 25, stiffness: 200 }}
+               className="w-full max-w-md bg-white rounded-none overflow-hidden"
+             >
+                <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-red-50">
+                   <div className="flex items-center gap-2 text-red-600">
+                      <AlertCircle size={18} />
+                      <span className="text-[10px] font-black uppercase tracking-widest">{locale === 'en' ? 'Cancel Order' : locale === 'zh' ? '取消订单' : 'ยกเลิกออเดอร์'}</span>
+                   </div>
+                   <button onClick={() => setShowCancelModal(false)} className="p-2 text-gray-400 hover:text-gray-900">
+                     <X size={18} />
+                   </button>
+                </div>
+                <div className="p-6 space-y-4">
+                   <p className="text-[11px] font-bold text-gray-800">{locale === 'en' ? 'Please select a reason for cancellation:' : locale === 'zh' ? '请选择取消原因：' : 'โปรดระบุเหตุผลที่ต้องการยกเลิก:'}</p>
+                   
+                   <div className="space-y-2">
+                     {[
+                       { id: 'changed_mind', th: 'เปลี่ยนใจ', en: 'Changed mind', zh: '改变主意' },
+                       { id: 'too_long', th: 'รอนานเกินไป', en: 'Taking too long', zh: '等待时间过长' },
+                       { id: 'wrong_order', th: 'สั่งผิดเมนู', en: 'Ordered wrong item', zh: '点错菜单' },
+                       { id: 'other', th: 'อื่นๆ', en: 'Other', zh: '其他' }
+                     ].map(reason => (
+                       <button 
+                         key={reason.id}
+                         onClick={() => setCancelReason(reason.th)}
+                         className={`w-full text-left p-4 border flex items-center justify-between transition-all ${cancelReason === reason.th ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-white'}`}
+                       >
+                         <span className={`text-[12px] font-bold ${cancelReason === reason.th ? 'text-red-700' : 'text-gray-700'}`}>
+                           {locale === 'en' ? reason.en : locale === 'zh' ? reason.zh : reason.th}
+                         </span>
+                         {cancelReason === reason.th && <CheckCircle2 size={16} className="text-red-500" />}
+                       </button>
+                     ))}
+                   </div>
+
+                   <button 
+                     onClick={handleCancelOrder}
+                     disabled={!cancelReason || isCancelling}
+                     className={`w-full py-4 text-[10px] font-black uppercase tracking-widest mt-4 transition-all ${cancelReason && !isCancelling ? 'bg-red-500 text-white active:scale-95' : 'bg-gray-200 text-gray-400'}`}
+                   >
+                     {isCancelling ? (locale === 'en' ? 'Cancelling...' : 'กำลังยกเลิก...') : (locale === 'en' ? 'Confirm Cancellation' : 'ยืนยันการยกเลิก')}
+                   </button>
+                </div>
+             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <style jsx global>{`
         @keyframes draw-check {
           0% { stroke-dashoffset: 40; }
