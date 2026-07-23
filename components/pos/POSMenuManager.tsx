@@ -1210,12 +1210,23 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
                                   {editingItem.image_url ? (
                                       <>
                                           <img loading="lazy" crossOrigin="anonymous"  src={editingItem.image_url || ''} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                                          <button 
-                                              onClick={() => setEditingItem({...editingItem, image_url: null})}
-                                              className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-md shadow-xl text-red-500 hover:bg-white transition-all"
-                                          >
-                                              <Trash size={16} />
-                                          </button>
+                                          <div className="absolute top-4 right-4 flex gap-2">
+                                              <button 
+                                                  onClick={() => {
+                                                    setCropImageSrc(editingItem.image_url)
+                                                    setIsCropping(true)
+                                                  }}
+                                                  className="p-2 bg-black/80 backdrop-blur-md shadow-xl text-white hover:bg-black transition-all"
+                                              >
+                                                  <Crop size={16} />
+                                              </button>
+                                              <button 
+                                                  onClick={() => setEditingItem({...editingItem, image_url: null})}
+                                                  className="p-2 bg-white/80 backdrop-blur-md shadow-xl text-red-500 hover:bg-white transition-all"
+                                              >
+                                                  <Trash size={16} />
+                                              </button>
+                                          </div>
                                       </>
                                   ) : (
                                       <div className="flex flex-col items-center gap-2 opacity-20 group-hover:opacity-100 transition-all">
