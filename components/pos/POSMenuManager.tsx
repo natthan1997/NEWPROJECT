@@ -475,24 +475,46 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
     setIsSaving(true)
     try {
       const croppedBlob = await getCroppedImg(cropImageSrc, croppedAreaPixels)
-      const fileExt = 'jpeg'
-      const fileName = `${Math.random()}.${fileExt}`
-      const filePath = `pos-menus/${fileName}`
+      if (!croppedBlob) throw new Error('Failed to crop image')
 
-      const file = new File([croppedBlob], fileName, { type: 'image/jpeg' })
+      const uuid = Math.random().toString(36).substring(2, 15)
       const { data: { session } } = await supabase.auth.getSession()
+      const authHeaders = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}
 
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('bucket', 'marketplace-images')
-      formData.append('path', filePath)
+      // Fetch the original image from the current source (blob: or https:)
+      const originalRes = await fetch(cropImageSrc)
+      const originalBlob = await originalRes.blob()
+      
+      let originalExt = 'jpeg'
+      if (originalBlob.type) {
+         originalExt = originalBlob.type.split('/')[1] || 'jpeg'
+      } else if (cropImageSrc.includes('.')) {
+         originalExt = cropImageSrc.split('.').pop()?.split('?')[0] || 'jpeg'
+      }
+
+      // Upload original file
+      const formDataOriginal = new FormData()
+      formDataOriginal.append('file', originalBlob)
+      formDataOriginal.append('bucket', 'marketplace-images')
+      formDataOriginal.append('path', `pos-menus/${uuid}_original.${originalExt}`)
+
+      await fetch('/api/admin/storage/upload', {
+        method: 'POST',
+        headers: authHeaders,
+        body: formDataOriginal
+      })
+
+      // Upload cropped file
+      const file = new File([croppedBlob], `${uuid}_cropped.jpeg`, { type: 'image/jpeg' })
+      const formDataCropped = new FormData()
+      formDataCropped.append('file', file)
+      formDataCropped.append('bucket', 'marketplace-images')
+      formDataCropped.append('path', `pos-menus/${uuid}_cropped.jpeg`)
 
       const uploadRes = await fetch('/api/admin/storage/upload', {
         method: 'POST',
-        headers: {
-          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
-        },
-        body: formData
+        headers: authHeaders,
+        body: formDataCropped
       })
 
       const uploadResult = await uploadRes.json()
@@ -1221,8 +1243,13 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
                                           <div className="absolute top-4 right-4 flex gap-2">
                                               <button 
                                                   onClick={() => {
-                                                    setCropImageSrc(editingItem.image_url)
+                                                    let src = editingItem.image_url
+                                                    if (src && src.includes('_cropped.')) {
+                                                        src = src.replace('_cropped.', '_original.')
+                                                    }
+                                                    setCropImageSrc(src)
                                                     setIsCropping(true)
+                                                    setCropAspect(1)
                                                   }}
                                                   className="p-2 bg-black/80 backdrop-blur-md shadow-xl text-white hover:bg-black transition-all"
                                               >
