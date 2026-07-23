@@ -531,7 +531,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   }
 
   const userRole = profile?.role || 'staff'
-  const canToggleStock = userRole === 'admin' || shopSettings?.role_permissions?.[userRole]?.includes('menu-stock-toggle')
+  const canToggleStock = ['admin', 'owner', 'superadmin'].includes(userRole) || shopSettings?.role_permissions?.[userRole]?.includes('menu-stock-toggle')
 
   const longPressTimer = useRef<NodeJS.Timeout | null>(null)
   const isLongPressTriggered = useRef(false)
