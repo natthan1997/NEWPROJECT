@@ -3332,7 +3332,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         <div className="mx-auto font-bold min-h-full pb-32">
           {filteredItems.length > 0 ? (
             <div
-              className={`grid gap-3 sm:gap-4 xl:gap-6 font-bold ${viewMode === 'list' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'}`}
+              className={`grid font-bold ${viewMode === 'list' ? 'gap-3 sm:gap-4 xl:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3' : 'gap-1.5 sm:gap-2 lg:gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6'}`}
             >
               {filteredItems.map(item => (
                 <div 
@@ -3363,13 +3363,12 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                       if (item.in_stock !== false) handleProductClick(e, item)
                     }}
                     disabled={item.in_stock === false}
-                    className={`relative w-full h-full flex border border-[#E5E5DF] bg-white rounded-2xl p-3 sm:p-4 text-left font-bold transition-all duration-300 ${item.in_stock === false ? 'opacity-60 grayscale cursor-not-allowed' : 'hover:border-black/30 hover:shadow-xl hover:-translate-y-1'} ${viewMode === 'list' ? 'flex-row gap-4 items-center' : 'flex-col'}`}
+                    className={`relative w-full h-full flex text-left font-bold transition-all duration-300 ${item.in_stock === false ? 'opacity-70 grayscale cursor-not-allowed' : 'hover:shadow-xl hover:-translate-y-1'} ${viewMode === 'list' ? 'border border-[#E5E5DF] bg-white rounded-2xl p-3 sm:p-4 flex-row gap-4 items-center' : 'rounded-[0.8rem] overflow-hidden aspect-square border border-[#E5E5DF]/50 bg-gray-100'}`}
                   >
                     {item.in_stock === false && (
-                      <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/35 backdrop-blur-[2px] rounded-2xl pointer-events-none">
-                         <div className="flex flex-col items-center gap-2">
-                           <span className="bg-red-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-lg">สินค้าหมด</span>
-                           <span className="bg-white/90 text-red-600 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-[0.18em] shadow-sm">Unavailable</span>
+                      <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/30 backdrop-blur-[2px] pointer-events-none">
+                         <div className="flex flex-col items-center gap-2 transform -rotate-12 border-[3px] border-white px-4 py-1.5 rounded-lg shadow-2xl">
+                           <span className="text-white text-[15px] sm:text-[18px] font-black uppercase tracking-[0.15em] drop-shadow-md">SOLD OUT</span>
                          </div>
                       </div>
                     )}
@@ -3377,47 +3376,78 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                       const primaryName = getPrimaryMenuName(item)
                       const secondaryName = getSecondaryMenuName(item, locale === 'zh' ? 'zh' : 'en')
 
+                      if (viewMode === 'list') {
+                        return (
+                          <>
+                            <div className="relative overflow-hidden rounded-xl bg-gray-50 font-bold transition-all duration-500 shrink-0 h-20 w-20">
+                              {item.image_url ? (
+                                <img loading="lazy" crossOrigin="anonymous" 
+                                  src={item.image_url || ''}
+                                  className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center text-gray-300">
+                                  <ImageIcon size={32} />
+                                </div>
+                              )}
+                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300"></div>
+                            </div>
+                            <div className="flex-1 flex flex-col font-bold justify-center">
+                              <div className="min-h-[3.25rem]">
+                                <h4 className="line-clamp-2 text-[13px] sm:text-[14px] font-black uppercase leading-snug tracking-tight text-[#1A1A18]">
+                                  {primaryName}
+                                </h4>
+                                {secondaryName && (
+                                  <p className="mt-1 line-clamp-2 text-[10px] sm:text-[11px] font-semibold leading-snug text-[#7B7A74]">
+                                    {secondaryName}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="flex items-end justify-between border-t border-gray-100 pt-2 mt-2">
+                                <span className="text-[14px] sm:text-[15px] font-black text-emerald-600">
+                                  {locale === 'en' ? '฿ ' : locale === 'zh' ? '฿ ' : '฿ '}{getEffectiveItemUnitPrice(item).toLocaleString()}
+                                </span>
+                                <div className="flex items-center justify-center w-7 h-7 rounded-full bg-gray-50 text-gray-400 transition-colors group-hover:bg-black group-hover:text-white">
+                                  <Plus size={16} />
+                                </div>
+                              </div>
+                            </div>
+                          </>
+                        )
+                      }
+
+                      // GRID VIEW
                       return (
                         <>
-                          <div
-                            className={`relative overflow-hidden rounded-xl bg-gray-50 font-bold transition-all duration-500 shrink-0 ${viewMode === 'list' ? 'h-20 w-20' : 'mb-3 sm:mb-4 w-full aspect-[1/1] sm:aspect-[4/5]'}`}
-                          >
                           {item.image_url ? (
-                            <img loading="lazy" crossOrigin="anonymous" 
-                              src={item.image_url || ''}
-                              className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-                            />
+                            <img loading="lazy" crossOrigin="anonymous" src={item.image_url || ''} className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110 z-0" />
                           ) : (
-                            <div className="flex h-full w-full items-center justify-center text-gray-300">
-                              <ImageIcon size={32} />
-                            </div>
+                            <div className="absolute inset-0 flex h-full w-full items-center justify-center bg-gray-100 text-gray-300 z-0"><ImageIcon size={48} /></div>
                           )}
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300"></div>
-                        </div>
-                        <div className={`flex-1 flex flex-col font-bold ${viewMode === 'list' ? 'justify-center' : 'w-full'}`}>
-                          <div className={`${viewMode === 'list' ? 'min-h-[3.25rem]' : 'min-h-[4rem] sm:min-h-[4.5rem]'}`}>
-                            <h4 className="line-clamp-2 text-[13px] sm:text-[14px] font-black uppercase leading-snug tracking-tight text-[#1A1A18]">
-                              {primaryName}
-                            </h4>
-                            {secondaryName && (
-                              <p className="mt-1 line-clamp-2 text-[10px] sm:text-[11px] font-semibold leading-snug text-[#7B7A74]">
-                                {secondaryName}
-                              </p>
-                            )}
-                          </div>
-                          <div className={`flex items-end justify-between border-t border-gray-100 ${viewMode === 'list' ? 'pt-2 mt-2' : 'pt-3 mt-auto'}`}>
-                            <span className="text-[14px] sm:text-[15px] font-black text-emerald-600">
-                              {locale === 'en' ? '                         ฿ ' : locale === 'zh' ? '                         ฿ ' : '                         ฿ '}{getEffectiveItemUnitPrice(item).toLocaleString()}
-                            </span>
-                            <div className="flex items-center justify-center w-7 h-7 rounded-full bg-gray-50 text-gray-400 transition-colors group-hover:bg-black group-hover:text-white">
-                              <Plus size={16} />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10 transition-colors duration-300"></div>
+                          
+                          <div className="relative z-10 flex-1 flex flex-col justify-end p-2.5 sm:p-3.5 font-bold text-white w-full">
+                            <div className="flex justify-between items-end w-full gap-2">
+                              <div className="flex flex-col overflow-hidden text-left flex-1">
+                                <h4 className="truncate text-[14px] sm:text-[16px] font-black tracking-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                                  {primaryName}
+                                </h4>
+                                {secondaryName && (
+                                  <p className="truncate text-[10px] sm:text-[11px] font-semibold text-white/90 uppercase tracking-widest mt-0.5 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+                                    {secondaryName}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="flex items-baseline shrink-0 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                                <span className="text-[18px] sm:text-[22px] font-black leading-none">{getEffectiveItemUnitPrice(item).toLocaleString()}</span>
+                                <span className="text-[10px] sm:text-[11px] font-semibold ml-1 text-white/90">{locale === 'en' ? ' THB' : ' บาท'}</span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </>
-                    )
-                  })()}
-                </button>
+                        </>
+                      )
+                    })()}
+                  </button>
               </div>
               ))}
             </div>
