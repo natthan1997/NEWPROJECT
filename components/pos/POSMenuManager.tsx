@@ -1206,7 +1206,7 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
                       <div className="space-y-3 font-bold border-none font-bold">
                           <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#1A1A18]/50 font-bold">{locale === 'en' ? 'IMAGE / รูปภาพ' : locale === 'zh' ? 'IMAGE / รูปภาพ' : 'IMAGE / รูปภาพ'}</label>
                           <div className="flex flex-col gap-4">
-                              <div className="aspect-video bg-gray-50 border border-dashed border-gray-200 flex items-center justify-center relative overflow-hidden group">
+                              <div className="aspect-square bg-gray-50 border border-dashed border-gray-200 flex items-center justify-center relative overflow-hidden group">
                                   {editingItem.image_url ? (
                                       <>
                                           <img loading="lazy" crossOrigin="anonymous"  src={editingItem.image_url || ''} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
