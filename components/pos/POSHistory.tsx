@@ -502,6 +502,12 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
                         className="overflow-hidden"
                       >
                         <div className="mt-4 pt-4 border-t border-neutral-100">
+                      {order.status === 'cancelled' && order.void_reason && (
+                        <div className="mb-4 p-3 bg-red-50 rounded-xl border border-red-100 text-red-700 text-[13px] flex items-start gap-2">
+                          <span className="font-bold whitespace-nowrap">{locale === 'en' ? 'Void Reason:' : 'เหตุผลที่ยกเลิก:'}</span>
+                          <span>{order.void_reason}</span>
+                        </div>
+                      )}
                       <div className="space-y-3 mb-6">
                         {order.pos_order_items?.map((item: any, idx: number) => (
                           <div key={idx} className="flex justify-between items-start py-1 text-[14px]">
