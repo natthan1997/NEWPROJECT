@@ -3429,11 +3429,11 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                           <div className="relative z-10 flex-1 flex flex-col justify-end p-2.5 sm:p-3.5 font-bold text-white w-full">
                             <div className="flex justify-between items-end w-full gap-2">
                               <div className="flex flex-col overflow-hidden text-left flex-1">
-                                <h4 className="line-clamp-3 text-[12px] sm:text-[14px] leading-tight font-black tracking-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                                <h4 className="line-clamp-3 text-[13px] sm:text-[15px] leading-tight font-black tracking-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
                                   {primaryName}
                                 </h4>
                                 {secondaryName && (
-                                  <p className="line-clamp-2 text-[9px] sm:text-[10px] leading-tight font-semibold text-white/90 uppercase tracking-widest mt-0.5 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+                                  <p className="line-clamp-2 text-[8.5px] sm:text-[9.5px] leading-tight font-medium text-white/70 mt-0.5 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
                                     {secondaryName}
                                   </p>
                                 )}
