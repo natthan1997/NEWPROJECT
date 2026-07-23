@@ -3364,7 +3364,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         <div className="mx-auto font-bold min-h-full pb-32">
           {filteredItems.length > 0 ? (
             <div
-              className={`grid font-bold ${viewMode === 'list' ? 'gap-3 sm:gap-4 xl:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3' : 'gap-2 sm:gap-3 lg:gap-4 grid-cols-4'}`}
+              className={`grid font-bold ${viewMode === 'list' ? 'gap-3 sm:gap-4 xl:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3' : 'gap-2 sm:gap-3 lg:gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6'}`}
             >
               {filteredItems.map(item => (
                 <div 
@@ -3426,7 +3426,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                             </div>
                             <div className="flex-1 flex flex-col font-bold justify-center">
                               <div className="min-h-[3.25rem]">
-                                <h4 className="line-clamp-3 text-[13px] sm:text-[14px] font-black uppercase leading-snug tracking-tight text-[#1A1A18]">
+                                <h4 className="line-clamp-5 text-[13px] sm:text-[14px] font-black uppercase leading-snug tracking-tight text-[#1A1A18]">
                                   {primaryName}
                                 </h4>
                                 {secondaryName && (
@@ -3461,7 +3461,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                           <div className="relative z-10 flex-1 flex flex-col justify-end p-2.5 sm:p-3.5 font-bold text-white w-full">
                             <div className="flex justify-between items-end w-full gap-2">
                               <div className="flex flex-col overflow-hidden text-left flex-1">
-                                <h4 className="line-clamp-5 text-[13px] sm:text-[15px] leading-tight font-black tracking-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                                <h4 className="line-clamp-none text-[13px] sm:text-[15px] leading-tight font-black tracking-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
                                   {primaryName}
                                 </h4>
                                 {secondaryName && (
