@@ -3337,7 +3337,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
               {filteredItems.map(item => (
                 <div 
                   key={item.id} 
-                  className={`relative group select-none touch-manipulation w-full ${viewMode === 'grid' ? 'aspect-square block' : 'h-full flex flex-col'}`}
+                  className={`relative group select-none touch-manipulation w-full ${viewMode === 'grid' ? 'pb-[100%] block' : 'h-full flex flex-col'}`}
                   style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
                   onContextMenu={(e) => {
                     e.preventDefault()
