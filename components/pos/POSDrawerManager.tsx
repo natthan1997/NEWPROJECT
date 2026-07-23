@@ -207,7 +207,6 @@ export default function POSDrawerManager({
       let query = supabase
         .from('pos_shifts')
         .select('*')
-        .eq('status', 'closed')
         .gte('opened_at', startOfDay.toISOString())
         .lt('opened_at', endOfDay.toISOString())
         .order('opened_at', { ascending: false })
@@ -769,10 +768,16 @@ export default function POSDrawerManager({
                                                             {locale === 'en' ? 'Started: ' : 'เริ่มกะ: '}
                                                             {new Date(historyShifts.find(s => s.id === selectedHistoryShiftId)?.opened_at || '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                         </span>
-                                                        <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest bg-gray-100 px-3 py-1.5 rounded-full border border-gray-200 w-fit">
-                                                            {locale === 'en' ? 'Closed: ' : 'ปิดกะ: '}
-                                                            {new Date(historyShifts.find(s => s.id === selectedHistoryShiftId)?.closed_at || '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                        </span>
+                                                        {historyShifts.find(s => s.id === selectedHistoryShiftId)?.status === 'open' ? (
+                                                          <span className="text-[10px] font-bold text-rose-600 uppercase tracking-widest bg-rose-50 px-3 py-1.5 rounded-full border border-rose-200 w-fit">
+                                                              {locale === 'en' ? 'Not Closed Yet' : 'ยังไม่ได้ปิดกะ'}
+                                                          </span>
+                                                        ) : (
+                                                          <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest bg-gray-100 px-3 py-1.5 rounded-full border border-gray-200 w-fit">
+                                                              {locale === 'en' ? 'Closed: ' : 'ปิดกะ: '}
+                                                              {new Date(historyShifts.find(s => s.id === selectedHistoryShiftId)?.closed_at || '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                          </span>
+                                                        )}
                                                     </div>
                                                 </div>
                                                 <div className="text-5xl sm:text-6xl md:text-7xl font-black font-sans tracking-tight text-gray-900">
@@ -834,6 +839,17 @@ export default function POSDrawerManager({
 
                                         {/* SHIFT SUMMARY (READ ONLY) */}
                                         <div className="flex flex-col gap-6 min-h-0">
+                                            {historyShifts.find(s => s.id === selectedHistoryShiftId)?.status === 'open' && (
+                                                <div className="bg-rose-50 border border-rose-200 rounded-[2rem] p-6 shadow-sm">
+                                                    <div className="flex items-center gap-3 mb-2">
+                                                        <AlertTriangle className="text-rose-500" size={24} />
+                                                        <h3 className="text-sm font-bold text-rose-700 uppercase tracking-widest">{locale === 'en' ? 'Shift Not Closed' : 'กะนี้ยังไม่ได้ถูกปิด'}</h3>
+                                                    </div>
+                                                    <p className="text-xs text-rose-600/80 font-medium">
+                                                        {locale === 'en' ? 'This shift was left open. The data shown is calculated up to the present or the end of that day.' : 'มีการเปิดกะทิ้งไว้และยังไม่ได้ทำรายการปิดยอด ข้อมูลสรุปด้านล่างเป็นเพียงการประเมินยอดจนถึงเวลาปัจจุบัน'}
+                                                    </p>
+                                                </div>
+                                            )}
                                             <div className="bg-white rounded-[2rem] border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-8 flex-1 flex flex-col">
                                                 <div className="mb-6 flex justify-between items-center">
                                                     <h3 className="text-xs font-bold text-gray-600 uppercase tracking-widest">{locale === 'en' ? 'Actual Cash Counted' : 'สรุปยอดเงินสดปิดกะ (นับจริง)'}</h3>
