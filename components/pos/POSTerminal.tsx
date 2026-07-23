@@ -62,6 +62,8 @@ import {
   FlaskConical,
   Undo2,
   Power,
+  Eye,
+  Merge,
 } from 'lucide-react'
 import Swal from 'sweetalert2'
 import { QRCodeSVG } from 'qrcode.react'
@@ -421,6 +423,7 @@ export default function POSTerminal({
 
 const [isPinModalOpen, setIsPinModalOpen] = useState(false)
   const [mergeTableTarget, setMergeTableTarget] = useState<{table: any, pendingOrder: any} | null>(null)
+  const [tableActionTarget, setTableActionTarget] = useState<POSTable | null>(null)
   const [pendingOrderTypeSwitch, setPendingOrderTypeSwitch] = useState<'dine_in' | 'takeaway' | 'delivery' | null>(null)
   const [pinCallback, setPinCallback] = useState<(() => void) | null>(null)
   const [pinTitle, setPinTitle] = useState('')
@@ -585,55 +588,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     touchStartPos.current = null
   }
 
-  const tableLongPressTimer = useRef<NodeJS.Timeout | null>(null)
-  const isTableLongPressTriggered = useRef(false)
-  const tableTouchStartPos = useRef<{ x: number, y: number } | null>(null)
 
-  const handleTablePressStart = (e: React.TouchEvent | React.MouseEvent, targetTable: any, pendingForThisTable: any[], isOccupied: boolean, triggerMerge: () => void) => {
-    isTableLongPressTriggered.current = false
-    
-    if ('touches' in e) {
-      tableTouchStartPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
-    } else {
-      tableTouchStartPos.current = { x: (e as React.MouseEvent).clientX, y: (e as React.MouseEvent).clientY }
-    }
-
-    tableLongPressTimer.current = setTimeout(() => {
-      isTableLongPressTriggered.current = true
-      if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
-        window.navigator.vibrate(50)
-      }
-      triggerMerge()
-    }, 600)
-  }
-
-  const handleTablePressMove = (e: React.TouchEvent | React.MouseEvent) => {
-    if (!tableTouchStartPos.current || !tableLongPressTimer.current) return
-    
-    let currentX, currentY;
-    if ('touches' in e) {
-      currentX = e.touches[0].clientX
-      currentY = e.touches[0].clientY
-    } else {
-      currentX = (e as React.MouseEvent).clientX
-      currentY = (e as React.MouseEvent).clientY
-    }
-
-    const diffX = Math.abs(currentX - tableTouchStartPos.current.x)
-    const diffY = Math.abs(currentY - tableTouchStartPos.current.y)
-
-    if (diffX > 30 || diffY > 30) {
-      handleTablePressCancel()
-    }
-  }
-
-  const handleTablePressCancel = () => {
-    if (tableLongPressTimer.current) {
-      clearTimeout(tableLongPressTimer.current)
-      tableLongPressTimer.current = null
-    }
-    tableTouchStartPos.current = null
-  }
 
   const toggleItemStock = async (item: MenuItem, closeMode: 'today' | 'indefinite' | null = null) => {
     try {
@@ -4199,15 +4154,19 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                                 setTotalPaid(0)
                                 setShowTableModal(false)
                               } else {
-                                if (pendingForThisTable.length > 0 && cart.length > 0 && !editingOrderId) {
-                                    setMergeTableTarget({ table: targetTable, pendingOrder: pendingForThisTable[0] })
+                                if (editingOrderId) {
+                                    setTableActionTarget(targetTable)
                                 } else {
-                                    setSelectedTable(targetTable)
-                                    setOrderType('dine_in')
-                                    resetDeliveryDraft()
-                                    setShowTableModal(false)
-                                    if (pendingForThisTable.length > 0) {
-                                        handleResumeOrder(pendingForThisTable[0])
+                                    if (pendingForThisTable.length > 0 && cart.length > 0) {
+                                        setMergeTableTarget({ table: targetTable, pendingOrder: pendingForThisTable[0] })
+                                    } else {
+                                        setSelectedTable(targetTable)
+                                        setOrderType('dine_in')
+                                        resetDeliveryDraft()
+                                        setShowTableModal(false)
+                                        if (pendingForThisTable.length > 0) {
+                                            handleResumeOrder(pendingForThisTable[0])
+                                        }
                                     }
                                 }
                               }
@@ -4278,6 +4237,162 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
               </div>
             </div>
           </div>
+          
+          {/* Action Menu Modal (Table Merge/Move) */}
+          {tableActionTarget && (
+            <div className="fixed inset-0 z-[3000] flex flex-col justify-end sm:items-center sm:justify-center p-4">
+              <div
+                className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                onClick={() => setTableActionTarget(null)}
+              ></div>
+              <div className="animate-in slide-in-from-bottom relative flex w-full max-w-sm flex-col bg-[#FDFDFB] shadow-2xl duration-300 rounded-[2rem] overflow-hidden">
+                <div className="p-6 text-center border-b border-gray-100">
+                  <h3 className="text-lg font-black tracking-tight text-[#1A1A18]">
+                    จัดการบิล: โต๊ะ {selectedTable?.table_number} <ArrowRight className="inline-block mx-1 w-4 h-4" /> โต๊ะ {tableActionTarget.table_number}
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-1 font-bold">
+                    เลือกสิ่งที่คุณต้องการทำกับบิลนี้
+                  </p>
+                </div>
+                
+                <div className="flex flex-col p-4 gap-2">
+                  {tables.find(t => t.id === tableActionTarget.id)?.status === 'occupied' ? (
+                    <>
+                      <button
+                        onClick={() => {
+                          const targetTableObj = tables.find(t => t.id === tableActionTarget.id);
+                          const targetOrder = targetTableObj ? suspendedOrders.find(o => o.table_id === targetTableObj.id && o.status === 'pending' && !o.table_number?.includes('+')) : null;
+                          
+                          if (!targetOrder) {
+                             alert('ไม่พบบิลของโต๊ะปลายทาง กรุณาลองใหม่อีกครั้ง');
+                             return;
+                          }
+
+                          if (confirm(`ยืนยันการรวมบิล: โต๊ะ ${selectedTable?.table_number || 'ปัจจุบัน'} ไปรวมบิลเข้ากับโต๊ะ ${tableActionTarget.table_number} ใช่หรือไม่?`)) {
+                            setIsProcessing(true); setCheckoutError(null);
+                            (async () => {
+                                try {
+                                    const { data: oldOrderData } = await supabase.from('pos_orders').select('*').eq('id', editingOrderId).single();
+                                    
+                                    if (oldOrderData) {
+                                        const newTotal = Number(targetOrder.total || 0) + Number(oldOrderData.total || 0);
+                                        const newSubtotal = Number(targetOrder.subtotal || 0) + Number(oldOrderData.subtotal || 0);
+                                        const newTax = Number(targetOrder.tax || 0) + Number(oldOrderData.tax || 0);
+                                        const newServiceCharge = Number(targetOrder.service_charge || 0) + Number(oldOrderData.service_charge || 0);
+                                        
+                                        const mergedTableNumber = targetOrder.table_number?.includes(oldOrderData.table_number) 
+                                            ? targetOrder.table_number 
+                                            : (targetOrder.table_number + ' + ' + oldOrderData.table_number);
+
+                                        await supabase.from('pos_orders').update({
+                                            subtotal: newSubtotal,
+                                            tax: newTax,
+                                            service_charge: newServiceCharge,
+                                            total: newTotal,
+                                            table_number: mergedTableNumber
+                                        }).eq('id', targetOrder.id);
+                                    }
+
+                                    const { data: currentItems } = await supabase.from('pos_order_items').select('*').eq('order_id', editingOrderId);
+                                    
+                                    if (currentItems && currentItems.length > 0) {
+                                        const updatedItems = currentItems.map(item => {
+                                            const mods = item.selected_modifiers || [];
+                                            mods.push({ name: `[ย้ายมาจากโต๊ะ ${selectedTable?.table_number || 'เดิม'}]`, price_adjustment: 0, qty: 1 });
+                                            return { ...item, order_id: targetOrder.id, selected_modifiers: mods };
+                                        });
+                                        await supabase.from('pos_order_items').upsert(updatedItems);
+                                    }
+                                    
+                                    await supabase.from('pos_orders').update({ status: 'cancelled' }).eq('id', editingOrderId);
+                                    
+                                    if (selectedTable?.id) {
+                                        await supabase.from('pos_tables').update({ parent_table_id: tableActionTarget.id }).eq('id', selectedTable.id);
+                                    }
+                                    
+                                    alert('รวมโต๊ะสำเร็จ! บิลถูกย้ายไปรวมกันเรียบร้อยแล้ว');
+                                    
+                                    fetchTables();
+                                    refreshPendingOrders();
+                                    resetDeliveryDraft();
+                                    setTableActionTarget(null);
+                                    setShowTableModal(false);
+                                } catch (err: any) {
+                                    alert('Error merging tables: ' + err.message);
+                                } finally {
+                                    setIsProcessing(false);
+                                }
+                            })();
+                          }
+                        }}
+                        className="flex items-center justify-center gap-3 w-full bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl py-4 font-black uppercase tracking-wide transition-all"
+                      >
+                        <Merge size={18} /> รวมบิลเข้าด้วยกัน
+                      </button>
+                      <button
+                        onClick={() => {
+                          const targetOrder = suspendedOrders.find(o => o.table_id === tableActionTarget.id && o.status === 'pending');
+                          setSelectedTable(tableActionTarget)
+                          setOrderType('dine_in')
+                          resetDeliveryDraft()
+                          setTableActionTarget(null)
+                          setShowTableModal(false)
+                          if (targetOrder) {
+                              handleResumeOrder(targetOrder)
+                          }
+                        }}
+                        className="flex items-center justify-center gap-3 w-full bg-gray-100 hover:bg-gray-200 text-[#1A1A18] rounded-2xl py-4 font-black uppercase tracking-wide transition-all"
+                      >
+                        <Eye size={18} /> สลับไปดูบิลโต๊ะนี้
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => {
+                          if (confirm(`ยืนยันการย้ายบิลจากโต๊ะ ${selectedTable?.table_number || 'ปัจจุบัน'} ไปยังโต๊ะ ${tableActionTarget.table_number} ใช่หรือไม่?`)) {
+                             setIsProcessing(true); setCheckoutError(null);
+                             (async () => {
+                                 try {
+                                     await supabase.from('pos_orders').update({
+                                         table_id: tableActionTarget.id,
+                                         table_number: tableActionTarget.table_number
+                                     }).eq('id', editingOrderId);
+                                     
+                                     // Also clear any parent_table_id logic if needed, but usually just moving is enough
+                                     if (selectedTable?.id) {
+                                        await supabase.from('pos_tables').update({ parent_table_id: null }).eq('id', selectedTable.id);
+                                     }
+                                     
+                                     fetchTables();
+                                     refreshPendingOrders();
+                                     setSelectedTable(tableActionTarget);
+                                     setTableActionTarget(null);
+                                     setShowTableModal(false);
+                                 } catch (err: any) {
+                                     alert('Error moving table: ' + err.message);
+                                 } finally {
+                                     setIsProcessing(false);
+                                 }
+                             })();
+                          }
+                        }}
+                        className="flex items-center justify-center gap-3 w-full bg-amber-500 hover:bg-amber-600 text-white rounded-2xl py-4 font-black uppercase tracking-wide transition-all"
+                      >
+                        <ArrowRight size={18} /> ย้ายบิลไปโต๊ะนี้
+                      </button>
+                    </>
+                  )}
+                  <button
+                    onClick={() => setTableActionTarget(null)}
+                    className="flex items-center justify-center w-full bg-white border-2 border-gray-100 hover:border-gray-300 text-gray-500 rounded-2xl py-3 font-bold uppercase tracking-wide transition-all mt-2"
+                  >
+                    ยกเลิก
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
