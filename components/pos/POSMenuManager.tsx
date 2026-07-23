@@ -477,32 +477,51 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
       const croppedBlob = await getCroppedImg(cropImageSrc, croppedAreaPixels)
       if (!croppedBlob) throw new Error('Failed to crop image')
 
-      const uuid = Math.random().toString(36).substring(2, 15)
+      let uuid = Math.random().toString(36).substring(2, 15)
       const { data: { session } } = await supabase.auth.getSession()
       const authHeaders = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}
 
-      // Fetch the original image from the current source (blob: or https:)
-      const originalRes = await fetch(cropImageSrc)
-      const originalBlob = await originalRes.blob()
-      
-      let originalExt = 'jpeg'
-      if (originalBlob.type) {
-         originalExt = originalBlob.type.split('/')[1] || 'jpeg'
-      } else if (cropImageSrc.includes('.')) {
-         originalExt = cropImageSrc.split('.').pop()?.split('?')[0] || 'jpeg'
+      let shouldUploadOriginal = true;
+      let originalBlobToUpload: Blob | null = null;
+
+      if (cropImageSrc.startsWith('http')) {
+         const match = cropImageSrc.match(/\/pos-menus\/([a-zA-Z0-9]+)_(original|cropped)\./)
+         if (match) {
+            shouldUploadOriginal = false;
+            uuid = match[1];
+         } else {
+            try {
+               const originalRes = await fetch(cropImageSrc)
+               originalBlobToUpload = await originalRes.blob()
+            } catch (e) {
+               console.warn("Could not fetch original image", e)
+               shouldUploadOriginal = false;
+            }
+         }
+      } else {
+         const originalRes = await fetch(cropImageSrc)
+         originalBlobToUpload = await originalRes.blob()
       }
 
-      // Upload original file
-      const formDataOriginal = new FormData()
-      formDataOriginal.append('file', originalBlob)
-      formDataOriginal.append('bucket', 'marketplace-images')
-      formDataOriginal.append('path', `pos-menus/${uuid}_original.${originalExt}`)
+      if (shouldUploadOriginal && originalBlobToUpload) {
+         let originalExt = 'jpeg'
+         if (originalBlobToUpload.type) {
+            originalExt = originalBlobToUpload.type.split('/')[1] || 'jpeg'
+         } else if (cropImageSrc.includes('.')) {
+            originalExt = cropImageSrc.split('.').pop()?.split('?')[0] || 'jpeg'
+         }
 
-      await fetch('/api/admin/storage/upload', {
-        method: 'POST',
-        headers: authHeaders,
-        body: formDataOriginal
-      })
+         const formDataOriginal = new FormData()
+         formDataOriginal.append('file', originalBlobToUpload)
+         formDataOriginal.append('bucket', 'marketplace-images')
+         formDataOriginal.append('path', `pos-menus/${uuid}_original.${originalExt}`)
+
+         await fetch('/api/admin/storage/upload', {
+           method: 'POST',
+           headers: authHeaders,
+           body: formDataOriginal
+         })
+      }
 
       // Upload cropped file
       const file = new File([croppedBlob], `${uuid}_cropped.jpeg`, { type: 'image/jpeg' })
