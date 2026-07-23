@@ -4060,92 +4060,108 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                     ? 'text-3xl sm:text-4xl font-black tracking-tighter' 
                     : 'text-sm sm:text-base font-bold tracking-tight leading-tight break-words px-1';
 
-                  return (
-                    <div key={table.id} className="relative aspect-square flex flex-col group">
-                      <button
-                        onClick={() => {
-                          if (selectedTable?.id === targetTable.id) {
-                            resetOrderComposer()
-                            setTotalPaid(0)
-                            setShowTableModal(false)
-                          } else {
-                            if (pendingForThisTable.length > 0 && cart.length > 0 && !editingOrderId) {
-                                setMergeTableTarget({ table: targetTable, pendingOrder: pendingForThisTable[0] })
-                            } else {
-                                if (editingOrderId) {
-                                    if (isOccupied) {
-                                        if (confirm(`โต๊ะ ${targetTable.table_number} มีลูกค้าอยู่แล้ว ต้องการนำบิลของโต๊ะ ${selectedTable?.table_number || 'ปัจจุบัน'} ไปรวมบิลด้วยใช่หรือไม่?`)) {
-                                            setIsProcessing(true); setCheckoutError(null);
-                                            (async () => {
-                                                try {
-                                                    const targetOrder = pendingForThisTable[0];
-                                                    if (!targetOrder) throw new Error('ไม่พบออเดอร์ปลายทาง');
-                                                    
-                                                    const { data: oldOrderData } = await supabase.from('pos_orders').select('*').eq('id', editingOrderId).single();
-                                                    
-                                                    if (oldOrderData) {
-                                                        const newTotal = Number(targetOrder.total || 0) + Number(oldOrderData.total || 0);
-                                                        const newSubtotal = Number(targetOrder.subtotal || 0) + Number(oldOrderData.subtotal || 0);
-                                                        const newTax = Number(targetOrder.tax || 0) + Number(oldOrderData.tax || 0);
-                                                        const newServiceCharge = Number(targetOrder.service_charge || 0) + Number(oldOrderData.service_charge || 0);
-                                                        
-                                                        const mergedTableNumber = targetOrder.table_number?.includes(oldOrderData.table_number) 
-                                                            ? targetOrder.table_number 
-                                                            : (targetOrder.table_number + ' + ' + oldOrderData.table_number);
+                      const handleMergeTable = () => {
+                          if (editingOrderId && isOccupied) {
+                              if (confirm(`โต๊ะ ${targetTable.table_number} มีลูกค้าอยู่แล้ว ต้องการนำบิลของโต๊ะ ${selectedTable?.table_number || 'ปัจจุบัน'} ไปรวมบิลด้วยใช่หรือไม่?`)) {
+                                  setIsProcessing(true); setCheckoutError(null);
+                                  (async () => {
+                                      try {
+                                          const targetOrder = pendingForThisTable[0];
+                                          if (!targetOrder) throw new Error('ไม่พบออเดอร์ปลายทาง');
+                                          
+                                          const { data: oldOrderData } = await supabase.from('pos_orders').select('*').eq('id', editingOrderId).single();
+                                          
+                                          if (oldOrderData) {
+                                              const newTotal = Number(targetOrder.total || 0) + Number(oldOrderData.total || 0);
+                                              const newSubtotal = Number(targetOrder.subtotal || 0) + Number(oldOrderData.subtotal || 0);
+                                              const newTax = Number(targetOrder.tax || 0) + Number(oldOrderData.tax || 0);
+                                              const newServiceCharge = Number(targetOrder.service_charge || 0) + Number(oldOrderData.service_charge || 0);
+                                              
+                                              const mergedTableNumber = targetOrder.table_number?.includes(oldOrderData.table_number) 
+                                                  ? targetOrder.table_number 
+                                                  : (targetOrder.table_number + ' + ' + oldOrderData.table_number);
 
-                                                        await supabase.from('pos_orders').update({
-                                                            subtotal: newSubtotal,
-                                                            tax: newTax,
-                                                            service_charge: newServiceCharge,
-                                                            total: newTotal,
-                                                            table_number: mergedTableNumber
-                                                        }).eq('id', targetOrder.id);
-                                                    }
+                                              await supabase.from('pos_orders').update({
+                                                  subtotal: newSubtotal,
+                                                  tax: newTax,
+                                                  service_charge: newServiceCharge,
+                                                  total: newTotal,
+                                                  table_number: mergedTableNumber
+                                              }).eq('id', targetOrder.id);
+                                          }
 
-                                                    const { data: currentItems } = await supabase.from('pos_order_items').select('*').eq('order_id', editingOrderId);
-                                                    
-                                                    if (currentItems && currentItems.length > 0) {
-                                                        const updatedItems = currentItems.map(item => {
-                                                            const mods = item.selected_modifiers || [];
-                                                            mods.push({ name: `[ย้ายมาจากโต๊ะ ${selectedTable?.table_number || 'เดิม'}]`, price_adjustment: 0, qty: 1 });
-                                                            return { ...item, order_id: targetOrder.id, selected_modifiers: mods };
-                                                        });
-                                                        await supabase.from('pos_order_items').upsert(updatedItems);
-                                                    }
-                                                    
-                                                    await supabase.from('pos_orders').update({ status: 'cancelled' }).eq('id', editingOrderId);
-                                                    
-                                                    if (selectedTable?.id) {
-                                                        await supabase.from('pos_tables').update({ parent_table_id: targetTable.id }).eq('id', selectedTable.id);
-                                                    }
-                                                    
-                                                    alert('รวมโต๊ะสำเร็จ! รายการอาหารถูกย้ายไปรวมในบิลของโต๊ะ ' + targetTable.table_number + ' เรียบร้อยแล้ว');
-                                                    
-                                                    fetchTables();
-                                                    refreshPendingOrders();
-                                                    resetDeliveryDraft();
-                                                    setShowTableModal(false);
-                                                } catch (err: any) {
-                                                    alert('Error merging tables: ' + err.message);
-                                                } finally {
-                                                    setIsProcessing(false);
-                                                }
-                                            })();
-                                        }
-                                        return;
+                                          const { data: currentItems } = await supabase.from('pos_order_items').select('*').eq('order_id', editingOrderId);
+                                          
+                                          if (currentItems && currentItems.length > 0) {
+                                              const updatedItems = currentItems.map(item => {
+                                                  const mods = item.selected_modifiers || [];
+                                                  mods.push({ name: `[ย้ายมาจากโต๊ะ ${selectedTable?.table_number || 'เดิม'}]`, price_adjustment: 0, qty: 1 });
+                                                  return { ...item, order_id: targetOrder.id, selected_modifiers: mods };
+                                              });
+                                              await supabase.from('pos_order_items').upsert(updatedItems);
+                                          }
+                                          
+                                          await supabase.from('pos_orders').update({ status: 'cancelled' }).eq('id', editingOrderId);
+                                          
+                                          if (selectedTable?.id) {
+                                              await supabase.from('pos_tables').update({ parent_table_id: targetTable.id }).eq('id', selectedTable.id);
+                                          }
+                                          
+                                          alert('รวมโต๊ะสำเร็จ! รายการอาหารถูกย้ายไปรวมในบิลของโต๊ะ ' + targetTable.table_number + ' เรียบร้อยแล้ว');
+                                          
+                                          fetchTables();
+                                          refreshPendingOrders();
+                                          resetDeliveryDraft();
+                                          setShowTableModal(false);
+                                      } catch (err: any) {
+                                          alert('Error merging tables: ' + err.message);
+                                      } finally {
+                                          setIsProcessing(false);
+                                      }
+                                  })();
+                              }
+                          }
+                      };
+
+                      return (
+                        <div key={table.id} className="relative aspect-square flex flex-col group">
+                          <button
+                            style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
+                            onContextMenu={(e) => e.preventDefault()}
+                            onTouchStart={(e) => handleTablePressStart(e, targetTable, pendingForThisTable, isOccupied, handleMergeTable)}
+                            onTouchEnd={handleTablePressCancel}
+                            onTouchMove={handleTablePressMove}
+                            onMouseDown={(e) => handleTablePressStart(e, targetTable, pendingForThisTable, isOccupied, handleMergeTable)}
+                            onMouseUp={handleTablePressCancel}
+                            onMouseMove={handleTablePressMove}
+                            onMouseLeave={handleTablePressCancel}
+                            onClick={(e) => {
+                              handleTablePressCancel();
+                              if (isTableLongPressTriggered.current) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                isTableLongPressTriggered.current = false;
+                                return;
+                              }
+
+                              if (selectedTable?.id === targetTable.id) {
+                                resetOrderComposer()
+                                setTotalPaid(0)
+                                setShowTableModal(false)
+                              } else {
+                                if (pendingForThisTable.length > 0 && cart.length > 0 && !editingOrderId) {
+                                    setMergeTableTarget({ table: targetTable, pendingOrder: pendingForThisTable[0] })
+                                } else {
+                                    setSelectedTable(targetTable)
+                                    setOrderType('dine_in')
+                                    resetDeliveryDraft()
+                                    setShowTableModal(false)
+                                    if (pendingForThisTable.length > 0) {
+                                        handleResumeOrder(pendingForThisTable[0])
                                     }
                                 }
-
-                                setSelectedTable(targetTable)
-                                setOrderType('dine_in')
-                                resetDeliveryDraft()
-                                setShowTableModal(false)
-                                if (pendingForThisTable.length > 0) {
-                                    handleResumeOrder(pendingForThisTable[0])
-                                }
-                            }
-                          }
-                        }}
+                              }
+                            }}
                         className={`w-full h-full relative flex flex-col items-center justify-center overflow-visible rounded-3xl transition-all duration-300 ease-out border-2 ${
                           isSelected 
                             ? 'bg-emerald-500 text-white border-emerald-500 shadow-xl shadow-emerald-500/20 scale-105 z-10' 
