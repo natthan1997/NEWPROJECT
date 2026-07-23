@@ -207,8 +207,8 @@ export default function POSDrawerManager({
       let query = supabase
         .from('pos_shifts')
         .select('*')
-        .gte('opened_at', startOfDay.toISOString())
         .lt('opened_at', endOfDay.toISOString())
+        .or(`closed_at.gte.${startOfDay.toISOString()},closed_at.is.null`)
         .order('opened_at', { ascending: false })
         
       if (shopSettings?.branch_id) {
