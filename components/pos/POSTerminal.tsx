@@ -584,13 +584,42 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     touchStartPos.current = null
   }
 
-  const toggleItemStock = async (item: MenuItem) => {
+  const toggleItemStock = async (item: MenuItem, closeMode: 'today' | 'indefinite' | null = null) => {
     try {
       const newStockStatus = item.in_stock === false ? true : false
       // Optimistic update
       setItems(prev => prev.map(i => i.id === item.id ? { ...i, in_stock: newStockStatus } : i))
-      const { error } = await supabase.from('pos_menu_items').update({ in_stock: newStockStatus }).eq('id', item.id)
-      if (error) throw error
+      
+      const { error: menuError } = await supabase.from('pos_menu_items').update({ in_stock: newStockStatus }).eq('id', item.id)
+      if (menuError) throw menuError
+
+      // Manage auto_restock_daily_items in pos_shop_settings
+      if (shopSettings?.branch_id) {
+        let currentAutoRestock = shopSettings?.settings?.auto_restock_daily_items || []
+        let needsUpdate = false
+        
+        if (newStockStatus === false && closeMode === 'today') {
+          if (!currentAutoRestock.includes(item.id)) {
+            currentAutoRestock = [...currentAutoRestock, item.id]
+            needsUpdate = true
+          }
+        } else {
+          // If opening, or closing indefinitely, remove from auto-restock
+          if (currentAutoRestock.includes(item.id)) {
+            currentAutoRestock = currentAutoRestock.filter((id: string) => id !== item.id)
+            needsUpdate = true
+          }
+        }
+        
+        if (needsUpdate) {
+           const updatedSettings = { ...(shopSettings.settings || {}), auto_restock_daily_items: currentAutoRestock }
+           const { error: settingsError } = await supabase.from('pos_shop_settings')
+             .update({ settings: updatedSettings })
+             .eq('branch_id', shopSettings.branch_id)
+           if (settingsError) console.error('Error updating auto_restock_daily_items:', settingsError)
+        }
+      }
+
     } catch (err: any) {
       console.error('Error toggling stock:', err)
       // Revert on error
@@ -4487,16 +4516,43 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             
             <div className="w-full mt-6 flex flex-col gap-3">
               {canToggleStock ? (
-                <button
-                  onClick={() => {
-                    toggleItemStock(optionsModalItem)
-                    setOptionsModalItem(null)
-                  }}
-                  className={`w-full py-4 rounded-2xl flex items-center justify-center gap-2.5 font-bold transition-all ${optionsModalItem.in_stock === false ? 'bg-[#1A1A18] text-white hover:bg-black shadow-[0_8px_20px_-8px_rgba(0,0,0,0.5)]' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}
-                >
-                  <Power size={20} strokeWidth={2.5} />
-                  <span className="text-[15px]">{optionsModalItem.in_stock === false ? (locale === 'en' ? 'Mark as Available' : locale === 'zh' ? '标记为有货' : 'เปิดขายเมนูนี้') : (locale === 'en' ? 'Mark as Out of Stock' : locale === 'zh' ? '标记为无货' : 'ปิดขาย (หมดชั่วคราว)')}</span>
-                </button>
+                <>
+                  {optionsModalItem.in_stock === false ? (
+                    <button
+                      onClick={() => {
+                        toggleItemStock(optionsModalItem)
+                        setOptionsModalItem(null)
+                      }}
+                      className="w-full py-4 rounded-2xl flex items-center justify-center gap-2.5 font-bold transition-all bg-[#1A1A18] text-white hover:bg-black shadow-[0_8px_20px_-8px_rgba(0,0,0,0.5)]"
+                    >
+                      <Power size={20} strokeWidth={2.5} />
+                      <span className="text-[15px]">{locale === 'en' ? 'Mark as Available' : locale === 'zh' ? '标记为有货' : 'เปิดขายเมนูนี้'}</span>
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => {
+                          toggleItemStock(optionsModalItem, 'today')
+                          setOptionsModalItem(null)
+                        }}
+                        className="w-full py-3.5 rounded-2xl flex items-center justify-center gap-2.5 font-bold transition-all bg-orange-50 text-orange-600 hover:bg-orange-100"
+                      >
+                        <Power size={18} strokeWidth={2.5} />
+                        <span className="text-[14px]">{locale === 'en' ? 'Close for Today (Auto-open tomorrow)' : 'ปิดวันนี้ (พรุ่งนี้เปิดอัตโนมัติ)'}</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          toggleItemStock(optionsModalItem, 'indefinite')
+                          setOptionsModalItem(null)
+                        }}
+                        className="w-full py-3.5 rounded-2xl flex items-center justify-center gap-2.5 font-bold transition-all bg-red-50 text-red-600 hover:bg-red-100"
+                      >
+                        <Power size={18} strokeWidth={2.5} />
+                        <span className="text-[14px]">{locale === 'en' ? 'Close Indefinitely' : 'ปิดชั่วคราว (จนกว่าจะเปิดเอง)'}</span>
+                      </button>
+                    </>
+                  )}
+                </>
               ) : (
                 <div className="text-center text-[#1A1A18]/50 text-[13px] py-4 bg-gray-50 rounded-2xl font-medium">
                   {locale === 'en' ? 'You do not have permission to edit stock.' : locale === 'zh' ? '您没有权限编辑库存。' : 'คุณไม่มีสิทธิ์เปิด/ปิดสต็อก'}
