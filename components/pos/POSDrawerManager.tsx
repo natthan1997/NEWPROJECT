@@ -58,6 +58,15 @@ export default function POSDrawerManager({
     amount: '',
     reason: '',
   })
+  
+  // History Mode State
+  const [viewMode, setViewMode] = useState<'current' | 'history'>('current')
+  const [historyDate, setHistoryDate] = useState<Date>(new Date())
+  const [historyShifts, setHistoryShifts] = useState<any[]>([])
+  const [selectedHistoryShiftId, setSelectedHistoryShiftId] = useState<string | null>(null)
+  const [historyTransactions, setHistoryTransactions] = useState<any[]>([])
+  const [historyStats, setHistoryStats] = useState<any>(null)
+  const [historyLoading, setHistoryLoading] = useState(false)
 
   const getLocalDayBounds = () => {
     const now = new Date()
@@ -129,9 +138,178 @@ export default function POSDrawerManager({
   }, [activeShift?.id, fetchShiftStats])
 
   useEffect(() => {
-    setViewExtraHeader(null);
-    return () => setViewExtraHeader(null);
-  }, [setViewExtraHeader]);
+    if (setViewExtraHeader) {
+      setViewExtraHeader(
+        <div className="flex items-center gap-2 sm:gap-3 bg-white p-1 rounded-xl border border-neutral-200">
+          <button
+            onClick={() => setViewMode('current')}
+            className={`px-3 py-1.5 sm:px-4 sm:py-2 text-[10px] sm:text-[11px] font-black uppercase tracking-widest rounded-lg transition-colors ${
+              viewMode === 'current' 
+                ? 'bg-neutral-900 text-white shadow-sm' 
+                : 'text-neutral-500 hover:text-neutral-900 hover:bg-neutral-50'
+            }`}
+          >
+            {locale === 'en' ? 'Current Shift' : 'กะปัจจุบัน'}
+          </button>
+          <button
+            onClick={() => setViewMode('history')}
+            className={`px-3 py-1.5 sm:px-4 sm:py-2 text-[10px] sm:text-[11px] font-black uppercase tracking-widest rounded-lg transition-colors flex items-center gap-2 ${
+              viewMode === 'history' 
+                ? 'bg-neutral-900 text-white shadow-sm' 
+                : 'text-neutral-500 hover:text-neutral-900 hover:bg-neutral-50'
+            }`}
+          >
+            <History size={14} />
+            <span className="hidden sm:inline">{locale === 'en' ? 'History' : 'ประวัติลิ้นชัก'}</span>
+          </button>
+          
+          <AnimatePresence>
+            {viewMode === 'history' && (
+              <motion.div
+                initial={{ width: 0, opacity: 0 }}
+                animate={{ width: 'auto', opacity: 1 }}
+                exit={{ width: 0, opacity: 0 }}
+                className="overflow-hidden flex items-center"
+              >
+                <div className="pl-2 border-l border-neutral-200 ml-1">
+                  <input 
+                    type="date" 
+                    value={historyDate.toLocaleDateString('en-CA')}
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        setHistoryDate(new Date(e.target.value))
+                        setSelectedHistoryShiftId(null)
+                      }
+                    }}
+                    className="appearance-none bg-transparent text-neutral-800 text-[10px] sm:text-[11px] font-black uppercase tracking-widest cursor-pointer focus:outline-none transition-all border-none px-2 w-[110px] sm:w-[130px] text-center"
+                  />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )
+    }
+    return () => {
+      if (setViewExtraHeader) setViewExtraHeader(null)
+    }
+  }, [viewMode, historyDate, locale, setViewExtraHeader])
+
+  const fetchHistoryShifts = async () => {
+    if (viewMode !== 'history') return
+    
+    setHistoryLoading(true)
+    try {
+      const startOfDay = new Date(historyDate.getFullYear(), historyDate.getMonth(), historyDate.getDate(), 0, 0, 0, 0)
+      const endOfDay = new Date(startOfDay)
+      endOfDay.setDate(endOfDay.getDate() + 1)
+      
+      let query = supabase
+        .from('pos_shifts')
+        .select('*')
+        .eq('status', 'closed')
+        .gte('opened_at', startOfDay.toISOString())
+        .lt('opened_at', endOfDay.toISOString())
+        .order('opened_at', { ascending: false })
+        
+      if (shopSettings?.branch_id) {
+         query = query.eq('branch_id', shopSettings.branch_id)
+      }
+      
+      const { data } = await query
+      setHistoryShifts(data || [])
+      
+      if (!selectedHistoryShiftId && data && data.length > 0) {
+        setSelectedHistoryShiftId(data[0].id)
+      } else if (data && data.length === 0) {
+        setSelectedHistoryShiftId(null)
+        setHistoryTransactions([])
+        setHistoryStats(null)
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setHistoryLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchHistoryShifts()
+  }, [viewMode, historyDate, shopSettings?.branch_id])
+
+  const loadHistoryShiftData = async () => {
+    if (!selectedHistoryShiftId) return
+    const shift = historyShifts.find(s => s.id === selectedHistoryShiftId)
+    if (!shift) return
+    
+    setHistoryLoading(true)
+    try {
+      const { data: txs } = await supabase
+        .from('pos_shift_transactions')
+        .select('*')
+        .eq('shift_id', selectedHistoryShiftId)
+        .order('created_at', { ascending: false })
+      setHistoryTransactions(txs || [])
+      
+      const payIns = (txs || []).filter((t: any) => t.type === 'pay_in').reduce((acc: number, curr: any) => acc + Number(curr.amount || 0), 0)
+      const payOuts = (txs || []).filter((t: any) => t.type === 'pay_out').reduce((acc: number, curr: any) => acc + Number(curr.amount || 0), 0)
+      
+      let orderQuery = supabase
+        .from('pos_orders')
+        .select('status, order_type, payment_method, discount_amount, paid_at, branch_id, pos_order_payments(amount, payment_method)')
+        .gte('created_at', shift.opened_at)
+        .lte('created_at', shift.closed_at || new Date().toISOString())
+        
+      if (shift.branch_id) {
+        orderQuery = orderQuery.or(`branch_id.eq.${shift.branch_id},branch_id.is.null`)
+      }
+      
+      const { data: orderRows } = await orderQuery
+      const validOrders = orderRows || []
+      
+      let cashSales = 0
+      validOrders.forEach((order: any) => {
+        const status = String(order.status || '').toLowerCase()
+        if (['cancelled', 'void', 'refunded'].includes(status)) return
+        const hasPaymentRows = Array.isArray(order.pos_order_payments) && order.pos_order_payments.length > 0
+        const isSoldOrder = ['paid', 'completed', 'delivered'].includes(status) || Boolean(order.paid_at) || hasPaymentRows
+        if (!isSoldOrder) return
+
+        const payments = order.pos_order_payments || []
+        payments.forEach((payment: any) => {
+          const method = String(payment.payment_method || '').toLowerCase()
+          if (method === 'cash' || method === 'cod') {
+            cashSales += Number(payment.amount || 0)
+          }
+        })
+
+        if (payments.length === 0) {
+          const method = String(order.payment_method || '').toLowerCase()
+          if (method === 'cash' || method === 'cod') {
+            cashSales += Number(order.net_total ?? order.total_amount ?? 0)
+          }
+        }
+      })
+      
+      const expected = Number(shift.start_cash || 0) + payIns - payOuts + cashSales
+      
+      setHistoryStats({
+        cashSales,
+        payIns,
+        payOuts,
+        expected,
+        orderRows: validOrders
+      })
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setHistoryLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadHistoryShiftData()
+  }, [selectedHistoryShiftId])
 
   const fetchTransactions = async () => {
       const { start, end } = getLocalDayBounds()
@@ -427,7 +605,146 @@ export default function POSDrawerManager({
 
     return (
         <main className="flex-1 overflow-y-auto p-2 sm:p-10 bg-[#FDFDFB] custom-scrollbar font-bold overflow-x-hidden">
-            {!activeShift ? (
+            {viewMode === 'history' ? (
+                <div className="max-w-5xl mx-auto flex flex-col gap-6 font-sans h-full min-h-0">
+                    {historyLoading ? (
+                        <div className="flex items-center justify-center h-64">
+                            <Loader2 className="animate-spin text-neutral-400" size={32} />
+                        </div>
+                    ) : historyShifts.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-20 bg-white rounded-[2rem] border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] text-gray-400">
+                            <History size={48} className="mb-4 opacity-20" />
+                            <p className="uppercase tracking-widest text-xs font-black">{locale === 'en' ? 'No shifts found for this date' : 'ไม่มีประวัติกะในวันที่เลือก'}</p>
+                        </div>
+                    ) : (
+                        <>
+                            {historyShifts.length > 1 && (
+                                <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+                                    {historyShifts.map((shift, i) => (
+                                        <button
+                                            key={shift.id}
+                                            onClick={() => setSelectedHistoryShiftId(shift.id)}
+                                            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-colors whitespace-nowrap ${
+                                                selectedHistoryShiftId === shift.id 
+                                                    ? 'bg-neutral-900 text-white' 
+                                                    : 'bg-white border border-gray-200 text-gray-500 hover:bg-gray-50'
+                                            }`}
+                                        >
+                                            {locale === 'en' ? 'Shift' : 'กะที่'} {historyShifts.length - i}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+
+                            {selectedHistoryShiftId && historyStats && (
+                                <>
+                                    {/* TOP SECTION: CLEAN HERO */}
+                                    <div className="bg-white rounded-[2rem] p-8 border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex-none relative overflow-hidden">
+                                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gray-400 to-gray-600"></div>
+                                        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8 relative z-10">
+                                            <div className="flex-1">
+                                                <div className="flex flex-col gap-2 mb-4">
+                                                    <span className="text-sm font-bold text-gray-500 uppercase tracking-widest">
+                                                        {locale === 'en' ? 'Expected Cash in Drawer' : 'เงินสดที่ควรมีในลิ้นชัก'}
+                                                    </span>
+                                                    <div className="flex gap-2">
+                                                        <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest bg-gray-100 px-3 py-1.5 rounded-full border border-gray-200 w-fit">
+                                                            {locale === 'en' ? 'Started: ' : 'เริ่มกะ: '}
+                                                            {new Date(historyShifts.find(s => s.id === selectedHistoryShiftId)?.opened_at || '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </span>
+                                                        <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest bg-gray-100 px-3 py-1.5 rounded-full border border-gray-200 w-fit">
+                                                            {locale === 'en' ? 'Closed: ' : 'ปิดกะ: '}
+                                                            {new Date(historyShifts.find(s => s.id === selectedHistoryShiftId)?.closed_at || '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div className="text-5xl sm:text-6xl md:text-7xl font-black font-sans tracking-tight text-gray-900">
+                                                    {locale === 'en' ? '฿ ' : '฿ '}{historyStats.expected?.toLocaleString() || '0'}
+                                                </div>
+                                            </div>
+
+                                            {/* Horizontal Breakdown */}
+                                            <div className="grid grid-cols-2 lg:flex gap-4 w-full md:w-auto p-4 rounded-[1.5rem] bg-gray-50 border border-gray-100">
+                                                <div className="flex flex-col md:w-28 p-2">
+                                                   <span className="text-gray-400 uppercase tracking-widest text-[9px] mb-1 font-bold">{locale === 'en' ? 'Starting Cash' : 'เริ่มต้น'}</span>
+                                                   <span className="font-sans text-lg md:text-xl font-bold text-gray-900">฿ {Number(historyShifts.find(s => s.id === selectedHistoryShiftId)?.start_cash || 0).toLocaleString()}</span>
+                                                </div>
+                                                <div className="flex flex-col md:w-28 p-2">
+                                                   <span className="text-gray-400 uppercase tracking-widest text-[9px] mb-1 font-bold">{locale === 'en' ? 'Cash Sales' : 'ยอดขายเงินสด'}</span>
+                                                   <span className="text-emerald-500 font-sans text-lg md:text-xl font-bold">+ ฿ {historyStats.cashSales?.toLocaleString() || '0'}</span>
+                                                </div>
+                                                <div className="flex flex-col md:w-28 p-2">
+                                                   <span className="text-gray-400 uppercase tracking-widest text-[9px] mb-1 font-bold">{locale === 'en' ? 'Pay In' : 'นำเงินเข้า'}</span>
+                                                   <span className="text-emerald-500 font-sans text-lg md:text-xl font-bold">+ ฿ {historyStats.payIns?.toLocaleString() || '0'}</span>
+                                                </div>
+                                                <div className="flex flex-col md:w-28 p-2">
+                                                   <span className="text-gray-400 uppercase tracking-widest text-[9px] mb-1 font-bold">{locale === 'en' ? 'Pay Out' : 'นำเงินออก'}</span>
+                                                   <span className="text-rose-500 font-sans text-lg md:text-xl font-bold">- ฿ {historyStats.payOuts?.toLocaleString() || '0'}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* BOTTOM SECTION */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 min-h-0">
+                                        {/* TRANSACTIONS */}
+                                        <div className="bg-white rounded-[2rem] border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col min-h-0 overflow-hidden">
+                                            <div className="px-6 py-5 border-b border-gray-50 flex items-center justify-between bg-gray-50/30">
+                                                <h3 className="text-xs font-bold text-gray-600 uppercase tracking-widest">{locale === 'en' ? 'Transactions' : 'ประวัตินำเงินเข้า-ออก'}</h3>
+                                            </div>
+                                            <div className="flex-1 overflow-y-auto custom-scrollbar p-2">
+                                                <div className="space-y-1">
+                                                    {historyTransactions.map(t => (
+                                                        <div key={t.id} className="p-4 flex items-center justify-between hover:bg-gray-50/80 rounded-2xl transition-colors">
+                                                            <div className="flex items-center gap-4">
+                                                                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${t.type === 'pay_in' ? 'bg-emerald-50 text-emerald-500' : 'bg-rose-50 text-rose-500'}`}>
+                                                                    {t.type === 'pay_in' ? <ArrowUpRight size={18} /> : <ArrowDownLeft size={18} />}
+                                                                </div>
+                                                                <div>
+                                                                    <div className="text-sm font-bold text-gray-800">{t.reason}</div>
+                                                                    <div className="text-[10px] font-semibold text-gray-400 uppercase mt-0.5">{new Date(t.created_at).toLocaleTimeString()}</div>
+                                                                </div>
+                                                            </div>
+                                                            <div className={`text-sm font-black ${t.type === 'pay_in' ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                                                {t.type === 'pay_in' ? '+' : '-'} ฿ {t.amount.toLocaleString()}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                    {historyTransactions.length === 0 && <div className="py-16 flex flex-col items-center justify-center text-gray-300 text-xs font-bold uppercase tracking-widest"><ArrowUpRight size={28} className="mb-3 opacity-30"/>{locale === 'en' ? 'No transactions' : 'ไม่มีรายการ'}</div>}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* SHIFT SUMMARY (READ ONLY) */}
+                                        <div className="flex flex-col gap-6 min-h-0">
+                                            <div className="bg-white rounded-[2rem] border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-8 flex-1 flex flex-col">
+                                                <div className="mb-6 flex justify-between items-center">
+                                                    <h3 className="text-xs font-bold text-gray-600 uppercase tracking-widest">{locale === 'en' ? 'Actual Cash Counted' : 'สรุปยอดเงินสดปิดกะ (นับจริง)'}</h3>
+                                                </div>
+                                                <div className="flex-1 flex flex-col justify-center gap-6">
+                                                    <div className="relative">
+                                                        <span className="absolute left-6 top-1/2 -translate-y-1/2 text-2xl font-black text-gray-300 select-none">฿</span>
+                                                        <div className="w-full text-right bg-gray-50 border border-gray-100 p-6 pl-14 text-4xl sm:text-5xl font-black text-gray-900 rounded-[1.5rem]">
+                                                            {(historyShifts.find(s => s.id === selectedHistoryShiftId)?.close_cash || 0).toLocaleString()}
+                                                        </div>
+                                                    </div>
+                                                    <button 
+                                                        onClick={handlePrintHistoryZReport} 
+                                                        className="w-full py-5 bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-black uppercase tracking-[0.2em] rounded-[1.5rem] transition-all flex items-center justify-center gap-2 border border-blue-200"
+                                                    >
+                                                        <Printer size={18} />
+                                                        <span>{locale === 'en' ? 'Print Z-Report' : 'พิมพ์ใบสรุปยอด (Z-Report)'}</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                        </>
+                    )}
+                </div>
+            ) : !activeShift ? (
                 <div className="max-w-xl mx-auto py-10 sm:py-20 font-bold">
                     <section className="bg-white border border-[#E5E5DF] p-6 sm:p-16 shadow-2xl">
                         <h2 className="font-serif-luxury text-3xl sm:text-5xl font-light tracking-tighter text-[#1A1A18]">{locale === 'en' ? 'เริ่มกะทำงานใหม่' : locale === 'zh' ? 'เริ่มกะทำงานใหม่' : 'เริ่มกะทำงานใหม่'}</h2>
