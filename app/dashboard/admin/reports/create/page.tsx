@@ -419,12 +419,22 @@ export default function AdminBatchReportPage() {
         body: JSON.stringify(payload),
       })
 
+      const res = await response.json()
       if (!response.ok) {
-        const res = await response.json()
         throw new Error(res.error || 'ส่งรายงานไม่สำเร็จ')
       }
 
-      alert('ส่งรายงานแบบกลุ่มเรียบร้อยแล้ว และแจ้งเตือน LINE ให้ลูกค้าแล้ว')
+      // Check LINE Push Delivery Results
+      const lineRes = res.lineResult
+      const lineResultsObj = lineRes?.results || {}
+      const failedUsers = Object.entries(lineResultsObj).filter(([_, r]: [string, any]) => !r?.delivered)
+
+      if (failedUsers.length > 0) {
+        const reasons = failedUsers.map(([_, r]: [string, any]) => `${r?.reason || 'Unknown error'}${r?.error ? ` (${r.error})` : ''}`).join('\n')
+        alert(`บันทึกรายงานสำเร็จแล้ว! แต่การแจ้งเตือน LINE ไม่สำเร็จเนื่องจาก:\n${reasons}`)
+      } else {
+        alert('ส่งรายงานแบบกลุ่มเรียบร้อยแล้ว และแจ้งเตือน LINE ให้ลูกค้าสำเร็จ!')
+      }
       router.push('/dashboard/admin/reports')
     } catch (e: any) {
       setError(e.message)

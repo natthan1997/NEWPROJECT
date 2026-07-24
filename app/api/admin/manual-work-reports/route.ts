@@ -276,6 +276,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 6. Send Intelligent LINE Notification (Detailed for 1 house, Carousel for multiple)
+    let lineResult: any = null
     if (carouselReports.length === 1) {
       const single = carouselReports[0]
       const thaiDate = single.nextVisitDate 
@@ -285,7 +286,7 @@ export async function POST(req: NextRequest) {
         ? `${staffName} ส่งรายงานหลังจบงานเรียบร้อยแล้ว พร้อมนัดหมายครั้งถัดไปวันที่ ${thaiDate} ให้คุณแล้ว`
         : `${staffName} ส่งรายงานหลังจบงานเรียบร้อยแล้ว กรุณาตรวจสอบรายละเอียด รูปก่อน-หลัง และตอบกลับได้ทันที`
 
-      await sendLinePushToOrderStakeholders(serviceSupabase, single.houseId, customerId, {
+      lineResult = await sendLinePushToOrderStakeholders(serviceSupabase, single.houseId, customerId, {
         title: 'รายงานหลังจบงานพร้อมแล้ว',
         message: msg,
         appBaseUrl: req.nextUrl.origin,
@@ -313,8 +314,6 @@ export async function POST(req: NextRequest) {
         },
       })
     } else if (carouselReports.length > 1) {
-      // In batch reports, there might be multiple houses. For simplicity, we can fetch all unique houseIds and customerId and notify everyone.
-      // But let's just loop and merge all unique users from all houseIds.
       const users = new Set<string>()
       users.add(customerId)
       const houseIds = Array.from(new Set(carouselReports.map(r => r.houseId).filter(Boolean)))
@@ -324,9 +323,10 @@ export async function POST(req: NextRequest) {
         if (cols) cols.forEach(c => c.user_id && users.add(c.user_id))
       }
 
+      const batchResults: Record<string, any> = {}
       for (const targetUserId of Array.from(users)) {
         const { sendLinePushToSupabaseUser } = await import('@/lib/server/lineMessaging')
-        await sendLinePushToSupabaseUser(serviceSupabase, targetUserId, {
+        batchResults[targetUserId] = await sendLinePushToSupabaseUser(serviceSupabase, targetUserId, {
           title: 'สรุปรายงานการเข้าดูแลสวนวันนี้',
           message: `${staffName} ส่งรายงานการดูแลสวนเรียบร้อยแล้วจำนวน ${carouselReports.length} หลัง`,
           appBaseUrl: req.nextUrl.origin,
@@ -337,9 +337,10 @@ export async function POST(req: NextRequest) {
           },
         })
       }
+      lineResult = { success: true, results: batchResults }
     }
 
-    return NextResponse.json({ success: true, results })
+    return NextResponse.json({ success: true, results, lineResult })
   } catch (error) {
     console.error('POST /api/admin/manual-work-reports error', error)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
