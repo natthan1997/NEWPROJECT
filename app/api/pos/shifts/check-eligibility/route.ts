@@ -40,18 +40,12 @@ async function handleCheckEligibility(req: NextRequest) {
         const localTodayEnd = `${todayDateStr}T23:59:59+07:00`
 
         // Optional branch filter from query params
-        const branchId = req.nextUrl.searchParams.get('branch_id') || req.nextUrl.searchParams.get('branchId')
+        const branchId = req.nextUrl.searchParams.get('branch_id') || req.nextUrl.searchParams.get('branchId') || req.nextUrl.searchParams.get('branch_code')
 
-        // 2. Fetch profiles using display_name (profiles table has display_name, not full_name)
-        let query = supabase
+        // 2. Fetch profiles safely using branch_code (or select all and filter)
+        const { data: allStaff, error: staffErr } = await supabase
             .from('profiles')
-            .select('id, display_name, email, role, staff_level, staff_type, department, is_active, is_pos_device, is_pos_account, work_days, shift_start, shift_end, branch_id')
-
-        if (branchId) {
-            query = query.or(`branch_id.eq.${branchId},branch_id.is.null`)
-        }
-
-        const { data: allStaff, error: staffErr } = await query
+            .select('id, display_name, email, role, staff_level, staff_type, department, is_active, is_pos_device, is_pos_account, work_days, shift_start, shift_end, branch_code')
 
         if (staffErr) {
             console.error('Fetch staff error:', staffErr)
@@ -68,7 +62,14 @@ async function handleCheckEligibility(req: NextRequest) {
 
             const st = (s.staff_type || '').toLowerCase()
             const isStaff = r === 'staff' || r === 'admin' || st.length > 0
-            return isStaff
+            if (!isStaff) return false
+
+            // Branch filter if profile has branch_code set
+            if (branchId && s.branch_code && s.branch_code !== branchId) {
+                return false
+            }
+
+            return true
         })
 
         // Filter staff scheduled to work today
