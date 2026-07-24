@@ -51,6 +51,15 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
     }
   }
 
+  React.useEffect(() => {
+    if (isOpen) {
+      checkEligibility()
+    } else {
+      setShowBlockedModal(false)
+      setShowLeaveModal(false)
+    }
+  }, [isOpen])
+
   const handleGrantEmergencyLeave = async (staffId: string) => {
     if (!staffId) return
     setIsSubmittingLeave(true)

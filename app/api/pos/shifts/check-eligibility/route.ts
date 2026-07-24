@@ -70,7 +70,7 @@ async function handleCheckEligibility(req: NextRequest) {
             return NextResponse.json({ error: staffErr.message }, { status: 500 })
         }
 
-        // Filter staff profiles (EXCLUSIVELY Cafe Staff: staff_type === 'cafe')
+        // Filter staff profiles (Strictly Cafe Staff: staff_type === 'cafe' or branch_code === '01')
         const realStaff = (allStaff || []).filter(s => {
             if (s.is_pos_device || s.is_pos_account) return false
             if (s.is_active === false) return false
@@ -78,9 +78,12 @@ async function handleCheckEligibility(req: NextRequest) {
             const r = (s.role || '').toLowerCase()
             if (r === 'customer') return false
 
-            // Strictly filter for Cafe staff only (staff_type === 'cafe')
+            // Explicitly exclude garden staff by staff_type
             const st = (s.staff_type || '').toLowerCase()
-            const isCafeStaff = st === 'cafe'
+            if (st === 'garden') return false
+
+            // Must be cafe staff or explicitly assigned to cafe branch 01
+            const isCafeStaff = st === 'cafe' || s.branch_code === '01'
             if (!isCafeStaff) return false
 
             // Branch filter matching targetBranchCode or branch_code
