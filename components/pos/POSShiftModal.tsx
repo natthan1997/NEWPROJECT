@@ -182,7 +182,7 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
                       </p>
                       {eligibilityData?.missingCheckInStaff?.map((staff: any) => (
                         <div key={staff.id} className="flex justify-between items-center bg-white p-2 border border-gray-200">
-                          <span className="text-xs font-bold text-[#1A1A18]">• {staff.full_name || staff.email}</span>
+                          <span className="text-xs font-bold text-[#1A1A18]">• {staff.display_name || staff.full_name || staff.email}</span>
                           <button
                             type="button"
                             onClick={() => {

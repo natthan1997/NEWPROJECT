@@ -42,10 +42,10 @@ async function handleCheckEligibility(req: NextRequest) {
         // Optional branch filter from query params
         const branchId = req.nextUrl.searchParams.get('branch_id') || req.nextUrl.searchParams.get('branchId')
 
-        // 2. Fetch profiles
+        // 2. Fetch profiles using display_name (profiles table has display_name, not full_name)
         let query = supabase
             .from('profiles')
-            .select('id, full_name, display_name, email, role, staff_level, staff_type, department, is_active, is_pos_device, work_days, shift_start, shift_end, branch_id')
+            .select('id, display_name, email, role, staff_level, staff_type, department, is_active, is_pos_device, is_pos_account, work_days, shift_start, shift_end, branch_id')
 
         if (branchId) {
             query = query.or(`branch_id.eq.${branchId},branch_id.is.null`)
@@ -58,18 +58,17 @@ async function handleCheckEligibility(req: NextRequest) {
             return NextResponse.json({ error: staffErr.message }, { status: 500 })
         }
 
-        // Filter staff profiles (excluding POS device accounts and inactive accounts)
+        // Filter staff profiles (excluding customers, inactive accounts, and POS device accounts)
         const realStaff = (allStaff || []).filter(s => {
-            if (s.is_pos_device) return false
+            if (s.is_pos_device || s.is_pos_account) return false
             if (s.is_active === false) return false
 
             const r = (s.role || '').toLowerCase()
-            const sl = (s.staff_level || '').toLowerCase()
-            const st = (s.staff_type || '').toLowerCase()
-            const dept = (s.department || '').toLowerCase()
+            if (r === 'customer') return false
 
-            const isStaffRole = r === 'staff' || sl === 'staff' || st.length > 0 || dept.length > 0 || Boolean(s.shift_start)
-            return isStaffRole
+            const st = (s.staff_type || '').toLowerCase()
+            const isStaff = r === 'staff' || r === 'admin' || st.length > 0
+            return isStaff
         })
 
         // Filter staff scheduled to work today
