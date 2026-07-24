@@ -401,167 +401,96 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
       <div className="flex-1 overflow-y-auto px-6 py-6">
         
         {!loading && (
-          <div className="bg-[#FAF9F6] rounded-3xl p-5 sm:p-6 border border-neutral-200/80 shadow-[0_4px_25px_rgba(0,0,0,0.03)] mb-8">
-            {/* Row 1: Main Metric Header & Total Badge */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-neutral-200/70">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-[#1A1A18] text-white flex items-center justify-center shadow-md">
-                  <Receipt size={20} />
-                </div>
-                <div>
-                  <h2 className="text-base sm:text-lg font-black tracking-tight text-[#1A1A18]">
-                    {locale === 'en' ? 'Sales History & Orders' : 'ประวัติออเดอร์และการขาย'}
-                  </h2>
-                  <p className="text-[11px] font-bold text-neutral-400">
-                    {locale === 'en' ? 'Real-time daily transaction summary' : 'สรุปรายการขายประจำวันแบบเรียลไทม์'}
-                  </p>
-                </div>
-              </div>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6 pb-4 border-b border-neutral-100">
+            {/* Left: Summary Title & Live Count */}
+            <div className="flex items-center gap-3">
+              <h2 className="text-base font-black text-[#1A1A18] tracking-tight">
+                {locale === 'en' ? 'Order History' : 'สรุปประวัติขายประจำวัน'}
+              </h2>
+              <span className="text-xs font-extrabold px-3 py-1 rounded-full bg-neutral-100 text-neutral-700 border border-neutral-200/60">
+                {completedOrders.length} {locale === 'en' ? 'Bills' : 'รายการ'}
+              </span>
+            </div>
 
-              {/* Total Orders Reset Badge */}
+            {/* Right: Sleek Minimalist Segment Pill Bar */}
+            <div className="flex items-center gap-1 bg-neutral-100/80 p-1 rounded-full border border-neutral-200/60 overflow-x-auto no-scrollbar">
               <button
                 type="button"
                 onClick={() => setFilterType('all')}
-                className={`cursor-pointer px-4 py-2.5 rounded-2xl border transition-all duration-200 flex items-center gap-3 active:scale-95 ${
+                className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
                   filterType === 'all'
-                    ? 'bg-white border-neutral-300 shadow-sm text-[#1A1A18]'
-                    : 'bg-white/60 border-neutral-200/80 text-neutral-500 hover:bg-white hover:border-neutral-300'
+                    ? 'bg-[#1A1A18] text-white shadow-xs'
+                    : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200/50'
                 }`}
               >
-                <span className="text-[10px] font-black uppercase tracking-wider">
-                  {locale === 'en' ? 'Total Orders' : 'ยอดรวมทั้งหมด'}
+                <span>{locale === 'en' ? 'All' : 'ทั้งหมด'}</span>
+                <span className={`text-[10px] font-extrabold px-1.5 py-0.2 rounded-full ${filterType === 'all' ? 'bg-white/20 text-white' : 'bg-neutral-200/80 text-neutral-700'}`}>
+                  {completedOrders.length}
                 </span>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-2xl font-black text-[#1A1A18] tracking-tight">{completedOrders.length}</span>
-                  <span className="text-[10px] font-bold text-neutral-400">บิล</span>
-                </div>
               </button>
-            </div>
 
-            {/* Row 2: 4 Unified Interactive Category Segment Chips */}
-            <div className="pt-4 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              {/* 1. Takeaway Card */}
               <button
                 type="button"
-                onClick={() => setFilterType(filterType === 'takeaway' ? 'all' : 'takeaway')}
-                className={`group cursor-pointer rounded-2xl p-3.5 transition-all duration-200 border text-left flex flex-col justify-between ${
+                onClick={() => setFilterType('takeaway')}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
                   filterType === 'takeaway'
-                    ? 'bg-[#1A1A18] text-white border-[#1A1A18] shadow-md scale-[1.01]'
-                    : 'bg-white text-neutral-800 border-neutral-200/80 hover:border-neutral-300 hover:shadow-xs'
+                    ? 'bg-[#1A1A18] text-white shadow-xs'
+                    : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200/50'
                 }`}
               >
-                <div className="flex items-center justify-between w-full mb-1">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-6 h-6 rounded-lg flex items-center justify-center transition-colors ${
-                      filterType === 'takeaway' ? 'bg-white/15 text-white' : 'bg-neutral-100 text-neutral-500'
-                    }`}>
-                      <ShoppingBag size={12} />
-                    </div>
-                    <span className={`text-[10px] font-black uppercase tracking-wider ${
-                      filterType === 'takeaway' ? 'text-neutral-300' : 'text-neutral-500'
-                    }`}>
-                      {locale === 'en' ? 'Takeaway' : 'กลับบ้าน'}
-                    </span>
-                  </div>
-                  {filterType === 'takeaway' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
-                </div>
-                <div className="flex items-baseline gap-1 mt-1">
-                  <span className="text-xl sm:text-2xl font-black tracking-tight">{takeawayCount}</span>
-                  <span className={`text-[9px] font-bold ${filterType === 'takeaway' ? 'text-neutral-400' : 'text-neutral-400'}`}>บิล</span>
-                </div>
+                <ShoppingBag size={12} />
+                <span>{locale === 'en' ? 'Takeaway' : 'กลับบ้าน'}</span>
+                <span className={`text-[10px] font-extrabold px-1.5 py-0.2 rounded-full ${filterType === 'takeaway' ? 'bg-white/20 text-white' : 'bg-neutral-200/80 text-neutral-700'}`}>
+                  {takeawayCount}
+                </span>
               </button>
 
-              {/* 2. Dine-in Card */}
               <button
                 type="button"
-                onClick={() => setFilterType(filterType === 'dine_in' ? 'all' : 'dine_in')}
-                className={`group cursor-pointer rounded-2xl p-3.5 transition-all duration-200 border text-left flex flex-col justify-between ${
+                onClick={() => setFilterType('dine_in')}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
                   filterType === 'dine_in'
-                    ? 'bg-[#1A1A18] text-white border-[#1A1A18] shadow-md scale-[1.01]'
-                    : 'bg-white text-neutral-800 border-neutral-200/80 hover:border-neutral-300 hover:shadow-xs'
+                    ? 'bg-[#1A1A18] text-white shadow-xs'
+                    : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200/50'
                 }`}
               >
-                <div className="flex items-center justify-between w-full mb-1">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-6 h-6 rounded-lg flex items-center justify-center transition-colors ${
-                      filterType === 'dine_in' ? 'bg-white/15 text-white' : 'bg-neutral-100 text-neutral-500'
-                    }`}>
-                      <UtensilsCrossed size={12} />
-                    </div>
-                    <span className={`text-[10px] font-black uppercase tracking-wider ${
-                      filterType === 'dine_in' ? 'text-neutral-300' : 'text-neutral-500'
-                    }`}>
-                      {locale === 'en' ? 'Dine-in' : 'ทานที่ร้าน'}
-                    </span>
-                  </div>
-                  {filterType === 'dine_in' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
-                </div>
-                <div className="flex items-baseline gap-1 mt-1">
-                  <span className="text-xl sm:text-2xl font-black tracking-tight">{dineInCount}</span>
-                  <span className={`text-[9px] font-bold ${filterType === 'dine_in' ? 'text-neutral-400' : 'text-neutral-400'}`}>บิล</span>
-                </div>
+                <UtensilsCrossed size={12} />
+                <span>{locale === 'en' ? 'Dine-in' : 'ทานที่ร้าน'}</span>
+                <span className={`text-[10px] font-extrabold px-1.5 py-0.2 rounded-full ${filterType === 'dine_in' ? 'bg-white/20 text-white' : 'bg-neutral-200/80 text-neutral-700'}`}>
+                  {dineInCount}
+                </span>
               </button>
 
-              {/* 3. Delivery Card */}
               <button
                 type="button"
-                onClick={() => setFilterType(filterType === 'delivery' ? 'all' : 'delivery')}
-                className={`group cursor-pointer rounded-2xl p-3.5 transition-all duration-200 border text-left flex flex-col justify-between ${
+                onClick={() => setFilterType('delivery')}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
                   filterType === 'delivery'
-                    ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-[1.01]'
-                    : 'bg-white text-neutral-800 border-neutral-200/80 hover:border-amber-300 hover:shadow-xs'
+                    ? 'bg-amber-600 text-white shadow-xs'
+                    : 'text-amber-800 hover:bg-amber-100/80'
                 }`}
               >
-                <div className="flex items-center justify-between w-full mb-1">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-6 h-6 rounded-lg flex items-center justify-center transition-colors ${
-                      filterType === 'delivery' ? 'bg-white/20 text-white' : 'bg-amber-50 text-amber-600'
-                    }`}>
-                      <Truck size={12} />
-                    </div>
-                    <span className={`text-[10px] font-black uppercase tracking-wider ${
-                      filterType === 'delivery' ? 'text-amber-100' : 'text-amber-700'
-                    }`}>
-                      {locale === 'en' ? 'Delivery' : 'เดลิเวอรี'}
-                    </span>
-                  </div>
-                  {filterType === 'delivery' && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
-                </div>
-                <div className="flex items-baseline gap-1 mt-1">
-                  <span className="text-xl sm:text-2xl font-black tracking-tight">{deliveryCount}</span>
-                  <span className={`text-[9px] font-bold ${filterType === 'delivery' ? 'text-amber-200' : 'text-neutral-400'}`}>บิล</span>
-                </div>
+                <Truck size={12} />
+                <span>{locale === 'en' ? 'Delivery' : 'เดลิเวอรี'}</span>
+                <span className={`text-[10px] font-extrabold px-1.5 py-0.2 rounded-full ${filterType === 'delivery' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-800'}`}>
+                  {deliveryCount}
+                </span>
               </button>
 
-              {/* 4. Cancelled Card */}
               <button
                 type="button"
-                onClick={() => setFilterType(filterType === 'cancelled' ? 'all' : 'cancelled')}
-                className={`group cursor-pointer rounded-2xl p-3.5 transition-all duration-200 border text-left flex flex-col justify-between ${
+                onClick={() => setFilterType('cancelled')}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
                   filterType === 'cancelled'
-                    ? 'bg-rose-600 text-white border-rose-600 shadow-md scale-[1.01]'
-                    : 'bg-white text-neutral-800 border-neutral-200/80 hover:border-rose-300 hover:shadow-xs'
+                    ? 'bg-rose-600 text-white shadow-xs'
+                    : 'text-rose-700 hover:bg-rose-100/80'
                 }`}
               >
-                <div className="flex items-center justify-between w-full mb-1">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-6 h-6 rounded-lg flex items-center justify-center transition-colors ${
-                      filterType === 'cancelled' ? 'bg-white/20 text-white' : 'bg-rose-50 text-rose-500'
-                    }`}>
-                      <XCircle size={12} />
-                    </div>
-                    <span className={`text-[10px] font-black uppercase tracking-wider ${
-                      filterType === 'cancelled' ? 'text-rose-100' : 'text-rose-600'
-                    }`}>
-                      {locale === 'en' ? 'Cancelled' : 'ยกเลิก'}
-                    </span>
-                  </div>
-                  {filterType === 'cancelled' && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
-                </div>
-                <div className="flex items-baseline gap-1 mt-1">
-                  <span className="text-xl sm:text-2xl font-black tracking-tight">{cancelledCount}</span>
-                  <span className={`text-[9px] font-bold ${filterType === 'cancelled' ? 'text-rose-200' : 'text-neutral-400'}`}>บิล</span>
-                </div>
+                <XCircle size={12} />
+                <span>{locale === 'en' ? 'Cancelled' : 'ยกเลิก'}</span>
+                <span className={`text-[10px] font-extrabold px-1.5 py-0.2 rounded-full ${filterType === 'cancelled' ? 'bg-white/20 text-white' : 'bg-rose-100 text-rose-700'}`}>
+                  {cancelledCount}
+                </span>
               </button>
             </div>
           </div>
