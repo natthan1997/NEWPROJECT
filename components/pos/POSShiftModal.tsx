@@ -160,85 +160,24 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
             initial={{ opacity: 0, scale: 0.96, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 10 }}
-            className="relative w-full max-w-sm bg-white rounded-3xl shadow-xl border border-neutral-200/80 font-sans overflow-hidden"
+            className="relative w-full max-w-sm bg-white rounded-3xl shadow-xl border border-neutral-200/80 font-sans overflow-hidden min-h-[280px]"
           >
-            {/* Attendance Gate Blocked Overlay */}
-            <AnimatePresence>
-              {showBlockedModal && (
-                <motion.div 
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 15 }}
-                  className="absolute inset-0 z-[60] bg-white flex flex-col justify-between overflow-hidden"
-                >
-                  {/* Overlay Header */}
-                  <div className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between bg-white">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center">
-                        <AlertTriangle size={17} />
-                      </div>
-                      <h3 className="text-sm font-black text-neutral-900 tracking-tight">
-                        ไม่สามารถเปิดกะได้
-                      </h3>
-                    </div>
-                    <button 
-                      type="button"
-                      onClick={() => setShowBlockedModal(false)}
-                      className="w-8 h-8 rounded-full flex items-center justify-center text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-all"
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
+            {/* Loading Gate State */}
+            {checkingEligibility && !eligibilityData && (
+              <div className="p-8 flex flex-col items-center justify-center space-y-3 text-center min-h-[280px]">
+                <XYLLoader mini />
+                <p className="text-xs font-bold text-neutral-500">กำลังตรวจสอบการลงเวลาพนักงาน...</p>
+              </div>
+            )}
 
-                  {/* Overlay Body */}
-                  <div className="p-5 flex-1 flex flex-col justify-center space-y-3">
-                    <p className="text-xs font-bold text-rose-600 bg-rose-50/80 px-3.5 py-2.5 rounded-xl border border-rose-100 text-center">
-                      พนักงานยังไม่ลงเวลาเข้างาน {eligibilityData?.missingCheckInStaff?.length || 0} คน
-                    </p>
-
-                    {/* Missing Staff List */}
-                    <div className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl p-3 space-y-2 max-h-48 overflow-y-auto text-left">
-                      {eligibilityData?.missingCheckInStaff?.map((staff: any) => (
-                        <div key={staff.id} className="flex justify-between items-center bg-white p-2.5 rounded-xl border border-neutral-200/60 shadow-xs">
-                          <span className="text-xs font-bold text-neutral-900">• {staff.display_name || staff.full_name || staff.email}</span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedStaffForLeave(staff.id);
-                              setShowLeaveModal(true);
-                            }}
-                            className="text-[11px] font-bold text-amber-600 hover:text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200/60 transition-colors"
-                          >
-                            แจ้งลา
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Overlay Footer */}
-                  <div className="p-5 pt-0">
-                    <button 
-                      type="button"
-                      onClick={() => checkEligibility()}
-                      disabled={checkingEligibility}
-                      className="w-full h-11 bg-neutral-900 hover:bg-black text-white font-bold rounded-2xl text-xs transition-all flex items-center justify-center gap-2 active:scale-98 shadow-sm"
-                    >
-                      {checkingEligibility ? <XYLLoader mini /> : 'ตรวจสอบอีกครั้ง'}
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Emergency Leave Overlay */}
-            <AnimatePresence>
+            {/* STEP 1: Emergency Leave View (If active) */}
+            <AnimatePresence mode="wait">
               {showLeaveModal && (
                 <motion.div 
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 15 }}
-                  className="absolute inset-0 z-[70] bg-white flex flex-col justify-between overflow-hidden"
+                  className="w-full flex flex-col justify-between"
                 >
                   {/* Overlay Header */}
                   <div className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between bg-white">
@@ -259,7 +198,7 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
                     </button>
                   </div>
 
-                  {/* Overlay Body */}
+                  {/* Body */}
                   <div className="p-5 flex-1 flex flex-col justify-center space-y-3">
                     <p className="text-xs font-medium text-neutral-500 text-center">
                       ระบบจะยกเว้นการลงเวลาเข้างานเฉพาะวันนี้เพื่อเปิดกะ POS
@@ -277,7 +216,7 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
                     </div>
                   </div>
 
-                  {/* Overlay Footer */}
+                  {/* Footer */}
                   <div className="p-5 pt-0">
                     <button 
                       type="button"
@@ -292,137 +231,207 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
               )}
             </AnimatePresence>
 
-            {/* Confirmation Overlay */}
-            <AnimatePresence>
-              {showConfirm && (
-                <motion.div 
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 15 }}
-                  className="absolute inset-0 z-50 bg-white flex flex-col justify-between overflow-hidden"
-                >
-                  {/* Overlay Header */}
-                  <div className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between bg-white">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 bg-neutral-900 text-white rounded-xl flex items-center justify-center">
-                        <Wallet size={17} />
-                      </div>
-                      <h3 className="text-sm font-black text-neutral-900 tracking-tight">
-                        ยืนยันเปิดกะ POS
-                      </h3>
+            {/* STEP 2: Attendance Gate Blocked View (First View if staff not checked in) */}
+            {!showLeaveModal && showBlockedModal && (
+              <motion.div 
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 15 }}
+                className="w-full flex flex-col justify-between"
+              >
+                {/* Header */}
+                <div className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between bg-white">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center">
+                      <AlertTriangle size={17} />
                     </div>
-                    <button 
-                      type="button"
-                      onClick={() => setShowConfirm(false)}
-                      className="w-8 h-8 rounded-full flex items-center justify-center text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-all"
-                    >
-                      <X size={16} />
-                    </button>
+                    <h3 className="text-sm font-black text-neutral-900 tracking-tight">
+                      ไม่สามารถเปิดกะได้
+                    </h3>
                   </div>
+                  <button 
+                    type="button"
+                    onClick={onClose}
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-all"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
 
-                  {/* Overlay Body */}
-                  <div className="p-6 flex-1 flex flex-col items-center justify-center text-center space-y-2">
-                    <p className="text-xs text-neutral-500">เงินสดเริ่มต้นในลิ้นชัก</p>
-                    <p className="text-3xl font-black text-neutral-900">฿{openingCash.toLocaleString()}</p>
+                {/* Body */}
+                <div className="p-5 flex-1 flex flex-col justify-center space-y-3">
+                  <p className="text-xs font-bold text-rose-600 bg-rose-50/80 px-3.5 py-2.5 rounded-xl border border-rose-100 text-center">
+                    พนักงานยังไม่ลงเวลาเข้างาน {eligibilityData?.missingCheckInStaff?.length || 0} คน
+                  </p>
+
+                  {/* Missing Staff List */}
+                  <div className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl p-3 space-y-2 max-h-48 overflow-y-auto text-left">
+                    {eligibilityData?.missingCheckInStaff?.map((staff: any) => (
+                      <div key={staff.id} className="flex justify-between items-center bg-white p-2.5 rounded-xl border border-neutral-200/60 shadow-xs">
+                        <span className="text-xs font-bold text-neutral-900">• {staff.display_name || staff.full_name || staff.email}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedStaffForLeave(staff.id);
+                            setShowLeaveModal(true);
+                          }}
+                          className="text-[11px] font-bold text-amber-600 hover:text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200/60 transition-colors"
+                        >
+                          แจ้งลา
+                        </button>
+                      </div>
+                    ))}
                   </div>
+                </div>
 
-                  {/* Overlay Footer */}
-                  <div className="p-5 pt-0">
-                    <button 
-                      type="button"
-                      onClick={handleConfirmedOpen}
-                      disabled={isSubmitting}
-                      className="w-full h-11 bg-neutral-900 hover:bg-black text-white font-bold text-xs rounded-2xl transition-all flex items-center justify-center gap-2 active:scale-98 shadow-sm"
-                    >
-                      {isSubmitting ? <XYLLoader mini /> : 'ยืนยันและเริ่มงาน'}
-                    </button>
+                {/* Footer */}
+                <div className="p-5 pt-0">
+                  <button 
+                    type="button"
+                    onClick={() => checkEligibility()}
+                    disabled={checkingEligibility}
+                    className="w-full h-11 bg-neutral-900 hover:bg-black text-white font-bold rounded-2xl text-xs transition-all flex items-center justify-center gap-2 active:scale-98 shadow-sm"
+                  >
+                    {checkingEligibility ? <XYLLoader mini /> : 'ตรวจสอบการลงเวลาอีกครั้ง'}
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* STEP 3: Confirmation View (If confirming) */}
+            {!showLeaveModal && !showBlockedModal && showConfirm && (
+              <motion.div 
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 15 }}
+                className="w-full flex flex-col justify-between"
+              >
+                {/* Header */}
+                <div className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between bg-white">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 bg-neutral-900 text-white rounded-xl flex items-center justify-center">
+                      <Wallet size={17} />
+                    </div>
+                    <h3 className="text-sm font-black text-neutral-900 tracking-tight">
+                      ยืนยันเปิดกะ POS
+                    </h3>
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  <button 
+                    type="button"
+                    onClick={() => setShowConfirm(false)}
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-all"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
 
-            {/* Clean Modal Header */}
-            <div className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between bg-white">
-               <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-neutral-900 text-white rounded-xl flex items-center justify-center">
-                    <Wallet size={18} />
-                  </div>
-                  <h2 className="text-base font-black text-neutral-900">
-                    เปิดกะ POS
-                  </h2>
-               </div>
-               <button 
-                 onClick={onClose}
-                 className="w-8 h-8 rounded-full flex items-center justify-center text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-all"
-               >
-                 <X size={16} />
-               </button>
-            </div>
+                {/* Body */}
+                <div className="p-6 flex-1 flex flex-col items-center justify-center text-center space-y-2">
+                  <p className="text-xs text-neutral-500">เงินสดเริ่มต้นในลิ้นชัก</p>
+                  <p className="text-3xl font-black text-neutral-900">฿{openingCash.toLocaleString()}</p>
+                </div>
 
-            {/* Form Content */}
-            <form onSubmit={handleSubmit} className="p-5 space-y-4">
-               {/* Test Kick Drawer Option */}
-               <button
-                 type="button"
-                 onClick={openDrawerBeforeCounting}
-                 disabled={isOpeningDrawer}
-                 className="w-full py-2.5 px-3 bg-neutral-50 hover:bg-neutral-100 border border-neutral-200/60 text-neutral-700 rounded-xl flex items-center justify-center gap-2 font-bold text-xs transition-all disabled:opacity-50"
-               >
-                 {isOpeningDrawer ? <XYLLoader mini /> : <Printer size={15} className="text-neutral-500" />}
-                 <span>เปิดลิ้นชักทดสอบ</span>
-               </button>
+                {/* Footer */}
+                <div className="p-5 pt-0">
+                  <button 
+                    type="button"
+                    onClick={handleConfirmedOpen}
+                    disabled={isSubmitting}
+                    className="w-full h-11 bg-neutral-900 hover:bg-black text-white font-bold text-xs rounded-2xl transition-all flex items-center justify-center gap-2 active:scale-98 shadow-sm"
+                  >
+                    {isSubmitting ? <XYLLoader mini /> : 'ยืนยันและเริ่มงาน'}
+                  </button>
+                </div>
+              </motion.div>
+            )}
 
-               {/* Opening Cash Input (Pure Native Device Numpad Integration) */}
-               <div className="space-y-1.5">
-                  <div className="flex items-center justify-between text-xs font-bold text-neutral-500">
-                    <span>เงินสดเริ่มต้น</span>
-                    {openingCash > 0 && (
-                      <button 
-                        type="button" 
-                        onClick={() => setOpeningCash(0)}
-                        className="text-[11px] text-rose-500 hover:text-rose-600 font-bold"
-                      >
-                        ล้างค่า
-                      </button>
-                    )}
-                  </div>
+            {/* STEP 4: Main Open Shift Form View (Shown ONLY after eligibility passed!) */}
+            {!showLeaveModal && !showBlockedModal && !showConfirm && !checkingEligibility && (
+              <div>
+                {/* Clean Modal Header */}
+                <div className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between bg-white">
+                   <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 bg-neutral-900 text-white rounded-xl flex items-center justify-center">
+                        <Wallet size={18} />
+                      </div>
+                      <h2 className="text-base font-black text-neutral-900">
+                        เปิดกะ POS
+                      </h2>
+                   </div>
+                   <button 
+                     onClick={onClose}
+                     className="w-8 h-8 rounded-full flex items-center justify-center text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-all"
+                   >
+                     <X size={16} />
+                   </button>
+                </div>
 
-                  <div className="bg-neutral-50 border border-neutral-200 focus-within:border-neutral-900 focus-within:bg-white rounded-2xl px-4 py-3 flex items-center transition-all">
-                    <span className="text-xl font-extrabold text-neutral-400 mr-2 select-none">฿</span>
-                    <input 
-                      autoFocus
-                      type="tel"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      value={openingCash || ''} 
-                      onChange={e => {
-                        const val = e.target.value.replace(/[^0-9]/g, '')
-                        setOpeningCash(val ? Number(val) : 0)
-                      }}
-                      style={{ outline: 'none', WebkitAppearance: 'none', boxShadow: 'none', border: 'none' }}
-                      className="w-full bg-transparent text-3xl font-black text-neutral-900 outline-none border-none ring-0 shadow-none focus:outline-none focus:ring-0 focus:border-none"
-                      placeholder="0"
-                      required
-                    />
-                  </div>
-               </div>
+                {/* Form Content */}
+                <form onSubmit={handleSubmit} className="p-5 space-y-4">
+                   {/* Test Kick Drawer Option */}
+                   <button
+                     type="button"
+                     onClick={openDrawerBeforeCounting}
+                     disabled={isOpeningDrawer}
+                     className="w-full py-2.5 px-3 bg-neutral-50 hover:bg-neutral-100 border border-neutral-200/60 text-neutral-700 rounded-xl flex items-center justify-center gap-2 font-bold text-xs transition-all disabled:opacity-50"
+                   >
+                     {isOpeningDrawer ? <XYLLoader mini /> : <Printer size={15} className="text-neutral-500" />}
+                     <span>เปิดลิ้นชักทดสอบ</span>
+                   </button>
 
-               {/* Main Action Button */}
-               <button 
-                 type="submit"
-                 disabled={isSubmitting}
-                 className="w-full h-12 bg-neutral-900 hover:bg-black text-white rounded-2xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-sm active:scale-98 disabled:opacity-50 mt-2"
-               >
-                 {isSubmitting ? (
-                   <XYLLoader mini />
-                 ) : (
-                   <>
-                    <span>เปิดกะทำงาน</span>
-                    <ArrowRight size={16} />
-                   </>
-                 )}
-               </button>
-            </form>
+                   {/* Opening Cash Input (Pure Native Device Numpad Integration) */}
+                   <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-xs font-bold text-neutral-500">
+                        <span>เงินสดเริ่มต้น</span>
+                        {openingCash > 0 && (
+                          <button 
+                            type="button" 
+                            onClick={() => setOpeningCash(0)}
+                            className="text-[11px] text-rose-500 hover:text-rose-600 font-bold"
+                          >
+                            ล้างค่า
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="bg-neutral-50 border border-neutral-200 focus-within:border-neutral-900 focus-within:bg-white rounded-2xl px-4 py-3 flex items-center transition-all">
+                        <span className="text-xl font-extrabold text-neutral-400 mr-2 select-none">฿</span>
+                        <input 
+                          autoFocus
+                          type="tel"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={openingCash || ''} 
+                          onChange={e => {
+                            const val = e.target.value.replace(/[^0-9]/g, '')
+                            setOpeningCash(val ? Number(val) : 0)
+                          }}
+                          style={{ outline: 'none', WebkitAppearance: 'none', boxShadow: 'none', border: 'none' }}
+                          className="w-full bg-transparent text-3xl font-black text-neutral-900 outline-none border-none ring-0 shadow-none focus:outline-none focus:ring-0 focus:border-none"
+                          placeholder="0"
+                          required
+                        />
+                      </div>
+                   </div>
+
+                   {/* Main Action Button */}
+                   <button 
+                     type="submit"
+                     disabled={isSubmitting}
+                     className="w-full h-12 bg-neutral-900 hover:bg-black text-white rounded-2xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-sm active:scale-98 disabled:opacity-50 mt-2"
+                   >
+                     {isSubmitting ? (
+                       <XYLLoader mini />
+                     ) : (
+                       <>
+                        <span>เปิดกะทำงาน</span>
+                        <ArrowRight size={16} />
+                       </>
+                     )}
+                   </button>
+                </form>
+              </div>
+            )}
           </motion.div>
         </div>
       )}
