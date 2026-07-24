@@ -166,28 +166,40 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
             <AnimatePresence>
               {showBlockedModal && (
                 <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 20 }}
-                  className="absolute inset-0 z-[60] bg-white flex flex-col justify-between p-6 text-center"
+                  exit={{ opacity: 0, y: 15 }}
+                  className="absolute inset-0 z-[60] bg-white flex flex-col justify-between overflow-hidden"
                 >
-                  <div className="space-y-4 flex-1 flex flex-col items-center justify-center">
-                    <div className="w-12 h-12 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center">
-                      <AlertTriangle size={24} />
-                    </div>
-                    <div>
-                      <h3 className="text-base font-black text-neutral-900 tracking-tight">
+                  {/* Overlay Header */}
+                  <div className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between bg-white">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center">
+                        <AlertTriangle size={17} />
+                      </div>
+                      <h3 className="text-sm font-black text-neutral-900 tracking-tight">
                         ไม่สามารถเปิดกะได้
                       </h3>
-                      <p className="text-xs font-bold text-rose-600 mt-1">
-                        พนักงานยังไม่ลงเวลาเข้างาน {eligibilityData?.missingCheckInStaff?.length || 0} คน
-                      </p>
                     </div>
+                    <button 
+                      type="button"
+                      onClick={() => setShowBlockedModal(false)}
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-all"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+
+                  {/* Overlay Body */}
+                  <div className="p-5 flex-1 flex flex-col justify-center space-y-3">
+                    <p className="text-xs font-bold text-rose-600 bg-rose-50/80 px-3.5 py-2.5 rounded-xl border border-rose-100 text-center">
+                      พนักงานยังไม่ลงเวลาเข้างาน {eligibilityData?.missingCheckInStaff?.length || 0} คน
+                    </p>
 
                     {/* Missing Staff List */}
-                    <div className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl p-3 space-y-2 max-h-44 overflow-y-auto text-left">
+                    <div className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl p-3 space-y-2 max-h-48 overflow-y-auto text-left">
                       {eligibilityData?.missingCheckInStaff?.map((staff: any) => (
-                        <div key={staff.id} className="flex justify-between items-center bg-white p-2.5 rounded-xl border border-neutral-200/60">
+                        <div key={staff.id} className="flex justify-between items-center bg-white p-2.5 rounded-xl border border-neutral-200/60 shadow-xs">
                           <span className="text-xs font-bold text-neutral-900">• {staff.display_name || staff.full_name || staff.email}</span>
                           <button
                             type="button"
@@ -204,19 +216,15 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
                     </div>
                   </div>
 
-                  <div className="flex flex-col w-full gap-2 pt-3 border-t border-neutral-100">
+                  {/* Overlay Footer */}
+                  <div className="p-5 pt-0">
                     <button 
+                      type="button"
                       onClick={() => checkEligibility()}
                       disabled={checkingEligibility}
-                      className="w-full h-11 bg-neutral-900 hover:bg-black text-white font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-2"
+                      className="w-full h-11 bg-neutral-900 hover:bg-black text-white font-bold rounded-2xl text-xs transition-all flex items-center justify-center gap-2 active:scale-98 shadow-sm"
                     >
                       {checkingEligibility ? <XYLLoader mini /> : 'ตรวจสอบอีกครั้ง'}
-                    </button>
-                    <button 
-                      onClick={() => setShowBlockedModal(false)}
-                      className="w-full h-8 text-neutral-400 font-bold rounded-lg text-xs hover:text-neutral-700 transition-all"
-                    >
-                      ปิด
                     </button>
                   </div>
                 </motion.div>
@@ -227,48 +235,57 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
             <AnimatePresence>
               {showLeaveModal && (
                 <motion.div 
-                  initial={{ opacity: 0, scale: 0.96 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.96 }}
-                  className="absolute inset-0 z-[70] bg-white flex flex-col justify-between p-6 text-center"
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 15 }}
+                  className="absolute inset-0 z-[70] bg-white flex flex-col justify-between overflow-hidden"
                 >
-                  <div className="space-y-4 flex-1 flex flex-col items-center justify-center">
-                    <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center">
-                      <AlertTriangle size={24} />
-                    </div>
-                    <div>
-                      <h3 className="text-base font-black text-neutral-900">
+                  {/* Overlay Header */}
+                  <div className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between bg-white">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center">
+                        <AlertTriangle size={17} />
+                      </div>
+                      <h3 className="text-sm font-black text-neutral-900 tracking-tight">
                         แจ้งลากะทันหัน
                       </h3>
-                      <p className="text-xs text-neutral-500 mt-0.5">
-                        ระบบจะยกเว้นการลงเวลาพนักงานคนนี้เฉพาะวันนี้
-                      </p>
                     </div>
+                    <button 
+                      type="button"
+                      onClick={() => setShowLeaveModal(false)}
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-all"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
 
-                    <div className="w-full text-left">
+                  {/* Overlay Body */}
+                  <div className="p-5 flex-1 flex flex-col justify-center space-y-3">
+                    <p className="text-xs font-medium text-neutral-500 text-center">
+                      ระบบจะยกเว้นการลงเวลาเข้างานเฉพาะวันนี้เพื่อเปิดกะ POS
+                    </p>
+
+                    <div className="w-full text-left space-y-1">
+                      <label className="text-[11px] font-bold text-neutral-500 block">เหตุผลการลา</label>
                       <input 
                         type="text"
                         value={leaveReason}
                         onChange={(e) => setLeaveReason(e.target.value)}
-                        className="w-full bg-neutral-50 border border-neutral-200 rounded-xl p-3 text-xs font-bold text-neutral-900 outline-none focus:border-neutral-900 transition-all"
+                        className="w-full bg-neutral-50 border border-neutral-200 focus:border-neutral-900 rounded-xl p-3 text-xs font-bold text-neutral-900 outline-none transition-all"
                         placeholder="ระบุเหตุผลการลา"
                       />
                     </div>
                   </div>
 
-                  <div className="flex flex-col w-full gap-2 pt-3 border-t border-neutral-100">
+                  {/* Overlay Footer */}
+                  <div className="p-5 pt-0">
                     <button 
+                      type="button"
                       onClick={() => handleGrantEmergencyLeave(selectedStaffForLeave)}
                       disabled={isSubmittingLeave}
-                      className="w-full h-11 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-2"
+                      className="w-full h-11 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-2xl text-xs transition-all flex items-center justify-center gap-2 active:scale-98 shadow-sm"
                     >
                       {isSubmittingLeave ? <XYLLoader mini /> : 'ยืนยันแจ้งลา'}
-                    </button>
-                    <button 
-                      onClick={() => setShowLeaveModal(false)}
-                      className="w-full h-8 text-neutral-400 font-bold rounded-lg text-xs hover:text-neutral-700 transition-all"
-                    >
-                      ยกเลิก
                     </button>
                   </div>
                 </motion.div>
@@ -279,31 +296,45 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
             <AnimatePresence>
               {showConfirm && (
                 <motion.div 
-                  initial={{ opacity: 0, scale: 0.96 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.96 }}
-                  className="absolute inset-0 z-50 bg-white flex flex-col items-center justify-center p-6 text-center space-y-5"
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 15 }}
+                  className="absolute inset-0 z-50 bg-white flex flex-col justify-between overflow-hidden"
                 >
-                  <div className="w-12 h-12 bg-neutral-100 text-neutral-800 rounded-2xl flex items-center justify-center">
-                    <Wallet size={24} />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-black text-neutral-900">ยืนยันเปิดกะ POS?</h3>
-                    <p className="text-xs text-neutral-500 mt-1">เงินสดเริ่มต้น: <span className="font-extrabold text-neutral-900">฿{openingCash.toLocaleString()}</span></p>
-                  </div>
-                  <div className="flex flex-col w-full gap-2 pt-2">
+                  {/* Overlay Header */}
+                  <div className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between bg-white">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 bg-neutral-900 text-white rounded-xl flex items-center justify-center">
+                        <Wallet size={17} />
+                      </div>
+                      <h3 className="text-sm font-black text-neutral-900 tracking-tight">
+                        ยืนยันเปิดกะ POS
+                      </h3>
+                    </div>
                     <button 
+                      type="button"
+                      onClick={() => setShowConfirm(false)}
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-all"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+
+                  {/* Overlay Body */}
+                  <div className="p-6 flex-1 flex flex-col items-center justify-center text-center space-y-2">
+                    <p className="text-xs text-neutral-500">เงินสดเริ่มต้นในลิ้นชัก</p>
+                    <p className="text-3xl font-black text-neutral-900">฿{openingCash.toLocaleString()}</p>
+                  </div>
+
+                  {/* Overlay Footer */}
+                  <div className="p-5 pt-0">
+                    <button 
+                      type="button"
                       onClick={handleConfirmedOpen}
                       disabled={isSubmitting}
-                      className="w-full h-11 bg-neutral-900 hover:bg-black text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2"
+                      className="w-full h-11 bg-neutral-900 hover:bg-black text-white font-bold text-xs rounded-2xl transition-all flex items-center justify-center gap-2 active:scale-98 shadow-sm"
                     >
-                      {isSubmitting ? <XYLLoader mini /> : 'ยืนยัน'}
-                    </button>
-                    <button 
-                      onClick={() => setShowConfirm(false)}
-                      className="w-full h-8 text-neutral-400 font-bold text-xs hover:text-neutral-700 transition-all"
-                    >
-                      ยกเลิก
+                      {isSubmitting ? <XYLLoader mini /> : 'ยืนยันและเริ่มงาน'}
                     </button>
                   </div>
                 </motion.div>
