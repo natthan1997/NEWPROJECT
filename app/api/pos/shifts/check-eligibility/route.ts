@@ -15,6 +15,7 @@ const createSupabaseServiceClient = () => {
 }
 
 const DAY_MAP = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
+const FULL_DAY_MAP = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
 
 export async function GET(req: NextRequest) {
     return handleCheckEligibility(req)
@@ -34,18 +35,35 @@ async function handleCheckEligibility(req: NextRequest) {
         const month = String(nowBangkok.getMonth() + 1).padStart(2, '0')
         const day = String(nowBangkok.getDate()).padStart(2, '0')
         const todayDateStr = `${year}-${month}-${day}` // YYYY-MM-DD
-        const todayDayOfWeek = DAY_MAP[nowBangkok.getDay()] // 'sun', 'mon', ...
+        const dayIndex = nowBangkok.getDay()
+        const todayDayOfWeek = DAY_MAP[dayIndex] // 'sun', 'mon', ...
+        const todayFullDayStr = FULL_DAY_MAP[dayIndex] // 'sunday', 'monday', ...
 
         const localTodayStart = `${todayDateStr}T00:00:00+07:00`
         const localTodayEnd = `${todayDateStr}T23:59:59+07:00`
 
-        // Optional branch filter from query params
+        // 2. Resolve branch_code if branch_id is passed as UUID or code
         const branchId = req.nextUrl.searchParams.get('branch_id') || req.nextUrl.searchParams.get('branchId') || req.nextUrl.searchParams.get('branch_code')
+        let targetBranchCode: string | null = null
 
-        // 2. Fetch profiles safely using branch_code
+        if (branchId) {
+            const { data: bData } = await supabase
+                .from('branches')
+                .select('branch_code')
+                .eq('id', branchId)
+                .maybeSingle()
+
+            if (bData?.branch_code) {
+                targetBranchCode = bData.branch_code
+            } else {
+                targetBranchCode = branchId
+            }
+        }
+
+        // 3. Fetch profiles safely using display_name and branch_code
         const { data: allStaff, error: staffErr } = await supabase
             .from('profiles')
-            .select('id, display_name, email, role, staff_level, staff_type, department, is_active, is_pos_device, is_pos_account, work_days, shift_start, shift_end, branch_code')
+            .select('id, display_name, email, role, staff_level, staff_type, department, is_active, is_pos_device, is_pos_account, work_days, rest_days, shift_start, shift_end, branch_code')
 
         if (staffErr) {
             console.error('Fetch staff error:', staffErr)
@@ -65,8 +83,8 @@ async function handleCheckEligibility(req: NextRequest) {
             const isCafeStaff = st === 'cafe'
             if (!isCafeStaff) return false
 
-            // Branch filter if profile has branch_code set
-            if (branchId && s.branch_code && s.branch_code !== branchId) {
+            // Branch filter matching targetBranchCode or branch_code
+            if (targetBranchCode && s.branch_code && s.branch_code !== targetBranchCode && s.branch_code !== branchId) {
                 return false
             }
 
@@ -75,6 +93,16 @@ async function handleCheckEligibility(req: NextRequest) {
 
         // Filter staff scheduled to work today
         const scheduledStaff = realStaff.filter(s => {
+            // Check rest_days first if set
+            if (s.rest_days && Array.isArray(s.rest_days) && s.rest_days.length > 0) {
+                const isRestDay = s.rest_days.some((rd: any) => {
+                    const norm = String(rd).toLowerCase()
+                    return norm === todayFullDayStr || norm.slice(0, 3) === todayDayOfWeek
+                })
+                if (isRestDay) return false
+            }
+
+            // Check work_days if set
             if (!s.work_days || !Array.isArray(s.work_days) || s.work_days.length === 0) {
                 return true // Default to all days if not specified
             }
@@ -82,7 +110,7 @@ async function handleCheckEligibility(req: NextRequest) {
             return normalizedDays.includes(todayDayOfWeek)
         })
 
-        // 3. Fetch emergency leave overrides for today
+        // 4. Fetch emergency leave overrides for today
         let emergencyLeaveStaffIds: string[] = []
         try {
             const { data: leaves } = await supabase
@@ -101,7 +129,7 @@ async function handleCheckEligibility(req: NextRequest) {
         const requiredStaffToday = scheduledStaff.filter(s => !emergencyLeaveStaffIds.includes(s.id))
         const emergencyLeaveStaff = scheduledStaff.filter(s => emergencyLeaveStaffIds.includes(s.id))
 
-        // 4. Fetch today's attendance logs
+        // 5. Fetch today's attendance logs
         const { data: logs, error: logsErr } = await supabase
             .from('attendance_logs')
             .select('*')
@@ -114,7 +142,7 @@ async function handleCheckEligibility(req: NextRequest) {
 
         const todayLogs = logs || []
 
-        // 5. Determine missing check-in staff
+        // 6. Determine missing check-in staff
         const missingCheckInStaff: any[] = []
         const checkedInStaff: any[] = []
 
@@ -127,7 +155,7 @@ async function handleCheckEligibility(req: NextRequest) {
             }
         })
 
-        // 6. Determine missing check-out staff (for shift close)
+        // 7. Determine missing check-out staff (for shift close)
         const missingCheckOutStaff: any[] = []
         checkedInStaff.forEach(s => {
             const hasCheckedOut = todayLogs.some(l => l.profile_id === s.id && l.type === 'check_out')
