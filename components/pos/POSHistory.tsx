@@ -401,30 +401,20 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
       <div className="flex-1 overflow-y-auto px-6 py-6">
         
         {!loading && (
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6 pb-4 border-b border-neutral-100">
-            {/* Left: Summary Title & Live Count */}
-            <div className="flex items-center gap-3">
-              <h2 className="text-base font-black text-[#1A1A18] tracking-tight">
-                {locale === 'en' ? 'Order History' : 'สรุปประวัติขายประจำวัน'}
-              </h2>
-              <span className="text-xs font-extrabold px-3 py-1 rounded-full bg-neutral-100 text-neutral-700 border border-neutral-200/60">
-                {completedOrders.length} {locale === 'en' ? 'Bills' : 'รายการ'}
-              </span>
-            </div>
-
-            {/* Right: Sleek Minimalist Segment Pill Bar */}
-            <div className="flex items-center gap-1 bg-neutral-100/80 p-1 rounded-full border border-neutral-200/60 overflow-x-auto no-scrollbar">
+          <div className="mb-6 pb-4 border-b border-neutral-100">
+            {/* Full-width Sleek Minimalist Segment Pill Bar */}
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 bg-neutral-100/80 p-1.5 rounded-2xl border border-neutral-200/60">
               <button
                 type="button"
                 onClick={() => setFilterType('all')}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                className={`px-3 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 ${
                   filterType === 'all'
                     ? 'bg-[#1A1A18] text-white shadow-xs'
                     : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200/50'
                 }`}
               >
                 <span>{locale === 'en' ? 'All' : 'ทั้งหมด'}</span>
-                <span className={`text-[10px] font-extrabold px-1.5 py-0.2 rounded-full ${filterType === 'all' ? 'bg-white/20 text-white' : 'bg-neutral-200/80 text-neutral-700'}`}>
+                <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${filterType === 'all' ? 'bg-white/20 text-white' : 'bg-neutral-200 text-neutral-700'}`}>
                   {completedOrders.length}
                 </span>
               </button>
@@ -432,15 +422,15 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
               <button
                 type="button"
                 onClick={() => setFilterType('takeaway')}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                className={`px-3 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 ${
                   filterType === 'takeaway'
                     ? 'bg-[#1A1A18] text-white shadow-xs'
                     : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200/50'
                 }`}
               >
-                <ShoppingBag size={12} />
+                <ShoppingBag size={13} />
                 <span>{locale === 'en' ? 'Takeaway' : 'กลับบ้าน'}</span>
-                <span className={`text-[10px] font-extrabold px-1.5 py-0.2 rounded-full ${filterType === 'takeaway' ? 'bg-white/20 text-white' : 'bg-neutral-200/80 text-neutral-700'}`}>
+                <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${filterType === 'takeaway' ? 'bg-white/20 text-white' : 'bg-neutral-200 text-neutral-700'}`}>
                   {takeawayCount}
                 </span>
               </button>
@@ -448,15 +438,15 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
               <button
                 type="button"
                 onClick={() => setFilterType('dine_in')}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                className={`px-3 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 ${
                   filterType === 'dine_in'
                     ? 'bg-[#1A1A18] text-white shadow-xs'
                     : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200/50'
                 }`}
               >
-                <UtensilsCrossed size={12} />
+                <UtensilsCrossed size={13} />
                 <span>{locale === 'en' ? 'Dine-in' : 'ทานที่ร้าน'}</span>
-                <span className={`text-[10px] font-extrabold px-1.5 py-0.2 rounded-full ${filterType === 'dine_in' ? 'bg-white/20 text-white' : 'bg-neutral-200/80 text-neutral-700'}`}>
+                <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${filterType === 'dine_in' ? 'bg-white/20 text-white' : 'bg-neutral-200 text-neutral-700'}`}>
                   {dineInCount}
                 </span>
               </button>
@@ -464,15 +454,15 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
               <button
                 type="button"
                 onClick={() => setFilterType('delivery')}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                className={`px-3 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 ${
                   filterType === 'delivery'
                     ? 'bg-amber-600 text-white shadow-xs'
                     : 'text-amber-800 hover:bg-amber-100/80'
                 }`}
               >
-                <Truck size={12} />
+                <Truck size={13} />
                 <span>{locale === 'en' ? 'Delivery' : 'เดลิเวอรี'}</span>
-                <span className={`text-[10px] font-extrabold px-1.5 py-0.2 rounded-full ${filterType === 'delivery' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-800'}`}>
+                <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${filterType === 'delivery' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-800'}`}>
                   {deliveryCount}
                 </span>
               </button>
@@ -480,15 +470,15 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
               <button
                 type="button"
                 onClick={() => setFilterType('cancelled')}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                className={`px-3 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 ${
                   filterType === 'cancelled'
                     ? 'bg-rose-600 text-white shadow-xs'
                     : 'text-rose-700 hover:bg-rose-100/80'
                 }`}
               >
-                <XCircle size={12} />
+                <XCircle size={13} />
                 <span>{locale === 'en' ? 'Cancelled' : 'ยกเลิก'}</span>
-                <span className={`text-[10px] font-extrabold px-1.5 py-0.2 rounded-full ${filterType === 'cancelled' ? 'bg-white/20 text-white' : 'bg-rose-100 text-rose-700'}`}>
+                <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${filterType === 'cancelled' ? 'bg-white/20 text-white' : 'bg-rose-100 text-rose-700'}`}>
                   {cancelledCount}
                 </span>
               </button>
