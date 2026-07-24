@@ -371,6 +371,7 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
                       placeholder="0"
                       required
                     />
+                  </div>
                   <div className="bg-amber-50/80 border border-amber-200/60 rounded-2xl p-3.5 text-xs text-amber-800 font-medium leading-relaxed flex gap-2 items-start mt-2">
                     <span className="font-bold text-amber-600 shrink-0">*</span>
                     <span>กรุณาตรวจสอบเงินในลิ้นชักให้ถูกต้องก่อนเริ่มกะทำงาน เพื่อความแม่นยำของใบสรุปยอดปิดกะท้ายวัน</span>
@@ -380,21 +381,23 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
                <button 
                  type="submit"
                  disabled={isSubmitting}
-                 className="w-full h-20 bg-[#1A1A18] text-white flex items-center justify-center gap-6 group hover:bg-[#2B2B28] transition-all disabled:opacity-50"
+                 className="w-full h-13 bg-[#1A1A18] text-white rounded-2xl font-black text-xs sm:text-sm hover:bg-black transition-all flex items-center justify-center gap-3 active:scale-98 shadow-md disabled:opacity-50"
                >
                  {isSubmitting ? (
                    <XYLLoader mini />
                  ) : (
                    <>
-                    <span className="text-[11px] font-black uppercase tracking-[0.4em]">{locale === 'en' ? 'ยืนยันและเปิดลิ้นชัก' : locale === 'zh' ? 'ยืนยันและเปิดลิ้นชัก' : 'ยืนยันและเปิดลิ้นชัก'}</span>
-                    <ArrowRight size={20} className="group-hover:translate-x-2 transition-transform" />
+                    <span>{locale === 'en' ? 'Confirm and Open Drawer' : 'ยืนยันและเปิดลิ้นชัก'}</span>
+                    <ArrowRight size={18} />
                    </>
                  )}
                </button>
             </form>
 
-            <div className="px-10 pb-8 text-center">
-               <p className="text-[8px] font-black uppercase tracking-[0.4em] text-gray-300">{locale === 'en' ? 'ระบบปฏิบัติการ XYL STUDIO • v1.0.32' : locale === 'zh' ? 'ระบบปฏิบัติการ XYL STUDIO • v1.0.32' : 'ระบบปฏิบัติการ XYL STUDIO • v1.0.32'}</p>
+            <div className="px-6 pb-5 text-center">
+              <span className="text-[10px] font-bold text-neutral-300">
+                XYLEM POS • V1.0.32
+              </span>
             </div>
           </motion.div>
         </div>
