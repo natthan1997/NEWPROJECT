@@ -78,16 +78,22 @@ export default function POSDrawerManager({
 
   // Attendance Summary State
   const [attendanceSummary, setAttendanceSummary] = useState<any>(null)
+  const [isFetchingAttendance, setIsFetchingAttendance] = useState(false)
 
   const fetchAttendanceSummary = async () => {
+    setIsFetchingAttendance(true)
     try {
-      const res = await fetch('/api/pos/shifts/check-eligibility', { method: 'GET' })
+      const branchId = shopSettings?.branch_id || activeShift?.branch_id || ''
+      const branchParam = branchId ? `?branch_id=${branchId}` : ''
+      const res = await fetch(`/api/pos/shifts/check-eligibility${branchParam}`, { method: 'GET' })
       const data = await res.json()
       if (data && data.success) {
         setAttendanceSummary(data)
       }
     } catch (e) {
       console.error('Fetch attendance summary error:', e)
+    } finally {
+      setIsFetchingAttendance(false)
     }
   }
 
@@ -97,7 +103,7 @@ export default function POSDrawerManager({
         fetchTransactions()
         fetchShiftStats(activeShift.id)
     }
-  }, [activeShift])
+  }, [activeShift, shopSettings?.branch_id])
 
   useEffect(() => {
     if (!activeShift?.id) {
@@ -966,45 +972,65 @@ export default function POSDrawerManager({
                         </div>
                     </div>
 
-                    {/* STAFF ATTENDANCE SUMMARY CARD */}
-                    <div className="bg-white rounded-[1.5rem] p-6 border border-gray-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)] flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-2xl bg-[#1A1A18] text-white flex items-center justify-center font-black text-lg">
+                    {/* CLEAN MINIMAL STAFF ATTENDANCE CARD */}
+                    <div className="bg-white rounded-[1.5rem] px-6 py-4 border border-[#E5E5DF] shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition-all hover:border-[#1A1A18]/20">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-gray-100 text-[#1A1A18] flex items-center justify-center font-bold text-xs">
                                 👥
                             </div>
-                            <div>
-                                <h4 className="text-xs font-black uppercase tracking-widest text-[#1A1A18]">
-                                    {locale === 'en' ? 'Today Staff Attendance Status' : 'สถานะการลงเวลาพนักงานประจำวันนี้'}
-                                </h4>
-                                <p className="text-[11px] font-bold text-gray-500 mt-0.5">
-                                    {locale === 'en' ? 'Scheduled today: ' : 'ตารางกะวันนี้ต้องเข้า '}
-                                    <span className="text-[#1A1A18] font-black">{attendanceSummary?.totalRequiredStaff || 0}</span> คน • 
-                                    {locale === 'en' ? ' Checked-in: ' : ' ลงเวลาเข้างานแล้ว '}
-                                    <span className="text-emerald-600 font-black">{attendanceSummary?.checkedInStaff?.length || 0}</span> คน
-                                </p>
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3">
+                                <span className="text-xs font-black uppercase tracking-wider text-[#1A1A18]">
+                                    {locale === 'en' ? 'Staff Shift Status' : 'สถานะพนักงานประจำกะวันนี้'}
+                                </span>
+                                <span className="text-[10px] font-bold tracking-tight px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-600 border border-gray-200 w-fit">
+                                    {locale === 'en' ? 'Checked-in: ' : 'เข้างานแล้ว '}
+                                    <strong className="text-emerald-600 font-black">{attendanceSummary?.checkedInStaff?.length || 0}</strong>
+                                    {` / `}
+                                    <strong className="text-[#1A1A18] font-black">{attendanceSummary?.totalRequiredStaff || 0}</strong> คน
+                                </span>
                             </div>
                         </div>
 
-                        {/* Staff Badges */}
-                        <div className="flex flex-wrap gap-2">
-                            {attendanceSummary?.checkedInStaff?.map((s: any) => (
-                                <span key={s.id} className="text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-full flex items-center gap-1.5">
-                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                    {s.full_name || s.email} (เข้างานแล้ว)
-                                </span>
-                            ))}
-                            {attendanceSummary?.missingCheckInStaff?.map((s: any) => (
-                                <span key={s.id} className="text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-200 px-3 py-1.5 rounded-full flex items-center gap-1.5">
-                                    <span className="w-2 h-2 rounded-full bg-rose-500"></span>
-                                    {s.full_name || s.email} (ยังไม่ลงเวลา)
-                                </span>
-                            ))}
-                            {attendanceSummary?.emergencyLeaveStaff?.map((s: any) => (
-                                <span key={s.id} className="text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1.5 rounded-full flex items-center gap-1.5">
-                                    <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                                    {s.full_name || s.email} (แจ้งลากะทันหัน)
-                                </span>
-                            ))}
+                        {/* Staff Pill Badges & Refresh */}
+                        <div className="flex items-center gap-2 flex-wrap w-full md:w-auto justify-between md:justify-end">
+                            <div className="flex flex-wrap gap-1.5 items-center">
+                                {(!attendanceSummary?.requiredStaffToday || attendanceSummary?.requiredStaffToday?.length === 0) ? (
+                                    <span className="text-[10px] font-bold text-gray-400 italic bg-gray-50 px-3 py-1 rounded-full border border-gray-100">
+                                        {locale === 'en' ? 'No staff scheduled' : 'ไม่มีกะพนักงานที่ต้องเข้างานวันนี้'}
+                                    </span>
+                                ) : (
+                                    <>
+                                        {attendanceSummary?.checkedInStaff?.map((s: any) => (
+                                            <span key={s.id} className="text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-2xs">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                                {s.full_name || s.display_name || s.email}
+                                            </span>
+                                        ))}
+                                        {attendanceSummary?.missingCheckInStaff?.map((s: any) => (
+                                            <span key={s.id} className="text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-200 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-2xs">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                                                {s.full_name || s.display_name || s.email} (ยังไม่เข้า)
+                                            </span>
+                                        ))}
+                                        {attendanceSummary?.emergencyLeaveStaff?.map((s: any) => (
+                                            <span key={s.id} className="text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-2xs">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                                {s.full_name || s.display_name || s.email} (ลา)
+                                            </span>
+                                        ))}
+                                    </>
+                                )}
+                            </div>
+
+                            <button 
+                                type="button"
+                                onClick={fetchAttendanceSummary}
+                                disabled={isFetchingAttendance}
+                                title="รีเฟรชข้อมูลสถานะพนักงาน"
+                                className="p-1.5 text-gray-400 hover:text-[#1A1A18] hover:bg-gray-100 rounded-full transition-colors disabled:opacity-40"
+                            >
+                                <RefreshCcw size={14} className={isFetchingAttendance ? 'animate-spin' : ''} />
+                            </button>
                         </div>
                     </div>
 

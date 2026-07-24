@@ -39,27 +39,46 @@ async function handleCheckEligibility(req: NextRequest) {
         const localTodayStart = `${todayDateStr}T00:00:00+07:00`
         const localTodayEnd = `${todayDateStr}T23:59:59+07:00`
 
-        // 2. Fetch active staff profiles (excluding POS device accounts)
-        const { data: allStaff, error: staffErr } = await supabase
+        // Optional branch filter from query params
+        const branchId = req.nextUrl.searchParams.get('branch_id') || req.nextUrl.searchParams.get('branchId')
+
+        // 2. Fetch profiles
+        let query = supabase
             .from('profiles')
-            .select('id, full_name, email, role, is_active, is_pos_device, work_days, shift_start, shift_end')
-            .eq('role', 'staff')
-            .eq('is_active', true)
+            .select('id, full_name, display_name, email, role, staff_level, staff_type, department, is_active, is_pos_device, work_days, shift_start, shift_end, branch_id')
+
+        if (branchId) {
+            query = query.or(`branch_id.eq.${branchId},branch_id.is.null`)
+        }
+
+        const { data: allStaff, error: staffErr } = await query
 
         if (staffErr) {
             console.error('Fetch staff error:', staffErr)
             return NextResponse.json({ error: staffErr.message }, { status: 500 })
         }
 
-        // Filter out POS device accounts
-        const realStaff = (allStaff || []).filter(s => !s.is_pos_device)
+        // Filter staff profiles (excluding POS device accounts and inactive accounts)
+        const realStaff = (allStaff || []).filter(s => {
+            if (s.is_pos_device) return false
+            if (s.is_active === false) return false
+
+            const r = (s.role || '').toLowerCase()
+            const sl = (s.staff_level || '').toLowerCase()
+            const st = (s.staff_type || '').toLowerCase()
+            const dept = (s.department || '').toLowerCase()
+
+            const isStaffRole = r === 'staff' || sl === 'staff' || st.length > 0 || dept.length > 0 || Boolean(s.shift_start)
+            return isStaffRole
+        })
 
         // Filter staff scheduled to work today
         const scheduledStaff = realStaff.filter(s => {
             if (!s.work_days || !Array.isArray(s.work_days) || s.work_days.length === 0) {
                 return true // Default to all days if not specified
             }
-            return s.work_days.includes(todayDayOfWeek)
+            const normalizedDays = s.work_days.map((d: any) => String(d).toLowerCase().slice(0, 3))
+            return normalizedDays.includes(todayDayOfWeek)
         })
 
         // 3. Fetch emergency leave overrides for today
