@@ -332,128 +332,125 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
   const dineInCount = validOrders.filter(o => o.order_type === 'dine_in').length
   const deliveryCount = validOrders.filter(o => o.order_type === 'delivery').length
   const cancelledCount = completedOrders.filter(o => o.status === 'cancelled').length
-  const storeCount = validOrders.filter(o => o.order_type !== 'delivery').length
 
   return (
-    <div className="flex h-full flex-col bg-white text-[#1A1A18] selection:bg-emerald-100">
+    <div className="flex h-full flex-col bg-white text-[#1A1A18] selection:bg-emerald-100 font-sans">
 
       <div className="flex-1 overflow-y-auto px-6 py-6">
         
         {!loading && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
-            {/* CARD 1: TOTAL ORDERS BREAKDOWN */}
-            <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-[0_2px_12px_rgba(0,0,0,0.02)] flex flex-col justify-between transition-all hover:border-gray-200">
-              <div className="flex justify-between items-center mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-500">
-                    <Receipt size={14} />
-                  </div>
-                  <span className="text-xs font-bold text-gray-700">
-                    {locale === 'en' ? 'Total Orders' : 'สรุปออเดอร์ทั้งหมด'}
-                  </span>
-                </div>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-black text-[#1A1A18] tracking-tight">{completedOrders.length}</span>
-                  <span className="text-[10px] font-bold text-gray-400">{locale === 'en' ? 'Bills' : 'บิล'}</span>
-                </div>
+          <div className="mb-8">
+            {/* Top Bar Header */}
+            <div className="flex justify-between items-center mb-3 px-1">
+              <div className="flex items-center gap-2">
+                <Receipt size={16} className="text-gray-400" />
+                <h3 className="text-xs font-black uppercase tracking-wider text-gray-500">
+                  {locale === 'en' ? 'Sales History Summary' : 'สรุปประวัติการขาย'}
+                </h3>
               </div>
 
-              {/* Breakdown Pills */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-3 border-t border-gray-100">
-                <div className="flex flex-col bg-gray-50/70 p-2.5 rounded-xl border border-gray-100/80">
-                  <span className="text-[9px] font-bold text-gray-400 uppercase tracking-tight">{locale === 'en' ? 'Takeaway' : 'กลับบ้าน'}</span>
-                  <span className="text-xs font-black text-gray-800 mt-0.5">{takeawayCount} <span className="text-[9px] font-normal text-gray-400">บิล</span></span>
-                </div>
-
-                <div className="flex flex-col bg-gray-50/70 p-2.5 rounded-xl border border-gray-100/80">
-                  <span className="text-[9px] font-bold text-gray-400 uppercase tracking-tight">{locale === 'en' ? 'Dine-in' : 'ทานที่ร้าน'}</span>
-                  <span className="text-xs font-black text-gray-800 mt-0.5">{dineInCount} <span className="text-[9px] font-normal text-gray-400">บิล</span></span>
-                </div>
-
-                <div className="flex flex-col bg-amber-50/50 p-2.5 rounded-xl border border-amber-100/50">
-                  <span className="text-[9px] font-bold text-amber-700/80 uppercase tracking-tight">{locale === 'en' ? 'Delivery' : 'เดลิเวอรี'}</span>
-                  <span className="text-xs font-black text-amber-800 mt-0.5">{deliveryCount} <span className="text-[9px] font-normal text-amber-500">บิล</span></span>
-                </div>
-
-                <div className="flex flex-col bg-rose-50/50 p-2.5 rounded-xl border border-rose-100/50">
-                  <span className="text-[9px] font-bold text-rose-600/80 uppercase tracking-tight">{locale === 'en' ? 'Cancelled' : 'ยกเลิก'}</span>
-                  <span className="text-xs font-black text-rose-700 mt-0.5">{cancelledCount} <span className="text-[9px] font-normal text-rose-400">บิล</span></span>
-                </div>
-              </div>
-            </div>
-
-            {/* CARD 2: INTERACTIVE CATEGORY FILTER SELECTOR */}
-            <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-[0_2px_12px_rgba(0,0,0,0.02)] flex flex-col justify-between transition-all hover:border-gray-200">
-              <div className="flex justify-between items-center mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-500">
-                    <Filter size={14} />
-                  </div>
-                  <span className="text-xs font-bold text-gray-700">
-                    {locale === 'en' ? 'Filter By Type' : 'ตัวกรองหมวดหมู่ออเดอร์'}
-                  </span>
-                </div>
-                <span className="text-[11px] font-semibold text-gray-400 bg-gray-50 px-2.5 py-0.5 rounded-full border border-gray-100">
-                  {locale === 'en' ? 'Showing: ' : 'แสดงอยู่ '}
-                  <strong className="text-gray-800 font-bold">
-                    {filterType === 'all' ? completedOrders.length : filterType === 'cancelled' ? cancelledCount : filterType === 'store' ? storeCount : deliveryCount}
-                  </strong> บิล
-                </span>
-              </div>
-
-              {/* Interactive Filter Pills */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-3 border-t border-gray-100">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setFilterType('all')}
-                  className={`flex items-center justify-between p-2.5 rounded-xl border text-xs font-bold transition-all ${
+                  className={`text-[11px] font-bold px-3 py-1 rounded-full transition-all flex items-center gap-1.5 border ${
                     filterType === 'all'
                       ? 'bg-[#1A1A18] text-white border-[#1A1A18] shadow-xs'
-                      : 'bg-gray-50/70 text-gray-600 border-gray-100/80 hover:bg-gray-100'
+                      : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
                   }`}
                 >
-                  <span>{locale === 'en' ? 'All' : 'ทั้งหมด'}</span>
-                  <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-md ${filterType === 'all' ? 'bg-white/20 text-white' : 'bg-gray-200/60 text-gray-600'}`}>{completedOrders.length}</span>
+                  <span>{locale === 'en' ? 'All Orders' : 'ออเดอร์ทั้งหมด'}</span>
+                  <span className={`text-[10px] font-extrabold px-1.5 py-0.2 rounded-full ${filterType === 'all' ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-700'}`}>
+                    {completedOrders.length}
+                  </span>
                 </button>
+              </div>
+            </div>
 
-                <button
-                  type="button"
-                  onClick={() => setFilterType('store')}
-                  className={`flex items-center justify-between p-2.5 rounded-xl border text-xs font-bold transition-all ${
-                    filterType === 'store'
-                      ? 'bg-[#1A1A18] text-white border-[#1A1A18] shadow-xs'
-                      : 'bg-gray-50/70 text-gray-600 border-gray-100/80 hover:bg-gray-100'
-                  }`}
-                >
-                  <span>{locale === 'en' ? 'Store' : 'หน้าร้าน'}</span>
-                  <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-md ${filterType === 'store' ? 'bg-white/20 text-white' : 'bg-gray-200/60 text-gray-600'}`}>{storeCount}</span>
-                </button>
+            {/* 4 Interactive Executive Metric Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* Takeaway Card */}
+              <div
+                onClick={() => setFilterType(filterType === 'takeaway' ? 'all' : 'takeaway')}
+                className={`cursor-pointer rounded-2xl p-4 border transition-all duration-200 flex flex-col justify-between ${
+                  filterType === 'takeaway'
+                    ? 'bg-[#1A1A18] text-white border-[#1A1A18] shadow-md scale-[1.01]'
+                    : 'bg-white text-gray-800 border-gray-100/90 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:border-gray-300 hover:shadow-sm'
+                }`}
+              >
+                <div className="flex justify-between items-center mb-1">
+                  <span className={`text-[10px] font-extrabold uppercase tracking-wider ${filterType === 'takeaway' ? 'text-gray-400' : 'text-gray-400'}`}>
+                    🛍️ {locale === 'en' ? 'Takeaway' : 'กลับบ้าน'}
+                  </span>
+                  {filterType === 'takeaway' && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
+                </div>
+                <div className="flex items-baseline gap-1 mt-1">
+                  <span className="text-2xl sm:text-3xl font-black tracking-tight">{takeawayCount}</span>
+                  <span className={`text-[10px] font-bold ${filterType === 'takeaway' ? 'text-gray-400' : 'text-gray-400'}`}>บิล</span>
+                </div>
+              </div>
 
-                <button
-                  type="button"
-                  onClick={() => setFilterType('delivery')}
-                  className={`flex items-center justify-between p-2.5 rounded-xl border text-xs font-bold transition-all ${
-                    filterType === 'delivery'
-                      ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
-                      : 'bg-amber-50/50 text-amber-800 border-amber-100/60 hover:bg-amber-100/50'
-                  }`}
-                >
-                  <span>{locale === 'en' ? 'Delivery' : 'เดลิเวอรี'}</span>
-                  <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-md ${filterType === 'delivery' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-800'}`}>{deliveryCount}</span>
-                </button>
+              {/* Dine-in Card */}
+              <div
+                onClick={() => setFilterType(filterType === 'dine_in' ? 'all' : 'dine_in')}
+                className={`cursor-pointer rounded-2xl p-4 border transition-all duration-200 flex flex-col justify-between ${
+                  filterType === 'dine_in'
+                    ? 'bg-[#1A1A18] text-white border-[#1A1A18] shadow-md scale-[1.01]'
+                    : 'bg-white text-gray-800 border-gray-100/90 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:border-gray-300 hover:shadow-sm'
+                }`}
+              >
+                <div className="flex justify-between items-center mb-1">
+                  <span className={`text-[10px] font-extrabold uppercase tracking-wider ${filterType === 'dine_in' ? 'text-gray-400' : 'text-gray-400'}`}>
+                    🍽️ {locale === 'en' ? 'Dine-in' : 'ทานที่ร้าน'}
+                  </span>
+                  {filterType === 'dine_in' && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
+                </div>
+                <div className="flex items-baseline gap-1 mt-1">
+                  <span className="text-2xl sm:text-3xl font-black tracking-tight">{dineInCount}</span>
+                  <span className={`text-[10px] font-bold ${filterType === 'dine_in' ? 'text-gray-400' : 'text-gray-400'}`}>บิล</span>
+                </div>
+              </div>
 
-                <button
-                  type="button"
-                  onClick={() => setFilterType('cancelled')}
-                  className={`flex items-center justify-between p-2.5 rounded-xl border text-xs font-bold transition-all ${
-                    filterType === 'cancelled'
-                      ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
-                      : 'bg-rose-50/50 text-rose-700 border-rose-100/60 hover:bg-rose-100/50'
-                  }`}
-                >
-                  <span>{locale === 'en' ? 'Cancelled' : 'ยกเลิก'}</span>
-                  <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-md ${filterType === 'cancelled' ? 'bg-white/20 text-white' : 'bg-rose-100 text-rose-700'}`}>{cancelledCount}</span>
-                </button>
+              {/* Delivery Card */}
+              <div
+                onClick={() => setFilterType(filterType === 'delivery' ? 'all' : 'delivery')}
+                className={`cursor-pointer rounded-2xl p-4 border transition-all duration-200 flex flex-col justify-between ${
+                  filterType === 'delivery'
+                    ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-[1.01]'
+                    : 'bg-white text-gray-800 border-gray-100/90 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:border-amber-200 hover:shadow-sm'
+                }`}
+              >
+                <div className="flex justify-between items-center mb-1">
+                  <span className={`text-[10px] font-extrabold uppercase tracking-wider ${filterType === 'delivery' ? 'text-amber-200' : 'text-amber-600'}`}>
+                    🛵 {locale === 'en' ? 'Delivery' : 'เดลิเวอรี'}
+                  </span>
+                  {filterType === 'delivery' && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
+                </div>
+                <div className="flex items-baseline gap-1 mt-1">
+                  <span className="text-2xl sm:text-3xl font-black tracking-tight">{deliveryCount}</span>
+                  <span className={`text-[10px] font-bold ${filterType === 'delivery' ? 'text-amber-200' : 'text-gray-400'}`}>บิล</span>
+                </div>
+              </div>
+
+              {/* Cancelled Card */}
+              <div
+                onClick={() => setFilterType(filterType === 'cancelled' ? 'all' : 'cancelled')}
+                className={`cursor-pointer rounded-2xl p-4 border transition-all duration-200 flex flex-col justify-between ${
+                  filterType === 'cancelled'
+                    ? 'bg-rose-600 text-white border-rose-600 shadow-md scale-[1.01]'
+                    : 'bg-white text-gray-800 border-gray-100/90 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:border-rose-200 hover:shadow-sm'
+                }`}
+              >
+                <div className="flex justify-between items-center mb-1">
+                  <span className={`text-[10px] font-extrabold uppercase tracking-wider ${filterType === 'cancelled' ? 'text-rose-200' : 'text-rose-500'}`}>
+                    🚫 {locale === 'en' ? 'Cancelled' : 'ยกเลิก'}
+                  </span>
+                  {filterType === 'cancelled' && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
+                </div>
+                <div className="flex items-baseline gap-1 mt-1">
+                  <span className="text-2xl sm:text-3xl font-black tracking-tight">{cancelledCount}</span>
+                  <span className={`text-[10px] font-bold ${filterType === 'cancelled' ? 'text-rose-200' : 'text-gray-400'}`}>บิล</span>
+                </div>
               </div>
             </div>
           </div>
@@ -470,7 +467,8 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
             {completedOrders
               .filter(o => {
                 if (filterType === 'cancelled') return o.status === 'cancelled'
-                if (filterType === 'store') return o.order_type !== 'delivery' && o.status !== 'cancelled'
+                if (filterType === 'takeaway') return o.order_type !== 'dine_in' && o.order_type !== 'delivery' && o.status !== 'cancelled'
+                if (filterType === 'dine_in') return o.order_type === 'dine_in' && o.status !== 'cancelled'
                 if (filterType === 'delivery') return o.order_type === 'delivery' && o.status !== 'cancelled'
                 return true
               })
