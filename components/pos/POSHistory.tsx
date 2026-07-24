@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Receipt, Trash2, RefreshCw, Printer, PencilLine, User, ChevronDown, ChevronUp, Filter } from 'lucide-react'
+import { Receipt, Trash2, RefreshCw, Printer, PencilLine, User, ChevronDown, ChevronUp, Filter, ShoppingBag, UtensilsCrossed, Truck, XCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import POSPinModal from './POSPinModal'
 import { useI18n } from "@/lib/I18nContext";
@@ -368,21 +368,30 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
             </div>
 
             {/* 4 Interactive Executive Metric Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
               {/* Takeaway Card */}
               <div
                 onClick={() => setFilterType(filterType === 'takeaway' ? 'all' : 'takeaway')}
-                className={`cursor-pointer rounded-2xl p-4 border transition-all duration-200 flex flex-col justify-between ${
+                className={`group cursor-pointer rounded-2xl p-4 transition-all duration-200 flex flex-col justify-between border ${
                   filterType === 'takeaway'
-                    ? 'bg-[#1A1A18] text-white border-[#1A1A18] shadow-md scale-[1.01]'
-                    : 'bg-white text-gray-800 border-gray-100/90 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:border-gray-300 hover:shadow-sm'
+                    ? 'bg-[#1A1A18] text-white border-[#1A1A18] shadow-lg shadow-black/10 scale-[1.01]'
+                    : 'bg-white text-gray-800 border-gray-100/90 shadow-[0_2px_12px_rgba(0,0,0,0.02)] hover:border-gray-300 hover:shadow-md'
                 }`}
               >
-                <div className="flex justify-between items-center mb-1">
-                  <span className={`text-[10px] font-extrabold uppercase tracking-wider ${filterType === 'takeaway' ? 'text-gray-400' : 'text-gray-400'}`}>
-                    🛍️ {locale === 'en' ? 'Takeaway' : 'กลับบ้าน'}
-                  </span>
-                  {filterType === 'takeaway' && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
+                <div className="flex justify-between items-center mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-6 h-6 rounded-lg flex items-center justify-center transition-colors ${
+                      filterType === 'takeaway' ? 'bg-white/10 text-white' : 'bg-gray-100/80 text-gray-500 group-hover:bg-gray-200/80'
+                    }`}>
+                      <ShoppingBag size={13} />
+                    </div>
+                    <span className={`text-[11px] font-extrabold uppercase tracking-wider ${
+                      filterType === 'takeaway' ? 'text-gray-300' : 'text-gray-500'
+                    }`}>
+                      {locale === 'en' ? 'Takeaway' : 'กลับบ้าน'}
+                    </span>
+                  </div>
+                  {filterType === 'takeaway' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
                 </div>
                 <div className="flex items-baseline gap-1 mt-1">
                   <span className="text-2xl sm:text-3xl font-black tracking-tight">{takeawayCount}</span>
@@ -393,17 +402,26 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
               {/* Dine-in Card */}
               <div
                 onClick={() => setFilterType(filterType === 'dine_in' ? 'all' : 'dine_in')}
-                className={`cursor-pointer rounded-2xl p-4 border transition-all duration-200 flex flex-col justify-between ${
+                className={`group cursor-pointer rounded-2xl p-4 transition-all duration-200 flex flex-col justify-between border ${
                   filterType === 'dine_in'
-                    ? 'bg-[#1A1A18] text-white border-[#1A1A18] shadow-md scale-[1.01]'
-                    : 'bg-white text-gray-800 border-gray-100/90 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:border-gray-300 hover:shadow-sm'
+                    ? 'bg-[#1A1A18] text-white border-[#1A1A18] shadow-lg shadow-black/10 scale-[1.01]'
+                    : 'bg-white text-gray-800 border-gray-100/90 shadow-[0_2px_12px_rgba(0,0,0,0.02)] hover:border-gray-300 hover:shadow-md'
                 }`}
               >
-                <div className="flex justify-between items-center mb-1">
-                  <span className={`text-[10px] font-extrabold uppercase tracking-wider ${filterType === 'dine_in' ? 'text-gray-400' : 'text-gray-400'}`}>
-                    🍽️ {locale === 'en' ? 'Dine-in' : 'ทานที่ร้าน'}
-                  </span>
-                  {filterType === 'dine_in' && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
+                <div className="flex justify-between items-center mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-6 h-6 rounded-lg flex items-center justify-center transition-colors ${
+                      filterType === 'dine_in' ? 'bg-white/10 text-white' : 'bg-gray-100/80 text-gray-500 group-hover:bg-gray-200/80'
+                    }`}>
+                      <UtensilsCrossed size={13} />
+                    </div>
+                    <span className={`text-[11px] font-extrabold uppercase tracking-wider ${
+                      filterType === 'dine_in' ? 'text-gray-300' : 'text-gray-500'
+                    }`}>
+                      {locale === 'en' ? 'Dine-in' : 'ทานที่ร้าน'}
+                    </span>
+                  </div>
+                  {filterType === 'dine_in' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
                 </div>
                 <div className="flex items-baseline gap-1 mt-1">
                   <span className="text-2xl sm:text-3xl font-black tracking-tight">{dineInCount}</span>
@@ -414,16 +432,25 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
               {/* Delivery Card */}
               <div
                 onClick={() => setFilterType(filterType === 'delivery' ? 'all' : 'delivery')}
-                className={`cursor-pointer rounded-2xl p-4 border transition-all duration-200 flex flex-col justify-between ${
+                className={`group cursor-pointer rounded-2xl p-4 transition-all duration-200 flex flex-col justify-between border ${
                   filterType === 'delivery'
-                    ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-[1.01]'
-                    : 'bg-white text-gray-800 border-gray-100/90 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:border-amber-200 hover:shadow-sm'
+                    ? 'bg-amber-600 text-white border-amber-600 shadow-lg shadow-amber-600/20 scale-[1.01]'
+                    : 'bg-white text-gray-800 border-gray-100/90 shadow-[0_2px_12px_rgba(0,0,0,0.02)] hover:border-amber-200 hover:shadow-md'
                 }`}
               >
-                <div className="flex justify-between items-center mb-1">
-                  <span className={`text-[10px] font-extrabold uppercase tracking-wider ${filterType === 'delivery' ? 'text-amber-200' : 'text-amber-600'}`}>
-                    🛵 {locale === 'en' ? 'Delivery' : 'เดลิเวอรี'}
-                  </span>
+                <div className="flex justify-between items-center mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-6 h-6 rounded-lg flex items-center justify-center transition-colors ${
+                      filterType === 'delivery' ? 'bg-white/20 text-white' : 'bg-amber-50 text-amber-600 group-hover:bg-amber-100/80'
+                    }`}>
+                      <Truck size={13} />
+                    </div>
+                    <span className={`text-[11px] font-extrabold uppercase tracking-wider ${
+                      filterType === 'delivery' ? 'text-amber-100' : 'text-amber-700'
+                    }`}>
+                      {locale === 'en' ? 'Delivery' : 'เดลิเวอรี'}
+                    </span>
+                  </div>
                   {filterType === 'delivery' && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
                 </div>
                 <div className="flex items-baseline gap-1 mt-1">
@@ -435,16 +462,25 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
               {/* Cancelled Card */}
               <div
                 onClick={() => setFilterType(filterType === 'cancelled' ? 'all' : 'cancelled')}
-                className={`cursor-pointer rounded-2xl p-4 border transition-all duration-200 flex flex-col justify-between ${
+                className={`group cursor-pointer rounded-2xl p-4 transition-all duration-200 flex flex-col justify-between border ${
                   filterType === 'cancelled'
-                    ? 'bg-rose-600 text-white border-rose-600 shadow-md scale-[1.01]'
-                    : 'bg-white text-gray-800 border-gray-100/90 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:border-rose-200 hover:shadow-sm'
+                    ? 'bg-rose-600 text-white border-rose-600 shadow-lg shadow-rose-600/20 scale-[1.01]'
+                    : 'bg-white text-gray-800 border-gray-100/90 shadow-[0_2px_12px_rgba(0,0,0,0.02)] hover:border-rose-200 hover:shadow-md'
                 }`}
               >
-                <div className="flex justify-between items-center mb-1">
-                  <span className={`text-[10px] font-extrabold uppercase tracking-wider ${filterType === 'cancelled' ? 'text-rose-200' : 'text-rose-500'}`}>
-                    🚫 {locale === 'en' ? 'Cancelled' : 'ยกเลิก'}
-                  </span>
+                <div className="flex justify-between items-center mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-6 h-6 rounded-lg flex items-center justify-center transition-colors ${
+                      filterType === 'cancelled' ? 'bg-white/20 text-white' : 'bg-rose-50 text-rose-500 group-hover:bg-rose-100/80'
+                    }`}>
+                      <XCircle size={13} />
+                    </div>
+                    <span className={`text-[11px] font-extrabold uppercase tracking-wider ${
+                      filterType === 'cancelled' ? 'text-rose-100' : 'text-rose-600'
+                    }`}>
+                      {locale === 'en' ? 'Cancelled' : 'ยกเลิก'}
+                    </span>
+                  </div>
                   {filterType === 'cancelled' && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
                 </div>
                 <div className="flex items-baseline gap-1 mt-1">
