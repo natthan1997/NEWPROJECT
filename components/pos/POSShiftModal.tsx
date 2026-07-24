@@ -20,6 +20,65 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
   const [showConfirm, setShowConfirm] = useState(false)
   const [isOpeningDrawer, setIsOpeningDrawer] = useState(false)
 
+  // Shift Attendance Gating States
+  const [checkingEligibility, setCheckingEligibility] = useState(false)
+  const [eligibilityData, setEligibilityData] = useState<any>(null)
+  const [showBlockedModal, setShowBlockedModal] = useState(false)
+  const [showLeaveModal, setShowLeaveModal] = useState(false)
+  const [selectedStaffForLeave, setSelectedStaffForLeave] = useState<string>('')
+  const [leaveReason, setLeaveReason] = useState<string>('แจ้งลาป่วย/ลากะทันหัน')
+  const [isSubmittingLeave, setIsSubmittingLeave] = useState(false)
+
+  const checkEligibility = async (): Promise<boolean> => {
+    setCheckingEligibility(true)
+    try {
+      const res = await fetch('/api/pos/shifts/check-eligibility', { method: 'GET' })
+      const data = await res.json()
+      if (data && data.success) {
+        setEligibilityData(data)
+        if (!data.canOpenShift) {
+          setShowBlockedModal(true)
+          return false
+        }
+        return true
+      }
+      return true // fallback if error
+    } catch (e) {
+      console.error('Check eligibility error:', e)
+      return true
+    } finally {
+      setCheckingEligibility(false)
+    }
+  }
+
+  const handleGrantEmergencyLeave = async (staffId: string) => {
+    if (!staffId) return
+    setIsSubmittingLeave(true)
+    try {
+      const res = await fetch('/api/pos/shifts/emergency-leave', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profileId: staffId, reason: leaveReason })
+      })
+      const data = await res.json()
+      if (data.success) {
+        alert('บันทึกการลากะทันหันเรียบร้อยแล้ว')
+        setShowLeaveModal(false)
+        // Re-check eligibility
+        const canOpen = await checkEligibility()
+        if (canOpen) {
+          setShowBlockedModal(false)
+        }
+      } else {
+        alert('เกิดข้อผิดพลาด: ' + (data.error || 'ไม่สามารถบันทึกได้'))
+      }
+    } catch (err: any) {
+      alert('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + err.message)
+    } finally {
+      setIsSubmittingLeave(false)
+    }
+  }
+
   const openDrawerBeforeCounting = async () => {
     if (isOpeningDrawer) return
     setIsOpeningDrawer(true)
@@ -53,6 +112,11 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    // First check staff attendance eligibility
+    const isEligible = await checkEligibility()
+    if (!isEligible) {
+      return // Blocked by Attendance Gating modal
+    }
     setShowConfirm(true)
   }
 
@@ -89,6 +153,125 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             className="relative w-full max-w-md bg-[#FBFBFA] shadow-2xl overflow-hidden border border-[#E5E5DF]"
           >
+            {/* Attendance Gate Blocked Overlay */}
+            <AnimatePresence>
+              {showBlockedModal && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 50 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 50 }}
+                  className="absolute inset-0 z-[60] bg-white flex flex-col justify-between p-8 text-center"
+                >
+                  <div className="space-y-6 flex-1 flex flex-col items-center justify-center">
+                    <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center animate-pulse">
+                      <AlertTriangle size={36} />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-black text-[#1A1A18] uppercase tracking-tight mb-2">
+                        ไม่สามารถเปิดกะ POS ได้
+                      </h3>
+                      <p className="text-[11px] font-bold text-red-600 bg-red-50 p-3 border border-red-100 rounded-none leading-relaxed">
+                        พนักงานตารางงานวันนี้ยังไม่ได้ลงเวลาเข้างานใน Dashboard อีก {eligibilityData?.missingCheckInStaff?.length || 0} คน
+                      </p>
+                    </div>
+
+                    {/* Missing Staff List */}
+                    <div className="w-full bg-gray-50 border border-gray-100 p-4 space-y-2 max-h-40 overflow-y-auto text-left">
+                      <p className="text-[9px] font-black uppercase tracking-widest text-gray-400">
+                        รายชื่อพนักงานที่ยังไม่ลงเวลาเข้างาน:
+                      </p>
+                      {eligibilityData?.missingCheckInStaff?.map((staff: any) => (
+                        <div key={staff.id} className="flex justify-between items-center bg-white p-2 border border-gray-200">
+                          <span className="text-xs font-bold text-[#1A1A18]">• {staff.full_name || staff.email}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedStaffForLeave(staff.id);
+                              setShowLeaveModal(true);
+                            }}
+                            className="text-[9px] font-black bg-amber-500 text-white px-2 py-1 uppercase tracking-tighter hover:bg-amber-600 transition-colors"
+                          >
+                            แจ้งลากะทันหัน
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col w-full gap-2 pt-4 border-t border-gray-100">
+                    <button 
+                      onClick={() => checkEligibility()}
+                      disabled={checkingEligibility}
+                      className="w-full h-12 bg-[#1A1A18] text-white font-black uppercase tracking-[0.2em] text-[10px] hover:bg-black transition-all flex items-center justify-center gap-2"
+                    >
+                      {checkingEligibility ? <XYLLoader mini /> : '🔄 ตรวจสอบการลงเวลาอีกครั้ง'}
+                    </button>
+                    <button 
+                      onClick={() => setShowBlockedModal(false)}
+                      className="w-full h-10 bg-gray-50 text-gray-400 font-bold uppercase tracking-widest text-[9px] hover:bg-gray-100 transition-all"
+                    >
+                      ปิดหน้านี้
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Emergency Leave Overlay */}
+            <AnimatePresence>
+              {showLeaveModal && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  className="absolute inset-0 z-[70] bg-white flex flex-col justify-between p-8 text-center"
+                >
+                  <div className="space-y-6 flex-1 flex flex-col items-center justify-center">
+                    <div className="w-14 h-14 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center">
+                      <AlertTriangle size={32} />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-black text-[#1A1A18] uppercase tracking-tight mb-1">
+                        แจ้งลากะทันหันสำหรับวันนี้
+                      </h3>
+                      <p className="text-[10px] font-bold text-gray-400">
+                        ระบบจะยกเว้นการบังคับลงเวลาเข้างานของพนักงานคนนี้เฉพาะวันนี้เพื่อเปิดกะ POS
+                      </p>
+                    </div>
+
+                    <div className="w-full space-y-4 text-left">
+                      <div>
+                        <label className="text-[9px] font-black uppercase tracking-widest text-gray-400 block mb-1">เหตุผลการลา:</label>
+                        <input 
+                          type="text"
+                          value={leaveReason}
+                          onChange={(e) => setLeaveReason(e.target.value)}
+                          className="w-full bg-gray-50 border border-gray-200 p-3 text-xs font-bold text-[#1A1A18] outline-none focus:ring-1 focus:ring-black"
+                          placeholder="ระบุเหตุผล เช่น ลาป่วย / ลากิจกะทันหัน"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col w-full gap-2 pt-4 border-t border-gray-100">
+                    <button 
+                      onClick={() => handleGrantEmergencyLeave(selectedStaffForLeave)}
+                      disabled={isSubmittingLeave}
+                      className="w-full h-12 bg-amber-500 text-white font-black uppercase tracking-[0.2em] text-[10px] hover:bg-amber-600 transition-all flex items-center justify-center gap-2"
+                    >
+                      {isSubmittingLeave ? <XYLLoader mini /> : 'ยืนยันการแจ้งลากะทันหัน'}
+                    </button>
+                    <button 
+                      onClick={() => setShowLeaveModal(false)}
+                      className="w-full h-10 bg-gray-50 text-gray-400 font-bold uppercase tracking-widest text-[9px] hover:bg-gray-100 transition-all"
+                    >
+                      ยกเลิก
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* Confirmation Overlay */}
             <AnimatePresence>
               {showConfirm && (

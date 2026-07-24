@@ -76,7 +76,23 @@ export default function POSDrawerManager({
     return { start, end }
   }
 
+  // Attendance Summary State
+  const [attendanceSummary, setAttendanceSummary] = useState<any>(null)
+
+  const fetchAttendanceSummary = async () => {
+    try {
+      const res = await fetch('/api/pos/shifts/check-eligibility', { method: 'GET' })
+      const data = await res.json()
+      if (data && data.success) {
+        setAttendanceSummary(data)
+      }
+    } catch (e) {
+      console.error('Fetch attendance summary error:', e)
+    }
+  }
+
   useEffect(() => {
+    fetchAttendanceSummary()
     if (activeShift) {
         fetchTransactions()
         fetchShiftStats(activeShift.id)
@@ -421,6 +437,17 @@ export default function POSDrawerManager({
       if (isClosingShift) return
       setIsClosingShift(true)
       try {
+      // Check staff attendance check-out eligibility
+      const elRes = await fetch('/api/pos/shifts/check-eligibility', { method: 'GET' })
+      const elData = await elRes.json()
+      if (elData && elData.success && !elData.canCloseShift) {
+        const names = elData.missingCheckOutStaff.map((s: any) => s.full_name || s.email).join(', ')
+        alert(`ไม่สามารถปิดกะ POS ได้: มีพนักงานที่ลงเวลาเข้างานไว้ยังไม่ได้ลงเวลาออกงานอีก ${elData.missingCheckOutStaff.length} คน (${names})`)
+        setIsClosingShift(false)
+        setShowCloseConfirm(false)
+        return
+      }
+
       const { start, end } = getLocalDayBounds()
       const branchId = activeShift?.branch_id || shopSettings?.branch_id || null
 
@@ -936,6 +963,48 @@ export default function POSDrawerManager({
                                    <span className="text-rose-500 font-sans text-lg md:text-xl font-bold">- ฿ {shiftStats?.payOuts?.toLocaleString() || '0'}</span>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+
+                    {/* STAFF ATTENDANCE SUMMARY CARD */}
+                    <div className="bg-white rounded-[1.5rem] p-6 border border-gray-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)] flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-2xl bg-[#1A1A18] text-white flex items-center justify-center font-black text-lg">
+                                👥
+                            </div>
+                            <div>
+                                <h4 className="text-xs font-black uppercase tracking-widest text-[#1A1A18]">
+                                    {locale === 'en' ? 'Today Staff Attendance Status' : 'สถานะการลงเวลาพนักงานประจำวันนี้'}
+                                </h4>
+                                <p className="text-[11px] font-bold text-gray-500 mt-0.5">
+                                    {locale === 'en' ? 'Scheduled today: ' : 'ตารางกะวันนี้ต้องเข้า '}
+                                    <span className="text-[#1A1A18] font-black">{attendanceSummary?.totalRequiredStaff || 0}</span> คน • 
+                                    {locale === 'en' ? ' Checked-in: ' : ' ลงเวลาเข้างานแล้ว '}
+                                    <span className="text-emerald-600 font-black">{attendanceSummary?.checkedInStaff?.length || 0}</span> คน
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Staff Badges */}
+                        <div className="flex flex-wrap gap-2">
+                            {attendanceSummary?.checkedInStaff?.map((s: any) => (
+                                <span key={s.id} className="text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-full flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    {s.full_name || s.email} (เข้างานแล้ว)
+                                </span>
+                            ))}
+                            {attendanceSummary?.missingCheckInStaff?.map((s: any) => (
+                                <span key={s.id} className="text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-200 px-3 py-1.5 rounded-full flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                                    {s.full_name || s.email} (ยังไม่ลงเวลา)
+                                </span>
+                            ))}
+                            {attendanceSummary?.emergencyLeaveStaff?.map((s: any) => (
+                                <span key={s.id} className="text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1.5 rounded-full flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                                    {s.full_name || s.email} (แจ้งลากะทันหัน)
+                                </span>
+                            ))}
                         </div>
                     </div>
 
