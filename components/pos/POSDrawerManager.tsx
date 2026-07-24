@@ -6,7 +6,7 @@ import {
   Menu as MenuIcon, LogOut, Settings, Wallet,
   ArrowDownLeft, ArrowUpRight, History, Banknote,
   Receipt, Landmark, Printer, ShieldCheck, RefreshCcw,
-  AlertTriangle, ArrowRight
+  AlertTriangle, ArrowRight, Users
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '@/lib/supabaseClient'
@@ -972,64 +972,71 @@ export default function POSDrawerManager({
                         </div>
                     </div>
 
-                    {/* CLEAN MINIMAL STAFF ATTENDANCE CARD */}
-                    <div className="bg-white rounded-[1.5rem] px-6 py-4 border border-[#E5E5DF] shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition-all hover:border-[#1A1A18]/20">
+                    {/* ULTRA CLEAN MINIMAL STAFF BAR */}
+                    <div className="bg-white rounded-2xl px-5 py-3.5 border border-gray-100 shadow-[0_2px_12px_rgba(0,0,0,0.02)] flex flex-col md:flex-row justify-between items-start md:items-center gap-3 transition-all hover:border-gray-200">
                         <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-gray-100 text-[#1A1A18] flex items-center justify-center font-bold text-xs">
-                                👥
+                            <div className="w-8 h-8 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-500">
+                                <Users size={15} />
                             </div>
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3">
-                                <span className="text-xs font-black uppercase tracking-wider text-[#1A1A18]">
-                                    {locale === 'en' ? 'Staff Shift Status' : 'สถานะพนักงานประจำกะวันนี้'}
+                            <div className="flex items-center gap-2.5 flex-wrap">
+                                <span className="text-xs font-bold text-gray-800">
+                                    {locale === 'en' ? 'Shift Attendance' : 'พนักงานประจำกะวันนี้'}
                                 </span>
-                                <span className="text-[10px] font-bold tracking-tight px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-600 border border-gray-200 w-fit">
-                                    {locale === 'en' ? 'Checked-in: ' : 'เข้างานแล้ว '}
-                                    <strong className="text-emerald-600 font-black">{attendanceSummary?.checkedInStaff?.length || 0}</strong>
-                                    {` / `}
-                                    <strong className="text-[#1A1A18] font-black">{attendanceSummary?.totalRequiredStaff || 0}</strong> คน
-                                </span>
+
+                                {/* Attendance Counter Badge */}
+                                {attendanceSummary?.totalRequiredStaff > 0 ? (
+                                    attendanceSummary?.canOpenShift ? (
+                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                            {locale === 'en' ? 'Checked-in ' : 'เข้างานครบ '}
+                                            ({attendanceSummary?.checkedInStaff?.length || 0}/{attendanceSummary?.totalRequiredStaff || 0})
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-100">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                                            {locale === 'en' ? 'Missing ' : 'ยังไม่เข้า '} 
+                                            ({attendanceSummary?.missingCheckInStaff?.length || 0} คน)
+                                        </span>
+                                    )
+                                ) : (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-gray-50 text-gray-400 border border-gray-100">
+                                        {locale === 'en' ? 'No shift today' : 'ไม่มีกะพนักงานวันนี้'}
+                                    </span>
+                                )}
                             </div>
                         </div>
 
-                        {/* Staff Pill Badges & Refresh */}
-                        <div className="flex items-center gap-2 flex-wrap w-full md:w-auto justify-between md:justify-end">
+                        {/* Staff Name Badges & Refresh */}
+                        <div className="flex items-center gap-2 w-full md:w-auto justify-between md:justify-end">
                             <div className="flex flex-wrap gap-1.5 items-center">
-                                {(!attendanceSummary?.requiredStaffToday || attendanceSummary?.requiredStaffToday?.length === 0) ? (
-                                    <span className="text-[10px] font-bold text-gray-400 italic bg-gray-50 px-3 py-1 rounded-full border border-gray-100">
-                                        {locale === 'en' ? 'No staff scheduled' : 'ไม่มีกะพนักงานที่ต้องเข้างานวันนี้'}
+                                {attendanceSummary?.checkedInStaff?.map((s: any) => (
+                                    <span key={s.id} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-50/70 text-emerald-800 border border-emerald-100/60">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                        {s.display_name || s.full_name || s.email}
                                     </span>
-                                ) : (
-                                    <>
-                                        {attendanceSummary?.checkedInStaff?.map((s: any) => (
-                                            <span key={s.id} className="text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-2xs">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                                {s.full_name || s.display_name || s.email}
-                                            </span>
-                                        ))}
-                                        {attendanceSummary?.missingCheckInStaff?.map((s: any) => (
-                                            <span key={s.id} className="text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-200 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-2xs">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                                                {s.full_name || s.display_name || s.email} (ยังไม่เข้า)
-                                            </span>
-                                        ))}
-                                        {attendanceSummary?.emergencyLeaveStaff?.map((s: any) => (
-                                            <span key={s.id} className="text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-2xs">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                                                {s.full_name || s.display_name || s.email} (ลา)
-                                            </span>
-                                        ))}
-                                    </>
-                                )}
+                                ))}
+                                {attendanceSummary?.missingCheckInStaff?.map((s: any) => (
+                                    <span key={s.id} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-rose-50/70 text-rose-700 border border-rose-100/60">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+                                        {s.display_name || s.full_name || s.email}
+                                    </span>
+                                ))}
+                                {attendanceSummary?.emergencyLeaveStaff?.map((s: any) => (
+                                    <span key={s.id} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-amber-50/70 text-amber-800 border border-amber-100/60">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                                        {s.display_name || s.full_name || s.email} (ลา)
+                                    </span>
+                                ))}
                             </div>
 
                             <button 
                                 type="button"
                                 onClick={fetchAttendanceSummary}
                                 disabled={isFetchingAttendance}
-                                title="รีเฟรชข้อมูลสถานะพนักงาน"
-                                className="p-1.5 text-gray-400 hover:text-[#1A1A18] hover:bg-gray-100 rounded-full transition-colors disabled:opacity-40"
+                                title="รีเฟรชข้อมูล"
+                                className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-40"
                             >
-                                <RefreshCcw size={14} className={isFetchingAttendance ? 'animate-spin' : ''} />
+                                <RefreshCcw size={13} className={isFetchingAttendance ? 'animate-spin' : ''} />
                             </button>
                         </div>
                     </div>
