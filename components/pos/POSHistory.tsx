@@ -331,6 +331,7 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
   const takeawayCount = validOrders.filter(o => o.order_type !== 'dine_in' && o.order_type !== 'delivery').length
   const dineInCount = validOrders.filter(o => o.order_type === 'dine_in').length
   const deliveryCount = validOrders.filter(o => o.order_type === 'delivery').length
+  const cancelledCount = completedOrders.filter(o => o.status === 'cancelled').length
 
   return (
     <div className="flex h-full flex-col bg-white text-[#1A1A18] selection:bg-emerald-100">
@@ -349,20 +350,25 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
               </div>
 
               {/* Order Breakdown Grid */}
-              <div className="grid grid-cols-3 gap-2 mt-2 pt-3 border-t border-neutral-100">
-                <div className="flex flex-col bg-neutral-50 px-2.5 py-1.5 rounded-xl border border-neutral-100/80">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2 pt-3 border-t border-neutral-100">
+                <div className="flex flex-col bg-neutral-50 px-2 py-1.5 rounded-xl border border-neutral-100/80">
                   <span className="text-[9px] font-bold text-neutral-400 uppercase tracking-tight">{locale === 'en' ? 'Takeaway' : 'กลับบ้าน'}</span>
-                  <span className="text-xs sm:text-sm font-black text-neutral-800">{takeawayCount} <span className="text-[9px] font-normal text-neutral-400">บิล</span></span>
+                  <span className="text-xs font-black text-neutral-800">{takeawayCount} <span className="text-[9px] font-normal text-neutral-400">บิล</span></span>
                 </div>
 
-                <div className="flex flex-col bg-neutral-50 px-2.5 py-1.5 rounded-xl border border-neutral-100/80">
+                <div className="flex flex-col bg-neutral-50 px-2 py-1.5 rounded-xl border border-neutral-100/80">
                   <span className="text-[9px] font-bold text-neutral-400 uppercase tracking-tight">{locale === 'en' ? 'Dine-in' : 'ทานที่ร้าน'}</span>
-                  <span className="text-xs sm:text-sm font-black text-neutral-800">{dineInCount} <span className="text-[9px] font-normal text-neutral-400">บิล</span></span>
+                  <span className="text-xs font-black text-neutral-800">{dineInCount} <span className="text-[9px] font-normal text-neutral-400">บิล</span></span>
                 </div>
 
-                <div className="flex flex-col bg-orange-50/60 px-2.5 py-1.5 rounded-xl border border-orange-100/60">
+                <div className="flex flex-col bg-orange-50/60 px-2 py-1.5 rounded-xl border border-orange-100/60">
                   <span className="text-[9px] font-bold text-orange-600/80 uppercase tracking-tight">{locale === 'en' ? 'Delivery' : 'เดลิเวอรี'}</span>
-                  <span className="text-xs sm:text-sm font-black text-orange-700">{deliveryCount} <span className="text-[9px] font-normal text-orange-400">บิล</span></span>
+                  <span className="text-xs font-black text-orange-700">{deliveryCount} <span className="text-[9px] font-normal text-orange-400">บิล</span></span>
+                </div>
+
+                <div className="flex flex-col bg-rose-50/60 px-2 py-1.5 rounded-xl border border-rose-100/60">
+                  <span className="text-[9px] font-bold text-rose-500/80 uppercase tracking-tight">{locale === 'en' ? 'Cancelled' : 'ยกเลิก'}</span>
+                  <span className="text-xs font-black text-rose-600">{cancelledCount} <span className="text-[9px] font-normal text-rose-400">บิล</span></span>
                 </div>
               </div>
             </div>
