@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect, useMemo, useRef } from 'react'
+import { getDeliveryPlatformBadge } from './POSHistory'
 
 import POSRecipeViewModal from './POSRecipeViewModal'
 import { AnimatePresence, motion } from 'framer-motion'

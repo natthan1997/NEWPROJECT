@@ -7,6 +7,68 @@ import { useI18n } from "@/lib/I18nContext";
 import { printCustomerReceipt } from '@/lib/printerUtils'
 import { printGraphicModeCustomerReceipt } from '@/lib/graphicPrinter'
 
+export function getDeliveryPlatformBadge(platform?: string | null) {
+  const p = (platform || '').toLowerCase().trim();
+
+  if (p.includes('lineman') || p.includes('line_man') || p.includes('line man') || p === 'line') {
+    return {
+      label: 'LINE MAN',
+      bgClass: 'bg-[#06C755]/10 text-[#06C755] border-[#06C755]/30',
+      badgeClass: 'bg-[#06C755] text-white',
+      dotClass: 'bg-[#06C755]',
+      brandColor: '#06C755',
+    }
+  }
+
+  if (p.includes('grab')) {
+    return {
+      label: 'GrabFood',
+      bgClass: 'bg-[#00B14F]/10 text-[#00B14F] border-[#00B14F]/30',
+      badgeClass: 'bg-[#00B14F] text-white',
+      dotClass: 'bg-[#00B14F]',
+      brandColor: '#00B14F',
+    }
+  }
+
+  if (p.includes('shopee')) {
+    return {
+      label: 'ShopeeFood',
+      bgClass: 'bg-[#EE4D2D]/10 text-[#EE4D2D] border-[#EE4D2D]/30',
+      badgeClass: 'bg-[#EE4D2D] text-white',
+      dotClass: 'bg-[#EE4D2D]',
+      brandColor: '#EE4D2D',
+    }
+  }
+
+  if (p.includes('robinhood') || p.includes('rbh')) {
+    return {
+      label: 'Robinhood',
+      bgClass: 'bg-[#6C2278]/10 text-[#6C2278] border-[#6C2278]/30',
+      badgeClass: 'bg-[#6C2278] text-white',
+      dotClass: 'bg-[#6C2278]',
+      brandColor: '#6C2278',
+    }
+  }
+
+  if (p.includes('foodpanda') || p.includes('panda')) {
+    return {
+      label: 'Foodpanda',
+      bgClass: 'bg-[#D70F64]/10 text-[#D70F64] border-[#D70F64]/30',
+      badgeClass: 'bg-[#D70F64] text-white',
+      dotClass: 'bg-[#D70F64]',
+      brandColor: '#D70F64',
+    }
+  }
+
+  return {
+    label: platform ? platform.toUpperCase() : 'DELIVERY',
+    bgClass: 'bg-amber-50 text-amber-700 border-amber-200/60',
+    badgeClass: 'bg-amber-600 text-white',
+    dotClass: 'bg-amber-500',
+    brandColor: '#F59E0B',
+  }
+}
+
 export default function POSHistory({ shopSettings, profile, activeShift, onSetView, fetchShiftStats, setViewExtraHeader }: any) {
     const { locale } = useI18n();
   const [completedOrders, setCompletedOrders] = useState<any[]>([])
@@ -548,11 +610,15 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
                           {formatPaymentMethodLabel(getOrderPaymentMethod(order))}
                         </span>
 
-                        {order.order_type === 'delivery' && order.delivery_platform && (
-                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-orange-50 text-orange-600">
-                            {order.delivery_platform}
-                          </span>
-                        )}
+                        {order.order_type === 'delivery' && order.delivery_platform && (() => {
+                          const badge = getDeliveryPlatformBadge(order.delivery_platform);
+                          return (
+                            <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider border flex items-center gap-1.5 ${badge.bgClass}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${badge.dotClass}`} />
+                              {badge.label}
+                            </span>
+                          );
+                        })()}
                         
                         {order.order_source === 'liff' && Number(order.delivery_fee || 0) > 0 && (
                           <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-600">
@@ -658,12 +724,15 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
                         <div className="flex flex-col">
                           <span className="text-[10px] font-black uppercase text-neutral-400 tracking-wider leading-none mb-1">{locale === 'en' ? 'Net Total' : 'ยอดสุทธิ'}</span>
                           <span className="text-[24px] font-black tracking-tight text-black">{locale === 'en' ? '฿' : '฿'}{(Number(order.net_total ?? order.total_amount)).toLocaleString()}</span>
-                          {Number(order.delivery_gp_amount) > 0 && order.status !== 'cancelled' && (
-                            <div className="text-[12px] font-black text-red-500 mt-1">
-                              GP {order.delivery_platform?.toUpperCase()}: -฿{Number(order.delivery_gp_amount).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}
-                              <span className="text-blue-600 ml-3">รับจริง: ฿{(Number(order.net_total ?? order.total_amount) - Number(order.delivery_gp_amount)).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</span>
-                            </div>
-                          )}
+                          {Number(order.delivery_gp_amount) > 0 && order.status !== 'cancelled' && (() => {
+                            const badge = getDeliveryPlatformBadge(order.delivery_platform);
+                            return (
+                              <div className="text-[12px] font-black text-red-500 mt-1 flex items-center gap-1.5 flex-wrap">
+                                <span>หัก GP <strong style={{ color: badge.brandColor }}>{badge.label}</strong>: -฿{Number(order.delivery_gp_amount).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</span>
+                                <span className="text-emerald-600 font-extrabold ml-2">รับจริง: ฿{(Number(order.net_total ?? order.total_amount) - Number(order.delivery_gp_amount)).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</span>
+                              </div>
+                            );
+                          })()}
                         </div>
                         
                         <div className="flex gap-3 w-full sm:w-auto">
