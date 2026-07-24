@@ -153,73 +153,70 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-neutral-900/60 backdrop-blur-md"
+            className="absolute inset-0 bg-neutral-900/40 backdrop-blur-sm"
           />
 
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            initial={{ opacity: 0, scale: 0.96, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl shadow-black/20 overflow-hidden border border-neutral-200/90 font-sans"
+            exit={{ opacity: 0, scale: 0.96, y: 10 }}
+            className="relative w-full max-w-sm bg-white rounded-3xl shadow-xl border border-neutral-200/80 font-sans overflow-hidden"
           >
             {/* Attendance Gate Blocked Overlay */}
             <AnimatePresence>
               {showBlockedModal && (
                 <motion.div 
-                  initial={{ opacity: 0, y: 30 }}
+                  initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 30 }}
-                  className="absolute inset-0 z-[60] bg-white/98 backdrop-blur-md flex flex-col justify-between p-6 sm:p-7 text-center"
+                  exit={{ opacity: 0, y: 20 }}
+                  className="absolute inset-0 z-[60] bg-white flex flex-col justify-between p-6 text-center"
                 >
-                  <div className="space-y-5 flex-1 flex flex-col items-center justify-center">
-                    <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center shadow-md shadow-rose-500/10 ring-4 ring-rose-500/10">
-                      <AlertTriangle size={32} />
+                  <div className="space-y-4 flex-1 flex flex-col items-center justify-center">
+                    <div className="w-12 h-12 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center">
+                      <AlertTriangle size={24} />
                     </div>
                     <div>
-                      <h3 className="text-lg font-black text-[#1A1A18] tracking-tight mb-1.5">
-                        ไม่สามารถเปิดกะ POS ได้
+                      <h3 className="text-base font-black text-neutral-900 tracking-tight">
+                        ไม่สามารถเปิดกะได้
                       </h3>
-                      <p className="text-xs font-bold text-rose-700 bg-rose-50/90 px-4 py-3 border border-rose-200/80 rounded-2xl leading-relaxed shadow-xs">
-                        พนักงานที่มีตารางงานวันนี้ยังไม่ได้ลงเวลาเข้างานอีก <span className="underline font-black text-rose-800">{eligibilityData?.missingCheckInStaff?.length || 0} คน</span>
+                      <p className="text-xs font-bold text-rose-600 mt-1">
+                        พนักงานยังไม่ลงเวลาเข้างาน {eligibilityData?.missingCheckInStaff?.length || 0} คน
                       </p>
                     </div>
 
                     {/* Missing Staff List */}
-                    <div className="w-full bg-neutral-50 border border-neutral-200/80 rounded-2xl p-3.5 space-y-2.5 max-h-48 overflow-y-auto text-left shadow-inner">
-                      <p className="text-[10px] font-black uppercase tracking-wider text-neutral-400">
-                        รายชื่อพนักงานที่ยังไม่ลงเวลาเข้างาน:
-                      </p>
+                    <div className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl p-3 space-y-2 max-h-44 overflow-y-auto text-left">
                       {eligibilityData?.missingCheckInStaff?.map((staff: any) => (
-                        <div key={staff.id} className="flex justify-between items-center bg-white p-3 rounded-xl border border-neutral-200/80 shadow-xs hover:border-neutral-300 transition-all">
-                          <span className="text-xs font-black text-[#1A1A18]">• {staff.display_name || staff.full_name || staff.email}</span>
+                        <div key={staff.id} className="flex justify-between items-center bg-white p-2.5 rounded-xl border border-neutral-200/60">
+                          <span className="text-xs font-bold text-neutral-900">• {staff.display_name || staff.full_name || staff.email}</span>
                           <button
                             type="button"
                             onClick={() => {
                               setSelectedStaffForLeave(staff.id);
                               setShowLeaveModal(true);
                             }}
-                            className="text-[10px] font-bold bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-xl transition-all shadow-md shadow-amber-500/20 active:scale-95 cursor-pointer"
+                            className="text-[11px] font-bold text-amber-600 hover:text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200/60 transition-colors"
                           >
-                            แจ้งลากะทันหัน
+                            แจ้งลา
                           </button>
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  <div className="flex flex-col w-full gap-2.5 pt-4 border-t border-neutral-100">
+                  <div className="flex flex-col w-full gap-2 pt-3 border-t border-neutral-100">
                     <button 
                       onClick={() => checkEligibility()}
                       disabled={checkingEligibility}
-                      className="w-full h-12 bg-[#1A1A18] hover:bg-black text-white font-bold rounded-2xl text-xs transition-all flex items-center justify-center gap-2 active:scale-[0.98] shadow-lg shadow-black/15 cursor-pointer"
+                      className="w-full h-11 bg-neutral-900 hover:bg-black text-white font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-2"
                     >
-                      {checkingEligibility ? <XYLLoader mini /> : '🔄 ตรวจสอบการลงเวลาอีกครั้ง'}
+                      {checkingEligibility ? <XYLLoader mini /> : 'ตรวจสอบอีกครั้ง'}
                     </button>
                     <button 
                       onClick={() => setShowBlockedModal(false)}
-                      className="w-full h-10 bg-neutral-100 text-neutral-600 font-bold rounded-xl text-xs hover:bg-neutral-200 transition-all active:scale-[0.98] cursor-pointer"
+                      className="w-full h-8 text-neutral-400 font-bold rounded-lg text-xs hover:text-neutral-700 transition-all"
                     >
-                      ปิดหน้านี้
+                      ปิด
                     </button>
                   </div>
                 </motion.div>
@@ -230,47 +227,46 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
             <AnimatePresence>
               {showLeaveModal && (
                 <motion.div 
-                  initial={{ opacity: 0, scale: 0.95 }}
+                  initial={{ opacity: 0, scale: 0.96 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="absolute inset-0 z-[70] bg-white flex flex-col justify-between p-6 sm:p-7 text-center"
+                  exit={{ opacity: 0, scale: 0.96 }}
+                  className="absolute inset-0 z-[70] bg-white flex flex-col justify-between p-6 text-center"
                 >
-                  <div className="space-y-5 flex-1 flex flex-col items-center justify-center">
-                    <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center shadow-md shadow-amber-500/10 ring-4 ring-amber-500/10">
-                      <AlertTriangle size={32} />
+                  <div className="space-y-4 flex-1 flex flex-col items-center justify-center">
+                    <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center">
+                      <AlertTriangle size={24} />
                     </div>
                     <div>
-                      <h3 className="text-base font-black text-[#1A1A18] tracking-tight mb-1">
-                        แจ้งลากะทันหันสำหรับวันนี้
+                      <h3 className="text-base font-black text-neutral-900">
+                        แจ้งลากะทันหัน
                       </h3>
-                      <p className="text-xs font-medium text-neutral-500">
-                        ระบบจะยกเว้นการลงเวลาเข้างานของพนักงานคนนี้เฉพาะวันนี้เพื่อเปิดกะ POS
+                      <p className="text-xs text-neutral-500 mt-0.5">
+                        ระบบจะยกเว้นการลงเวลาพนักงานคนนี้เฉพาะวันนี้
                       </p>
                     </div>
 
-                    <div className="w-full space-y-2 text-left">
-                      <label className="text-[10px] font-black uppercase tracking-wider text-neutral-400 block">เหตุผลการลา:</label>
+                    <div className="w-full text-left">
                       <input 
                         type="text"
                         value={leaveReason}
                         onChange={(e) => setLeaveReason(e.target.value)}
-                        className="w-full bg-neutral-50 border-2 border-neutral-200/90 focus:border-[#1A1A18] focus:ring-4 focus:ring-[#1A1A18]/10 rounded-2xl p-3.5 text-xs font-bold text-[#1A1A18] outline-none transition-all shadow-inner"
-                        placeholder="ระบุเหตุผล เช่น ลาป่วย / ลากิจกะทันหัน"
+                        className="w-full bg-neutral-50 border border-neutral-200 rounded-xl p-3 text-xs font-bold text-neutral-900 outline-none focus:border-neutral-900 transition-all"
+                        placeholder="ระบุเหตุผลการลา"
                       />
                     </div>
                   </div>
 
-                  <div className="flex flex-col w-full gap-2.5 pt-4 border-t border-neutral-100">
+                  <div className="flex flex-col w-full gap-2 pt-3 border-t border-neutral-100">
                     <button 
                       onClick={() => handleGrantEmergencyLeave(selectedStaffForLeave)}
                       disabled={isSubmittingLeave}
-                      className="w-full h-12 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-2xl text-xs transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-500/25 active:scale-[0.98] cursor-pointer"
+                      className="w-full h-11 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-2"
                     >
-                      {isSubmittingLeave ? <XYLLoader mini /> : 'ยืนยันการแจ้งลากะทันหัน'}
+                      {isSubmittingLeave ? <XYLLoader mini /> : 'ยืนยันแจ้งลา'}
                     </button>
                     <button 
                       onClick={() => setShowLeaveModal(false)}
-                      className="w-full h-10 bg-neutral-100 text-neutral-600 font-bold rounded-xl text-xs hover:bg-neutral-200 transition-all cursor-pointer"
+                      className="w-full h-8 text-neutral-400 font-bold rounded-lg text-xs hover:text-neutral-700 transition-all"
                     >
                       ยกเลิก
                     </button>
@@ -283,128 +279,103 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
             <AnimatePresence>
               {showConfirm && (
                 <motion.div 
-                  initial={{ opacity: 0, x: 50 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -50 }}
-                  className="absolute inset-0 z-50 bg-white flex flex-col items-center justify-center p-8 text-center space-y-6"
+                  initial={{ opacity: 0, scale: 0.96 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.96 }}
+                  className="absolute inset-0 z-50 bg-white flex flex-col items-center justify-center p-6 text-center space-y-5"
                 >
-                  <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center shadow-md shadow-amber-500/10 ring-4 ring-amber-500/10">
-                    <AlertTriangle size={32} />
+                  <div className="w-12 h-12 bg-neutral-100 text-neutral-800 rounded-2xl flex items-center justify-center">
+                    <Wallet size={24} />
                   </div>
                   <div>
-                    <h3 className="text-xl font-black text-[#1A1A18] mb-1 tracking-tight">ยืนยันการเปิดลิ้นชักและเริ่มกะ?</h3>
-                    <p className="text-xs font-bold text-neutral-500">เงินสดเริ่มต้นในลิ้นชัก: ฿{openingCash.toLocaleString()}</p>
+                    <h3 className="text-lg font-black text-neutral-900">ยืนยันเปิดกะ POS?</h3>
+                    <p className="text-xs text-neutral-500 mt-1">เงินสดเริ่มต้น: <span className="font-extrabold text-neutral-900">฿{openingCash.toLocaleString()}</span></p>
                   </div>
-                  <div className="flex flex-col w-full gap-2.5">
+                  <div className="flex flex-col w-full gap-2 pt-2">
                     <button 
                       onClick={handleConfirmedOpen}
                       disabled={isSubmitting}
-                      className="w-full h-12 bg-[#1A1A18] hover:bg-black text-white font-black text-xs rounded-2xl transition-all flex items-center justify-center gap-2 active:scale-[0.98] shadow-lg shadow-black/20 cursor-pointer"
+                      className="w-full h-11 bg-neutral-900 hover:bg-black text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2"
                     >
-                      {isSubmitting ? <XYLLoader mini /> : 'ยืนยันและเปิดลิ้นชัก'}
+                      {isSubmitting ? <XYLLoader mini /> : 'ยืนยัน'}
                     </button>
                     <button 
                       onClick={() => setShowConfirm(false)}
-                      className="w-full h-10 bg-neutral-100 text-neutral-600 font-bold rounded-xl text-xs hover:bg-neutral-200 transition-all cursor-pointer"
+                      className="w-full h-8 text-neutral-400 font-bold text-xs hover:text-neutral-700 transition-all"
                     >
-                      ย้อนกลับไปแก้ไข
+                      ยกเลิก
                     </button>
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* Header Area */}
-            <div className="p-5 sm:p-6 border-b border-neutral-100 flex items-center justify-between bg-white">
-               <div className="flex items-center gap-3.5">
-                  <div className="w-12 h-12 bg-gradient-to-br from-[#2B2B28] to-[#141412] text-white rounded-2xl flex items-center justify-center shadow-md shadow-black/15">
-                    <Wallet size={22} />
+            {/* Clean Modal Header */}
+            <div className="px-6 py-4 border-b border-neutral-100 flex items-center justify-between bg-white">
+               <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 bg-neutral-900 text-white rounded-xl flex items-center justify-center">
+                    <Wallet size={18} />
                   </div>
-                  <div>
-                    <h2 className="text-base sm:text-lg font-black text-[#1A1A18] tracking-tight">
-                      {locale === 'en' ? 'Open New Shift' : 'เปิดกะทำงานใหม่'}
-                    </h2>
-                    <p className="text-xs font-bold text-neutral-400 mt-0.5">
-                      {locale === 'en' ? 'Confirm starting cash' : 'ระบุเงินสดเริ่มต้นเพื่อเปิดกะ POS'}
-                    </p>
-                  </div>
+                  <h2 className="text-base font-black text-neutral-900">
+                    เปิดกะ POS
+                  </h2>
                </div>
                <button 
                  onClick={onClose}
-                 className="w-9 h-9 rounded-full flex items-center justify-center text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-all cursor-pointer"
+                 className="w-8 h-8 rounded-full flex items-center justify-center text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-all"
                >
-                 <X size={18} />
+                 <X size={16} />
                </button>
             </div>
 
             {/* Form Content */}
-            <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-6">
-               {/* Kick Drawer Option */}
-               <div>
-                  <button
-                    type="button"
-                    onClick={openDrawerBeforeCounting}
-                    disabled={isOpeningDrawer}
-                    className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-50 via-teal-50/50 to-emerald-50 border border-emerald-200/90 text-emerald-800 rounded-2xl flex items-center justify-center gap-2.5 font-bold text-xs hover:border-emerald-300 hover:shadow-md transition-all active:scale-[0.99] shadow-xs cursor-pointer disabled:opacity-50"
-                  >
-                    {isOpeningDrawer ? <XYLLoader mini /> : <Printer size={18} className="text-emerald-700" />}
-                    <span>{locale === 'en' ? 'Open Drawer to Count Cash' : 'เปิดลิ้นชักก่อนนับเงิน'}</span>
-                  </button>
-                  <p className="text-[10px] font-medium text-neutral-400 text-center mt-2">
-                    {locale === 'en' ? 'Click to trigger cash drawer kick before counting' : 'กดปุ่มนี้เพื่อทดสอบเปิดลิ้นชักและนับเงินสดก่อนกรอกยอด'}
-                  </p>
-               </div>
+            <form onSubmit={handleSubmit} className="p-6 space-y-5">
+               {/* Test Kick Drawer Option */}
+               <button
+                 type="button"
+                 onClick={openDrawerBeforeCounting}
+                 disabled={isOpeningDrawer}
+                 className="w-full py-2.5 px-3 bg-neutral-50 hover:bg-neutral-100 border border-neutral-200/60 text-neutral-700 rounded-xl flex items-center justify-center gap-2 font-bold text-xs transition-all disabled:opacity-50"
+               >
+                 {isOpeningDrawer ? <XYLLoader mini /> : <Printer size={15} className="text-neutral-500" />}
+                 <span>เปิดลิ้นชักทดสอบ</span>
+               </button>
 
                {/* Opening Cash Input */}
-               <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-wider text-neutral-400 block">
-                    {locale === 'en' ? 'Opening Cash Amount' : 'ระบุเงินสดเริ่มต้นในลิ้นชัก (Opening Cash)'}
+               <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-neutral-500 block">
+                    เงินสดเริ่มต้น
                   </label>
-                  <div className="bg-neutral-50/80 border-2 border-neutral-200/90 focus-within:border-[#1A1A18] focus-within:ring-4 focus-within:ring-[#1A1A18]/10 rounded-2xl p-4 sm:p-5 flex items-center transition-all shadow-inner">
-                    <div className="w-12 h-12 rounded-xl bg-[#1A1A18] text-white font-black flex items-center justify-center text-xl shadow-md shrink-0 mr-3.5">
-                      ฿
-                    </div>
+                  <div className="bg-neutral-50 border border-neutral-200 focus-within:border-neutral-900 focus-within:bg-white rounded-2xl px-4 py-3 flex items-center transition-all">
+                    <span className="text-lg font-bold text-neutral-400 mr-2">฿</span>
                     <input 
                       autoFocus
                       type="number" 
                       value={openingCash || ''} 
                       onChange={e => setOpeningCash(Number(e.target.value))}
-                      className="w-full bg-transparent text-3xl font-black outline-none text-[#1A1A18]"
+                      className="w-full bg-transparent text-2xl font-black outline-none text-neutral-900"
                       placeholder="0"
                       required
                     />
                   </div>
-                  <div className="bg-amber-50/90 border border-amber-200/80 rounded-2xl p-3.5 text-xs text-amber-800 font-medium leading-relaxed flex gap-2.5 items-start mt-2.5 shadow-xs">
-                    <span className="font-bold text-amber-600 text-sm shrink-0 leading-none mt-0.5">*</span>
-                    <span>กรุณาตรวจสอบเงินสดในลิ้นชักให้ถูกต้องก่อนเริ่มกะ เพื่อความแม่นยำของใบสรุปยอดปิดกะท้ายวัน</span>
-                  </div>
                </div>
 
-               {/* Main Action Button (Tactile 3D Depth) */}
+               {/* Main Action Button */}
                <button 
                  type="submit"
                  disabled={isSubmitting}
-                 className="w-full h-14 bg-[#1A1A18] hover:bg-black text-white rounded-2xl font-black text-sm flex items-center justify-center gap-3 transition-all transform active:scale-[0.98] shadow-lg shadow-black/20 hover:shadow-xl hover:shadow-black/30 border border-white/10 relative overflow-hidden group cursor-pointer disabled:opacity-50"
+                 className="w-full h-12 bg-neutral-900 hover:bg-black text-white rounded-2xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-sm active:scale-98 disabled:opacity-50"
                >
                  {isSubmitting ? (
                    <XYLLoader mini />
                  ) : (
                    <>
-                    <span className="relative z-10">{locale === 'en' ? 'Confirm and Open Drawer' : 'ยืนยันและเปิดลิ้นชัก'}</span>
-                    <ArrowRight size={18} className="relative z-10 group-hover:translate-x-1.5 transition-transform" />
-                    {/* Subtle shine effect */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                    <span>เปิดกะทำงาน</span>
+                    <ArrowRight size={16} />
                    </>
                  )}
                </button>
             </form>
-
-            <div className="px-6 pb-5 text-center flex items-center justify-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[10px] font-bold text-neutral-400">
-                XYLEM POS • ONLINE SYSTEM
-              </span>
-            </div>
           </motion.div>
         </div>
       )}
