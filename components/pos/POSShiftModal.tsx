@@ -53,10 +53,12 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
 
   React.useEffect(() => {
     if (isOpen) {
+      setEligibilityData(null)
       checkEligibility()
     } else {
       setShowBlockedModal(false)
       setShowLeaveModal(false)
+      setEligibilityData(null)
     }
   }, [isOpen])
 

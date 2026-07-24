@@ -42,33 +42,53 @@ async function handleCheckEligibility(req: NextRequest) {
         const localTodayStart = `${todayDateStr}T00:00:00+07:00`
         const localTodayEnd = `${todayDateStr}T23:59:59+07:00`
 
-        // 2. Resolve branch_code if branch_id is passed as UUID or code
+        // 2. Prepare parallel database queries
         const branchId = req.nextUrl.searchParams.get('branch_id') || req.nextUrl.searchParams.get('branchId') || req.nextUrl.searchParams.get('branch_code')
-        let targetBranchCode: string | null = null
+        
+        const branchPromise = branchId ? supabase
+            .from('branches')
+            .select('branch_code')
+            .eq('id', branchId)
+            .maybeSingle() : Promise.resolve({ data: null })
 
-        if (branchId) {
-            const { data: bData } = await supabase
-                .from('branches')
-                .select('branch_code')
-                .eq('id', branchId)
-                .maybeSingle()
-
-            if (bData?.branch_code) {
-                targetBranchCode = bData.branch_code
-            } else {
-                targetBranchCode = branchId
-            }
-        }
-
-        // 3. Fetch profiles safely using display_name and branch_code
-        const { data: allStaff, error: staffErr } = await supabase
+        const staffPromise = supabase
             .from('profiles')
             .select('id, display_name, email, role, staff_level, staff_type, department, is_active, is_pos_device, is_pos_account, work_days, rest_days, shift_start, shift_end, branch_code')
 
-        if (staffErr) {
-            console.error('Fetch staff error:', staffErr)
-            return NextResponse.json({ error: staffErr.message }, { status: 500 })
+        const leavePromise = supabase
+            .from('pos_staff_leave_overrides')
+            .select('profile_id')
+            .eq('date', todayDateStr)
+
+        const logsPromise = supabase
+            .from('attendance_logs')
+            .select('profile_id, type, timestamp')
+            .gte('timestamp', localTodayStart)
+            .lte('timestamp', localTodayEnd)
+
+        // 3. Execute all DB queries in parallel
+        const [bRes, staffRes, leaveRes, logsRes] = await Promise.all([
+            branchPromise,
+            staffPromise,
+            leavePromise,
+            logsPromise
+        ])
+
+        if (staffRes.error) {
+            console.error('Fetch staff error:', staffRes.error)
+            return NextResponse.json({ error: staffRes.error.message }, { status: 500 })
         }
+
+        let targetBranchCode: string | null = null
+        if (bRes?.data?.branch_code) {
+            targetBranchCode = bRes.data.branch_code
+        } else if (branchId) {
+            targetBranchCode = branchId
+        }
+
+        const allStaff = staffRes.data || []
+        const emergencyLeaveStaffIds = (leaveRes.data || []).map(l => l.profile_id)
+        const todayLogs = logsRes.data || []
 
         // Filter staff profiles (Strictly Cafe Staff: staff_type === 'cafe' or branch_code === '01')
         const realStaff = (allStaff || []).filter(s => {
@@ -113,37 +133,9 @@ async function handleCheckEligibility(req: NextRequest) {
             return normalizedDays.includes(todayDayOfWeek)
         })
 
-        // 4. Fetch emergency leave overrides for today
-        let emergencyLeaveStaffIds: string[] = []
-        try {
-            const { data: leaves } = await supabase
-                .from('pos_staff_leave_overrides')
-                .select('profile_id')
-                .eq('date', todayDateStr)
-            
-            if (leaves) {
-                emergencyLeaveStaffIds = leaves.map(l => l.profile_id)
-            }
-        } catch (e) {
-            // Table might not exist yet or empty
-        }
-
         // Exclude staff on emergency leave from required list for today
         const requiredStaffToday = scheduledStaff.filter(s => !emergencyLeaveStaffIds.includes(s.id))
         const emergencyLeaveStaff = scheduledStaff.filter(s => emergencyLeaveStaffIds.includes(s.id))
-
-        // 5. Fetch today's attendance logs
-        const { data: logs, error: logsErr } = await supabase
-            .from('attendance_logs')
-            .select('*')
-            .gte('timestamp', localTodayStart)
-            .lte('timestamp', localTodayEnd)
-
-        if (logsErr) {
-            console.error('Fetch logs error:', logsErr)
-        }
-
-        const todayLogs = logs || []
 
         // 6. Determine missing check-in staff
         const missingCheckInStaff: any[] = []
