@@ -327,6 +327,11 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
     }
   }
 
+  const validOrders = completedOrders.filter(o => o.status !== 'cancelled')
+  const takeawayCount = validOrders.filter(o => o.order_type !== 'dine_in' && o.order_type !== 'delivery').length
+  const dineInCount = validOrders.filter(o => o.order_type === 'dine_in').length
+  const deliveryCount = validOrders.filter(o => o.order_type === 'delivery').length
+
   return (
     <div className="flex h-full flex-col bg-white text-[#1A1A18] selection:bg-emerald-100">
 
@@ -335,10 +340,30 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
         {!loading && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
             <div className="bg-white rounded-2xl p-5 border border-black/5 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
-              <span className="text-[10px] font-black uppercase text-neutral-400 tracking-widest mb-2">{locale === 'en' ? 'Total Orders' : 'ออเดอร์ทั้งหมด'}</span>
-              <div className="flex items-end gap-2">
-                <span className="text-4xl font-black tracking-tighter text-[#1A1A18]">{completedOrders.length}</span>
-                <span className="text-[10px] font-bold text-neutral-400 mb-1.5">{locale === 'en' ? 'Orders' : 'รายการ'}</span>
+              <div className="flex justify-between items-start mb-2">
+                <span className="text-[10px] font-black uppercase text-neutral-400 tracking-widest">{locale === 'en' ? 'Total Orders' : 'ออเดอร์ทั้งหมด'}</span>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-3xl sm:text-4xl font-black tracking-tighter text-[#1A1A18]">{completedOrders.length}</span>
+                  <span className="text-[10px] font-bold text-neutral-400">{locale === 'en' ? 'Bills' : 'บิล'}</span>
+                </div>
+              </div>
+
+              {/* Order Breakdown Grid */}
+              <div className="grid grid-cols-3 gap-2 mt-2 pt-3 border-t border-neutral-100">
+                <div className="flex flex-col bg-neutral-50 px-2.5 py-1.5 rounded-xl border border-neutral-100/80">
+                  <span className="text-[9px] font-bold text-neutral-400 uppercase tracking-tight">{locale === 'en' ? 'Takeaway' : 'กลับบ้าน'}</span>
+                  <span className="text-xs sm:text-sm font-black text-neutral-800">{takeawayCount} <span className="text-[9px] font-normal text-neutral-400">บิล</span></span>
+                </div>
+
+                <div className="flex flex-col bg-neutral-50 px-2.5 py-1.5 rounded-xl border border-neutral-100/80">
+                  <span className="text-[9px] font-bold text-neutral-400 uppercase tracking-tight">{locale === 'en' ? 'Dine-in' : 'ทานที่ร้าน'}</span>
+                  <span className="text-xs sm:text-sm font-black text-neutral-800">{dineInCount} <span className="text-[9px] font-normal text-neutral-400">บิล</span></span>
+                </div>
+
+                <div className="flex flex-col bg-orange-50/60 px-2.5 py-1.5 rounded-xl border border-orange-100/60">
+                  <span className="text-[9px] font-bold text-orange-600/80 uppercase tracking-tight">{locale === 'en' ? 'Delivery' : 'เดลิเวอรี'}</span>
+                  <span className="text-xs sm:text-sm font-black text-orange-700">{deliveryCount} <span className="text-[9px] font-normal text-orange-400">บิล</span></span>
+                </div>
               </div>
             </div>
             
