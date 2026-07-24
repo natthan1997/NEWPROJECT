@@ -153,14 +153,14 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-neutral-900/50 backdrop-blur-md"
+            className="absolute inset-0 bg-neutral-900/60 backdrop-blur-md"
           />
 
           <motion.div
-            initial={{ opacity: 0, scale: 0.96, y: 15 }}
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: 15 }}
-            className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-neutral-200/80 font-sans"
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl shadow-black/20 overflow-hidden border border-neutral-200/90 font-sans"
           >
             {/* Attendance Gate Blocked Overlay */}
             <AnimatePresence>
@@ -169,28 +169,28 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 30 }}
-                  className="absolute inset-0 z-[60] bg-white flex flex-col justify-between p-6 sm:p-7 text-center"
+                  className="absolute inset-0 z-[60] bg-white/98 backdrop-blur-md flex flex-col justify-between p-6 sm:p-7 text-center"
                 >
                   <div className="space-y-5 flex-1 flex flex-col items-center justify-center">
-                    <div className="w-14 h-14 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center shadow-xs">
-                      <AlertTriangle size={28} />
+                    <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center shadow-md shadow-rose-500/10 ring-4 ring-rose-500/10">
+                      <AlertTriangle size={32} />
                     </div>
                     <div>
-                      <h3 className="text-base sm:text-lg font-black text-[#1A1A18] tracking-tight mb-1.5">
+                      <h3 className="text-lg font-black text-[#1A1A18] tracking-tight mb-1.5">
                         ไม่สามารถเปิดกะ POS ได้
                       </h3>
-                      <p className="text-xs font-bold text-rose-600 bg-rose-50/80 px-4 py-2.5 border border-rose-200/60 rounded-xl leading-relaxed">
-                        พนักงานที่มีตารางงานวันนี้ยังไม่ได้ลงเวลาเข้างานอีก {eligibilityData?.missingCheckInStaff?.length || 0} คน
+                      <p className="text-xs font-bold text-rose-700 bg-rose-50/90 px-4 py-3 border border-rose-200/80 rounded-2xl leading-relaxed shadow-xs">
+                        พนักงานที่มีตารางงานวันนี้ยังไม่ได้ลงเวลาเข้างานอีก <span className="underline font-black text-rose-800">{eligibilityData?.missingCheckInStaff?.length || 0} คน</span>
                       </p>
                     </div>
 
                     {/* Missing Staff List */}
-                    <div className="w-full bg-neutral-50/80 border border-neutral-200/60 rounded-2xl p-3.5 space-y-2.5 max-h-48 overflow-y-auto text-left">
+                    <div className="w-full bg-neutral-50 border border-neutral-200/80 rounded-2xl p-3.5 space-y-2.5 max-h-48 overflow-y-auto text-left shadow-inner">
                       <p className="text-[10px] font-black uppercase tracking-wider text-neutral-400">
                         รายชื่อพนักงานที่ยังไม่ลงเวลาเข้างาน:
                       </p>
                       {eligibilityData?.missingCheckInStaff?.map((staff: any) => (
-                        <div key={staff.id} className="flex justify-between items-center bg-white p-2.5 rounded-xl border border-neutral-200/70 shadow-xs">
+                        <div key={staff.id} className="flex justify-between items-center bg-white p-3 rounded-xl border border-neutral-200/80 shadow-xs hover:border-neutral-300 transition-all">
                           <span className="text-xs font-black text-[#1A1A18]">• {staff.display_name || staff.full_name || staff.email}</span>
                           <button
                             type="button"
@@ -198,7 +198,7 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
                               setSelectedStaffForLeave(staff.id);
                               setShowLeaveModal(true);
                             }}
-                            className="text-[10px] font-bold bg-amber-500 text-white px-3 py-1 rounded-lg hover:bg-amber-600 transition-colors shadow-xs"
+                            className="text-[10px] font-bold bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-xl transition-all shadow-md shadow-amber-500/20 active:scale-95 cursor-pointer"
                           >
                             แจ้งลากะทันหัน
                           </button>
@@ -207,17 +207,17 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
                     </div>
                   </div>
 
-                  <div className="flex flex-col w-full gap-2 pt-4 border-t border-neutral-100">
+                  <div className="flex flex-col w-full gap-2.5 pt-4 border-t border-neutral-100">
                     <button 
                       onClick={() => checkEligibility()}
                       disabled={checkingEligibility}
-                      className="w-full h-11 bg-[#1A1A18] text-white font-bold rounded-xl text-xs hover:bg-black transition-all flex items-center justify-center gap-2 active:scale-98 shadow-sm"
+                      className="w-full h-12 bg-[#1A1A18] hover:bg-black text-white font-bold rounded-2xl text-xs transition-all flex items-center justify-center gap-2 active:scale-[0.98] shadow-lg shadow-black/15 cursor-pointer"
                     >
                       {checkingEligibility ? <XYLLoader mini /> : '🔄 ตรวจสอบการลงเวลาอีกครั้ง'}
                     </button>
                     <button 
                       onClick={() => setShowBlockedModal(false)}
-                      className="w-full h-9 bg-neutral-100 text-neutral-500 font-bold rounded-xl text-xs hover:bg-neutral-200 transition-all"
+                      className="w-full h-10 bg-neutral-100 text-neutral-600 font-bold rounded-xl text-xs hover:bg-neutral-200 transition-all active:scale-[0.98] cursor-pointer"
                     >
                       ปิดหน้านี้
                     </button>
@@ -236,8 +236,8 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
                   className="absolute inset-0 z-[70] bg-white flex flex-col justify-between p-6 sm:p-7 text-center"
                 >
                   <div className="space-y-5 flex-1 flex flex-col items-center justify-center">
-                    <div className="w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center shadow-xs">
-                      <AlertTriangle size={28} />
+                    <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center shadow-md shadow-amber-500/10 ring-4 ring-amber-500/10">
+                      <AlertTriangle size={32} />
                     </div>
                     <div>
                       <h3 className="text-base font-black text-[#1A1A18] tracking-tight mb-1">
@@ -254,23 +254,23 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
                         type="text"
                         value={leaveReason}
                         onChange={(e) => setLeaveReason(e.target.value)}
-                        className="w-full bg-neutral-50 border border-neutral-200/80 rounded-xl p-3 text-xs font-bold text-[#1A1A18] outline-none focus:ring-2 focus:ring-[#1A1A18] transition-all"
+                        className="w-full bg-neutral-50 border-2 border-neutral-200/90 focus:border-[#1A1A18] focus:ring-4 focus:ring-[#1A1A18]/10 rounded-2xl p-3.5 text-xs font-bold text-[#1A1A18] outline-none transition-all shadow-inner"
                         placeholder="ระบุเหตุผล เช่น ลาป่วย / ลากิจกะทันหัน"
                       />
                     </div>
                   </div>
 
-                  <div className="flex flex-col w-full gap-2 pt-4 border-t border-neutral-100">
+                  <div className="flex flex-col w-full gap-2.5 pt-4 border-t border-neutral-100">
                     <button 
                       onClick={() => handleGrantEmergencyLeave(selectedStaffForLeave)}
                       disabled={isSubmittingLeave}
-                      className="w-full h-11 bg-amber-500 text-white font-bold rounded-xl text-xs hover:bg-amber-600 transition-all flex items-center justify-center gap-2 shadow-xs"
+                      className="w-full h-12 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-2xl text-xs transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-500/25 active:scale-[0.98] cursor-pointer"
                     >
                       {isSubmittingLeave ? <XYLLoader mini /> : 'ยืนยันการแจ้งลากะทันหัน'}
                     </button>
                     <button 
                       onClick={() => setShowLeaveModal(false)}
-                      className="w-full h-9 bg-neutral-100 text-neutral-500 font-bold rounded-xl text-xs hover:bg-neutral-200 transition-all"
+                      className="w-full h-10 bg-neutral-100 text-neutral-600 font-bold rounded-xl text-xs hover:bg-neutral-200 transition-all cursor-pointer"
                     >
                       ยกเลิก
                     </button>
@@ -288,7 +288,7 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
                   exit={{ opacity: 0, x: -50 }}
                   className="absolute inset-0 z-50 bg-white flex flex-col items-center justify-center p-8 text-center space-y-6"
                 >
-                  <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-2xl flex items-center justify-center shadow-xs">
+                  <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center shadow-md shadow-amber-500/10 ring-4 ring-amber-500/10">
                     <AlertTriangle size={32} />
                   </div>
                   <div>
@@ -299,13 +299,13 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
                     <button 
                       onClick={handleConfirmedOpen}
                       disabled={isSubmitting}
-                      className="w-full h-12 bg-[#1A1A18] text-white font-black text-xs rounded-2xl hover:bg-black transition-all flex items-center justify-center gap-2 active:scale-98 shadow-md"
+                      className="w-full h-12 bg-[#1A1A18] hover:bg-black text-white font-black text-xs rounded-2xl transition-all flex items-center justify-center gap-2 active:scale-[0.98] shadow-lg shadow-black/20 cursor-pointer"
                     >
                       {isSubmitting ? <XYLLoader mini /> : 'ยืนยันและเปิดลิ้นชัก'}
                     </button>
                     <button 
                       onClick={() => setShowConfirm(false)}
-                      className="w-full h-10 bg-neutral-100 text-neutral-600 font-bold rounded-xl text-xs hover:bg-neutral-200 transition-all"
+                      className="w-full h-10 bg-neutral-100 text-neutral-600 font-bold rounded-xl text-xs hover:bg-neutral-200 transition-all cursor-pointer"
                     >
                       ย้อนกลับไปแก้ไข
                     </button>
@@ -317,21 +317,21 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
             {/* Header Area */}
             <div className="p-5 sm:p-6 border-b border-neutral-100 flex items-center justify-between bg-white">
                <div className="flex items-center gap-3.5">
-                  <div className="w-11 h-11 bg-[#1A1A18] text-white rounded-2xl flex items-center justify-center shadow-md">
-                    <Wallet size={20} />
+                  <div className="w-12 h-12 bg-gradient-to-br from-[#2B2B28] to-[#141412] text-white rounded-2xl flex items-center justify-center shadow-md shadow-black/15">
+                    <Wallet size={22} />
                   </div>
                   <div>
-                    <h2 className="text-base font-black text-[#1A1A18] tracking-tight">
+                    <h2 className="text-base sm:text-lg font-black text-[#1A1A18] tracking-tight">
                       {locale === 'en' ? 'Open New Shift' : 'เปิดกะทำงานใหม่'}
                     </h2>
-                    <p className="text-[11px] font-bold text-neutral-400 mt-0.5">
+                    <p className="text-xs font-bold text-neutral-400 mt-0.5">
                       {locale === 'en' ? 'Confirm starting cash' : 'ระบุเงินสดเริ่มต้นเพื่อเปิดกะ POS'}
                     </p>
                   </div>
                </div>
                <button 
                  onClick={onClose}
-                 className="w-9 h-9 rounded-full flex items-center justify-center text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-all"
+                 className="w-9 h-9 rounded-full flex items-center justify-center text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-all cursor-pointer"
                >
                  <X size={18} />
                </button>
@@ -345,9 +345,9 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
                     type="button"
                     onClick={openDrawerBeforeCounting}
                     disabled={isOpeningDrawer}
-                    className="w-full py-3 px-4 bg-emerald-50/80 border border-emerald-200/80 text-emerald-800 rounded-2xl flex items-center justify-center gap-2.5 font-bold text-xs hover:bg-emerald-100 transition-all disabled:opacity-50 shadow-xs"
+                    className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-50 via-teal-50/50 to-emerald-50 border border-emerald-200/90 text-emerald-800 rounded-2xl flex items-center justify-center gap-2.5 font-bold text-xs hover:border-emerald-300 hover:shadow-md transition-all active:scale-[0.99] shadow-xs cursor-pointer disabled:opacity-50"
                   >
-                    {isOpeningDrawer ? <XYLLoader mini /> : <Printer size={16} />}
+                    {isOpeningDrawer ? <XYLLoader mini /> : <Printer size={18} className="text-emerald-700" />}
                     <span>{locale === 'en' ? 'Open Drawer to Count Cash' : 'เปิดลิ้นชักก่อนนับเงิน'}</span>
                   </button>
                   <p className="text-[10px] font-medium text-neutral-400 text-center mt-2">
@@ -360,43 +360,49 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
                   <label className="text-[10px] font-black uppercase tracking-wider text-neutral-400 block">
                     {locale === 'en' ? 'Opening Cash Amount' : 'ระบุเงินสดเริ่มต้นในลิ้นชัก (Opening Cash)'}
                   </label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-bold text-neutral-400">฿</span>
+                  <div className="bg-neutral-50/80 border-2 border-neutral-200/90 focus-within:border-[#1A1A18] focus-within:ring-4 focus-within:ring-[#1A1A18]/10 rounded-2xl p-4 sm:p-5 flex items-center transition-all shadow-inner">
+                    <div className="w-12 h-12 rounded-xl bg-[#1A1A18] text-white font-black flex items-center justify-center text-xl shadow-md shrink-0 mr-3.5">
+                      ฿
+                    </div>
                     <input 
                       autoFocus
                       type="number" 
                       value={openingCash || ''} 
                       onChange={e => setOpeningCash(Number(e.target.value))}
-                      className="w-full bg-[#FAF9F5] border border-neutral-200/80 rounded-2xl py-4 pl-10 pr-4 text-2xl sm:text-3xl font-black outline-none focus:ring-2 focus:ring-[#1A1A18] focus:border-[#1A1A18] transition-all text-[#1A1A18]"
+                      className="w-full bg-transparent text-3xl font-black outline-none text-[#1A1A18]"
                       placeholder="0"
                       required
                     />
                   </div>
-                  <div className="bg-amber-50/80 border border-amber-200/60 rounded-2xl p-3.5 text-xs text-amber-800 font-medium leading-relaxed flex gap-2 items-start mt-2">
-                    <span className="font-bold text-amber-600 shrink-0">*</span>
-                    <span>กรุณาตรวจสอบเงินในลิ้นชักให้ถูกต้องก่อนเริ่มกะทำงาน เพื่อความแม่นยำของใบสรุปยอดปิดกะท้ายวัน</span>
+                  <div className="bg-amber-50/90 border border-amber-200/80 rounded-2xl p-3.5 text-xs text-amber-800 font-medium leading-relaxed flex gap-2.5 items-start mt-2.5 shadow-xs">
+                    <span className="font-bold text-amber-600 text-sm shrink-0 leading-none mt-0.5">*</span>
+                    <span>กรุณาตรวจสอบเงินสดในลิ้นชักให้ถูกต้องก่อนเริ่มกะ เพื่อความแม่นยำของใบสรุปยอดปิดกะท้ายวัน</span>
                   </div>
                </div>
 
+               {/* Main Action Button (Tactile 3D Depth) */}
                <button 
                  type="submit"
                  disabled={isSubmitting}
-                 className="w-full h-13 bg-[#1A1A18] text-white rounded-2xl font-black text-xs sm:text-sm hover:bg-black transition-all flex items-center justify-center gap-3 active:scale-98 shadow-md disabled:opacity-50"
+                 className="w-full h-14 bg-[#1A1A18] hover:bg-black text-white rounded-2xl font-black text-sm flex items-center justify-center gap-3 transition-all transform active:scale-[0.98] shadow-lg shadow-black/20 hover:shadow-xl hover:shadow-black/30 border border-white/10 relative overflow-hidden group cursor-pointer disabled:opacity-50"
                >
                  {isSubmitting ? (
                    <XYLLoader mini />
                  ) : (
                    <>
-                    <span>{locale === 'en' ? 'Confirm and Open Drawer' : 'ยืนยันและเปิดลิ้นชัก'}</span>
-                    <ArrowRight size={18} />
+                    <span className="relative z-10">{locale === 'en' ? 'Confirm and Open Drawer' : 'ยืนยันและเปิดลิ้นชัก'}</span>
+                    <ArrowRight size={18} className="relative z-10 group-hover:translate-x-1.5 transition-transform" />
+                    {/* Subtle shine effect */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
                    </>
                  )}
                </button>
             </form>
 
-            <div className="px-6 pb-5 text-center">
-              <span className="text-[10px] font-bold text-neutral-300">
-                XYLEM POS • V1.0.32
+            <div className="px-6 pb-5 text-center flex items-center justify-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[10px] font-bold text-neutral-400">
+                XYLEM POS • ONLINE SYSTEM
               </span>
             </div>
           </motion.div>
