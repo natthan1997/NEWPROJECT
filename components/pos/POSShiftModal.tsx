@@ -19,7 +19,6 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [isOpeningDrawer, setIsOpeningDrawer] = useState(false)
-  const [showNumpad, setShowNumpad] = useState(false)
 
   // Shift Attendance Gating States
   const [checkingEligibility, setCheckingEligibility] = useState(false)
@@ -29,22 +28,6 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
   const [selectedStaffForLeave, setSelectedStaffForLeave] = useState<string>('')
   const [leaveReason, setLeaveReason] = useState<string>('แจ้งลาป่วย/ลากะทันหัน')
   const [isSubmittingLeave, setIsSubmittingLeave] = useState(false)
-
-  const handleNumpadPress = (val: string) => {
-    if (val === 'C') {
-      setOpeningCash(0)
-    } else if (val === 'DEL') {
-      const str = String(openingCash)
-      if (str.length <= 1) {
-        setOpeningCash(0)
-      } else {
-        setOpeningCash(Number(str.slice(0, -1)))
-      }
-    } else {
-      const str = openingCash === 0 ? val : String(openingCash) + val
-      setOpeningCash(Number(str))
-    }
-  }
 
   const checkEligibility = async (): Promise<boolean> => {
     setCheckingEligibility(true)
@@ -71,11 +54,9 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
   React.useEffect(() => {
     if (isOpen) {
       checkEligibility()
-      setShowNumpad(false)
     } else {
       setShowBlockedModal(false)
       setShowLeaveModal(false)
-      setShowNumpad(false)
     }
   }, [isOpen])
 
@@ -360,93 +341,40 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
                  <span>เปิดลิ้นชักทดสอบ</span>
                </button>
 
-               {/* Opening Cash Input Container */}
+               {/* Opening Cash Input (Pure Native Device Numpad Integration) */}
                <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs font-bold text-neutral-500">
                     <span>เงินสดเริ่มต้น</span>
-                    {showNumpad && (
+                    {openingCash > 0 && (
                       <button 
                         type="button" 
-                        onClick={() => setShowNumpad(false)}
-                        className="text-[11px] text-neutral-700 hover:text-black font-bold flex items-center gap-1"
+                        onClick={() => setOpeningCash(0)}
+                        className="text-[11px] text-rose-500 hover:text-rose-600 font-bold"
                       >
-                        เสร็จสิ้น ✕
+                        ล้างค่า
                       </button>
                     )}
                   </div>
 
-                  <div 
-                    onClick={() => setShowNumpad(true)}
-                    className={`bg-neutral-50 border rounded-2xl px-4 py-3 flex items-center justify-between transition-all cursor-pointer ${
-                      showNumpad ? 'border-neutral-900 bg-white ring-2 ring-neutral-900/10' : 'border-neutral-200 hover:border-neutral-300'
-                    }`}
-                  >
-                    <div className="flex items-center w-full">
-                      <span className="text-xl font-extrabold text-neutral-400 mr-2 select-none">฿</span>
-                      <input 
-                        type="text"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        value={openingCash || ''} 
-                        onFocus={() => setShowNumpad(true)}
-                        onChange={e => {
-                          const val = e.target.value.replace(/[^0-9]/g, '')
-                          setOpeningCash(val ? Number(val) : 0)
-                        }}
-                        style={{ outline: 'none', WebkitAppearance: 'none', boxShadow: 'none' }}
-                        className="w-full bg-transparent text-2xl font-black text-neutral-900 border-none outline-none ring-0 shadow-none"
-                        placeholder="0"
-                        required
-                      />
-                    </div>
+                  <div className="bg-neutral-50 border border-neutral-200 focus-within:border-neutral-900 focus-within:bg-white rounded-2xl px-4 py-3 flex items-center transition-all">
+                    <span className="text-xl font-extrabold text-neutral-400 mr-2 select-none">฿</span>
+                    <input 
+                      autoFocus
+                      type="tel"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={openingCash || ''} 
+                      onChange={e => {
+                        const val = e.target.value.replace(/[^0-9]/g, '')
+                        setOpeningCash(val ? Number(val) : 0)
+                      }}
+                      style={{ outline: 'none', WebkitAppearance: 'none', boxShadow: 'none', border: 'none' }}
+                      className="w-full bg-transparent text-3xl font-black text-neutral-900 outline-none border-none ring-0 shadow-none focus:outline-none focus:ring-0 focus:border-none"
+                      placeholder="0"
+                      required
+                    />
                   </div>
                </div>
-
-               {/* Slide-Up Expandable Touch Numpad Grid (Only shown when user taps cash input!) */}
-               <AnimatePresence>
-                 {showNumpad && (
-                   <motion.div
-                     initial={{ opacity: 0, height: 0 }}
-                     animate={{ opacity: 1, height: 'auto' }}
-                     exit={{ opacity: 0, height: 0 }}
-                     className="space-y-2 overflow-hidden pt-1"
-                   >
-                     {/* Quick Cash Presets */}
-                     <div className="grid grid-cols-3 gap-2">
-                       {[500, 1000, 2000].map((amt) => (
-                         <button
-                           key={amt}
-                           type="button"
-                           onClick={() => setOpeningCash(amt)}
-                           className="py-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-bold text-xs rounded-xl transition-all active:scale-95"
-                         >
-                           ฿{amt.toLocaleString()}
-                         </button>
-                       ))}
-                     </div>
-
-                     {/* Touch Numpad Buttons */}
-                     <div className="grid grid-cols-3 gap-1.5">
-                       {['1','2','3','4','5','6','7','8','9','C','0','DEL'].map((btn) => (
-                         <button
-                           key={btn}
-                           type="button"
-                           onClick={() => handleNumpadPress(btn)}
-                           className={`h-11 rounded-xl font-black text-sm transition-all flex items-center justify-center active:scale-95 ${
-                             btn === 'C' 
-                               ? 'bg-rose-50 text-rose-600 hover:bg-rose-100' 
-                               : btn === 'DEL' 
-                               ? 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200' 
-                               : 'bg-neutral-100/80 hover:bg-neutral-200/80 text-neutral-900'
-                           }`}
-                         >
-                           {btn === 'DEL' ? '⌫' : btn}
-                         </button>
-                       ))}
-                     </div>
-                   </motion.div>
-                 )}
-               </AnimatePresence>
 
                {/* Main Action Button */}
                <button 
