@@ -14,7 +14,7 @@ interface POSShiftModalProps {
 }
 
 export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettings }: POSShiftModalProps) {
-    const { locale } = useI18n();
+  const { locale } = useI18n();
   const [openingCash, setOpeningCash] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -28,6 +28,22 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
   const [selectedStaffForLeave, setSelectedStaffForLeave] = useState<string>('')
   const [leaveReason, setLeaveReason] = useState<string>('แจ้งลาป่วย/ลากะทันหัน')
   const [isSubmittingLeave, setIsSubmittingLeave] = useState(false)
+
+  const handleNumpadPress = (val: string) => {
+    if (val === 'C') {
+      setOpeningCash(0)
+    } else if (val === 'DEL') {
+      const str = String(openingCash)
+      if (str.length <= 1) {
+        setOpeningCash(0)
+      } else {
+        setOpeningCash(Number(str.slice(0, -1)))
+      }
+    } else {
+      const str = openingCash === 0 ? val : String(openingCash) + val
+      setOpeningCash(Number(str))
+    }
+  }
 
   const checkEligibility = async (): Promise<boolean> => {
     setCheckingEligibility(true)
@@ -146,7 +162,7 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
   return (
     <AnimatePresence mode="wait">
       {isOpen && (
-        <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center p-3 sm:p-4">
           {/* Backdrop */}
           <motion.div 
             initial={{ opacity: 0 }}
@@ -311,7 +327,7 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
             </AnimatePresence>
 
             {/* Clean Modal Header */}
-            <div className="px-6 py-4 border-b border-neutral-100 flex items-center justify-between bg-white">
+            <div className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between bg-white">
                <div className="flex items-center gap-3">
                   <div className="w-9 h-9 bg-neutral-900 text-white rounded-xl flex items-center justify-center">
                     <Wallet size={18} />
@@ -329,7 +345,7 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
             </div>
 
             {/* Form Content */}
-            <form onSubmit={handleSubmit} className="p-6 space-y-5">
+            <form onSubmit={handleSubmit} className="p-5 space-y-4">
                {/* Test Kick Drawer Option */}
                <button
                  type="button"
@@ -341,30 +357,80 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
                  <span>เปิดลิ้นชักทดสอบ</span>
                </button>
 
-               {/* Opening Cash Input */}
+               {/* Opening Cash Input (Zero Browser Ring Border) */}
                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-neutral-500 block">
-                    เงินสดเริ่มต้น
-                  </label>
+                  <div className="flex items-center justify-between text-xs font-bold text-neutral-500">
+                    <span>เงินสดเริ่มต้น</span>
+                    {openingCash > 0 && (
+                      <button 
+                        type="button" 
+                        onClick={() => setOpeningCash(0)}
+                        className="text-[11px] text-rose-500 hover:text-rose-600 font-bold"
+                      >
+                        ล้างค่า
+                      </button>
+                    )}
+                  </div>
+
                   <div className="bg-neutral-50 border border-neutral-200 focus-within:border-neutral-900 focus-within:bg-white rounded-2xl px-4 py-3 flex items-center transition-all">
-                    <span className="text-lg font-bold text-neutral-400 mr-2">฿</span>
+                    <span className="text-xl font-extrabold text-neutral-400 mr-2 select-none">฿</span>
                     <input 
                       autoFocus
-                      type="number" 
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       value={openingCash || ''} 
-                      onChange={e => setOpeningCash(Number(e.target.value))}
-                      className="w-full bg-transparent text-2xl font-black outline-none text-neutral-900"
+                      onChange={e => {
+                        const val = e.target.value.replace(/[^0-9]/g, '')
+                        setOpeningCash(val ? Number(val) : 0)
+                      }}
+                      style={{ outline: 'none', WebkitAppearance: 'none', boxShadow: 'none' }}
+                      className="w-full bg-transparent text-3xl font-black text-neutral-900 outline-none border-none ring-0 focus:outline-none focus:ring-0 focus:border-none shadow-none"
                       placeholder="0"
                       required
                     />
                   </div>
                </div>
 
+               {/* Quick Cash Presets */}
+               <div className="grid grid-cols-3 gap-2">
+                 {[500, 1000, 2000].map((amt) => (
+                   <button
+                     key={amt}
+                     type="button"
+                     onClick={() => setOpeningCash(amt)}
+                     className="py-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-bold text-xs rounded-xl transition-all"
+                   >
+                     ฿{amt.toLocaleString()}
+                   </button>
+                 ))}
+               </div>
+
+               {/* Built-in On-Screen Numpad Grid */}
+               <div className="grid grid-cols-3 gap-1.5 pt-1">
+                 {['1','2','3','4','5','6','7','8','9','C','0','DEL'].map((btn) => (
+                   <button
+                     key={btn}
+                     type="button"
+                     onClick={() => handleNumpadPress(btn)}
+                     className={`h-11 rounded-xl font-black text-sm transition-all flex items-center justify-center active:scale-95 ${
+                       btn === 'C' 
+                         ? 'bg-rose-50 text-rose-600 hover:bg-rose-100' 
+                         : btn === 'DEL' 
+                         ? 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200' 
+                         : 'bg-neutral-100/80 hover:bg-neutral-200/80 text-neutral-900'
+                     }`}
+                   >
+                     {btn === 'DEL' ? '⌫' : btn}
+                   </button>
+                 ))}
+               </div>
+
                {/* Main Action Button */}
                <button 
                  type="submit"
                  disabled={isSubmitting}
-                 className="w-full h-12 bg-neutral-900 hover:bg-black text-white rounded-2xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-sm active:scale-98 disabled:opacity-50"
+                 className="w-full h-12 bg-neutral-900 hover:bg-black text-white rounded-2xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-sm active:scale-98 disabled:opacity-50 mt-2"
                >
                  {isSubmitting ? (
                    <XYLLoader mini />
