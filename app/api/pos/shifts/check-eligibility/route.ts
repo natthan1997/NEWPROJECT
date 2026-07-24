@@ -42,7 +42,7 @@ async function handleCheckEligibility(req: NextRequest) {
         // Optional branch filter from query params
         const branchId = req.nextUrl.searchParams.get('branch_id') || req.nextUrl.searchParams.get('branchId') || req.nextUrl.searchParams.get('branch_code')
 
-        // 2. Fetch profiles safely using branch_code (or select all and filter)
+        // 2. Fetch profiles safely using branch_code
         const { data: allStaff, error: staffErr } = await supabase
             .from('profiles')
             .select('id, display_name, email, role, staff_level, staff_type, department, is_active, is_pos_device, is_pos_account, work_days, shift_start, shift_end, branch_code')
@@ -52,7 +52,7 @@ async function handleCheckEligibility(req: NextRequest) {
             return NextResponse.json({ error: staffErr.message }, { status: 500 })
         }
 
-        // Filter staff profiles (excluding customers, inactive accounts, and POS device accounts)
+        // Filter staff profiles (EXCLUSIVELY Cafe Staff: staff_type === 'cafe')
         const realStaff = (allStaff || []).filter(s => {
             if (s.is_pos_device || s.is_pos_account) return false
             if (s.is_active === false) return false
@@ -60,9 +60,10 @@ async function handleCheckEligibility(req: NextRequest) {
             const r = (s.role || '').toLowerCase()
             if (r === 'customer') return false
 
+            // Strictly filter for Cafe staff only (staff_type === 'cafe')
             const st = (s.staff_type || '').toLowerCase()
-            const isStaff = r === 'staff' || r === 'admin' || st.length > 0
-            if (!isStaff) return false
+            const isCafeStaff = st === 'cafe'
+            if (!isCafeStaff) return false
 
             // Branch filter if profile has branch_code set
             if (branchId && s.branch_code && s.branch_code !== branchId) {
