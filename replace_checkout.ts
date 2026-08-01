@@ -70,14 +70,95 @@ const replacement = `const payload: any = {
       try {
         const movementsToInsert: any[] = []
         for (const item of cart) {
+          const selectedMods = item.selected_modifiers || []
+          
+          // Phase 1: Context Extraction from selected modifiers
+          let sweetnessRatio = 1.0
+          let activeRoastIngredientId: string | null = null
+          const substitutionsMap = new Map<string, { newIngredientId: string, name: string }>()
+
+          selectedMods.forEach((mod: any) => {
+            // Sweetness ratio extraction
+            if (mod.sweetness_multiplier !== undefined && mod.sweetness_multiplier !== null) {
+              sweetnessRatio = Number(mod.sweetness_multiplier)
+            } else if (mod.name) {
+              if (mod.name.includes('0%')) sweetnessRatio = 0.0
+              else if (mod.name.includes('25%')) sweetnessRatio = 0.25
+              else if (mod.name.includes('50%')) sweetnessRatio = 0.50
+              else if (mod.name.includes('125%')) sweetnessRatio = 1.25
+            }
+
+            // Recipe ingredients inside modifier
+            const modRecipes = mod.recipe_data || []
+            modRecipes.forEach((ing: any) => {
+              // Active roast bean extraction
+              if (mod.name && (mod.name.includes('คั่ว') || mod.name.includes('Roast')) && ing.ingredient_id) {
+                activeRoastIngredientId = ing.ingredient_id
+              }
+              // Substitution mapping
+              if (ing.is_substitution || mod.is_substitution || (mod.name && (mod.name.includes('Almond') || mod.name.includes('Oat') || mod.name.includes('อัลมอนด์')))) {
+                const targetName = ing.substitute_target_name || 'นมสด'
+                substitutionsMap.set(targetName, { newIngredientId: ing.ingredient_id, name: ing.name })
+              }
+            })
+          })
+
+          // Phase 2: Base Menu Recipe Deduction
+          let reducedSweetenerVolume = 0
+          let baseLiquidIngIndex = -1
+          const baseIngredientsToDeduct: { ingredient_id: string, quantity: number, factor: number }[] = []
+
           if (item.recipe_data && Array.isArray(item.recipe_data)) {
-            for (const ing of item.recipe_data) {
-              if (ing.order_types && Array.isArray(ing.order_types) && !ing.order_types.includes(orderType)) continue;
-              const usage = Number(ing.quantity || 0) * Number(ing.factor || 1) * Number(item.quantity)
-              if (ing.ingredient_id && usage > 0) {
-                const { data: invItem } = await supabase.from('inventory_items').select('stock_quantity').eq('id', ing.ingredient_id).maybeSingle()
+            item.recipe_data.forEach((ing: any, idx: number) => {
+              if (ing.order_types && Array.isArray(ing.order_types) && !ing.order_types.includes(orderType)) return;
+
+              let baseQty = Number(ing.quantity || 0)
+              const factor = Number(ing.factor || 1)
+
+              const isSweetener = ing.is_sweetener || (ing.name && (ing.name.includes('น้ำเชื่อม') || ing.name.includes('นมข้น') || ing.name.includes('ไซรัป') || ing.name.includes('Syrup')))
+              const isBaseLiquid = ing.is_base_liquid || (ing.name && (ing.name.includes('ชา') || ing.name.includes('กาแฟ') || ing.name.includes('Coffee') || ing.name.includes('Tea')))
+
+              if (isSweetener) {
+                const scaledQty = baseQty * sweetnessRatio
+                reducedSweetenerVolume += (baseQty - scaledQty) * factor
+                baseQty = scaledQty
+              } else if (isBaseLiquid && baseLiquidIngIndex === -1) {
+                baseLiquidIngIndex = idx
+              }
+
+              // Check if substituted by modifier (e.g. Milk -> Almond Milk)
+              let targetId = ing.ingredient_id
+              substitutionsMap.forEach((sub, key) => {
+                if (ing.name && ing.name.includes(key)) {
+                  targetId = sub.newIngredientId
+                }
+              })
+
+              if (targetId && baseQty > 0) {
+                baseIngredientsToDeduct.push({ ingredient_id: targetId, quantity: baseQty, factor })
+              }
+            })
+
+            // Apply base liquid compensation if sweetener volume was reduced
+            if (reducedSweetenerVolume > 0 && baseLiquidIngIndex !== -1 && item.recipe_data[baseLiquidIngIndex]) {
+              const baseIng = item.recipe_data[baseLiquidIngIndex]
+              const baseFactor = Number(baseIng.factor || 1)
+              const topUpQty = reducedSweetenerVolume / (baseFactor || 1)
+              
+              const existingDeduct = baseIngredientsToDeduct.find(b => b.ingredient_id === baseIng.ingredient_id)
+              if (existingDeduct) {
+                existingDeduct.quantity += topUpQty
+              }
+            }
+
+            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+            for (const bIng of baseIngredientsToDeduct) {
+              const usage = bIng.quantity * bIng.factor * Number(item.quantity)
+              if (bIng.ingredient_id && uuidRegex.test(bIng.ingredient_id) && usage > 0) {
+                const { data: invItem } = await supabase.from('inventory_items').select('stock_quantity').eq('id', bIng.ingredient_id).maybeSingle()
                 movementsToInsert.push({
-                  item_id: ing.ingredient_id,
+                  item_id: bIng.ingredient_id,
                   change_amount: -usage,
                   new_quantity: invItem ? Number(invItem.stock_quantity) : 0,
                   reason: 'sale'
@@ -85,16 +166,28 @@ const replacement = `const payload: any = {
               }
             }
           }
+
+          // Phase 3: Extra Modifier Recipe Deduction
           if (item.selected_modifiers && Array.isArray(item.selected_modifiers)) {
             for (const mod of item.selected_modifiers) {
               if (mod.recipe_data && Array.isArray(mod.recipe_data)) {
                 for (const ing of mod.recipe_data) {
                   if (ing.order_types && Array.isArray(ing.order_types) && !ing.order_types.includes(orderType)) continue;
+                  
+                  // Skip if it was already processed as a substitution in Phase 2
+                  if (ing.is_substitution) continue;
+
+                  let targetIngId = ing.ingredient_id
+                  // Contextual roast inheritance for extra shot
+                  if ((ing.is_contextual_roast || (mod.name && mod.name.includes('Shot'))) && activeRoastIngredientId) {
+                    targetIngId = activeRoastIngredientId
+                  }
+
                   const usage = Number(ing.quantity || 0) * Number(ing.factor || 1) * Number(item.quantity)
-                  if (ing.ingredient_id && usage > 0) {
-                    const { data: invItem } = await supabase.from('inventory_items').select('stock_quantity').eq('id', ing.ingredient_id).maybeSingle()
+                  if (targetIngId && uuidRegex.test(targetIngId) && usage > 0) {
+                    const { data: invItem } = await supabase.from('inventory_items').select('stock_quantity').eq('id', targetIngId).maybeSingle()
                     movementsToInsert.push({
-                      item_id: ing.ingredient_id,
+                      item_id: targetIngId,
                       change_amount: -usage,
                       new_quantity: invItem ? Number(invItem.stock_quantity) : 0,
                       reason: 'sale'
@@ -106,7 +199,8 @@ const replacement = `const payload: any = {
           }
         }
         if (movementsToInsert.length > 0) {
-          payload.movements = movementsToInsert;
+          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          payload.movements = movementsToInsert.filter(m => m.item_id && uuidRegex.test(m.item_id));
         }
       } catch (movErr) {
         console.error('Failed to prepare inventory movements:', movErr)

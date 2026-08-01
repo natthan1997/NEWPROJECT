@@ -480,7 +480,7 @@ export default function POSDrawerManager({
         }
       }
       
-      if (receiptPrinters.length > 0) {
+      // Always generate Z-report stats for LINE notify
         const orderTypeGroups = new Map<string, { label: string; count: number }>()
         const txGroups = new Map<string, { label: string; amount: number }>()
         const paymentSummary = { cash: 0, transfer: 0, card: 0, other: 0 }
@@ -585,12 +585,22 @@ export default function POSDrawerManager({
           branch: shopSettings?.branch_name
         }
         try {
-          for (const rp of receiptPrinters) {
-             if (!rp.ip) continue;
-             await printGraphicModeZReport(rp.ip, reportData, printShopData, rp.model, rp.encoding)
+          if (receiptPrinters.length > 0) {
+            for (const rp of receiptPrinters) {
+               if (!rp.ip) continue;
+               await printGraphicModeZReport(rp.ip, reportData, printShopData, rp.model, rp.encoding)
+            }
           }
         } catch (e) { console.error(e) }
-      }
+
+        // LINE Notification for Z-Report
+        try {
+          await fetch('/api/line/notify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'z_report', reportData })
+          })
+        } catch (e) { console.error('Failed to send LINE notify for Z-Report:', e) }
 
       await onCloseShift(closingCash)
       setShowCloseConfirm(false)

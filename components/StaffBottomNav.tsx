@@ -36,8 +36,8 @@ export default function StaffBottomNav() {
   const springConfig = { type: 'spring' as const, stiffness: 500, damping: 28, mass: 0.8 }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[100] bg-white border-t-2 border-[#111111] px-4 pb-[calc(env(safe-area-inset-bottom,0px)+10px)] pt-2">
-      <div className="relative mx-auto flex max-w-[600px] items-center justify-between">
+    <div className="fixed bottom-3 left-0 right-0 z-[100] px-4 pointer-events-none pb-[env(safe-area-inset-bottom,0px)]">
+      <div className="mx-auto max-w-[500px] w-full bg-white/90 backdrop-blur-xl border border-gray-200/80 rounded-full shadow-[0_12px_35px_rgba(0,0,0,0.12)] p-1.5 flex items-center justify-around pointer-events-auto">
         {tabs.map((tab) => {
           const active = isActive(tab)
           const Icon = tab.icon
@@ -47,39 +47,14 @@ export default function StaffBottomNav() {
               key={tab.id}
               href={tab.href}
               scroll={false}
-              className="relative flex items-center justify-center py-1 outline-none no-tap-highlight flex-1"
+              className={`relative flex items-center justify-center py-2.5 px-3 sm:px-4 rounded-full transition-all duration-300 flex-1 text-center outline-none ${
+                active ? 'bg-[#1A1A18] text-white font-bold shadow-md shadow-[#1A1A18]/25 scale-102' : 'text-gray-400 hover:text-gray-700'
+              }`}
             >
-              <AnimatePresence>
-                {active && (
-                  <motion.div
-                  layoutId="activeStaffPill"
-                    className="absolute inset-x-[-4px] inset-y-[-2px] bg-[#111111] rounded-none z-0"
-                    transition={springConfig}
-                  />
-                )}
-              </AnimatePresence>
-              
-              <motion.div
-                className={`relative flex items-center px-2 sm:px-4 py-2.5 rounded-none whitespace-nowrap transition-all z-10`}
-              >
-                <div className={`w-[22px] h-[22px] flex items-center justify-center shrink-0 ${active ? 'text-white' : 'text-[#A3A3A3]'}`}>
-                   <Icon size={20} strokeWidth={active ? 2 : 1.5} />
-                </div>
-                
-                <AnimatePresence initial={false}>
-                  {active && (
-                    <motion.span
-                      initial={{ width: 0, opacity: 0, x: -4, marginLeft: 0 }}
-                      animate={{ width: 'auto', opacity: 1, x: 0, marginLeft: 8 }}
-                      exit={{ width: 0, opacity: 0, x: -4, marginLeft: 0 }}
-                      transition={springConfig}
-                      className="text-[10px] font-bold uppercase tracking-[0.2em] text-white overflow-hidden hidden sm:block"
-                    >
-                      {tab.label}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </motion.div>
+              <Icon size={19} strokeWidth={active ? 2.5 : 1.8} className="shrink-0" />
+              <span className={`text-[11px] font-bold ml-1.5 whitespace-nowrap ${active ? 'inline-block' : 'hidden sm:inline-block'}`}>
+                {tab.label}
+              </span>
             </Link>
           )
         })}

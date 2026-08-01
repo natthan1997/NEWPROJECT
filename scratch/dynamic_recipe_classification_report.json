@@ -1,0 +1,601 @@
+{
+  "modifiers": [
+    {
+      "group": "ROAST / เมล็ดกาแฟ",
+      "name": "คั่วเข้ม",
+      "sweetness_multiplier": 1,
+      "is_substitution": false,
+      "is_contextual_roast": false
+    },
+    {
+      "group": "ROAST / เมล็ดกาแฟ",
+      "name": "คัวกลาง",
+      "sweetness_multiplier": 1,
+      "is_substitution": false,
+      "is_contextual_roast": false
+    },
+    {
+      "group": "ROAST / เมล็ดกาแฟ",
+      "name": "คั่วอ่อน",
+      "sweetness_multiplier": 1,
+      "is_substitution": false,
+      "is_contextual_roast": false
+    },
+    {
+      "group": "ระดับความหวาน",
+      "name": "ไม่หวาน 0%",
+      "sweetness_multiplier": 0,
+      "is_substitution": false,
+      "is_contextual_roast": false
+    },
+    {
+      "group": "ระดับความหวาน",
+      "name": "หวานน้อย 25%",
+      "sweetness_multiplier": 0.25,
+      "is_substitution": false,
+      "is_contextual_roast": false
+    },
+    {
+      "group": "ระดับความหวาน",
+      "name": "หวานน้อย 50%",
+      "sweetness_multiplier": 0,
+      "is_substitution": false,
+      "is_contextual_roast": false
+    },
+    {
+      "group": "ระดับความหวาน",
+      "name": "หวานปกติ 100%",
+      "sweetness_multiplier": 0,
+      "is_substitution": false,
+      "is_contextual_roast": false
+    },
+    {
+      "group": "ระดับความหวาน",
+      "name": "เพิ่มหวาน 125%",
+      "sweetness_multiplier": 0.25,
+      "is_substitution": false,
+      "is_contextual_roast": false
+    },
+    {
+      "group": "น้ำสลัด",
+      "name": "น้ำจิ้มแจ่ว",
+      "sweetness_multiplier": 1,
+      "is_substitution": false,
+      "is_contextual_roast": false
+    },
+    {
+      "group": "Add Ons",
+      "name": "Espresso Shot",
+      "sweetness_multiplier": 1,
+      "is_substitution": false,
+      "is_contextual_roast": true
+    },
+    {
+      "group": "น้ำสลัด",
+      "name": "งาคั่วญี่ปุ่น",
+      "sweetness_multiplier": 1,
+      "is_substitution": false,
+      "is_contextual_roast": false
+    },
+    {
+      "group": "น้ำสลัด",
+      "name": "งาซีอิ้วญี่ปุ่น",
+      "sweetness_multiplier": 1,
+      "is_substitution": false,
+      "is_contextual_roast": false
+    },
+    {
+      "group": "ระดับความเผ็ด",
+      "name": "เผ็ดน้อย",
+      "sweetness_multiplier": 1,
+      "is_substitution": false,
+      "is_contextual_roast": false
+    },
+    {
+      "group": "ระดับความเผ็ด",
+      "name": "เผ็ดปกติ",
+      "sweetness_multiplier": 1,
+      "is_substitution": false,
+      "is_contextual_roast": false
+    },
+    {
+      "group": "Tea",
+      "name": "Chamomile",
+      "sweetness_multiplier": 1,
+      "is_substitution": false,
+      "is_contextual_roast": false
+    },
+    {
+      "group": "Tea",
+      "name": "English Breakfast ",
+      "sweetness_multiplier": 1,
+      "is_substitution": false,
+      "is_contextual_roast": false
+    },
+    {
+      "group": "Tea",
+      "name": "Mint",
+      "sweetness_multiplier": 1,
+      "is_substitution": false,
+      "is_contextual_roast": false
+    },
+    {
+      "group": "ระดับความเผ็ด",
+      "name": "เผ็ดมากกกกกกกก",
+      "sweetness_multiplier": 1,
+      "is_substitution": false,
+      "is_contextual_roast": false
+    },
+    {
+      "group": "Add Ons",
+      "name": "Honey",
+      "sweetness_multiplier": 1,
+      "is_substitution": false,
+      "is_contextual_roast": false
+    },
+    {
+      "group": "เพิ่มไข่",
+      "name": "ไข่ข้น 1 ฟอง",
+      "sweetness_multiplier": 1,
+      "is_substitution": false,
+      "is_contextual_roast": false
+    },
+    {
+      "group": "เพิ่มไข่",
+      "name": "ไข่ดาว 1 ฟอง",
+      "sweetness_multiplier": 1,
+      "is_substitution": false,
+      "is_contextual_roast": false
+    },
+    {
+      "group": "Add Ons",
+      "name": "Almond Milk",
+      "sweetness_multiplier": 1,
+      "is_substitution": true,
+      "is_contextual_roast": false
+    },
+    {
+      "group": "Add Ons",
+      "name": "Oat Milk",
+      "sweetness_multiplier": 1,
+      "is_substitution": true,
+      "is_contextual_roast": false
+    },
+    {
+      "group": "Popcorn",
+      "name": "เค็ม",
+      "sweetness_multiplier": 1,
+      "is_substitution": false,
+      "is_contextual_roast": false
+    },
+    {
+      "group": "Popcorn",
+      "name": "หวาน",
+      "sweetness_multiplier": 1,
+      "is_substitution": false,
+      "is_contextual_roast": false
+    }
+  ],
+  "menu_items": [
+    {
+      "category": "FOOD",
+      "name": "ข้าวไข่ข้นแฮม",
+      "total_ingredients": 0,
+      "base_liquids": "-",
+      "sweeteners": "-"
+    },
+    {
+      "category": "Coffee",
+      "name": "ไหมไทยเปรสโซ่",
+      "total_ingredients": 10,
+      "base_liquids": "เมล็ดกาแฟคั่วกลาง",
+      "sweeteners": "น้ำเชื่อม"
+    },
+    {
+      "category": "Beverage",
+      "name": "Coke",
+      "total_ingredients": 1,
+      "base_liquids": "-",
+      "sweeteners": "-"
+    },
+    {
+      "category": "FOOD",
+      "name": "ข้าวไก่ย่างน้ำจิ้มแจ่ว",
+      "total_ingredients": 0,
+      "base_liquids": "-",
+      "sweeteners": "-"
+    },
+    {
+      "category": "Coffee",
+      "name": "Biscoff Latte",
+      "total_ingredients": 6,
+      "base_liquids": "นมสด MEJI",
+      "sweeteners": "-"
+    },
+    {
+      "category": "Coffee",
+      "name": "อเมริกาโน่เลม่อนน้ำผึ้ง",
+      "total_ingredients": 9,
+      "base_liquids": "เมล็ดกาแฟคั่วกลาง",
+      "sweeteners": "น้ำเชื่อม, น้ำผึ้ง"
+    },
+    {
+      "category": "FOOD",
+      "name": "ข้าวไข่ข้นแฮมชีส",
+      "total_ingredients": 0,
+      "base_liquids": "-",
+      "sweeteners": "-"
+    },
+    {
+      "category": "FOOD",
+      "name": "ข้าวกะเพราหมูไข่ดาว",
+      "total_ingredients": 0,
+      "base_liquids": "-",
+      "sweeteners": "-"
+    },
+    {
+      "category": "TEA",
+      "name": "Twinning Hot Tea",
+      "total_ingredients": 0,
+      "base_liquids": "-",
+      "sweeteners": "-"
+    },
+    {
+      "category": "TEA",
+      "name": "ชาพีช",
+      "total_ingredients": 2,
+      "base_liquids": "ผงชาพีช BON",
+      "sweeteners": "-"
+    },
+    {
+      "category": "NON-COFFEE",
+      "name": "นมชมพู",
+      "total_ingredients": 8,
+      "base_liquids": "นมสด MEJI",
+      "sweeteners": "นมข้นจืด"
+    },
+    {
+      "category": "FOOD",
+      "name": "ซาวโดแฮมชีส",
+      "total_ingredients": 0,
+      "base_liquids": "-",
+      "sweeteners": "-"
+    },
+    {
+      "category": "Coffee",
+      "name": "ชาโคลลาเต้เย็น",
+      "total_ingredients": 10,
+      "base_liquids": "เมล็ดกาแฟคั่วเข้ม",
+      "sweeteners": "ไซรัปวานิลลา, ไซรัปคาราเมล"
+    },
+    {
+      "category": "MATCHA",
+      "name": "มัทฉะมะพร้าว",
+      "total_ingredients": 8,
+      "base_liquids": "ผงมัทฉะ",
+      "sweeteners": "น้ำเชื่อม"
+    },
+    {
+      "category": "TEA",
+      "name": "ชาแอปเปิ้ล",
+      "total_ingredients": 1,
+      "base_liquids": "ผงชาแอปเปิ้ล",
+      "sweeteners": "-"
+    },
+    {
+      "category": "DESSERTS & BAKERY",
+      "name": "โฮมเมดบราวนี",
+      "total_ingredients": 1,
+      "base_liquids": "-",
+      "sweeteners": "-"
+    },
+    {
+      "category": "FOOD",
+      "name": "ป๊อปคอร์น",
+      "total_ingredients": 0,
+      "base_liquids": "-",
+      "sweeteners": "-"
+    },
+    {
+      "category": "MATCHA",
+      "name": "มัทฉะส้ม",
+      "total_ingredients": 8,
+      "base_liquids": "ผงมัทฉะ",
+      "sweeteners": "น้ำผึ้ง"
+    },
+    {
+      "category": "Coffee",
+      "name": "คาราเมลมัคคิอาโต้ร้อน",
+      "total_ingredients": 4,
+      "base_liquids": "เมล็ดกาแฟคั่วเข้ม",
+      "sweeteners": "ไซรัปคาราเมล"
+    },
+    {
+      "category": "Coffee",
+      "name": "อเมริกาโน่ส้ม",
+      "total_ingredients": 8,
+      "base_liquids": "เมล็ดกาแฟคั่วกลาง",
+      "sweeteners": "น้ำผึ้ง"
+    },
+    {
+      "category": "DESSERTS & BAKERY",
+      "name": "บลูเบอร์รีชีสพาย",
+      "total_ingredients": 1,
+      "base_liquids": "-",
+      "sweeteners": "-"
+    },
+    {
+      "category": "MATCHA",
+      "name": "มัทฉะสตรอว์เบอร์รี่",
+      "total_ingredients": 9,
+      "base_liquids": "ผงมัทฉะ",
+      "sweeteners": "ไซรัปสตรอว์เบอร์รี่"
+    },
+    {
+      "category": "TEA",
+      "name": "ชาเขียวนมเย็น",
+      "total_ingredients": 10,
+      "base_liquids": "นมสด MEJI",
+      "sweeteners": "นมข้นหวาน, นมข้นจืด"
+    },
+    {
+      "category": "DESSERTS & BAKERY",
+      "name": "สตอเบอร์รีชีสพาย",
+      "total_ingredients": 1,
+      "base_liquids": "-",
+      "sweeteners": "-"
+    },
+    {
+      "category": "DESSERTS & BAKERY",
+      "name": "บิสคอฟชีสพาย",
+      "total_ingredients": 1,
+      "base_liquids": "-",
+      "sweeteners": "-"
+    },
+    {
+      "category": "NON-COFFEE",
+      "name": "น้ำผึ้งเลมอนร้อน",
+      "total_ingredients": 3,
+      "base_liquids": "-",
+      "sweeteners": "น้ำผึ้ง"
+    },
+    {
+      "category": "Coffee",
+      "name": "คาปูชิโน่ร้อน",
+      "total_ingredients": 2,
+      "base_liquids": "นมสด MEJI",
+      "sweeteners": "-"
+    },
+    {
+      "category": "FOOD",
+      "name": "ข้าวไก่ทอดซอสเขียวหวาน",
+      "total_ingredients": 0,
+      "base_liquids": "-",
+      "sweeteners": "-"
+    },
+    {
+      "category": "NON-COFFEE",
+      "name": "โกโก้มิ้นต์",
+      "total_ingredients": 9,
+      "base_liquids": "ผงโกโก้",
+      "sweeteners": "นมข้นจืด, ไซรัปมิ้นต์"
+    },
+    {
+      "category": "Coffee",
+      "name": "ลาเต้ร้อน",
+      "total_ingredients": 2,
+      "base_liquids": "นมสด MEJI",
+      "sweeteners": "-"
+    },
+    {
+      "category": "Coffee",
+      "name": "Espresso shot (ร้อน)",
+      "total_ingredients": 1,
+      "base_liquids": "-",
+      "sweeteners": "-"
+    },
+    {
+      "category": "Coffee",
+      "name": "อเมริกาโน่ร้อน",
+      "total_ingredients": 1,
+      "base_liquids": "-",
+      "sweeteners": "-"
+    },
+    {
+      "category": "MATCHA",
+      "name": "มัทฉะใสร้อน",
+      "total_ingredients": 2,
+      "base_liquids": "ผงมัทฉะ",
+      "sweeteners": "-"
+    },
+    {
+      "category": "TEA",
+      "name": "ชาไทยเย็น",
+      "total_ingredients": 10,
+      "base_liquids": "นมสด MEJI",
+      "sweeteners": "นมข้นหวาน, นมข้นจืด"
+    },
+    {
+      "category": "Coffee",
+      "name": "ลาเต้เนยถั่วเย็น",
+      "total_ingredients": 10,
+      "base_liquids": "เมล็ดกาแฟคั่วเข้ม",
+      "sweeteners": "น้ำเชื่อม"
+    },
+    {
+      "category": "MATCHA",
+      "name": "มัทฉะน้ำผึ้งมะนาว",
+      "total_ingredients": 9,
+      "base_liquids": "ผงมัทฉะ",
+      "sweeteners": "น้ำผึ้ง, น้ำเชื่อม"
+    },
+    {
+      "category": "MATCHA",
+      "name": "มัทฉะลาเต้เย็น",
+      "total_ingredients": 7,
+      "base_liquids": "ผงมัทฉะ",
+      "sweeteners": "-"
+    },
+    {
+      "category": "MATCHA",
+      "name": "มัทฉะใส",
+      "total_ingredients": 6,
+      "base_liquids": "ผงมัทฉะ",
+      "sweeteners": "-"
+    },
+    {
+      "category": "DESSERTS & BAKERY",
+      "name": "บานอฟฟี",
+      "total_ingredients": 1,
+      "base_liquids": "-",
+      "sweeteners": "-"
+    },
+    {
+      "category": "NON-COFFEE",
+      "name": "นมคาราเมล",
+      "total_ingredients": 7,
+      "base_liquids": "นมสด MEJI",
+      "sweeteners": "ไซรัปคาราเมล"
+    },
+    {
+      "category": "NON-COFFEE",
+      "name": "นมสดมิกซ์เบอร์รี่/สตรอว์",
+      "total_ingredients": 8,
+      "base_liquids": "นมสด MEJI",
+      "sweeteners": "นมข้นจืด, ไซรัปสตรอว์เบอร์รี่"
+    },
+    {
+      "category": "Coffee",
+      "name": "มอคค่าร้อน",
+      "total_ingredients": 4,
+      "base_liquids": "เมล็ดกาแฟคั่วเข้ม",
+      "sweeteners": "-"
+    },
+    {
+      "category": "NON-COFFEE",
+      "name": "โกโก้สตรอว์เบอร์รี่",
+      "total_ingredients": 9,
+      "base_liquids": "ผงโกโก้",
+      "sweeteners": "นมข้นจืด, ไซรัปสตรอว์เบอร์รี่"
+    },
+    {
+      "category": "NON-COFFEE",
+      "name": "โกโก้ร้อน",
+      "total_ingredients": 3,
+      "base_liquids": "ผงโกโก้",
+      "sweeteners": "-"
+    },
+    {
+      "category": "NON-COFFEE",
+      "name": "นมน้ำผึ้ง",
+      "total_ingredients": 7,
+      "base_liquids": "นมสด MEJI",
+      "sweeteners": "น้ำผึ้ง"
+    },
+    {
+      "category": "Beverage",
+      "name": "Singha Beer 320 ML",
+      "total_ingredients": 1,
+      "base_liquids": "-",
+      "sweeteners": "-"
+    },
+    {
+      "category": "FOOD",
+      "name": "Granola with Homemade Greek Yogurt",
+      "total_ingredients": 0,
+      "base_liquids": "-",
+      "sweeteners": "-"
+    },
+    {
+      "category": "Beverage",
+      "name": "MINERAL WATER",
+      "total_ingredients": 1,
+      "base_liquids": "-",
+      "sweeteners": "-"
+    },
+    {
+      "category": "Coffee",
+      "name": "คาปูชิโน่เย็น",
+      "total_ingredients": 9,
+      "base_liquids": "เมล็ดกาแฟคั่วเข้ม",
+      "sweeteners": "นมข้นหวาน"
+    },
+    {
+      "category": "DESSERTS & BAKERY",
+      "name": "มิกซ์เบอร์รี่ชีสพาย",
+      "total_ingredients": 0,
+      "base_liquids": "-",
+      "sweeteners": "-"
+    },
+    {
+      "category": "FOOD",
+      "name": "สลัดไก่ย่าง",
+      "total_ingredients": 0,
+      "base_liquids": "-",
+      "sweeteners": "-"
+    },
+    {
+      "category": "NON-COFFEE",
+      "name": "น้ำผึ้งเลม่อนเย็น",
+      "total_ingredients": 8,
+      "base_liquids": "-",
+      "sweeteners": "น้ำผึ้ง, น้ำเชื่อม"
+    },
+    {
+      "category": "Coffee",
+      "name": "เอสเย็น",
+      "total_ingredients": 8,
+      "base_liquids": "นมสด MEJI",
+      "sweeteners": "นมข้นหวาน"
+    },
+    {
+      "category": "Coffee",
+      "name": "อเมริกาโน่เย็น",
+      "total_ingredients": 5,
+      "base_liquids": "-",
+      "sweeteners": "-"
+    },
+    {
+      "category": "Coffee",
+      "name": "คาราเมลมัคคิอาโต้เย็น",
+      "total_ingredients": 9,
+      "base_liquids": "นมสด MEJI",
+      "sweeteners": "ไซรัปคาราเมล, ไซรัปวานิลลา"
+    },
+    {
+      "category": "Coffee",
+      "name": "ลาเต้",
+      "total_ingredients": 8,
+      "base_liquids": "นมสด MEJI",
+      "sweeteners": "น้ำเชื่อม"
+    },
+    {
+      "category": "MATCHA",
+      "name": "มัทฉะลาเต้ร้อน",
+      "total_ingredients": 3,
+      "base_liquids": "ผงมัทฉะ",
+      "sweeteners": "-"
+    },
+    {
+      "category": "FOOD",
+      "name": "ข้าวไก่ทอดราดซอสกะเพรา",
+      "total_ingredients": 0,
+      "base_liquids": "-",
+      "sweeteners": "-"
+    },
+    {
+      "category": "NON-COFFEE",
+      "name": "โกโก้เย็น",
+      "total_ingredients": 9,
+      "base_liquids": "ผงโกโก้",
+      "sweeteners": "นมข้นจืด, นมข้นหวาน"
+    },
+    {
+      "category": "Coffee",
+      "name": "มอคค่าเย็น",
+      "total_ingredients": 10,
+      "base_liquids": "เมล็ดกาแฟคั่วเข้ม",
+      "sweeteners": "นมข้นจืด, นมข้นหวาน"
+    }
+  ]
+}

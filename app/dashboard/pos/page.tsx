@@ -346,8 +346,11 @@ function RestaurantOSPageContent() {
       }
     }
 
+    const urlTab = searchParams.get('tab') as POSView | null;
     const savedView = localStorage.getItem('xyl_pos_active_view') as POSView;
-    if (savedView && navItems.some(i => i.id === savedView)) {
+    if (urlTab && navItems.some(i => i.id === urlTab)) {
+      setActiveView(urlTab);
+    } else if (savedView && navItems.some(i => i.id === savedView)) {
       setActiveView(savedView);
     } else if (!activeView) {
       setActiveView('terminal');

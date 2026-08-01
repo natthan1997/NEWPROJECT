@@ -64,6 +64,7 @@ export interface Branch {
   branch_type?: 'garden' | 'cafe' | 'both';
   latitude?: number;
   longitude?: number;
+  gamification_settings?: any;
   created_at: string;
   updated_at: string;
 }

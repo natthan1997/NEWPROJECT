@@ -1,18 +1,34 @@
 'use client';
+
 import { useI18n } from "@/lib/I18nContext";
+import { StaffWorkCalendar } from "@/components/dashboard/StaffWorkCalendar";
+import Link from "next/link";
+import { ChevronLeftIcon } from "@heroicons/react/24/outline";
 
 export default function StaffSchedule() {
-    const { locale } = useI18n();
+  const { locale } = useI18n();
+
   return (
-    <div>
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">{locale === 'en' ? 'My work schedule' : locale === 'zh' ? '我的工作安排' : 'ตารางงานของฉัน'}</h1>
-      
-      <div className="bg-white p-6 rounded-lg shadow">
-        {/* FullCalendar or other calendar component would go here */}
-        <div className="bg-gray-100 h-96 flex items-center justify-center">
-          <p className="text-gray-500">{locale === 'en' ? 'The Calendar component is displayed here.' : locale === 'zh' ? '此处显示日历组件。' : 'คอมโพเนนต์ปฏิทินจะแสดงที่นี่'}</p>
+    <div className="p-4 md:p-6 max-w-[800px] mx-auto min-h-screen pb-20">
+      {/* Header with Back Button */}
+      <div className="flex items-center gap-3 mb-6">
+        <Link 
+          href="/dashboard/staff" 
+          className="p-2 -ml-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors"
+        >
+          <ChevronLeftIcon className="w-5 h-5" />
+        </Link>
+        <div>
+          <h1 className="text-xl font-bold text-gray-900 leading-tight">
+            {locale === 'en' ? 'My Schedule' : locale === 'zh' ? '我的日程安排' : 'ปฏิทินตารางงาน'}
+          </h1>
+          <p className="text-[11px] text-gray-500 font-medium mt-0.5">
+            ภาพรวมวันทำงานและประวัติลงเวลาของคุณ
+          </p>
         </div>
       </div>
+
+      <StaffWorkCalendar />
     </div>
-  )
-} 
+  );
+}

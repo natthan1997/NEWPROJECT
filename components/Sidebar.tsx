@@ -81,6 +81,7 @@ const copyByLocale: Record<Locale, Record<string, string>> = {
     staffAttendance: 'การลงเวลาและเงินเดือน',
     staffVerification: 'ตรวจสอบพนักงานใหม่',
     promotions: 'โปรโมชั่น',
+    gamification: 'ภารกิจ & กาชา',
     staffDevelopment: 'การพัฒนาพนักงาน & KPI',
   },
   en: {
@@ -128,6 +129,7 @@ const copyByLocale: Record<Locale, Record<string, string>> = {
     staffAttendance: 'Staff Attendance & Payroll',
     staffVerification: 'Staff Verification',
     promotions: 'Promotions',
+    gamification: 'Gamification & Gacha',
     staffDevelopment: 'Staff Development & KPI',
   },
   zh: {
@@ -174,6 +176,7 @@ const copyByLocale: Record<Locale, Record<string, string>> = {
     posSettings: 'POS与分支设置',
     staffVerification: '员工核查',
     promotions: '促销',
+    gamification: '任务与抽奖',
     staffDevelopment: '员工发展与KPI',
   },
 }
@@ -457,6 +460,11 @@ export default function Sidebar({ isOpen, onMenuClick, isLocked, onLockToggle, o
               name: copy.promotions || 'Promotions',
               href: '/dashboard/admin/promotions',
               current: pathname.startsWith('/dashboard/admin/promotions'),
+            },
+            {
+              name: (copy as any).gamification || 'Gamification & Gacha',
+              href: '/dashboard/admin/gamification',
+              current: pathname.startsWith('/dashboard/admin/gamification'),
             },
           ]
         },

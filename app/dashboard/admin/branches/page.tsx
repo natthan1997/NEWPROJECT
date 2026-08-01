@@ -35,6 +35,14 @@ export default function BranchesPage() {
     branch_type: 'both',
     latitude: 13.7563,
     longitude: 100.5018,
+    gamification_settings: {
+      salesTarget: 100000,
+      salesReward: "โบนัสทีม 5,000.-",
+      attendanceTarget: 3,
+      attendanceReward: "เบี้ยขยัน 1,000.-",
+      memberTarget: 200,
+      memberReward: "โบนัสพิเศษ 2,000.-"
+    }
   });
   const [zipCodeInput, setZipCodeInput] = useState('');
 
@@ -78,6 +86,14 @@ export default function BranchesPage() {
       branch_type: 'both',
       latitude: 13.7563,
       longitude: 100.5018,
+      gamification_settings: {
+        salesTarget: 100000,
+        salesReward: "โบนัสทีม 5,000.-",
+        attendanceTarget: 3,
+        attendanceReward: "เบี้ยขยัน 1,000.-",
+        memberTarget: 200,
+        memberReward: "โบนัสพิเศษ 2,000.-"
+      }
     });
     setZipCodeInput('');
     setCloneSourceId('');
@@ -98,6 +114,14 @@ export default function BranchesPage() {
       branch_type: branch.branch_type || 'both',
       latitude: Number(branch.latitude) || 13.7563,
       longitude: Number(branch.longitude) || 100.5018,
+      gamification_settings: branch.gamification_settings || {
+        salesTarget: 100000,
+        salesReward: "โบนัสทีม 5,000.-",
+        attendanceTarget: 3,
+        attendanceReward: "เบี้ยขยัน 1,000.-",
+        memberTarget: 200,
+        memberReward: "โบนัสพิเศษ 2,000.-"
+      }
     });
     setZipCodeInput(branch.service_zip_codes.join(', '));
     setIsModalOpen(true);
@@ -270,6 +294,36 @@ export default function BranchesPage() {
                       onChange={e => setFormData({...formData, longitude: Number(e.target.value)})} 
                       className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-none shadow-sm text-xs" 
                     />
+                  </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <h3 className="text-sm font-bold text-gray-700 mb-3">{locale === 'en' ? 'ตั้งค่าสิทธิประโยชน์พนักงาน (Gamification)' : 'ตั้งค่าสิทธิประโยชน์พนักงาน (Gamification)'}</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-md border border-gray-200">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700">เป้ายอดขาย (บาท)</label>
+                      <input type="number" value={formData.gamification_settings?.salesTarget} onChange={e => setFormData({...formData, gamification_settings: {...formData.gamification_settings, salesTarget: Number(e.target.value)}})} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700">รางวัลยอดขาย</label>
+                      <input type="text" value={formData.gamification_settings?.salesReward} onChange={e => setFormData({...formData, gamification_settings: {...formData.gamification_settings, salesReward: e.target.value}})} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700">เป้าเบี้ยขยัน (สายได้กี่วัน)</label>
+                      <input type="number" value={formData.gamification_settings?.attendanceTarget} onChange={e => setFormData({...formData, gamification_settings: {...formData.gamification_settings, attendanceTarget: Number(e.target.value)}})} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700">รางวัลเบี้ยขยัน</label>
+                      <input type="text" value={formData.gamification_settings?.attendanceReward} onChange={e => setFormData({...formData, gamification_settings: {...formData.gamification_settings, attendanceReward: e.target.value}})} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700">เป้าหาสมาชิกใหม่ (คน)</label>
+                      <input type="number" value={formData.gamification_settings?.memberTarget} onChange={e => setFormData({...formData, gamification_settings: {...formData.gamification_settings, memberTarget: Number(e.target.value)}})} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700">รางวัลหาสมาชิกใหม่</label>
+                      <input type="text" value={formData.gamification_settings?.memberReward} onChange={e => setFormData({...formData, gamification_settings: {...formData.gamification_settings, memberReward: e.target.value}})} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm" />
+                    </div>
                   </div>
                 </div>
 

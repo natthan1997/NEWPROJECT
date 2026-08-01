@@ -1,8 +1,9 @@
 'use client';
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { 
   Menu as MenuIcon, X, ChevronRight, ArrowLeft, Search, 
-  MapPin, Bell, Info, ShieldCheck, ShoppingBag, LogOut
+  MapPin, Bell, Info, ShieldCheck, ShoppingBag, LogOut,
+  Volume2, VolumeX
 } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
@@ -29,7 +30,18 @@ export default function POSLayout({
     allowedNav, onSetView, headerExtra, isDark, branchName, onBranchClick 
 }: POSLayoutProps) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+    const [isMuted, setIsMuted] = useState(false)
     const { locale } = useI18n();
+
+    useEffect(() => {
+        setIsMuted(localStorage.getItem('pos_mute_sounds') === 'true')
+    }, [])
+
+    const toggleMute = () => {
+        const newMuted = !isMuted
+        setIsMuted(newMuted)
+        localStorage.setItem('pos_mute_sounds', String(newMuted))
+    }
 
     // Determine the dashboard path based on role
     const getDashboardPath = () => {
@@ -207,7 +219,14 @@ export default function POSLayout({
                 </div>
 
                 {/* HEADER SLOT FOR VIEW-SPECIFIC ACTIONS */}
-                <div className="flex items-center gap-4 sm:gap-6 font-bold">
+                <div className="flex items-center gap-3 sm:gap-6 font-bold">
+                    <button 
+                        onClick={toggleMute}
+                        className={`w-9 h-9 sm:w-11 sm:h-11 flex items-center justify-center transition-all border font-bold flex-shrink-0 rounded-md ${isMuted ? (isDark ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-red-50 text-red-600 border-red-100') : (isDark ? 'bg-white/5 text-white border-white/10 hover:bg-white hover:text-black' : 'bg-white text-[#1A1A18] border-[#F0F0E8] hover:bg-[#1A1A18] hover:text-white shadow-sm')}`}
+                        title={isMuted ? 'เปิดเสียงแจ้งเตือน POS' : 'ปิดเสียงแจ้งเตือน POS'}
+                    >
+                        {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+                    </button>
                     {headerExtra}
                 </div>
             </header>

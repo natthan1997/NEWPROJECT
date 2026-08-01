@@ -72,6 +72,13 @@ async function awardLoyaltyPointsOnce(supabase: ReturnType<typeof createSupabase
       points_to_add: pointsToEarn,
     })
 
+    try {
+       const { evaluateOrderMissions } = await import('@/lib/gamification');
+       await evaluateOrderMissions(order.id, memberId);
+    } catch (gamiErr) {
+       console.error('Webhook Gamification Error:', gamiErr);
+    }
+
     const historyPayload = {
       member_id: memberId,
       order_id: order.id,

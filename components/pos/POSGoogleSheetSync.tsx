@@ -343,7 +343,9 @@ export default function POSGoogleSheetSync({ categories = [], onSyncComplete }: 
 
                         let error = null;
                         if (existingItem) {
-                            const { error: updateError } = await supabase.from('inventory_items').update(payload).eq('id', existingItem.id);
+                            // Do not overwrite live stock quantity during updates
+                            const { stock_quantity, ...updatePayload } = payload;
+                            const { error: updateError } = await supabase.from('inventory_items').update(updatePayload).eq('id', existingItem.id);
                             error = updateError;
                         } else {
                             const { error: insertError } = await supabase.from('inventory_items').insert(payload);

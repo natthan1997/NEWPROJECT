@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react'
-import { MapPin, CheckCircle2, XCircle, Loader2, Clock } from 'lucide-react'
+import { MapPin, CheckCircle2, XCircle, Loader2, Clock, Camera } from 'lucide-react'
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useAuth } from '@/lib/AuthContext'
@@ -43,10 +43,16 @@ export const AttendanceCheckIn: React.FC = () => {
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [earlyReason, setEarlyReason] = useState('')
   const [isEarlyCheckOut, setIsEarlyCheckOut] = useState(false)
+  const [isUnscheduledShift, setIsUnscheduledShift] = useState(false)
   const [checkoutChecklistItems, setCheckoutChecklistItems] = useState<string[]>([])
   const [completedChecklist, setCompletedChecklist] = useState<string[]>([])
   const [requiredAuditCategories, setRequiredAuditCategories] = useState<string[]>([])
   const [missingAuditCategories, setMissingAuditCategories] = useState<any[]>([])
+  
+  // Checkout photo zones
+  const [checkoutZones, setCheckoutZones] = useState<{id: string, name: string}[]>([])
+  const [checkoutPhotos, setCheckoutPhotos] = useState<Record<string, string>>({})
+  const [hasBranchPhotosToday, setHasBranchPhotosToday] = useState(false)
 
   const getTodayRange = () => {
     const start = new Date()
@@ -85,7 +91,7 @@ export const AttendanceCheckIn: React.FC = () => {
     if (branch) {
       const { data: settings } = await supabase
         .from('pos_shop_settings')
-        .select('check_in_radius, latitude, longitude, opening_hours')
+        .select('check_in_radius, latitude, longitude, opening_hours, checkout_photo_zones')
         .eq('branch_id', branch.id)
         .maybeSingle()
 
@@ -105,6 +111,9 @@ export const AttendanceCheckIn: React.FC = () => {
       }
       if (settings?.opening_hours?.required_audit_categories) {
           setRequiredAuditCategories(settings.opening_hours.required_audit_categories)
+      }
+      if (settings?.checkout_photo_zones) {
+          setCheckoutZones(settings.checkout_photo_zones)
       }
     }
   }
@@ -156,14 +165,44 @@ export const AttendanceCheckIn: React.FC = () => {
         setIsEarlyCheckOut(false)
       }
 
+      setIsUnscheduledShift(false)
+
+      const todayRange = getTodayRange()
+      
+      // Find staff in same branch to check for shared tasks
+      // Fetch via API to bypass RLS and get all staff in branch
+      if (checkoutZones.length > 0) {
+        try {
+          const res = await fetch('/api/staff/check-branch-photos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              branch_code: profile.branch_code,
+              start: todayRange.start,
+              end: todayRange.end
+            })
+          })
+          const data = await res.json()
+          setHasBranchPhotosToday(data.hasPhotos)
+        } catch (e) {
+          console.error('Failed to check branch photos', e)
+          setHasBranchPhotosToday(false)
+        }
+      }
+
+      // We still need staffIds for the inventory audit check, but that one might also be restricted by RLS.
+      // For now, use the current user's ID to check if THEY have done the audit, 
+      // or we might need another API. But since the user only complained about photos, let's keep it as is.
+      const { data: staffInBranch } = await supabase.from('profiles').select('id').eq('branch_code', profile.branch_code);
+      const staffIds = staffInBranch?.map((s: any) => s.id) || [profile.id];
+
       // Check required audits
       if (requiredAuditCategories.length > 0) {
         setLoading(true)
-        const todayRange = getTodayRange()
         const { data: sessions } = await supabase
           .from('pos_inventory_audit_sessions')
           .select('notes')
-          .eq('staff_id', profile.id)
+          .in('staff_id', staffIds)
           .gte('created_at', todayRange.start)
           .lte('created_at', todayRange.end)
         
@@ -213,10 +252,43 @@ export const AttendanceCheckIn: React.FC = () => {
     } else {
       setIsEarlyCheckOut(false)
       setMissingAuditCategories([])
+      
+      const dayNames = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
+      const todayStr = dayNames[new Date().getDay()]
+      const isUnscheduled = !profile.work_days?.includes(todayStr)
+      setIsUnscheduledShift(isUnscheduled)
     }
 
     setEarlyReason('')
     setShowConfirmModal(true)
+  }
+
+  const handlePhotoUpload = async (zoneId: string, file: File) => {
+    try {
+      setLoading(true)
+      const fileExt = file.name.split('.').pop() || 'jpg'
+      const fileName = `checkout_${profile?.id}_${zoneId}_${Date.now()}.${fileExt}`
+      const filePath = `attendance/${fileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('images')
+        .upload(filePath, file, { contentType: file.type || 'image/jpeg' })
+
+      if (uploadError) throw uploadError
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('images')
+        .getPublicUrl(filePath)
+
+      setCheckoutPhotos(prev => ({
+        ...prev,
+        [zoneId]: publicUrl
+      }))
+    } catch (error: any) {
+      alert('อัปโหลดรูปภาพล้มเหลว: ' + error.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleCheckInOut = async () => {
@@ -274,7 +346,7 @@ export const AttendanceCheckIn: React.FC = () => {
 
         setLoading(true)
         setStatus({ type: 'success', message: nextType === 'check_in' ? 'กำลังบันทึกเวลาเข้างาน...' : 'กำลังบันทึกเวลาออกงาน...' })
-        const { error } = await supabase.from('attendance_logs').insert({
+        const { data, error } = await supabase.from('attendance_logs').insert({
           profile_id: profile.id,
           type: nextType,
           latitude,
@@ -282,12 +354,55 @@ export const AttendanceCheckIn: React.FC = () => {
           is_within_range: true,
           reason: nextType === 'check_out' 
             ? `${earlyReason ? `[Early Checkout] ${earlyReason}\n` : ''}${completedChecklist.length > 0 ? `[Checklist] ${completedChecklist.join(', ')}` : ''}`.trim() || null
-            : null
-        })
+            : (isUnscheduledShift ? '[เข้างานวันหยุด/สลับวันหยุด]' : null),
+          checkout_zone_photos: nextType === 'check_out' ? Object.entries(checkoutPhotos).map(([zone_id, url]) => ({ zone_id, url })) : null
+        }).select()
 
         if (error) {
           setStatus({ type: 'error', message: 'ผิดพลาด: ' + error.message })
         } else {
+          // If inserting the log succeeds, trigger the auto-holiday API
+          if (data && data.length > 0) {
+            const newlyInsertedLog = data[0];
+            try {
+               await fetch('/api/staff/auto-holiday', {
+                   method: 'POST',
+                   headers: {
+                       'Content-Type': 'application/json',
+                       Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+                   },
+                   body: JSON.stringify({ profileId: profile.id, logId: newlyInsertedLog.id })
+               });
+            } catch (err) {
+               console.error('Failed to trigger auto-holiday:', err);
+            }
+
+            // If it was a check out and there are photos, notify manager
+            if (nextType === 'check_out' && Object.keys(checkoutPhotos).length > 0) {
+              try {
+                const zonesData = Object.entries(checkoutPhotos).map(([zone_id, url]) => {
+                  const zoneDef = checkoutZones.find(z => z.id === zone_id);
+                  return { name: zoneDef?.name || zone_id, url };
+                });
+
+                await fetch('/api/line/notify', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    type: 'checkout_photos',
+                    photoData: {
+                      staffName: profile.full_name || 'Staff',
+                      time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+                      zones: zonesData
+                    }
+                  })
+                });
+              } catch (err) {
+                console.error('Failed to notify manager:', err);
+              }
+            }
+          }
+
           setStatus({
             type: 'success',
             message: nextType === 'check_in' ? 'ลงเวลาเข้างานสำเร็จ' : 'ลงเวลาออกงานสำเร็จ',
@@ -484,6 +599,16 @@ export const AttendanceCheckIn: React.FC = () => {
                   </p>
                 </div>
 
+                {isUnscheduledShift && !hasCheckedInToday && (
+                  <div className="mb-8 p-4 bg-[#FFF9ED] border border-[#F6D07A] rounded-lg">
+                    <div className="flex items-center gap-2 mb-2 text-[#C27C00]">
+                      <ExclamationTriangleIcon className="w-4 h-4" />
+                      <span className="text-[11px] font-black uppercase tracking-widest">แจ้งเตือน: วันนี้เป็นวันหยุดของคุณ</span>
+                    </div>
+                    <p className="text-[11px] text-[#C27C00]">คุณไม่ได้มีตารางงานในวันนี้ (วันหยุด) คุณกำลังลงเวลาเข้างานเป็นกรณีพิเศษ (เช่น ทำโอที หรือสลับวันหยุด) ใช่หรือไม่?</p>
+                  </div>
+                )}
+
                 {isEarlyCheckOut && (
                   <div className="mb-8">
                     <div className="flex items-center gap-2 mb-4 text-[#E54D2E]">
@@ -548,6 +673,60 @@ export const AttendanceCheckIn: React.FC = () => {
                   </div>
                 )}
 
+                {hasCheckedInToday && checkoutZones.length > 0 && !hasBranchPhotosToday && (
+                  <div className="mb-8 border border-[#EFEFEF] rounded-xl p-4 bg-[#FAFAFA]">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Camera className="w-4 h-4 text-[#111111]" />
+                      <label className="block text-[11px] font-black uppercase tracking-widest text-[#111111]">
+                        {locale === 'en' ? 'Zone Photos (Required) *' : locale === 'zh' ? 'Zone Photos (Required) *' : 'ถ่ายรูปโซนก่อนออกงาน *'}
+                      </label>
+                    </div>
+                    <div className="space-y-4">
+                      {checkoutZones.map((zone) => (
+                        <div key={zone.id} className="flex flex-col gap-2">
+                          <span className="text-[12px] font-bold text-[#111111]">{zone.name}</span>
+                          <div className="flex items-center gap-3">
+                            {checkoutPhotos[zone.id] ? (
+                              <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-[#EFEFEF]">
+                                <img src={checkoutPhotos[zone.id]} alt={zone.name} className="w-full h-full object-cover" />
+                                <button 
+                                  onClick={() => {
+                                    const newPhotos = {...checkoutPhotos}
+                                    delete newPhotos[zone.id]
+                                    setCheckoutPhotos(newPhotos)
+                                  }}
+                                  className="absolute top-1 right-1 w-6 h-6 bg-white rounded-full flex items-center justify-center text-[#E54D2E] shadow-sm"
+                                >
+                                  <XCircle size={14} />
+                                </button>
+                              </div>
+                            ) : (
+                              <label className="w-full py-4 border-2 border-dashed border-[#CCCCCC] rounded-xl flex items-center justify-center gap-2 text-[#666666] hover:border-[#111111] hover:text-[#111111] transition-colors cursor-pointer bg-white">
+                                <Camera size={16} />
+                                <span className="text-[11px] font-bold uppercase tracking-widest">
+                                  {loading ? 'กำลังอัปโหลด...' : 'ถ่ายรูป'}
+                                </span>
+                                <input 
+                                  type="file" 
+                                  accept="image/*" 
+                                  capture="environment" 
+                                  className="hidden" 
+                                  disabled={loading}
+                                  onChange={(e) => {
+                                    if (e.target.files && e.target.files[0]) {
+                                      handlePhotoUpload(zone.id, e.target.files[0])
+                                    }
+                                  }} 
+                                />
+                              </label>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex gap-3">
                   <button
                     disabled={loading}
@@ -560,7 +739,8 @@ export const AttendanceCheckIn: React.FC = () => {
                         loading || 
                         (isEarlyCheckOut && !earlyReason.trim()) || 
                         (hasCheckedInToday && checkoutChecklistItems.length > 0 && completedChecklist.length < checkoutChecklistItems.length) ||
-                        (hasCheckedInToday && missingAuditCategories.length > 0)
+                        (hasCheckedInToday && missingAuditCategories.length > 0) ||
+                        (hasCheckedInToday && checkoutZones.length > 0 && !hasBranchPhotosToday && Object.keys(checkoutPhotos).length < checkoutZones.length)
                     }
                     onClick={handleCheckInOut}
                     className="flex-1 py-4 bg-[#111111] text-white text-[10px] font-black uppercase tracking-widest hover:bg-black transition-colors disabled:opacity-20 flex items-center justify-center gap-2"

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-  ChevronRight, ChevronLeft, Info, X, Gift, Phone, Globe, Facebook, MessageCircle, QrCode, Coins, Sparkles, AlertCircle, Loader2, CheckCircle2, HelpCircle, ArrowRight
+  ChevronRight, ChevronLeft, Info, X, Gift, Phone, Globe, Facebook, MessageCircle, QrCode, Coins, Sparkles, AlertCircle, Loader2, CheckCircle2, HelpCircle, ArrowRight, History
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
@@ -37,6 +37,7 @@ export default function LiffMemberPage() {
 
   // Real-time check-in states
   const [activeCheckInId, setActiveCheckInId] = useState<string | null>(null);
+  const [activeCouponCount, setActiveCouponCount] = useState(0);
   const [checkInStatus, setCheckInStatus] = useState<string | null>(null);
   const [linkedOrder, setLinkedOrder] = useState<any | null>(null);
   const [claimLoading, setClaimLoading] = useState(false);
@@ -46,13 +47,36 @@ export default function LiffMemberPage() {
     if (ctxMemberInfo) {
       setMemberInfo(ctxMemberInfo);
     }
-  }, [ctxMemberInfo]);
+    
+    // Instantly load missions from cache without waiting for waterfall
+    const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
+    if (userId) {
+      try {
+        const cacheKey = `member-missions-preview-${ctxMemberInfo?.id || userId}`;
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+          setActiveMissions(JSON.parse(cached));
+          setMissionsLoading(false);
+        }
+      } catch (e) {}
+    }
+    
+    // Prefetch routes for instant navigation
+    router.prefetch('/liff/member/missions');
+    router.prefetch('/liff/member/gacha');
+    router.prefetch('/liff/my-rewards');
+    router.prefetch('/liff/point-history');
+    router.prefetch('/liff/history');
+  }, [ctxMemberInfo, router]);
   const [showBenefits, setShowBenefits] = useState(false);
   const [earnRate, setEarnRate] = useState(100);
   const [showCatalog, setShowCatalog] = useState(false);
   const [selectedBadge, setSelectedBadge] = useState<any>(null);
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [quickRewards, setQuickRewards] = useState<any[]>([]);
+
+  const [activeMissions, setActiveMissions] = useState<any[]>([]);
+  const [missionsLoading, setMissionsLoading] = useState(true);
 
   // Mystery Box State
   const [showMysteryBox, setShowMysteryBox] = useState(false);
@@ -61,6 +85,10 @@ export default function LiffMemberPage() {
   const [mysteryCouponReward, setMysteryCouponReward] = useState<string | null>(null);
   const [mysteryError, setMysteryError] = useState<string | null>(null);
   const [mysteryBoxCost, setMysteryBoxCost] = useState(50);
+
+  // Smart Reward Suggestion
+  const [suggestedReward, setSuggestedReward] = useState<any>(null);
+  const [showSuggestionModal, setShowSuggestionModal] = useState(false);
 
   const t = {
     th: {
@@ -198,6 +226,16 @@ export default function LiffMemberPage() {
       }
       if (member) {
         setMemberInfo(member);
+        try {
+          const { count } = await supabase
+            .from('pos_member_coupons')
+            .select('*', { count: 'exact', head: true })
+            .eq('member_id', member.id)
+            .eq('status', 'active');
+          if (count !== null) setActiveCouponCount(count);
+        } catch (err) {
+          console.error('Failed to load active coupons count', err);
+        }
       }
       
       try {
@@ -236,7 +274,25 @@ export default function LiffMemberPage() {
 
       try {
         const { data: rewardsData } = await supabase.from('pos_loyalty_coupons').select('*').eq('is_active', true).order('cost_points', { ascending: true }).limit(5);
-        if (rewardsData) setQuickRewards(rewardsData);
+        if (rewardsData) {
+            setQuickRewards(rewardsData);
+            
+            // Smart Reward Suggestion Logic
+            if (member && member.points > 0) {
+                const affordableRewards = rewardsData
+                    .filter((r: any) => member.points >= r.cost_points)
+                    .sort((a: any, b: any) => b.cost_points - a.cost_points);
+                
+                if (affordableRewards.length > 0) {
+                    const hasShown = sessionStorage.getItem('reward_suggestion_shown');
+                    if (!hasShown) {
+                        setSuggestedReward(affordableRewards[0]);
+                        setShowSuggestionModal(true);
+                        sessionStorage.setItem('reward_suggestion_shown', 'true');
+                    }
+                }
+            }
+        }
       } catch (err) {
         console.error('Failed to load rewards', err);
       }
@@ -264,6 +320,35 @@ export default function LiffMemberPage() {
         }
       } catch (err) {
         console.error('Failed to load smart badges', err);
+      }
+
+      try {
+        const cacheKey = `member-missions-preview-${member?.id || userId}`;
+        let hasCache = false;
+        try {
+          const cached = localStorage.getItem(cacheKey);
+          if (cached) {
+            setActiveMissions(JSON.parse(cached));
+            setMissionsLoading(false);
+            hasCache = true;
+          }
+        } catch (e) {}
+
+        if (!hasCache) setMissionsLoading(true);
+        fetch(`/api/gamification/missions?memberId=${member?.id || userId}`)
+          .then(res => res.json())
+          .then(missionsData => {
+            if (missionsData.success && missionsData.missions) {
+              const featured = missionsData.missions.filter((m: any) => !m.is_completed);
+              setActiveMissions(featured);
+              try { localStorage.setItem(cacheKey, JSON.stringify(featured)); } catch (e) {}
+            }
+          })
+          .catch(err => console.error('Failed to load gamification missions', err))
+          .finally(() => setMissionsLoading(false));
+      } catch (err) {
+        console.error('Failed to start gamification fetch', err);
+        setMissionsLoading(false);
       }
     } catch (err) {
       console.error(err);
@@ -589,35 +674,28 @@ export default function LiffMemberPage() {
     <div className="min-h-screen bg-[#FAFAFA] text-[#1A1A18] font-sans pb-24">
       
       {/* 📱 Header */}
-      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-xl px-4 py-4 flex items-center justify-between border-b border-gray-100">
+      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-xl px-4 py-4 flex items-center justify-between border-b border-gray-100 relative">
         <button 
             onClick={() => router.push('/liff/menu')} 
             className="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full active:scale-95 transition-transform text-gray-600"
         >
             <ChevronLeft size={20} />
         </button>
-        <div className="flex flex-col items-center flex-1">
+        <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center">
             <h1 className="text-[14px] font-bold tracking-widest text-[#1A1A18]">{dict.title}</h1>
         </div>
-        <div className="relative flex flex-col items-center justify-center pt-1">
-            <button
-                onClick={handleCheckIn}
-                disabled={claimLoading || !!activeCheckInId}
-                className="w-8 h-8 flex items-center justify-center text-[#1A1A18] active:scale-95 transition-all z-10"
-            >
-                {claimLoading ? (
-                  <div className="w-4 h-4 border-2 border-[#1A1A18] border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <ScanPointsIcon size={20} />
-                )}
-            </button>
-            <motion.div 
-                animate={{ y: [0, -2, 0] }}
-                transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
-                className="absolute top-[32px] whitespace-nowrap text-[8.5px] font-bold text-gray-400 pointer-events-none"
-            >
-                {locale === 'en' ? 'EARN' : 'สะสมพอยท์'}
-            </motion.div>
+        <div className="flex items-center gap-3">
+          <Link href="/liff/point-history" className="w-10 h-10 flex items-center justify-center text-gray-400 active:scale-95 transition-transform relative">
+            <History size={20} />
+          </Link>
+          <Link href="/liff/my-rewards" className="w-10 h-10 flex items-center justify-center text-gray-400 active:scale-95 transition-transform relative">
+            <Gift size={20} />
+            {activeCouponCount > 0 && (
+              <span className="absolute top-1.5 right-1.5 bg-red-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-sm">
+                {activeCouponCount}
+              </span>
+            )}
+          </Link>
         </div>
       </header>
 
@@ -695,40 +773,126 @@ export default function LiffMemberPage() {
                         </div>
                     </div>
                 </div>
+
+                {/* Progress Section (Moved inside card) */}
+                <div className="mt-4 border-t border-white/10 pt-4">
+                  <div className="flex justify-between items-baseline mb-2 text-white">
+                      <span className="text-[12px] font-medium flex items-center gap-1 opacity-90">
+                          พอยท์สะสมระดับสมาชิก 
+                          <button onClick={() => setShowBenefits(true)}><Info size={14} className="opacity-60" /></button>
+                      </span>
+                      <span className="text-[12px] font-semibold">
+                          <span>{totalAccumulated}</span> <span className="opacity-60 font-normal">/ {nextTier ? nextTier.minPoints : 'Max'}</span>
+                      </span>
+                  </div>
+                  <div className="w-full h-[5px] rounded-full overflow-hidden bg-black/20">
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${Math.max(2, progressPercent)}%` }}
+                        transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
+                        className="h-full rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]" 
+                      />
+                  </div>
+                </div>
+
             </div>
-          </div>
-          
-          {/* Progress Section */}
-          <div className="px-1 mt-6">
-            <div className="flex justify-between items-baseline mb-2 text-[#1A1A18]">
-                <span className="text-[13px] font-medium flex items-center gap-1">
-                    พอยท์สะสมระดับสมาชิก 
-                    <button onClick={() => setShowBenefits(true)}><Info size={14} className="text-gray-400" /></button>
-                </span>
-                <span className="text-[13px] font-semibold">
-                    <span className="text-[#1A1A18]">{totalAccumulated}</span> <span className="text-gray-400 font-normal">/ {nextTier ? nextTier.minPoints : 'Max'}</span>
-                </span>
-            </div>
-            <div className="w-full h-[6px] rounded-full overflow-hidden bg-gray-200">
-                <motion.div 
-                  initial={{ width: 0 }}
-                  animate={{ width: `${Math.max(2, progressPercent)}%` }}
-                  transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
-                  className="h-full rounded-full" 
-                  style={{ backgroundColor: currentTier.textHex }}
-                />
-            </div>
-          </div>
-          
-          <div className="flex justify-center mt-6 relative z-20 gap-3">
-            <Link href="/liff/point-history" className="text-[13px] font-medium text-[#1A1A18] flex items-center gap-1 py-2 px-4 bg-white/50 rounded-full hover:bg-white transition-colors shadow-sm">
-                ดูประวัติพอยท์ <ChevronRight size={14} />
-            </Link>
-            <Link href="/liff/my-rewards" className="text-[13px] font-medium text-[#1A1A18] flex items-center gap-1 py-2 px-4 bg-white/50 rounded-full hover:bg-white transition-colors shadow-sm">
-                คูปองของฉัน <ChevronRight size={14} />
-            </Link>
           </div>
         </motion.section>
+
+
+
+        {/* 🎯 Featured Mission Progress */}
+        {missionsLoading ? (
+          <div className="mb-8">
+            <div className="flex justify-between items-baseline mb-4">
+              <h3 className="text-[16px] font-semibold text-gray-900 tracking-tight">แคมเปญพิเศษ</h3>
+              <div className="w-16 h-4 bg-gray-100 rounded animate-pulse" />
+            </div>
+            <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white p-5 rounded-[24px] border border-[#F0F0F0] shadow-sm relative overflow-hidden min-w-[280px] w-[85vw] max-w-[320px] snap-center shrink-0"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-50 to-transparent -translate-x-full animate-[shimmer_1.5s_infinite]" />
+                <div className="flex justify-between items-start mb-3 relative z-10">
+                  <div className="flex-1 pr-3">
+                    <div className="w-20 h-4 bg-gray-100 rounded mb-2"></div>
+                    <div className="w-40 h-5 bg-gray-100 rounded mb-1.5"></div>
+                    <div className="w-full h-3 bg-gray-50 rounded"></div>
+                  </div>
+                  <div className="w-8 h-8 rounded-full bg-gray-50 shrink-0"></div>
+                </div>
+                <div className="mt-4 pt-4 border-t border-gray-50 relative z-10">
+                  <div className="flex justify-between items-baseline mb-2">
+                    <div className="w-12 h-3 bg-gray-100 rounded"></div>
+                    <div className="w-16 h-3 bg-gray-100 rounded"></div>
+                  </div>
+                  <div className="w-full h-2 bg-gray-100 rounded-full"></div>
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        ) : activeMissions.length > 0 ? (
+          <div className="-mx-5 mb-8">
+            <div className="px-5 mb-4 flex justify-between items-baseline">
+              <h3 className="text-[16px] font-semibold text-gray-900 tracking-tight">แคมเปญพิเศษ</h3>
+              <button 
+                onClick={() => router.push('/liff/member/missions')}
+                className="text-[13px] font-bold text-[#8C6D53] hover:text-[#6A523E] flex items-center gap-1 transition-colors"
+              >
+                ดูทั้งหมด <ArrowRight size={14} />
+              </button>
+            </div>
+            <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory px-5" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              <style jsx>{`div::-webkit-scrollbar { display: none; }`}</style>
+              {activeMissions.map((mission, idx) => (
+                <motion.div
+                  key={mission.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.1 * idx }}
+                  className="bg-white p-5 rounded-[24px] border border-[#F0F0F0] shadow-[0_2px_10px_rgba(0,0,0,0.02)] relative active:scale-[0.98] transition-transform cursor-pointer min-w-[280px] w-[85vw] max-w-[320px] snap-center shrink-0 flex flex-col justify-between"
+                  onClick={() => router.push('/liff/member/missions')}
+                >
+                  <div>
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex-1 pr-3">
+                        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[#FCF7E8] text-[#B48529] text-[9px] font-bold tracking-widest uppercase mb-2">
+                          <div className="w-1 h-1 bg-[#B48529] rounded-full animate-pulse"></div> แคมเปญปัจจุบัน
+                        </div>
+                        <h4 className="text-[#1A1A18] font-bold text-[16px] leading-snug mb-1 line-clamp-2">{mission.title}</h4>
+                        {mission.description && (
+                          <p className="text-gray-500 text-[12px] leading-relaxed line-clamp-2">
+                            {mission.description}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-50 text-gray-400 shrink-0">
+                        <ChevronRight size={16} />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 pt-4 border-t border-gray-50">
+                    <div className="flex justify-between items-baseline mb-2">
+                      <span className="text-[11px] font-medium text-gray-500">ความคืบหน้า</span>
+                      <span className="text-[13px] font-bold text-[#1A1A18]">
+                        {mission.progress?.count || 0} <span className="text-gray-400 font-medium">/ {mission.condition_rules?.count || 1}</span>
+                      </span>
+                    </div>
+                    <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-gradient-to-r from-[#B89F89] to-[#8C6D53] rounded-full transition-all duration-1000 ease-out" 
+                        style={{ width: `${Math.min(100, ((mission.progress?.count || 0) / (mission.condition_rules?.count || 1)) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         {/* Campaign Cards Section */}
         <motion.section 
@@ -1020,7 +1184,7 @@ export default function LiffMemberPage() {
                     <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center shrink-0 mt-0.5">
                         <span className="w-2 h-2 rounded-full bg-gray-400"></span>
                     </div>
-                    <span className="leading-relaxed text-left">{selectedBadge.description || `ทำภารกิจครบ ${selectedBadge.minPoints.toLocaleString()}`}</span>
+                    <span className="leading-relaxed text-left">{selectedBadge.description || `ร่วมแคมเปญครบ ${selectedBadge.minPoints.toLocaleString()}`}</span>
                   </div>
                   
                   {selectedBadge.benefits && (
@@ -1035,6 +1199,85 @@ export default function LiffMemberPage() {
                     </>
                   )}
                 </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* 💡 Smart Reward Suggestion Modal */}
+      <AnimatePresence>
+        {showSuggestionModal && suggestedReward && (
+          <div className="fixed inset-0 z-[80] flex items-center justify-center p-5">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setShowSuggestionModal(false)}
+              className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} 
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative w-full max-w-sm bg-white rounded-[28px] overflow-hidden shadow-2xl flex flex-col"
+            >
+              {/* Cover Image Section */}
+              <div className="w-full h-[240px] bg-gray-100 relative overflow-hidden">
+                {suggestedReward.image_url ? (
+                    <motion.img 
+                      initial={{ scale: 1.15 }} animate={{ scale: 1 }} transition={{ duration: 1.5, ease: "easeOut" }}
+                      src={suggestedReward.image_url} 
+                      alt={suggestedReward.name} 
+                      className="w-full h-full object-cover" 
+                    />
+                ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-[#FDF8F3]">
+                        <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2 }}>
+                            <Gift size={72} className="text-[#E0A865]/40" />
+                        </motion.div>
+                    </div>
+                )}
+                
+                {/* Seamless Gradient Blend */}
+                <div className="absolute inset-0 bg-gradient-to-t from-white via-white/10 to-transparent pointer-events-none"></div>
+                
+                {/* Close Button Overlay */}
+                <button 
+                  onClick={() => setShowSuggestionModal(false)} 
+                  className="absolute top-4 right-4 text-white hover:text-white/80 transition-colors bg-black/20 backdrop-blur-md rounded-full p-1.5 z-10"
+                >
+                  <X size={18} strokeWidth={2.5} />
+                </button>
+              </div>
+
+              {/* Text & Action Section */}
+              <div className="px-6 pb-6 pt-2 text-center relative z-10">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#FDF8F3] text-[#E0A865] rounded-full text-[10px] font-black tracking-widest uppercase mb-4 shadow-sm border border-[#E0A865]/20">
+                    <Sparkles size={12} className="fill-[#E0A865]" /> 
+                    Reward Unlocked
+                </div>
+                
+                <h3 className="text-[22px] font-black text-gray-900 mb-2 tracking-tight">แต้มคุณครบแล้ว! 🎉</h3>
+              <p className="text-[14px] text-gray-500 mb-8 font-medium px-1 leading-relaxed">
+                ใช้เพียง <strong className="text-[#E0A865]">{suggestedReward.cost_points.toLocaleString()} แต้ม</strong><br/>
+                ก็แลกรับ <strong className="text-gray-900">"{suggestedReward.name}"</strong> ได้ทันที
+              </p>
+
+              <div className="space-y-3">
+                <button 
+                  onClick={() => {
+                    setShowSuggestionModal(false);
+                    handleRedeemQuick(suggestedReward);
+                  }}
+                  className="w-full bg-gradient-to-r from-[#1A1A18] to-[#2A2A28] text-white py-4 rounded-[16px] font-bold text-[15px] shadow-[0_8px_20px_rgba(26,26,24,0.15)] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                >
+                  แลกสิทธิ์ตอนนี้เลย
+                </button>
+                <button 
+                  onClick={() => setShowSuggestionModal(false)}
+                  className="w-full text-gray-400 py-3 rounded-[16px] font-bold text-[14px] active:scale-[0.98] transition-colors hover:text-gray-600 hover:bg-gray-50"
+                >
+                  เก็บแต้มไว้ก่อน
+                </button>
+              </div>
               </div>
             </motion.div>
           </div>
@@ -1398,6 +1641,62 @@ export default function LiffMemberPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* 🚀 Floating Action Button for Collect Points */}
+      <div className="fixed bottom-6 left-0 right-0 z-40 flex flex-col items-center justify-center pointer-events-none px-4">
+        
+        {/* Animated Bouncing Tooltip */}
+        {!activeCheckInId && !claimLoading && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: [0, -6, 0] }}
+            transition={{ 
+              opacity: { duration: 0.3, delay: 0.5 },
+              y: { duration: 1.5, repeat: Infinity, ease: "easeInOut" } 
+            }}
+            className="mb-3 relative"
+          >
+            <div className="bg-[#1A1A18] text-white text-[12px] font-bold tracking-wide px-4 py-2 rounded-full shadow-lg border border-gray-800">
+              {locale === 'en' ? 'Earn Points' : 'สะสมแต้ม'}
+            </div>
+            {/* Tooltip Arrow */}
+            <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-[#1A1A18] rotate-45 border-b border-r border-gray-800"></div>
+          </motion.div>
+        )}
+
+        <motion.div
+          initial={{ scale: 0.5, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 400, damping: 25, delay: 0.1 }}
+          className="relative pointer-events-auto group"
+        >
+          {/* Subtle animated background glow */}
+          <div className="absolute -inset-2 bg-gradient-to-r from-gray-200 via-[#B48529]/20 to-gray-200 rounded-full blur-md opacity-60 animate-pulse"></div>
+
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={handleCheckIn}
+            disabled={claimLoading || !!activeCheckInId}
+            className="relative flex items-center justify-center w-[60px] h-[60px] bg-white backdrop-blur-md text-[#1A1A18] rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-gray-100 overflow-hidden"
+          >
+            {/* Shimmer sweep effect */}
+            <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-gray-100/50 to-transparent animate-shimmer" />
+            
+            <div className="relative z-10 flex items-center justify-center">
+              {claimLoading ? (
+                <div className="w-6 h-6 border-[2.5px] border-[#1A1A18] border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <motion.div 
+                  animate={{ rotate: [0, -10, 10, -10, 0] }}
+                  transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+                >
+                  <ScanPointsIcon size={26} />
+                </motion.div>
+              )}
+            </div>
+          </motion.button>
+        </motion.div>
+      </div>
 
     </div>
   );

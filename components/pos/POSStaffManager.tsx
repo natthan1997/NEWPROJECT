@@ -62,6 +62,12 @@ function bahtText(num: number): string {
     return result;
 }
 
+const getRoleLabel = (roleId: string, customRoles?: any[]) => {
+    if (!roleId) return 'STAFF';
+    const role = customRoles?.find(r => r.id === roleId);
+    return role ? role.label : roleId.toUpperCase();
+}
+
 const translateStaffType = (type?: string) => {
     if (!type) return 'ทั่วไป';
     const t = type.toLowerCase();
@@ -83,10 +89,18 @@ interface POSStaffManagerProps {
     shopSettings?: any
 }
 
-function CalendarGrid({ logsList, monthStr }: { logsList: any[]; monthStr: string }): React.ReactElement {
+function CalendarGrid({ logsList, monthStr, publicHolidays = [] }: { logsList: any[]; monthStr: string; publicHolidays?: any[] }): React.ReactElement {
     const [year, month] = monthStr.split('-').map(Number);
     const firstDay = new Date(year, month - 1, 1).getDay();
     const totalDays = new Date(year, month, 0).getDate();
+
+    const checkPublicHoliday = (d: Date | string) => {
+        const dateStr = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit'
+        }).format(new Date(d));
+        const ph = publicHolidays.find(h => h.date === dateStr);
+        return ph ? ph.name : null;
+    }
 
     const daysGrid: ({ day: number; logs: any[] } | null)[] = [];
     for (let i = 0; i < firstDay; i++) daysGrid.push(null);
@@ -114,13 +128,21 @@ function CalendarGrid({ logsList, monthStr }: { logsList: any[]; monthStr: strin
                 {daysGrid.map((cell, idx) => {
                     if (!cell) return <div key={`empty-${idx}`} className="bg-neutral-50/50 rounded-xl min-h-[85px]"></div>;
                     const hasLog = cell.logs.length > 0;
+                    const cellDate = new Date(year, month - 1, cell.day);
+                    const holiday = checkPublicHoliday(cellDate);
+                    
                     return (
-                        <div key={`day-${cell.day}`} className={`min-h-[85px] p-2 rounded-xl border transition-all flex flex-col justify-between ${hasLog ? 'bg-white border-neutral-200 shadow-sm' : 'bg-neutral-50/50 border-neutral-100'}`}>
-                            <div className="flex items-center justify-between">
-                                <span className={`text-xs font-black ${hasLog ? 'text-[#1A1A18]' : 'text-neutral-400'}`}>{cell.day}</span>
-                                {hasLog && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>}
+                        <div key={`day-${cell.day}`} className={`min-h-[85px] p-2 rounded-xl border transition-all flex flex-col justify-between ${holiday ? 'bg-rose-50/50 border-rose-200' : hasLog ? 'bg-white border-neutral-200 shadow-sm' : 'bg-neutral-50/50 border-neutral-100'}`}>
+                            <div className="flex items-center justify-between mb-1">
+                                <span className={`text-xs font-black ${holiday ? 'text-rose-600' : hasLog ? 'text-[#1A1A18]' : 'text-neutral-400'}`}>{cell.day}</span>
+                                {hasLog && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-sm"></span>}
                             </div>
-                            <div className="space-y-1 my-1">
+                            {holiday && (
+                                <div className="text-[8px] font-bold text-rose-600 bg-rose-100/50 px-1.5 py-0.5 rounded text-center leading-tight mb-1 truncate" title={holiday}>
+                                    {holiday}
+                                </div>
+                            )}
+                            <div className="space-y-1">
                                 {cell.logs.map((l: any, i: number) => (
                                     <div key={i} className="text-[10px] font-bold p-1.5 rounded-lg bg-neutral-50 border border-neutral-100 leading-tight">
                                         <div className="text-neutral-500 text-center flex justify-center gap-1">
@@ -128,7 +150,11 @@ function CalendarGrid({ logsList, monthStr }: { logsList: any[]; monthStr: strin
                                             <span>-</span>
                                             <span>{l.clock_out ? new Date(l.clock_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}</span>
                                         </div>
-                                        {l.late_minutes > 0 ? (
+                                        {l.override ? (
+                                            <span className={`text-[10px] font-bold block text-center mt-1 ${l.override.reason.includes('มาสาย') ? 'text-blue-600' : 'text-amber-600'}`}>{l.override.reason}</span>
+                                        ) : l.leave ? (
+                                            <span className="text-[10px] font-bold block text-center mt-1 text-orange-600">ลา</span>
+                                        ) : l.late_minutes > 0 ? (
                                             <span className="text-[10px] text-rose-600 font-bold block text-center mt-1">สาย {l.late_minutes} นาที</span>
                                         ) : l.ot_hours > 0 ? (
                                             l.ot_status === 'approved' ? (
@@ -138,9 +164,9 @@ function CalendarGrid({ logsList, monthStr }: { logsList: any[]; monthStr: strin
                                             ) : (
                                                 <span className="text-[10px] text-amber-600 font-bold block text-center mt-1">OT {l.ot_hours.toFixed(1)} ชม.</span>
                                             )
-                                        ) : (
+                                        ) : l.clock_in ? (
                                             <span className="text-[10px] text-emerald-600 font-bold block text-center mt-1">ตรงเวลา</span>
-                                        )}
+                                        ) : null}
                                     </div>
                                 ))}
                             </div>
@@ -186,7 +212,9 @@ export default function POSStaffManager({
         staff_code: '',
         phone: '',
         staff_type: 'general',
+        staff_level: 'staff',
         salary_type: 'daily',
+        holiday_compensation_type: 'money',
         daily_wage: 0,
         is_pos_device: false,
         work_days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
@@ -201,6 +229,14 @@ export default function POSStaffManager({
         reason: ''
     })
 
+    const [showUseHolidayModal, setShowUseHolidayModal] = useState(false)
+    const [useHolidayForm, setUseHolidayForm] = useState({
+        profile_id: '',
+        leave_date: '',
+        reason: 'ใช้วันหยุดชดเชยนักขัตฤกษ์'
+    })
+
+
     // Advanced HR States
     const [cashAdvances, setCashAdvances] = useState<any[]>([])
     const [showCashAdvanceModal, setShowCashAdvanceModal] = useState(false)
@@ -212,6 +248,9 @@ export default function POSStaffManager({
     })
 
     const [staffShifts, setStaffShifts] = useState<any[]>([])
+    const [staffLeaves, setStaffLeaves] = useState<any[]>([])
+    const [publicHolidays, setPublicHolidays] = useState<any[]>([])
+  const [approvedHolidaysCount, setApprovedHolidaysCount] = useState(0)
 
     // Printable Report State
     const [printData, setPrintData] = useState<{ type: 'payslip' | 'summary', data: any } | null>(null);
@@ -227,6 +266,11 @@ export default function POSStaffManager({
         fetchAttendances()
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [shopSettings?.branch_id])
+
+    useEffect(() => {
+        fetchPublicHolidays()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedMonth])
 
     useEffect(() => {
         setViewExtraHeader(null);
@@ -247,8 +291,29 @@ export default function POSStaffManager({
             fetchStaffIndividualAttendance(selectedStaff.id)
             fetchCashAdvances(selectedStaff.id)
             fetchStaffShifts(selectedStaff.id)
+            fetchStaffLeaves(selectedStaff.id)
         }
     }, [selectedStaff?.id])
+
+    const fetchPublicHolidays = async () => {
+        try {
+            const year = selectedMonth ? selectedMonth.split('-')[0] : new Date().getFullYear();
+            const res = await fetch(`/api/public-holidays?year=${year}`);
+            if (res.ok) {
+                const data = await res.json();
+                setPublicHolidays(data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch public holidays', error);
+        }
+    }
+
+    const checkPublicHoliday = (d: Date | string) => {
+        const dateStr = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit'
+        }).format(new Date(d));
+        return publicHolidays.find(h => h.date === dateStr);
+    }
 
     const fetchStaff = async () => {
         setLoading(true)
@@ -321,6 +386,8 @@ export default function POSStaffManager({
                 if (log.type === 'check_in') {
                     if (!grouped[key].clock_in || new Date(grouped[key].clock_in) > new Date(log.timestamp)) {
                         grouped[key].clock_in = log.timestamp;
+                        grouped[key].checkin_log_id = log.id;
+                        grouped[key].holiday_pay_status = log.holiday_pay_status || 'pending';
 
                         const shiftStart = log.profiles?.shift_start || "08:30";
                         const [sHour, sMin] = shiftStart.split(':').map(Number);
@@ -391,6 +458,29 @@ export default function POSStaffManager({
                 });
             }
 
+            const { data: overrides } = await supabase
+                .from('pos_staff_leave_overrides')
+                .select('*')
+                .eq('profile_id', staffId)
+            
+            if (overrides) {
+                overrides.forEach(override => {
+                    const d = new Date(override.date);
+                    const dateStr = d.toLocaleDateString();
+                    const key = `${dateStr}-${override.profile_id}`;
+                    if (!grouped[key]) {
+                        grouped[key] = {
+                            id: key,
+                            profile_id: override.profile_id,
+                            date: d,
+                            profiles: selectedStaff,
+                            clock_in: null, clock_out: null, total_hours: null, late_minutes: 0, ot_hours: 0
+                        }
+                    }
+                    grouped[key].override = override;
+                });
+            }
+
             const finalGroupedList = Object.values(grouped).sort((a: any, b: any) => b.date.getTime() - a.date.getTime());
             setIndividualAttendances(finalGroupedList)
         } else {
@@ -422,12 +512,19 @@ export default function POSStaffManager({
                         clock_in: null,
                         clock_out: null,
                         total_hours: null,
-                        late_minutes: 0
+                        late_minutes: 0,
+                        holiday_pay_status: 'pending'
                     };
                 }
+
+                if (log.holiday_pay_status && log.holiday_pay_status !== 'pending') {
+                    grouped[key].holiday_pay_status = log.holiday_pay_status;
+                }
+
                 if (log.type === 'check_in') {
                     if (!grouped[key].clock_in || new Date(grouped[key].clock_in) > new Date(log.timestamp)) {
                         grouped[key].clock_in = log.timestamp;
+                        grouped[key].checkin_log_id = log.id;
 
                         const shiftStart = log.profiles?.shift_start || "08:30";
                         const [sHour, sMin] = shiftStart.split(':').map(Number);
@@ -481,12 +578,78 @@ export default function POSStaffManager({
                 });
             }
 
+            const { data: overrides } = await supabase.from('pos_staff_leave_overrides').select('*, profiles(display_name, staff_code)')
+            if (overrides) {
+                overrides.forEach(override => {
+                    const d = new Date(override.date);
+                    const dateStr = d.toLocaleDateString();
+                    const key = `${dateStr}-${override.profile_id}`;
+                    if (!grouped[key]) {
+                        grouped[key] = {
+                            id: key,
+                            profile_id: override.profile_id,
+                            date: d,
+                            profiles: override.profiles,
+                            clock_in: null, clock_out: null, total_hours: null, late_minutes: 0, ot_hours: 0
+                        }
+                    }
+                    grouped[key].override = override;
+                });
+            }
+
             const finalGroupedList = Object.values(grouped).sort((a: any, b: any) => b.date.getTime() - a.date.getTime());
             setAttendances(finalGroupedList)
         } else {
             setAttendances([])
         }
         setLoading(false)
+    }
+
+    const handleToggleCompensationType = async (staffId: string, newType: string, e: React.MouseEvent) => {
+        e.stopPropagation()
+        setIsSaving(true)
+        try {
+            
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token || '';
+            const res = await fetch('/api/staff/update-compensation-type', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ profileId: staffId, compensationType: newType })
+            })
+            if (!res.ok) throw new Error('Failed to update')
+            fetchStaff()
+        } catch (err) {
+            console.error(err)
+            alert('เกิดข้อผิดพลาดในการอัปเดตการตั้งค่าชดเชยวันหยุด')
+        }
+        setIsSaving(false)
+    }
+
+    const handleUseHolidaySubmit = async () => {
+        if (!useHolidayForm.profile_id || !useHolidayForm.leave_date) {
+            return alert('กรุณาเลือกวันที่ต้องการใช้วันหยุด')
+        }
+        setIsSaving(true)
+        try {
+            
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token || '';
+            const res = await fetch('/api/staff/use-holiday', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(useHolidayForm)
+            })
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || 'Failed to use holiday')
+            alert('ใช้วันหยุดชดเชยสำเร็จ')
+            setShowUseHolidayModal(false)
+            fetchStaff() // Refresh balances
+        } catch (err: any) {
+            console.error(err)
+            alert(err.message || 'เกิดข้อผิดพลาด')
+        }
+        setIsSaving(false)
     }
 
     const handleUpdateStaff = async () => {
@@ -498,12 +661,17 @@ export default function POSStaffManager({
             department: selectedStaff.department,
             daily_wage: selectedStaff.daily_wage,
             salary_type: selectedStaff.salary_type,
+            holiday_compensation_type: selectedStaff.holiday_compensation_type,
             is_pos_account: selectedStaff.is_pos_account,
             shift_start: selectedStaff.shift_start,
             shift_end: selectedStaff.shift_end,
             overtime_rate_per_hour: selectedStaff.overtime_rate_per_hour,
             rest_days: selectedStaff.rest_days || [],
             diligence_allowance: selectedStaff.diligence_allowance || 0,
+            quota_sick_leave: selectedStaff.quota_sick_leave !== undefined && selectedStaff.quota_sick_leave !== null ? selectedStaff.quota_sick_leave : 30,
+            quota_personal_leave: selectedStaff.quota_personal_leave !== undefined && selectedStaff.quota_personal_leave !== null ? selectedStaff.quota_personal_leave : 3,
+            quota_annual_leave: selectedStaff.quota_annual_leave !== undefined && selectedStaff.quota_annual_leave !== null ? selectedStaff.quota_annual_leave : 6,
+            quota_public_holiday: selectedStaff.quota_public_holiday !== undefined && selectedStaff.quota_public_holiday !== null ? selectedStaff.quota_public_holiday : 13,
             can_void_orders: !!selectedStaff.can_void_orders,
             can_give_discounts: selectedStaff.can_give_discounts !== false,
             can_open_cash_drawer: selectedStaff.can_open_cash_drawer !== false,
@@ -513,6 +681,30 @@ export default function POSStaffManager({
             fetchStaff()
         }
         setIsSaving(false)
+    }
+
+    
+    const fetchStaffLeaves = async (staffId: string) => {
+        const currentYear = new Date().getFullYear();
+    const profileIdToUse = staffId;
+        const { data } = await supabase
+            .from('staff_leaves')
+            .select('*')
+            .eq('profile_id', staffId)
+            .gte('leave_date', `${currentYear}-01-01`)
+            .lte('leave_date', `${currentYear}-12-31`);
+        if (data) setStaffLeaves(data);
+
+    const { count } = await supabase
+        .from('attendance_logs')
+        .select('*', { count: 'exact', head: true })
+        .eq('profile_id', profileIdToUse)
+        .in('holiday_pay_status', ['approved_pay', 'approved_dayoff'])
+        .gte('timestamp', `${currentYear}-01-01`)
+        .lte('timestamp', `${currentYear}-12-31`);
+    
+    setApprovedHolidaysCount(count || 0);
+
     }
 
     const fetchCashAdvances = async (staffId: string) => {
@@ -591,12 +783,14 @@ export default function POSStaffManager({
             staff_type: newStaffForm.staff_type,
             department: newStaffForm.staff_type,
             salary_type: newStaffForm.salary_type,
+            holiday_compensation_type: newStaffForm.holiday_compensation_type,
             daily_wage: newStaffForm.daily_wage,
             is_pos_device: newStaffForm.is_pos_device,
             work_days: newStaffForm.work_days,
             role: 'user',
-            staff_level: 'staff',
-            is_verified: true
+            staff_level: newStaffForm.staff_level || 'staff',
+            is_verified: true,
+            quota_public_holiday: 0
         });
 
         if (error) {
@@ -604,7 +798,7 @@ export default function POSStaffManager({
         } else {
             setShowAddStaffModal(false);
             setNewStaffForm({
-                display_name: '', staff_code: '', phone: '', staff_type: 'general', salary_type: 'daily', daily_wage: 0, is_pos_device: false, work_days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
+                display_name: '', staff_code: '', phone: '', staff_type: 'general', staff_level: 'staff', salary_type: 'daily', holiday_compensation_type: 'money', daily_wage: 0, is_pos_device: false, work_days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
             });
             fetchStaff();
         }
@@ -683,6 +877,32 @@ export default function POSStaffManager({
         }
     };
 
+    const handleApproveHolidayPay = async (logId: string, forceStatus?: 'rejected') => {
+        if (!logId) {
+            alert('ไม่พบข้อมูลรายการตอกบัตร');
+            return;
+        }
+        
+        try {
+            const res = await fetch('/api/staff/manual-approve-holiday', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ logId, status: forceStatus })
+            });
+            const data = await res.json();
+            
+            if (!res.ok) throw new Error(data.error || 'Failed to update');
+
+            if (selectedStaff) {
+                fetchStaffIndividualAttendance(selectedStaff.id);
+            }
+            fetchAttendances();
+            fetchStaff(); // Refresh staff list to update balances
+        } catch (err: any) {
+            alert('เกิดข้อผิดพลาดในการบันทึกสถานะค่าแรงวันหยุด: ' + err.message);
+        }
+    };
+
     // Calculations for selected staff in slide-over
     const monthIndividualAttendances = individualAttendances.filter(a => getMonthStr(a.date) === selectedMonth);
     const totalDaysWorked = monthIndividualAttendances.length;
@@ -720,7 +940,7 @@ export default function POSStaffManager({
                             )}
                         </div>
                         <p className="text-xs font-bold text-neutral-400 mt-1">
-                            ID: {selectedStaff.staff_code || 'NO ID'} • {selectedStaff.staff_level?.toUpperCase()} • {selectedStaff.staff_type?.toUpperCase()}
+                            ID: {selectedStaff.staff_code || 'NO ID'} • {getRoleLabel(selectedStaff.staff_level, shopSettings?.custom_roles)} • {translateStaffType(selectedStaff.staff_type)}
                         </p>
                     </div>
 
@@ -807,10 +1027,11 @@ export default function POSStaffManager({
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-6 gap-y-4">
                                     <div className="space-y-1.5">
                                         <label className="text-[10px] font-bold text-neutral-400">ระดับสิทธิ์</label>
-                                        <select value={selectedStaff.staff_level || ''} onChange={e => setSelectedStaff({ ...selectedStaff, staff_level: e.target.value })} className="w-full bg-neutral-50 rounded-lg border border-neutral-200 py-2.5 px-3 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors">
-                                            <option value="staff">พนักงานทั่วไป</option>
-                                            <option value="manager">ผู้จัดการ</option>
-                                            <option value="admin">แอดมิน</option>
+                                        <select value={selectedStaff.staff_level || 'staff'} onChange={e => setSelectedStaff({ ...selectedStaff, staff_level: e.target.value })} className="w-full bg-neutral-50 rounded-lg border border-neutral-200 py-2.5 px-3 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors">
+                                            {(shopSettings?.custom_roles || []).map((role: any) => (
+                                                <option key={role.id} value={role.id}>{role.label}</option>
+                                            ))}
+                                            <option value="admin">แอดมิน (Admin)</option>
                                         </select>
                                     </div>
                                     <div className="space-y-1.5">
@@ -827,6 +1048,13 @@ export default function POSStaffManager({
                                         <select value={selectedStaff.salary_type || 'daily'} onChange={e => setSelectedStaff({ ...selectedStaff, salary_type: e.target.value })} className="w-full bg-neutral-50 rounded-lg border border-neutral-200 py-2.5 px-3 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors">
                                             <option value="daily">รายวัน</option>
                                             <option value="monthly">รายเดือน</option>
+                                        </select>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-bold text-neutral-400">รูปแบบรับชดเชยวันหยุด</label>
+                                        <select value={selectedStaff.holiday_compensation_type || 'money'} onChange={e => setSelectedStaff({ ...selectedStaff, holiday_compensation_type: e.target.value })} className="w-full bg-neutral-50 rounded-lg border border-neutral-200 py-2.5 px-3 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors">
+                                            <option value="money">รับเป็นค่าแรง (Money)</option>
+                                            <option value="dayoff">รับเป็นวันหยุดชดเชย (Day Off)</option>
                                         </select>
                                     </div>
                                     <div className="space-y-1.5">
@@ -979,6 +1207,48 @@ export default function POSStaffManager({
                                         </div>
                                     </div>
                                 </div>
+
+                                <div className="space-y-4">
+                                    <h3 className="text-xs font-bold text-neutral-400 mb-4 border-b border-neutral-100 pb-2">โควตาวันหยุดและวันลา (ต่อปี)</h3>
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-4">
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-bold text-neutral-400">ลาป่วย (วัน)</label>
+                                            <input
+                                                type="number"
+                                                value={selectedStaff.quota_sick_leave !== undefined && selectedStaff.quota_sick_leave !== null ? selectedStaff.quota_sick_leave : 30}
+                                                onChange={e => setSelectedStaff({ ...selectedStaff, quota_sick_leave: e.target.value === '' ? 0 : Number(e.target.value) })}
+                                                className="w-full bg-neutral-50 rounded-lg border border-neutral-200 py-2.5 px-3 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-bold text-neutral-400">ลากิจ (วัน)</label>
+                                            <input
+                                                type="number"
+                                                value={selectedStaff.quota_personal_leave !== undefined && selectedStaff.quota_personal_leave !== null ? selectedStaff.quota_personal_leave : 3}
+                                                onChange={e => setSelectedStaff({ ...selectedStaff, quota_personal_leave: e.target.value === '' ? 0 : Number(e.target.value) })}
+                                                className="w-full bg-neutral-50 rounded-lg border border-neutral-200 py-2.5 px-3 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-bold text-neutral-400">ลาพักร้อน (วัน)</label>
+                                            <input
+                                                type="number"
+                                                value={selectedStaff.quota_annual_leave !== undefined && selectedStaff.quota_annual_leave !== null ? selectedStaff.quota_annual_leave : 6}
+                                                onChange={e => setSelectedStaff({ ...selectedStaff, quota_annual_leave: e.target.value === '' ? 0 : Number(e.target.value) })}
+                                                className="w-full bg-neutral-50 rounded-lg border border-neutral-200 py-2.5 px-3 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-bold text-neutral-400">นักขัตฤกษ์ (วัน)</label>
+                                            <input
+                                                type="number"
+                                                value={selectedStaff.quota_public_holiday !== undefined && selectedStaff.quota_public_holiday !== null ? selectedStaff.quota_public_holiday : 13}
+                                                onChange={e => setSelectedStaff({ ...selectedStaff, quota_public_holiday: e.target.value === '' ? 0 : Number(e.target.value) })}
+                                                className="w-full bg-neutral-50 rounded-lg border border-neutral-200 py-2.5 px-3 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}
@@ -986,6 +1256,26 @@ export default function POSStaffManager({
                     {/* TAB 2: ATTENDANCE & OT */}
                     {detailTab === 'attendance' && (
                         <div className="space-y-6">
+                            {/* Quota Usage Summary */}
+                            <div className="bg-white rounded-2xl p-5 border border-neutral-200 shadow-sm grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                {[
+                                    { label: 'ลาป่วย', used: staffLeaves.filter(l => l.leave_type === 'sick').length, quota: selectedStaff.quota_sick_leave ?? 30, color: 'text-rose-600', bg: 'bg-rose-50' },
+                                    { label: 'ลากิจ', used: staffLeaves.filter(l => l.leave_type === 'personal').length, quota: selectedStaff.quota_personal_leave ?? 3, color: 'text-orange-600', bg: 'bg-orange-50' },
+                                    { label: 'ลาพักร้อน', used: staffLeaves.filter(l => l.leave_type === 'vacation').length, quota: selectedStaff.quota_annual_leave ?? 6, color: 'text-amber-600', bg: 'bg-amber-50' },
+                                ].map(q => (
+                                    <div key={q.label} className="flex flex-col p-3 rounded-xl bg-neutral-50 border border-neutral-100">
+                                        <span className="text-[10px] font-bold text-neutral-500">{q.label} (เหลือ {q.quota - q.used} วัน)</span>
+                                        <div className="mt-1 flex items-end justify-between">
+                                            <span className={`text-xl font-black ${q.used >= q.quota ? 'text-red-600' : 'text-[#1A1A18]'}`}>{q.used}</span>
+                                            <span className="text-xs font-bold text-neutral-400 mb-0.5">/ {q.quota}</span>
+                                        </div>
+                                        <div className="w-full bg-neutral-200 rounded-full h-1.5 mt-2">
+                                            <div className={`h-1.5 rounded-full ${q.used >= q.quota ? 'bg-red-500' : 'bg-[#1A1A18]'}`} style={{ width: `${Math.min(100, (q.used / q.quota) * 100)}%` }}></div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
                             {/* Month Selector & View Mode Toggle */}
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white rounded-2xl p-4 border border-neutral-200 shadow-sm gap-4">
                                 <div className="flex bg-neutral-100 rounded-xl p-1">
@@ -1034,7 +1324,7 @@ export default function POSStaffManager({
 
                             {/* Render Calendar or Table List */}
                             {slideOverViewMode === 'calendar' ? (
-                                <CalendarGrid logsList={monthIndividualAttendances} monthStr={selectedMonth} />
+                                <CalendarGrid logsList={monthIndividualAttendances} monthStr={selectedMonth} publicHolidays={publicHolidays} />
                             ) : (
                                 <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-hidden">
                                     <table className="w-full text-left">
@@ -1070,6 +1360,39 @@ export default function POSStaffManager({
                                                         ) : (
                                                             <span className="text-gray-300 text-xs">-</span>
                                                         )}
+                                                        {checkPublicHoliday(new Date(a.date)) && a.clock_in && (a.checkin_log_id || a.checkout_log_id) ? (
+                                                            <div className="mt-2 pt-2 border-t border-gray-100 flex flex-col gap-1">
+                                                                <span className="text-[10px] font-black uppercase text-pink-600 tracking-widest block mb-1">ทำงานในวันหยุดนักขัตฤกษ์</span>
+                                                                {a.holiday_pay_status === 'approved_pay' ? (
+                                                                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md w-max inline-block border border-emerald-100">
+                                                                        ✓ อนุมัติอัตโนมัติ: จ่ายค่าแรงพิเศษ
+                                                                    </span>
+                                                                ) : a.holiday_pay_status === 'approved_dayoff' ? (
+                                                                    <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md w-max inline-block border border-indigo-100">
+                                                                        ✓ อนุมัติอัตโนมัติ: หยุดชดเชย
+                                                                    </span>
+                                                                ) : a.holiday_pay_status === 'rejected' ? (
+                                                                    <span className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-1 rounded-md w-max inline-block border border-red-100 line-through">
+                                                                        ไม่อนุมัติชดเชย
+                                                                    </span>
+                                                                ) : (
+                                                                    <div className="flex flex-col gap-1.5 mt-1">
+                                                                        <button
+                                                                            onClick={(e) => { e.stopPropagation(); handleApproveHolidayPay(a.checkout_log_id || a.checkin_log_id); }}
+                                                                            className="text-[10px] font-bold text-white px-2.5 py-1.5 rounded-md transition-colors w-full text-left flex justify-between items-center bg-[#1A1A18] hover:bg-neutral-800 ring-2 ring-neutral-300"
+                                                                        >
+                                                                            อนุมัติ (ตามการตั้งค่า) <span>+</span>
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={(e) => { e.stopPropagation(); handleApproveHolidayPay(a.checkout_log_id || a.checkin_log_id, 'rejected'); }}
+                                                                            className="text-[10px] font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 px-2.5 py-1.5 rounded-md transition-colors w-full text-left"
+                                                                        >
+                                                                            ไม่อนุมัติ
+                                                                        </button>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        ) : null}
                                                     </td>
                                                     <td className="px-6 py-5 text-sm font-bold text-black">{a.total_hours ? parseFloat(a.total_hours).toFixed(2) + 'h' : '-'}</td>
                                                     <td className="px-6 py-5">
@@ -1360,35 +1683,47 @@ export default function POSStaffManager({
         <div className="p-4 sm:p-6 lg:p-10 font-sans overflow-y-auto no-scrollbar bg-white min-h-screen pb-32 relative">
 
             {/* TABS */}
-            <div className="flex overflow-x-auto no-scrollbar gap-6 sm:gap-8 mb-8 border-b border-neutral-100">
-                <button
-                    onClick={() => setInternalTab('list')}
-                    className={`whitespace-nowrap pb-3 text-[13px] font-bold transition-all relative ${internalTab === 'list' ? 'text-[#0F172A]' : 'text-[#9CA3AF] hover:text-neutral-700'}`}
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-neutral-100 mb-8 gap-4 sm:gap-0">
+                <div className="flex overflow-x-auto no-scrollbar gap-6 sm:gap-8">
+                    <button
+                        onClick={() => setInternalTab('list')}
+                        className={`whitespace-nowrap pb-3 text-[13px] font-bold transition-all relative ${internalTab === 'list' ? 'text-[#0F172A]' : 'text-[#9CA3AF] hover:text-neutral-700'}`}
+                    >
+                        {locale === 'en' ? 'Overview' : locale === 'zh' ? '概览' : 'ภาพรวม'}
+                        {internalTab === 'list' && (
+                            <motion.div layoutId="activeTabStaff" className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#0F172A]" />
+                        )}
+                    </button>
+                    <button
+                        onClick={() => setInternalTab('verification')}
+                        className={`whitespace-nowrap pb-3 text-[13px] font-bold transition-all relative flex items-center gap-2 ${internalTab === 'verification' ? 'text-[#0F172A]' : 'text-[#9CA3AF] hover:text-neutral-700'}`}
+                    >
+                        {locale === 'en' ? 'Verification' : locale === 'zh' ? '验证' : 'ยืนยันตัวตน'}
+                        {pendingCount > 0 && <span className="bg-red-500 text-white w-4 h-4 rounded-full flex items-center justify-center text-[8px]">{pendingCount}</span>}
+                        {internalTab === 'verification' && (
+                            <motion.div layoutId="activeTabStaff" className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#0F172A]" />
+                        )}
+                    </button>
+                    <button
+                        onClick={() => setInternalTab('attendance')}
+                        className={`whitespace-nowrap pb-3 text-[13px] font-bold transition-all relative ${internalTab === 'attendance' ? 'text-[#0F172A]' : 'text-[#9CA3AF] hover:text-neutral-700'}`}
+                    >
+                        {locale === 'en' ? 'Attendance' : locale === 'zh' ? '考勤' : 'เวลาเข้างาน'}
+                        {internalTab === 'attendance' && (
+                            <motion.div layoutId="activeTabStaff" className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#0F172A]" />
+                        )}
+                    </button>
+                </div>
+
+                <a 
+                    href="/documents/SOP_Employee_Handbook.pdf" 
+                    target="_blank" 
+                    rel="noreferrer"
+                    className="flex items-center gap-2 bg-[#0F172A] text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-neutral-800 transition-colors self-start sm:self-auto mb-3"
                 >
-                    {locale === 'en' ? 'Overview' : locale === 'zh' ? '概览' : 'ภาพรวม'}
-                    {internalTab === 'list' && (
-                        <motion.div layoutId="activeTabStaff" className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#0F172A]" />
-                    )}
-                </button>
-                <button
-                    onClick={() => setInternalTab('verification')}
-                    className={`whitespace-nowrap pb-3 text-[13px] font-bold transition-all relative flex items-center gap-2 ${internalTab === 'verification' ? 'text-[#0F172A]' : 'text-[#9CA3AF] hover:text-neutral-700'}`}
-                >
-                    {locale === 'en' ? 'Verification' : locale === 'zh' ? '验证' : 'ยืนยันตัวตน'}
-                    {pendingCount > 0 && <span className="bg-red-500 text-white w-4 h-4 rounded-full flex items-center justify-center text-[8px]">{pendingCount}</span>}
-                    {internalTab === 'verification' && (
-                        <motion.div layoutId="activeTabStaff" className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#0F172A]" />
-                    )}
-                </button>
-                <button
-                    onClick={() => setInternalTab('attendance')}
-                    className={`whitespace-nowrap pb-3 text-[13px] font-bold transition-all relative ${internalTab === 'attendance' ? 'text-[#0F172A]' : 'text-[#9CA3AF] hover:text-neutral-700'}`}
-                >
-                    {locale === 'en' ? 'Attendance' : locale === 'zh' ? '考勤' : 'เวลาเข้างาน'}
-                    {internalTab === 'attendance' && (
-                        <motion.div layoutId="activeTabStaff" className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#0F172A]" />
-                    )}
-                </button>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    ดาวน์โหลดคู่มือ SOP (PDF)
+                </a>
             </div>
 
             {/* CONTENT AREA */}
@@ -1428,6 +1763,7 @@ export default function POSStaffManager({
                                             <th className="px-6 py-4">ตำแหน่ง & แผนก (Role)</th>
                                             <th className="px-6 py-4">รหัส (ID)</th>
                                             <th className="px-6 py-4">สถานะ (Status)</th>
+                                            <th className="px-6 py-4">วันหยุดชดเชยสะสม</th>
                                             <th className="px-6 py-4 text-right">จัดการ (Action)</th>
                                         </tr>
                                     </thead>
@@ -1446,7 +1782,7 @@ export default function POSStaffManager({
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="text-xs font-bold text-neutral-500">
-                                                        {person.staff_level?.toUpperCase() || 'STAFF'} • {translateStaffType(person.staff_type || person.department)}
+                                                        {getRoleLabel(person.staff_level, shopSettings?.custom_roles)} • {translateStaffType(person.staff_type || person.department)}
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4">
@@ -1462,6 +1798,39 @@ export default function POSStaffManager({
                                                             <AlertCircle size={12} /> Unverified
                                                         </span>
                                                     )}
+                                                </td>
+                                                <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                                                    <div className="flex flex-col gap-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-[10px] font-bold text-neutral-500">ยอดสะสม:</span>
+                                                            <span className="text-sm font-black text-[#1A1A18]">{person.accrued_holiday_days || 0} วัน</span>
+                                                            {Number(person.accrued_holiday_days || 0) > 0 && (
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setUseHolidayForm({ ...useHolidayForm, profile_id: person.id });
+                                                                        setShowUseHolidayModal(true);
+                                                                    }}
+                                                                    className="ml-2 text-[10px] font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-2 py-1 rounded-md transition-colors"
+                                                                >
+                                                                    ใช้วันหยุด
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex items-center gap-1 bg-neutral-100 p-0.5 rounded-lg w-max">
+                                                            <button 
+                                                                onClick={(e) => handleToggleCompensationType(person.id, 'money', e)}
+                                                                className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${(!person.holiday_compensation_type || person.holiday_compensation_type === 'money') ? 'bg-white text-[#1A1A18] shadow-sm' : 'text-neutral-500 hover:text-neutral-700'}`}
+                                                            >
+                                                                รับเป็นเงิน
+                                                            </button>
+                                                            <button 
+                                                                onClick={(e) => handleToggleCompensationType(person.id, 'dayoff', e)}
+                                                                className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${person.holiday_compensation_type === 'dayoff' ? 'bg-white text-[#1A1A18] shadow-sm' : 'text-neutral-500 hover:text-neutral-700'}`}
+                                                            >
+                                                                วันหยุดชดเชย
+                                                            </button>
+                                                        </div>
+                                                    </div>
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
                                                     <span className="inline-flex items-center gap-1 text-xs font-bold text-neutral-400 group-hover:text-[#1A1A18] transition-all">
@@ -1579,7 +1948,7 @@ export default function POSStaffManager({
                         {loading ? (
                             <div className="py-20 flex justify-center"><Loader2 className="animate-spin text-gray-300" size={48} /></div>
                         ) : attendanceViewMode === 'calendar' ? (
-                            <CalendarGrid logsList={filteredAttendances} monthStr={selectedMonth} />
+                            <CalendarGrid logsList={filteredAttendances} monthStr={selectedMonth} publicHolidays={publicHolidays} />
                         ) : (
                             <div className="bg-white border border-gray-200 shadow-sm overflow-hidden">
                                 <table className="w-full text-left">
@@ -1604,7 +1973,11 @@ export default function POSStaffManager({
                                                 <td className="px-6 py-5 text-sm font-bold text-green-600">{a.clock_in ? new Date(a.clock_in).toLocaleTimeString() : '-'}</td>
                                                 <td className="px-6 py-5 text-sm font-bold text-gray-500">{a.clock_out ? new Date(a.clock_out).toLocaleTimeString() : '-'}</td>
                                                 <td className="px-6 py-5">
-                                                    {a.leave ? (
+                                                    {a.override ? (
+                                                        <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 flex items-center gap-1 w-max ${a.override.reason.includes('มาสาย') ? 'text-blue-600 bg-blue-50' : 'text-amber-600 bg-amber-50'}`}>
+                                                            {a.override.reason}
+                                                        </span>
+                                                    ) : a.leave ? (
                                                         <span className="text-[9px] font-black uppercase tracking-widest text-orange-600 bg-orange-50 px-2 py-1 w-max block">
                                                             ลา{a.leave.leave_type === 'sick' ? 'ป่วย' : a.leave.leave_type === 'personal' ? 'กิจ' : 'พักร้อน'} {a.leave.is_paid ? '(ได้ค่าจ้าง)' : '(ไม่ได้ค่าจ้าง)'}
                                                         </span>
@@ -1619,6 +1992,39 @@ export default function POSStaffManager({
                                                     ) : (
                                                         <span className="text-gray-300 text-xs">-</span>
                                                     )}
+                                                    {checkPublicHoliday(new Date(a.date)) && a.clock_in && (a.checkin_log_id || a.checkout_log_id) ? (
+                                                        <div className="mt-2 pt-2 border-t border-gray-100 flex flex-col gap-1">
+                                                            <span className="text-[10px] font-black uppercase text-pink-600 tracking-widest block mb-1">ทำงานในวันหยุดนักขัตฤกษ์</span>
+                                                            {a.holiday_pay_status === 'approved_pay' ? (
+                                                                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md w-max inline-block border border-emerald-100">
+                                                                    ✓ อนุมัติอัตโนมัติ: จ่ายค่าแรงพิเศษ
+                                                                </span>
+                                                            ) : a.holiday_pay_status === 'approved_dayoff' ? (
+                                                                <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md w-max inline-block border border-indigo-100">
+                                                                    ✓ อนุมัติอัตโนมัติ: หยุดชดเชย
+                                                                </span>
+                                                            ) : a.holiday_pay_status === 'rejected' ? (
+                                                                <span className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-1 rounded-md w-max inline-block border border-red-100 line-through">
+                                                                    ไม่อนุมัติชดเชย
+                                                                </span>
+                                                            ) : (
+                                                                <div className="flex flex-col gap-1.5 mt-1">
+                                                                    <button
+                                                                        onClick={(e) => { e.stopPropagation(); handleApproveHolidayPay(a.checkout_log_id || a.checkin_log_id); }}
+                                                                        className="text-[10px] font-bold text-white px-2.5 py-1.5 rounded-md transition-colors w-full text-left flex justify-between items-center bg-[#1A1A18] hover:bg-neutral-800 ring-2 ring-neutral-300"
+                                                                    >
+                                                                        อนุมัติ (ตามการตั้งค่า) <span>+</span>
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={(e) => { e.stopPropagation(); handleApproveHolidayPay(a.checkout_log_id || a.checkin_log_id, 'rejected'); }}
+                                                                        className="text-[10px] font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 px-2.5 py-1.5 rounded-md transition-colors w-full text-left"
+                                                                    >
+                                                                        ไม่อนุมัติ
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ) : null}
                                                 </td>
                                                 <td className="px-6 py-5 text-sm font-bold text-black">{a.total_hours ? parseFloat(a.total_hours).toFixed(2) + 'h' : '-'}</td>
                                             </tr>
@@ -1695,6 +2101,19 @@ export default function POSStaffManager({
                                     <option value="general">ทั่วไป</option>
                                 </select>
                             </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">ตำแหน่ง (Role)</label>
+                                <select
+                                    value={newStaffForm.staff_level}
+                                    onChange={e => setNewStaffForm({ ...newStaffForm, staff_level: e.target.value })}
+                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
+                                >
+                                    {(shopSettings?.custom_roles || []).map((role: any) => (
+                                        <option key={role.id} value={role.id}>{role.label}</option>
+                                    ))}
+                                    <option value="admin">แอดมิน (Admin)</option>
+                                </select>
+                            </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1.5">
                                     <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">ประเภทค่าจ้าง</label>
@@ -1705,6 +2124,17 @@ export default function POSStaffManager({
                                     >
                                         <option value="daily">รายวัน</option>
                                         <option value="monthly">รายเดือน</option>
+                                    </select>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">รูปแบบรับชดเชยวันหยุด</label>
+                                    <select
+                                        value={newStaffForm.holiday_compensation_type}
+                                        onChange={e => setNewStaffForm({ ...newStaffForm, holiday_compensation_type: e.target.value })}
+                                        className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
+                                    >
+                                        <option value="money">รับเป็นค่าแรง (Money)</option>
+                                        <option value="dayoff">รับเป็นวันหยุดชดเชย (Day Off)</option>
                                     </select>
                                 </div>
                                 <div className="space-y-1.5">
@@ -1809,6 +2239,55 @@ export default function POSStaffManager({
                                 className="w-full bg-red-500 text-white py-4 rounded-xl text-sm font-bold tracking-wide hover:bg-red-600 transition-all shadow-lg shadow-red-500/20"
                             >
                                 บันทึกวันลา
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* USE HOLIDAY MODAL */}
+            {showUseHolidayModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden border border-neutral-100 flex flex-col max-h-[90vh]">
+                        <div className="p-6 border-b border-neutral-100 flex items-center justify-between bg-indigo-50/50">
+                            <div>
+                                <h2 className="text-lg font-black text-indigo-900 tracking-tight">ใช้วันหยุดชดเชย</h2>
+                                <p className="text-xs font-bold text-indigo-400 mt-1">ใช้วันหยุดชดเชยสะสมของพนักงาน</p>
+                            </div>
+                            <button onClick={() => setShowUseHolidayModal(false)} className="text-indigo-400 hover:text-indigo-900 p-2 rounded-full hover:bg-indigo-100 transition-colors">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="p-6 overflow-y-auto space-y-5 flex-1">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">วันที่ต้องการหยุด *</label>
+                                <input
+                                    type="date"
+                                    value={useHolidayForm.leave_date}
+                                    onChange={e => setUseHolidayForm({ ...useHolidayForm, leave_date: e.target.value })}
+                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">หมายเหตุ</label>
+                                <textarea
+                                    value={useHolidayForm.reason}
+                                    onChange={e => setUseHolidayForm({ ...useHolidayForm, reason: e.target.value })}
+                                    placeholder="รายละเอียดการหยุด (ถ้ามี)"
+                                    rows={2}
+                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors resize-none"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="p-6 border-t border-neutral-100 bg-white">
+                            <button
+                                onClick={handleUseHolidaySubmit}
+                                disabled={isSaving}
+                                className="w-full bg-indigo-600 text-white py-4 rounded-xl text-sm font-bold tracking-wide hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-50"
+                            >
+                                {isSaving ? <Loader2 className="animate-spin inline-block mx-auto" /> : 'ยืนยันการใช้วันหยุด'}
                             </button>
                         </div>
                     </div>

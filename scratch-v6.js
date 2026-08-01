@@ -1,10 +1,4 @@
-const fs = require('fs');
-
-const original = fs.readFileSync('app/liff/member/page.tsx', 'utf8');
-
-const newContent = original.replace(
-  "const [titles, setTitles] = useState<any[]>([]);",
-  "const [titles, setTitles] = useState<any[]>([]);\n  const [activeTitle, setActiveTitle] = useState<any>(null);"
-);
-
-fs.writeFileSync('app/liff/member/page.tsx', newContent, 'utf8');
+require('dotenv').config({ path: '.env.local' });
+const { createClient } = require('@supabase/supabase-js');
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+supabase.from('pos_orders').select('*').limit(1).then(res => console.log(JSON.stringify(res.data[0], null, 2))).catch(console.error);

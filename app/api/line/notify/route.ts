@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { sendLineNotification, sendLineFlexNotification, sendInventoryAlertFlex, sendInventoryAuditFlex } from '@/lib/line'
+import { sendLineNotification, sendLineFlexNotification, sendInventoryAlertFlex, sendInventoryAuditFlex, sendCheckoutPhotosFlex, sendZReportFlex } from '@/lib/line'
 
 function createSupabaseServiceClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     // If "to" is missing and it's an inventory alert, we fetch admins server-side
     let targets = to ? (Array.isArray(to) ? to : [to]) : []
     
-    if (targets.length === 0 && (type === 'inventory' || type === 'inventory_audit')) {
+    if (targets.length === 0 && (type === 'inventory' || type === 'inventory_audit' || type === 'checkout_photos' || type === 'z_report')) {
       console.log('[LINE Notify] Auto-fetching admins from Auth metadata...');
       
       // 1. Fetch all users from Auth to get their metadata (where line_user_id lives)
@@ -33,7 +33,16 @@ export async function POST(req: Request) {
       });
 
       if (!authError && authData) {
-        // 2. Fetch profiles to check roles
+        // Fetch shop settings to check dynamic role permissions
+        const { data: settingsData } = await supabase
+          .from('pos_shop_settings')
+          .select('role_permissions')
+          .limit(1)
+          .single();
+        
+        const rolePermissions = settingsData?.role_permissions || {};
+
+        // Fetch profiles to get the staff_level (custom role id)
         const { data: profiles } = await supabase.from('profiles').select('id, role, staff_level');
 
         authData.users.forEach(user => {
@@ -41,15 +50,26 @@ export async function POST(req: Request) {
           const role = String(profile?.role || '').toLowerCase();
           const level = String(profile?.staff_level || '').toLowerCase();
           
-          const isAdmin = role.includes('admin') || 
-                          role.includes('owner') || 
-                          role.includes('super') || 
-                          level.includes('manager') ||
-                          level.includes('admin');
+          let requiredPermission = '';
+          if (type === 'inventory') requiredPermission = 'line-notify-inventory';
+          else if (type === 'inventory_audit') requiredPermission = 'line-notify-inventory-audit';
+          else if (type === 'checkout_photos') requiredPermission = 'line-notify-checkout-photos';
+          else if (type === 'z_report') requiredPermission = 'line-notify-zreport';
+
+          // Owners and Superadmins get everything by default
+          let hasPermission = role.includes('owner') || role.includes('super');
+          
+          if (!hasPermission && requiredPermission) {
+             const userPermissions = rolePermissions[level] || [];
+             hasPermission = userPermissions.includes(requiredPermission);
+          } else if (!hasPermission) {
+             // Fallback for any other type without a specific permission
+             hasPermission = role.includes('admin') || level.includes('manager') || level.includes('admin');
+          }
 
           const lineId = user.user_metadata?.line_user_id;
 
-          if (isAdmin && lineId) {
+          if (hasPermission && lineId) {
             targets.push(lineId);
           }
         });
@@ -93,6 +113,20 @@ export async function POST(req: Request) {
       for (const target of targets) {
         try {
           await sendInventoryAuditFlex(target, body.auditData)
+          successCount++;
+        } catch (e: any) { errors.push(e.message); }
+      }
+    } else if (type === 'checkout_photos' && body.photoData) {
+      for (const target of targets) {
+        try {
+          await sendCheckoutPhotosFlex(target, body.photoData)
+          successCount++;
+        } catch (e: any) { errors.push(e.message); }
+      }
+    } else if (type === 'z_report' && body.reportData) {
+      for (const target of targets) {
+        try {
+          await sendZReportFlex(target, body.reportData)
           successCount++;
         } catch (e: any) { errors.push(e.message); }
       }

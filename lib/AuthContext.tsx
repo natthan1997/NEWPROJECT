@@ -27,6 +27,7 @@ interface Profile {
   staff_type?: 'cafe' | 'garden';
   shift_start?: string;
   shift_end?: string;
+  avatar_url?: string;
 }
 
 interface AuthContextType {

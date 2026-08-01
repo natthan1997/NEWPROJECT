@@ -199,7 +199,7 @@ export default function POSReports({
 
     const [financials, setFinancials] = useState<any>({
         totalRevenue: 0, totalOrders: 0, laborCost: 0, totalWorkDays: 0, theoreticalCogs: 0, otherExpenses: 0, netProfit: 0,
-        salesTrend: [], menuPerformance: [], expenseList: [],
+        salesTrend: [], menuPerformance: [], categoryPerformance: [], worstPerformance: [], expenseList: [],
         staffList: [], workedStaff: [], paymentData: [], varianceCost: 0,
         platformGpData: [], totalGpFee: 0, netAfterGp: 0,
         averageTicketSize: 0, discountTotal: 0, hourlyHeatmap: [], topModifiers: [], voidedOrders: [],
@@ -432,8 +432,9 @@ export default function POSReports({
 
             // Fetch inventory for dynamic cost calculation and variance
             let itemQuery = supabase.from('inventory_items').select('id, cost_price')
-            if (bId) itemQuery = itemQuery.eq('branch_id', bId)
-            else if (bCode) itemQuery = itemQuery.eq('branch_code', bCode)
+            if (bId) {
+                itemQuery = itemQuery.eq('branch_id', bId)
+            }
 
             const { data: invItems } = await itemQuery
             const costMap = new Map((invItems || []).map((i: any) => [i.id, i.cost_price || 0]))
@@ -448,22 +449,47 @@ export default function POSReports({
             // 3. MENU & EXPENSES
             const orderIds = branchOrders.map(o => o.id)
             let menuPerf: any[] = []
+            let categoryPerf: any[] = []
+            let worstPerf: any[] = []
             let topModifiers: any[] = []
             let actualCogs = 0
+
+            const { data: menuList } = await supabase.from('pos_menu_items').select('id, name, recipe_data, category_id, status').eq('status', 'active')
+            const { data: modifierList } = await supabase.from('pos_menu_modifiers').select('id, name, recipe_data')
+            const { data: categories } = await supabase.from('pos_menu_categories').select('id, name')
+            
+            const menuMap = new Map(menuList?.map(m => [m.id, { name: m.name, category_id: m.category_id, recipe_data: m.recipe_data }]))
+            const catMap = new Map(categories?.map(c => [c.id, c.name]))
+            const itemAggr: Record<string, any> = {}
+            const catAggr: Record<string, any> = {}
+            const modAggr: Record<string, number> = {}
+
+            // Initialize itemAggr with all active menus to catch 0 sales
+            menuList?.forEach(m => {
+                itemAggr[m.name] = { name: m.name, quantity: 0, revenue: 0 }
+            })
+
             if (orderIds.length > 0) {
-                const { data: items } = await supabase.from('pos_order_items').select('*').in('order_id', orderIds)
-                const { data: menuList } = await supabase.from('pos_menu_items').select('id, name, recipe_data')
-                const { data: modifierList } = await supabase.from('pos_menu_modifiers').select('id, name, recipe_data')
-                const menuNameMap = new Map(menuList?.map(m => [m.id, m.name]))
-                const itemAggr: Record<string, any> = {}
-                const modAggr: Record<string, number> = {}
+                let items: any[] = []
+                const chunkSize = 100
+                for (let i = 0; i < orderIds.length; i += chunkSize) {
+                    const chunk = orderIds.slice(i, i + chunkSize)
+                    const { data: itemsChunk } = await supabase.from('pos_order_items').select('*').in('order_id', chunk)
+                    if (itemsChunk) items = items.concat(itemsChunk)
+                }
 
                 items?.forEach(item => {
-                    const itemName = menuNameMap.get(item.item_id) || 'Unknown'
+                    const mInfo = menuMap.get(item.item_id)
+                    const itemName = mInfo?.name || 'Unknown'
+                    const catName = catMap.get(mInfo?.category_id) || 'ไม่มีหมวดหมู่'
+
                     if (!itemAggr[itemName]) itemAggr[itemName] = { name: itemName, quantity: 0, revenue: 0 }
                     itemAggr[itemName].quantity += item.quantity || 0; itemAggr[itemName].revenue += Number(item.subtotal) || 0
 
-                    const menuRecipe = menuList?.find(m => m.id === item.item_id)?.recipe_data || [];
+                    if (!catAggr[catName]) catAggr[catName] = { name: catName, quantity: 0, revenue: 0 }
+                    catAggr[catName].quantity += item.quantity || 0; catAggr[catName].revenue += Number(item.subtotal) || 0
+
+                    const menuRecipe = mInfo?.recipe_data || [];
                     const baseCost = calculateDynamicCost(menuRecipe);
                     let modifierCost = 0;
 
@@ -483,9 +509,11 @@ export default function POSReports({
 
                     actualCogs += finalUnitCost * (item.quantity || 1)
                 })
-                menuPerf = Object.values(itemAggr).sort((a, b) => b.revenue - a.revenue)
-                topModifiers = Object.entries(modAggr).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count)
             }
+            menuPerf = Object.values(itemAggr).sort((a, b) => b.revenue - a.revenue)
+            worstPerf = Object.values(itemAggr).sort((a, b) => a.quantity - b.quantity).slice(0, 20) // Get bottom 20 worst sellers
+            topModifiers = Object.entries(modAggr).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count)
+            categoryPerf = Object.values(catAggr).sort((a, b) => b.revenue - a.revenue)
 
             let expenseQuery = supabase.from('pos_other_expenses')
                 .select('*')
@@ -574,7 +602,7 @@ export default function POSReports({
             setFinancials({
                 totalRevenue, netRevenue, laborCost: totalLaborCost, totalWorkDays, theoreticalCogs: actualCogs, otherExpenses: totalOtherExp, netProfit, totalOrders, averageTicketSize, discountTotal, hourlyHeatmap, topModifiers, voidedOrders: branchVoids,
                 salesTrend: Object.entries(trendMap).map(([name, value]) => ({ name, value })),
-                menuPerformance: menuPerf, expenseList: validExpenses || [],
+                menuPerformance: menuPerf, categoryPerformance: categoryPerf, worstPerformance: worstPerf, expenseList: validExpenses || [],
                 staffList: branchStaff, workedStaff: workedStaffList,
                 paymentData, varianceCost, platformGpData, totalGpFee, netAfterGp: netRevenue - totalGpFee,
                 comparisonPct, comparisonLabel, comparisonBaseNetRevenue, comparisonDirection
@@ -612,7 +640,7 @@ export default function POSReports({
             ) : (
                 <div className="space-y-12 animate-in fade-in duration-700">
                     {activeTab === 'overview' && <OverviewReport financials={financials} />}
-                    {activeTab === 'menu' && <MenuReport menuPerformance={financials.menuPerformance} topModifiers={financials.topModifiers} />}
+                    {activeTab === 'menu' && <MenuReport menuPerformance={financials.menuPerformance} categoryPerformance={financials.categoryPerformance} worstPerformance={financials.worstPerformance} topModifiers={financials.topModifiers} />}
                     {activeTab === 'payment' && <PaymentReport paymentData={financials.paymentData} totalRevenue={financials.netRevenue} platformGpData={financials.platformGpData} totalGpFee={financials.totalGpFee} />}
                     {activeTab === 'inventory' && <InventoryReport varianceCost={financials.varianceCost} />}
                     {activeTab === 'expenses' && <ExpensesTab expenseList={financials.expenseList} total={financials.otherExpenses} onDelete={() => fetchData()} onAdd={() => setShowAddExpense(true)} />}
@@ -1098,27 +1126,55 @@ function PLRow({ label, value, color }: any) {
     )
 }
 
-function MenuReport({ menuPerformance, topModifiers }: any) {
+function MenuReport({ menuPerformance, categoryPerformance, worstPerformance, topModifiers }: any) {
     const { locale } = useI18n();
-    const [activeView, setActiveView] = useState<'menu' | 'modifier'>('menu');
+    const [activeView, setActiveView] = useState<'menu' | 'category' | 'modifier' | 'worst'>('menu');
 
     return (
         <>
             <div className="sm:hidden">
-                <div className="flex bg-neutral-100/80 p-1 rounded-2xl mb-6 mx-1 shadow-inner">
-                    <button onClick={() => setActiveView('menu')} className={`flex-1 py-3 text-[13px] font-bold rounded-xl transition-all duration-300 ${activeView === 'menu' ? 'bg-white shadow-sm text-[#0F172A]' : 'text-neutral-500 hover:text-neutral-700'}`}>อันดับเมนูขายดี</button>
-                    <button onClick={() => setActiveView('modifier')} className={`flex-1 py-3 text-[13px] font-bold rounded-xl transition-all duration-300 ${activeView === 'modifier' ? 'bg-white shadow-sm text-[#0F172A]' : 'text-neutral-500 hover:text-neutral-700'}`}>อันดับตัวเลือกขายดี</button>
+                <div className="flex flex-wrap bg-neutral-100/80 p-1 rounded-2xl mb-6 mx-1 shadow-inner gap-1">
+                    <button onClick={() => setActiveView('menu')} className={`flex-1 py-3 text-[11px] font-bold rounded-xl transition-all duration-300 ${activeView === 'menu' ? 'bg-white shadow-sm text-[#0F172A]' : 'text-neutral-500 hover:text-neutral-700'}`}>เมนู</button>
+                    <button onClick={() => setActiveView('category')} className={`flex-1 py-3 text-[11px] font-bold rounded-xl transition-all duration-300 ${activeView === 'category' ? 'bg-white shadow-sm text-[#0F172A]' : 'text-neutral-500 hover:text-neutral-700'}`}>หมวดหมู่</button>
+                    <button onClick={() => setActiveView('modifier')} className={`flex-1 py-3 text-[11px] font-bold rounded-xl transition-all duration-300 ${activeView === 'modifier' ? 'bg-white shadow-sm text-[#0F172A]' : 'text-neutral-500 hover:text-neutral-700'}`}>ตัวเลือก</button>
+                    <button onClick={() => setActiveView('worst')} className={`flex-1 py-3 text-[11px] font-bold rounded-xl transition-all duration-300 ${activeView === 'worst' ? 'bg-red-50 text-red-600 shadow-sm ring-1 ring-red-100' : 'text-neutral-500 hover:text-red-500'}`}>ควรพิจารณา</button>
                 </div>
 
                 <div className="overflow-hidden rounded-3xl bg-white ring-1 ring-black/5 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-                    <h3 className="border-b border-neutral-100/50 px-6 py-5 text-[16px] font-black text-[#1A1A18] tracking-tight">{activeView === 'menu' ? 'อันดับเมนูขายดี' : 'อันดับตัวเลือกเสริมขายดี'}</h3>
+                    <h3 className="border-b border-neutral-100/50 px-6 py-5 text-[16px] font-black text-[#1A1A18] tracking-tight">{activeView === 'menu' ? 'อันดับเมนูขายดี' : activeView === 'category' ? 'อันดับหมวดหมู่ขายดี' : activeView === 'worst' ? 'เมนูยอดแย่ / ควรพิจารณา' : 'อันดับตัวเลือกขายดี'}</h3>
                     <div className="divide-y divide-neutral-50">
-                        {activeView === 'menu' && menuPerformance.map((item: any, idx: number) => (
+                        {activeView === 'menu' && menuPerformance?.map((item: any, idx: number) => (
                             <div key={idx} className="flex items-center justify-between px-6 py-5 hover:bg-neutral-50/50 transition-colors">
                                 <div className="min-w-0 pr-4 flex items-center gap-4">
                                     <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black ${idx === 0 ? 'bg-amber-100 text-amber-600' : idx === 1 ? 'bg-slate-100 text-slate-500' : idx === 2 ? 'bg-orange-100 text-orange-600' : 'bg-neutral-50 text-neutral-400'}`}>{idx + 1}</div>
                                     <div>
                                         <div className="truncate text-[14px] font-bold text-[#1A1A18]">{item.name}</div>
+                                        <div className="mt-1 text-[11px] font-semibold text-neutral-400">{item.quantity} รายการ</div>
+                                    </div>
+                                </div>
+                                <div className="text-right text-[15px] font-black tracking-tight text-[#1A1A18]">฿{item.revenue.toLocaleString()}</div>
+                            </div>
+                        ))}
+
+                        {activeView === 'category' && categoryPerformance?.map((item: any, idx: number) => (
+                            <div key={idx} className="flex items-center justify-between px-6 py-5 hover:bg-neutral-50/50 transition-colors">
+                                <div className="min-w-0 pr-4 flex items-center gap-4">
+                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black ${idx === 0 ? 'bg-indigo-100 text-indigo-600' : idx === 1 ? 'bg-blue-100 text-blue-600' : 'bg-neutral-50 text-neutral-400'}`}>{idx + 1}</div>
+                                    <div>
+                                        <div className="truncate text-[14px] font-bold text-[#1A1A18]">{item.name}</div>
+                                        <div className="mt-1 text-[11px] font-semibold text-neutral-400">{item.quantity} รายการ</div>
+                                    </div>
+                                </div>
+                                <div className="text-right text-[15px] font-black tracking-tight text-[#1A1A18]">฿{item.revenue.toLocaleString()}</div>
+                            </div>
+                        ))}
+
+                        {activeView === 'worst' && worstPerformance?.map((item: any, idx: number) => (
+                            <div key={idx} className="flex items-center justify-between px-6 py-5 hover:bg-neutral-50/50 transition-colors">
+                                <div className="min-w-0 pr-4 flex items-center gap-4">
+                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black ${item.quantity === 0 ? 'bg-red-100 text-red-600' : 'bg-neutral-100 text-neutral-500'}`}>{idx + 1}</div>
+                                    <div>
+                                        <div className={`truncate text-[14px] font-bold ${item.quantity === 0 ? 'text-red-500' : 'text-[#1A1A18]'}`}>{item.name}</div>
                                         <div className="mt-1 text-[11px] font-semibold text-neutral-400">{item.quantity} รายการ</div>
                                     </div>
                                 </div>
@@ -1143,28 +1199,66 @@ function MenuReport({ menuPerformance, topModifiers }: any) {
                 </div>
             </div>
 
-            <div className="hidden sm:grid lg:grid-cols-2 gap-4 lg:gap-6">
+            <div className="hidden sm:grid lg:grid-cols-3 gap-4 lg:gap-6">
                 <div className="bg-white rounded-3xl overflow-hidden ring-1 ring-black/5 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-                    <h3 className="text-[12px] font-black uppercase tracking-widest p-8 border-b border-neutral-100/50 text-[#1A1A18]">{locale === 'en' ? 'สินค้าขายดี' : locale === 'zh' ? 'สินค้าขายดี' : 'สินค้าขายดี'}</h3>
+                    <h3 className="text-[12px] font-black uppercase tracking-widest p-6 border-b border-neutral-100/50 text-[#1A1A18]">{locale === 'en' ? 'หมวดหมู่ขายดี' : locale === 'zh' ? 'หมวดหมู่ขายดี' : 'หมวดหมู่ขายดี'}</h3>
                     <table className="w-full text-left">
                         <thead className="bg-neutral-50/50 text-[10px] font-bold uppercase tracking-widest text-neutral-400 border-b border-neutral-100/50">
-                            <tr><th className="px-8 py-5">{locale === 'en' ? 'รายการเมนู' : locale === 'zh' ? 'รายการเมนู' : 'รายการเมนู'}</th><th className="px-8 py-5 text-center">{locale === 'en' ? 'quantity' : locale === 'zh' ? '数量' : 'จำนวน'}</th><th className="px-8 py-5 text-right">{locale === 'en' ? 'ยอดขายรวม' : locale === 'zh' ? 'ยอดขายรวม' : 'ยอดขายรวม'}</th></tr>
+                            <tr><th className="px-6 py-4">{locale === 'en' ? 'หมวดหมู่' : locale === 'zh' ? 'หมวดหมู่' : 'หมวดหมู่'}</th><th className="px-6 py-4 text-center">{locale === 'en' ? 'qty' : locale === 'zh' ? 'qty' : 'จำนวน'}</th><th className="px-6 py-4 text-right">{locale === 'en' ? 'ยอดขาย' : locale === 'zh' ? 'ยอดขาย' : 'ยอดขาย'}</th></tr>
                         </thead>
                         <tbody className="divide-y divide-neutral-50">
-                            {menuPerformance.map((item: any, idx: number) => (<tr key={idx} className="hover:bg-neutral-50/80 transition-colors cursor-pointer"><td className="px-8 py-5 text-[12px] font-bold text-[#1A1A18]">{item.name}</td><td className="px-8 py-5 text-center font-black text-neutral-600 tracking-tight">{item.quantity}</td><td className="px-8 py-5 text-right font-black tracking-tight text-[#1A1A18]">{locale === 'en' ? '฿ ' : locale === 'zh' ? '฿ ' : '฿ '}{item.revenue.toLocaleString()}</td></tr>))}
+                            {categoryPerformance?.map((item: any, idx: number) => (<tr key={idx} className="hover:bg-neutral-50/80 transition-colors cursor-pointer"><td className="px-6 py-4 text-[12px] font-bold text-[#1A1A18] truncate max-w-[100px]">{item.name}</td><td className="px-6 py-4 text-center font-black text-neutral-600 tracking-tight">{item.quantity}</td><td className="px-6 py-4 text-right font-black tracking-tight text-[#1A1A18]">{locale === 'en' ? '฿ ' : locale === 'zh' ? '฿ ' : '฿ '}{item.revenue.toLocaleString()}</td></tr>))}
                         </tbody>
                     </table>
                 </div>
 
                 <div className="bg-white rounded-3xl overflow-hidden ring-1 ring-black/5 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-                    <h3 className="text-[12px] font-black uppercase tracking-widest p-8 border-b border-neutral-100/50 text-[#1A1A18]">{locale === 'en' ? 'ตัวเลือกเสริมยอดฮิต (Modifiers/Add-ons)' : locale === 'zh' ? 'ตัวเลือกเสริมยอดฮิต' : 'ตัวเลือกเสริมยอดฮิต (Modifiers/Add-ons)'}</h3>
+                    <h3 className="text-[12px] font-black uppercase tracking-widest p-6 border-b border-neutral-100/50 text-[#1A1A18]">{locale === 'en' ? 'สินค้าขายดี' : locale === 'zh' ? 'สินค้าขายดี' : 'สินค้าขายดี'}</h3>
+                    <table className="w-full text-left">
+                        <thead className="bg-neutral-50/50 text-[10px] font-bold uppercase tracking-widest text-neutral-400 border-b border-neutral-100/50">
+                            <tr><th className="px-6 py-4">{locale === 'en' ? 'รายการเมนู' : locale === 'zh' ? 'รายการเมนู' : 'รายการเมนู'}</th><th className="px-6 py-4 text-center">{locale === 'en' ? 'qty' : locale === 'zh' ? 'qty' : 'จำนวน'}</th><th className="px-6 py-4 text-right">{locale === 'en' ? 'ยอดขาย' : locale === 'zh' ? 'ยอดขาย' : 'ยอดขาย'}</th></tr>
+                        </thead>
+                        <tbody className="divide-y divide-neutral-50">
+                            {menuPerformance?.map((item: any, idx: number) => (<tr key={idx} className="hover:bg-neutral-50/80 transition-colors cursor-pointer"><td className="px-6 py-4 text-[12px] font-bold text-[#1A1A18] truncate max-w-[100px]">{item.name}</td><td className="px-6 py-4 text-center font-black text-neutral-600 tracking-tight">{item.quantity}</td><td className="px-6 py-4 text-right font-black tracking-tight text-[#1A1A18]">{locale === 'en' ? '฿ ' : locale === 'zh' ? '฿ ' : '฿ '}{item.revenue.toLocaleString()}</td></tr>))}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div className="bg-white rounded-3xl overflow-hidden ring-1 ring-black/5 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+                    <h3 className="text-[12px] font-black uppercase tracking-widest p-6 border-b border-neutral-100/50 text-[#1A1A18]">{locale === 'en' ? 'ตัวเลือกเสริม' : locale === 'zh' ? 'ตัวเลือกเสริม' : 'ตัวเลือกเสริม (Modifiers)'}</h3>
                     <table className="w-full text-left">
                         <thead className="bg-neutral-50 text-[8px] font-black uppercase tracking-widest text-neutral-400 border-b border-neutral-100">
-                            <tr><th className="px-8 py-6">ตัวเลือกเสริม</th><th className="px-8 py-6 text-right">จำนวนครั้งที่เลือก</th></tr>
+                            <tr><th className="px-6 py-4">ตัวเลือกเสริม</th><th className="px-6 py-4 text-right">จำนวน</th></tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
-                            {topModifiers?.map((item: any, idx: number) => (<tr key={idx} className="hover:bg-gray-50 transition-all"><td className="px-8 py-6 text-[11px] font-black uppercase">{item.name}</td><td className="px-8 py-6 text-right font-black">{item.count}</td></tr>))}
-                            {(!topModifiers || topModifiers.length === 0) && <tr><td colSpan={2} className="px-8 py-6 text-center text-[10px] text-gray-400 font-bold uppercase">ไม่มีข้อมูลตัวเลือกเสริม</td></tr>}
+                            {topModifiers?.map((item: any, idx: number) => (<tr key={idx} className="hover:bg-gray-50 transition-all"><td className="px-6 py-4 text-[11px] font-black uppercase truncate max-w-[120px]">{item.name}</td><td className="px-6 py-4 text-right font-black">{item.count}</td></tr>))}
+                            {(!topModifiers || topModifiers.length === 0) && <tr><td colSpan={2} className="px-6 py-4 text-center text-[10px] text-gray-400 font-bold uppercase">ไม่มีข้อมูลตัวเลือกเสริม</td></tr>}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div className="hidden sm:block mt-6">
+                <div className="bg-white rounded-3xl overflow-hidden ring-1 ring-red-100/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+                    <h3 className="text-[12px] font-black uppercase tracking-widest p-6 border-b border-red-50 text-red-600 bg-red-50/30 flex items-center gap-2">
+                        <span>เมนูยอดแย่ / ควรพิจารณาเอาออก (Worst Sellers)</span>
+                    </h3>
+                    <table className="w-full text-left">
+                        <thead className="bg-neutral-50/50 text-[10px] font-bold uppercase tracking-widest text-neutral-400 border-b border-neutral-100/50">
+                            <tr><th className="px-6 py-4">อันดับ</th><th className="px-6 py-4">รายการเมนู</th><th className="px-6 py-4 text-center">ขายได้ (รายการ)</th><th className="px-6 py-4 text-right">ยอดขายรวม</th></tr>
+                        </thead>
+                        <tbody className="divide-y divide-neutral-50">
+                            {worstPerformance?.map((item: any, idx: number) => (
+                                <tr key={idx} className={`transition-colors cursor-pointer ${item.quantity === 0 ? 'bg-red-50/20 hover:bg-red-50/40' : 'hover:bg-neutral-50/80'}`}>
+                                    <td className="px-6 py-4 text-[12px] font-black text-neutral-400">{idx + 1}</td>
+                                    <td className={`px-6 py-4 text-[12px] font-bold ${item.quantity === 0 ? 'text-red-500' : 'text-[#1A1A18]'}`}>{item.name}</td>
+                                    <td className={`px-6 py-4 text-center font-black tracking-tight ${item.quantity === 0 ? 'text-red-500' : 'text-neutral-600'}`}>{item.quantity}</td>
+                                    <td className="px-6 py-4 text-right font-black tracking-tight text-[#1A1A18]">฿ {item.revenue.toLocaleString()}</td>
+                                </tr>
+                            ))}
+                            {(!worstPerformance || worstPerformance.length === 0) && (
+                                <tr><td colSpan={4} className="px-6 py-8 text-center text-[11px] text-neutral-400 font-bold uppercase">ไม่มีข้อมูลเมนูยอดแย่</td></tr>
+                            )}
                         </tbody>
                     </table>
                 </div>

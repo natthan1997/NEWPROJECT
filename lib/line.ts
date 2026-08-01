@@ -615,3 +615,143 @@ async function sendLineMessage(mode: 'push' | 'reply', payload: { to?: string; r
   
   return true;
 }
+
+export async function sendCheckoutPhotosFlex(to: string, data: { staffName: string, time: string, zones: { name: string, url: string }[] }) {
+  const { staffName, time, zones } = data;
+
+  const zoneContents = zones.map(zone => ({
+    type: "box",
+    layout: "vertical",
+    margin: "md",
+    spacing: "sm",
+    contents: [
+      {
+        type: "text",
+        text: `• ${zone.name}`,
+        weight: "bold",
+        size: "sm",
+        color: "#1A1A18"
+      },
+      {
+        type: "image",
+        url: zone.url,
+        size: "full",
+        aspectRatio: "1:1",
+        aspectMode: "cover"
+      }
+    ]
+  }));
+
+  const flexMessage: any = {
+    type: "flex",
+    altText: `แจ้งเตือนพนักงานลงเวลาออกงาน: ${staffName}`,
+    contents: {
+      type: "bubble",
+      body: {
+        type: "box",
+        layout: "vertical",
+        spacing: "md",
+        contents: [
+          { type: "text", text: "ATTENDANCE UPDATE", weight: "bold", color: "#A3A3A3", size: "xs" },
+          { type: "text", text: "รายงานรูปถ่ายลงเวลาออกงาน", weight: "bold", size: "lg", color: "#10B981" },
+          { type: "separator", margin: "lg" },
+          { 
+            type: "box", 
+            layout: "horizontal", 
+            margin: "lg",
+            contents: [
+              { type: "text", text: "พนักงาน:", size: "sm", color: "#8C8A81", flex: 2 },
+              { type: "text", text: staffName, size: "sm", color: "#1A1A18", weight: "bold", flex: 5 }
+            ]
+          },
+          { 
+            type: "box", 
+            layout: "horizontal",
+            contents: [
+              { type: "text", text: "เวลาออกงาน:", size: "sm", color: "#8C8A81", flex: 2 },
+              { type: "text", text: time, size: "sm", color: "#1A1A18", weight: "bold", flex: 5 }
+            ]
+          },
+          ...(zoneContents.length > 0 ? [
+            { type: "separator", margin: "lg" },
+            { type: "text", text: "รูปถ่ายตามโซน:", size: "xs", color: "#A3A3A3", margin: "md" },
+            { type: "box", layout: "vertical", spacing: "xs", margin: "sm", contents: zoneContents }
+          ] : [])
+        ]
+      }
+    }
+  };
+
+  return await sendLinePushMessages(to, [flexMessage]);
+}
+
+export async function sendZReportFlex(to: string, reportData: any) {
+  const diffColor = reportData.difference < 0 ? "#EF4444" : reportData.difference > 0 ? "#10B981" : "#A3A3A3";
+  const diffPrefix = reportData.difference > 0 ? "+" : "";
+
+  const flexMessage: any = {
+    type: "flex",
+    altText: `Z-Report ปิดกะ: ${reportData.staffName}`,
+    contents: {
+      type: "bubble",
+      size: "kilo",
+      body: {
+        type: "box",
+        layout: "vertical",
+        spacing: "md",
+        contents: [
+          { type: "text", text: "Z-REPORT / ปิดกะ", weight: "bold", color: "#A3A3A3", size: "xs" },
+          { type: "text", text: `฿${reportData.actualCash.toLocaleString()}`, weight: "bold", size: "xxl", color: "#1A1A18", margin: "sm" },
+          { type: "text", text: "ยอดเงินนับจริงในลิ้นชัก", size: "xs", color: "#8C8A81" },
+          { type: "separator", margin: "lg" },
+          {
+            type: "box",
+            layout: "vertical",
+            spacing: "sm",
+            margin: "lg",
+            contents: [
+              {
+                type: "box",
+                layout: "horizontal",
+                contents: [
+                  { type: "text", text: "พนักงาน", size: "sm", color: "#8C8A81", flex: 3 },
+                  { type: "text", text: reportData.staffName, size: "sm", color: "#1A1A18", align: "end", weight: "bold", flex: 4 }
+                ]
+              },
+              {
+                type: "box",
+                layout: "horizontal",
+                contents: [
+                  { type: "text", text: "ยอดขายรวม", size: "sm", color: "#8C8A81", flex: 3 },
+                  { type: "text", text: `฿${(reportData.cashSales + reportData.transferSales + reportData.cardSales + reportData.otherSales).toLocaleString()}`, size: "sm", color: "#1A1A18", align: "end", weight: "bold", flex: 4 }
+                ]
+              },
+              {
+                type: "box",
+                layout: "horizontal",
+                contents: [
+                  { type: "text", text: "ส่วนต่างเงินสด", size: "sm", color: "#8C8A81", flex: 3 },
+                  { type: "text", text: `${diffPrefix}฿${reportData.difference.toLocaleString()}`, size: "sm", color: diffColor, align: "end", weight: "bold", flex: 4 }
+                ]
+              }
+            ]
+          },
+          { type: "separator", margin: "lg" },
+          {
+            type: "box",
+            layout: "vertical",
+            spacing: "xs",
+            margin: "lg",
+            contents: [
+              { type: "text", text: "เวลาเปิด: " + reportData.openedAt, size: "xxs", color: "#A3A3A3" },
+              { type: "text", text: "เวลาปิด: " + reportData.closedAt, size: "xxs", color: "#A3A3A3" },
+              { type: "text", text: "หมายเหตุ: " + (reportData.notes || "-"), size: "xxs", color: diffColor, wrap: true }
+            ]
+          }
+        ]
+      }
+    }
+  };
+
+  return await sendLinePushMessages(to, [flexMessage]);
+}

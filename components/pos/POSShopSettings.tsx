@@ -4,7 +4,7 @@ import { Capacitor } from '@capacitor/core'
 import { PrinterSocket } from 'custom-printer-plugin'
 import { printCustomerReceipt, printKitchenTicket } from '@/lib/printerUtils'
 import { printGraphicModeCustomerReceipt, printGraphicModeKitchenTicket } from '@/lib/graphicPrinter'
-import { Plus, Loader2, Save, X, Settings, Clock, Bell, Info, Image as ImageIcon, Star, Gift, ChevronDown, ChevronUp, Upload, Trash2, Menu as MenuIcon, ChevronRight, ArrowLeft, ShieldCheck, QrCode, MapPin, Printer, Truck, Flag, RefreshCw, Store, Navigation, Percent, Camera } from 'lucide-react'
+import { Plus, Loader2, Save, X, Settings, Clock, Bell, Info, Image as ImageIcon, Star, Gift, ChevronDown, ChevronUp, Upload, Trash2, Menu as MenuIcon, ChevronRight, ArrowLeft, ShieldCheck, QrCode, MapPin, Printer, Truck, Flag, RefreshCw, Store, Navigation, Percent, Camera, Users } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
 import POSCampaignsTab from './POSCampaignsTab'
@@ -75,6 +75,10 @@ const permissionOptions = [
   { id: 'settings', label: 'ตั้งค่าร้าน (SHOP SETTINGS)', desc: 'จัดการวันเวลาเปิดปิดร้าน แบนเนอร์ และสิทธิ์พนักงาน' },
   { id: 'reports', label: 'รายงานผล (REPORTS)', desc: 'รายงานยอดขายและสถิติสำคัญประจำกะ' },
   { id: 'staff', label: 'จัดการพนักงาน (STAFF)', desc: 'ระบบจัดการสิทธิ์และรายชื่อพนักงานประจำร้าน' },
+  { id: 'line-notify-inventory', label: '[LINE] แจ้งเตือนสต๊อก (STOCK ALERT)', desc: 'รับการแจ้งเตือนเมื่อสต๊อกวัตถุดิบใกล้หมด' },
+  { id: 'line-notify-inventory-audit', label: '[LINE] นับสต๊อก (AUDIT ALERT)', desc: 'รับแจ้งเตือนเมื่อมีการนับสต๊อกวัตถุดิบและสรุปผล' },
+  { id: 'line-notify-zreport', label: '[LINE] ปิดกะ Z-Report (Z-REPORT)', desc: 'รับยอดสรุปการขายเมื่อพนักงานทำการปิดกะ' },
+  { id: 'line-notify-checkout-photos', label: '[LINE] ลงเวลาออกงาน (CHECKOUT PHOTOS)', desc: 'รับรูปถ่ายสภาพร้านเมื่อพนักงานลงเวลาเลิกงาน' },
 ];
 
 
@@ -136,6 +140,10 @@ export default function POSShopSettings({
       manager: ['terminal', 'menu-management', 'menu-stock-toggle', 'menu-edit-price', 'inventory', 'kitchen', 'tables', 'members', 'drawer', 'delivery', 'history', 'modifiers', 'recipes', 'settings'],
       staff: ['terminal', 'menu-management', 'menu-stock-toggle', 'inventory', 'kitchen', 'tables', 'members', 'drawer', 'delivery', 'history']
     },
+    custom_roles: [
+      { id: 'manager', label: 'ผู้จัดการสาขา (Manager)', is_system: true },
+      { id: 'staff', label: 'พนักงานทั่วไป (Staff)', is_system: true }
+    ],
     printers: [],
     receipt_story_mode: false,
     receipt_stories: [
@@ -149,6 +157,7 @@ export default function POSShopSettings({
     name_en: '',
     branch_name_th: '',
     branch_name_en: '',
+    checkout_photo_zones: [],
   })
 
   useEffect(() => {
@@ -213,6 +222,10 @@ export default function POSShopSettings({
                     manager: ['terminal', 'menu-management', 'menu-stock-toggle', 'menu-edit-price', 'inventory', 'kitchen', 'tables', 'members', 'drawer', 'delivery', 'history', 'modifiers', 'recipes', 'settings'],
                     staff: ['terminal', 'menu-management', 'menu-stock-toggle', 'inventory', 'kitchen', 'tables', 'members', 'drawer', 'delivery', 'history']
                 },
+                custom_roles: data.custom_roles || [
+                    { id: 'manager', label: 'ผู้จัดการสาขา (Manager)', is_system: true },
+                    { id: 'staff', label: 'พนักงานทั่วไป (Staff)', is_system: true }
+                ],
                 printers: data.printers || [],
                 receipt_header: data.opening_hours?.receipt_header || '',
                 receipt_story_mode: data.opening_hours?.receipt_story_mode || false,
@@ -243,6 +256,7 @@ export default function POSShopSettings({
                     { chance: 10, points: 100 },
                     { chance: 5, points: 500 }
                 ],
+                checkout_photo_zones: data.checkout_photo_zones || [],
             })
         } else {
             setSettings((prev: any) => ({ ...prev, branch_id: branchId }))
@@ -418,9 +432,9 @@ const handleSave = async () => {
         logo_url: settings.logo_url,
         name_th: settings.name_th,
         name_en: settings.name_en,
-        branch_name_th: settings.branch_name_th,
         branch_name_en: settings.branch_name_en,
       },
+      checkout_photo_zones: settings.checkout_photo_zones || [],
       is_open: settings.status === 'open',
       updated_at: new Date().toISOString()
     }
@@ -482,6 +496,10 @@ const handleSave = async () => {
                     manager: ['terminal', 'menu-management', 'menu-stock-toggle', 'menu-edit-price', 'inventory', 'kitchen', 'tables', 'members', 'drawer', 'delivery', 'history', 'modifiers', 'recipes', 'settings'],
                     staff: ['terminal', 'menu-management', 'menu-stock-toggle', 'inventory', 'kitchen', 'tables', 'members', 'drawer', 'delivery', 'history']
                 },
+                custom_roles: data.custom_roles || [
+                    { id: 'manager', label: 'ผู้จัดการสาขา (Manager)', is_system: true },
+                    { id: 'staff', label: 'พนักงานทั่วไป (Staff)', is_system: true }
+                ],
                 printers: data.printers || [],
                 receipt_header: data.opening_hours?.receipt_header || '',
                 receipt_story_mode: data.opening_hours?.receipt_story_mode || false,
@@ -895,6 +913,53 @@ const handleSave = async () => {
                                         className="w-full bg-gray-50 border border-gray-200 rounded-xl py-4 px-5 text-[14px] font-bold outline-none focus:ring-2 focus:ring-black min-h-[120px] resize-none transition-all"
                                     />
                                 </div>
+
+                                {/* Section: Checkout Photo Zones */}
+                                <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
+                                    <h3 className="text-xl font-black mb-2 flex items-center gap-3">
+                                        <Camera className="text-emerald-500" size={24} /> ตั้งค่าโซนถ่ายรูปก่อนออกงาน
+                                    </h3>
+                                    <p className="text-[12px] text-gray-500 font-bold mb-6">กำหนดโซนที่พนักงานจำเป็นต้องถ่ายรูปส่งก่อนกดลงเวลาออกงาน (ระบบจะตรวจสอบรวมกันทั้งสาขา)</p>
+                                    
+                                    <div className="space-y-3 mb-4">
+                                        {(settings.checkout_photo_zones || []).map((zone: any, idx: number) => (
+                                            <div key={zone.id || idx} className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                                                <div className="flex-1">
+                                                    <input 
+                                                        type="text" 
+                                                        value={zone.name}
+                                                        onChange={e => {
+                                                            const newZones = [...(settings.checkout_photo_zones || [])];
+                                                            newZones[idx].name = e.target.value;
+                                                            setSettings({...settings, checkout_photo_zones: newZones});
+                                                        }}
+                                                        className="w-full bg-transparent text-sm font-bold outline-none"
+                                                        placeholder="ชื่อโซน เช่น บาร์น้ำ, ห้องครัว"
+                                                    />
+                                                </div>
+                                                <button 
+                                                    onClick={() => {
+                                                        const newZones = (settings.checkout_photo_zones || []).filter((_: any, i: number) => i !== idx);
+                                                        setSettings({...settings, checkout_photo_zones: newZones});
+                                                    }}
+                                                    className="p-2 bg-white rounded-lg border border-gray-200 text-rose-500 hover:bg-rose-50 transition-colors"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <button 
+                                        onClick={() => {
+                                            const newZones = [...(settings.checkout_photo_zones || []), { id: crypto.randomUUID(), name: '' }];
+                                            setSettings({...settings, checkout_photo_zones: newZones});
+                                        }}
+                                        className="flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed border-gray-200 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-50 hover:border-gray-300 transition-colors"
+                                    >
+                                        <Plus size={16} /> เพิ่มโซนใหม่
+                                    </button>
+                                </div>
+
                                 {/* Section: Opening Hours */}
             <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
               <h3 className="text-xl font-black mb-8 flex items-center gap-3">
@@ -1597,15 +1662,68 @@ const handleSave = async () => {
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                                 <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
                                     <h3 className="text-xl font-black mb-2 flex items-center gap-3">
-                                        <ShieldCheck className="text-red-500" size={24} /> {locale === 'en' ? ' สิทธิ์การเข้าถึง (Role Permissions)                                     ' : locale === 'zh' ? ' สิทธิ์การเข้าถึง (Role Permissions)                                     ' : ' สิทธิ์การเข้าถึง (Role Permissions)                                     '}</h3>
+                                        <ShieldCheck className="text-red-500" size={24} /> {locale === 'en' ? ' สิทธิ์การเข้าถึง (Role Permissions)' : locale === 'zh' ? ' สิทธิ์การเข้าถึง (Role Permissions)' : ' สิทธิ์การเข้าถึง (Role Permissions)'}</h3>
                                     <p className="text-[12px] text-gray-500 font-bold mb-8">{locale === 'en' ? 'อนุญาตให้พนักงานแต่ละระดับสามารถเข้าถึงหน้าต่างต่างๆ ในแอป POS ได้' : locale === 'zh' ? 'อนุญาตให้พนักงานแต่ละระดับสามารถเข้าถึงหน้าต่างต่างๆ ในแอป POS ได้' : 'อนุญาตให้พนักงานแต่ละระดับสามารถเข้าถึงหน้าต่างต่างๆ ในแอป POS ได้'}</p>
                                     
+                                    {/* Role Management UI */}
+                                    <div className="mb-10 p-6 bg-gray-50 rounded-2xl border border-gray-100">
+                                        <h4 className="text-[13px] font-black uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                                            <Users size={16} className="text-indigo-500" />
+                                            จัดการตำแหน่งพนักงาน (Manage Roles)
+                                        </h4>
+                                        <div className="flex flex-wrap gap-3 mb-4">
+                                            {(settings.custom_roles || []).map((role: any) => (
+                                                <div key={role.id} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg shadow-sm">
+                                                    <span className="text-[12px] font-bold text-gray-700">{role.label}</span>
+                                                    {!role.is_system && (
+                                                        <button 
+                                                            onClick={() => {
+                                                                if (window.confirm('ยืนยันการลบตำแหน่งนี้? พนักงานที่มีตำแหน่งนี้อาจไม่สามารถใช้งานระบบได้หากไม่แก้ไขตำแหน่งใหม่')) {
+                                                                    setSettings({
+                                                                        ...settings,
+                                                                        custom_roles: settings.custom_roles.filter((r: any) => r.id !== role.id)
+                                                                    })
+                                                                }
+                                                            }}
+                                                            className="text-red-400 hover:text-red-600 ml-2"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button 
+                                                onClick={() => {
+                                                    const roleName = window.prompt('ระบุชื่อตำแหน่งใหม่ (เช่น บาริสต้า, แม่บ้าน):');
+                                                    if (roleName && roleName.trim()) {
+                                                        const newId = roleName.trim().toLowerCase().replace(/\s+/g, '-');
+                                                        if (settings.custom_roles?.find((r: any) => r.id === newId)) {
+                                                            alert('มีตำแหน่งนี้อยู่แล้ว');
+                                                            return;
+                                                        }
+                                                        setSettings({
+                                                            ...settings,
+                                                            custom_roles: [...(settings.custom_roles || []), { id: newId, label: roleName.trim(), is_system: false }]
+                                                        })
+                                                    }
+                                                }}
+                                                className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg text-[12px] font-bold hover:bg-indigo-100 transition-colors flex items-center gap-2"
+                                            >
+                                                <Plus size={14} /> เพิ่มตำแหน่งใหม่
+                                            </button>
+                                        </div>
+                                    </div>
+
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                        {['manager', 'staff'].map((role) => (
+                                        {(settings.custom_roles || []).map((roleObj: any) => {
+                                            const role = roleObj.id;
+                                            return (
                                             <div key={role} className="space-y-4">
                                                 <h4 className="text-[13px] font-black uppercase tracking-[0.2em] mb-4 pb-3 border-b border-gray-100 flex items-center gap-2">
-                                                    {role === 'manager' ? <Star size={16} className="text-yellow-500" /> : <Info size={16} className="text-blue-500" />}
-                                                    {role === 'manager' ? 'ผู้จัดการ (Manager)' : 'พนักงาน (Staff)'}
+                                                    {role === 'manager' ? <Star size={16} className="text-yellow-500" /> : role === 'staff' ? <Info size={16} className="text-blue-500" /> : <Users size={16} className="text-indigo-500" />}
+                                                    {roleObj.label}
                                                 </h4>
                                                 <div className="space-y-3">
                                                     {permissionOptions.map((opt) => {
@@ -1635,7 +1753,7 @@ const handleSave = async () => {
                                                     })}
                                                 </div>
                                             </div>
-                                        ))}
+                                        )})}
                                     </div>
                                 </div>
 

@@ -12,12 +12,13 @@ import {
   MessageCircle, Settings2, Lock, LogOut, CheckCircle2,
   AlertCircle, ArrowRight, Camera, Briefcase, Building2,
   ArrowLeft, BellRing, Languages, Smartphone, Shield,
-  CreditCard, Landmark, Upload, Loader2, Info, Check
+  CreditCard, Landmark, Upload, Loader2, Info, Check,
+  ClipboardList, Clock, CalendarDays
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 const LuxurySuccessAnimation = ({ message }: { message: string }) => (
-  <motion.div 
+  <motion.div
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}
     exit={{ opacity: 0 }}
@@ -100,7 +101,7 @@ const getLineStatusMessage = (status: LineStatus, locale: 'th' | 'en' | 'zh') =>
   return pickLocalizedText(locale, copy.linePending)
 }
 
-type ActiveTab = 'menu' | 'personal' | 'work' | 'line' | 'language' | 'security' | 'verification' | 'payout'
+type ActiveTab = 'menu' | 'personal' | 'work' | 'line' | 'language' | 'security' | 'verification' | 'payout' | 'attendance'
 
 export default function StaffProfile() {
   const { profile, loading, refreshProfile, signOut } = useAuth()
@@ -142,6 +143,21 @@ export default function StaffProfile() {
   const [idExists, setIdExists] = useState(false)
   const [isCheckingId, setIsCheckingId] = useState(false)
 
+  // Attendance Summary State
+  const [attendanceSummary, setAttendanceSummary] = useState({
+    daysWorked: 0,
+    lateMinutes: 0,
+    otHours: 0,
+    leaveDays: 0,
+    holidaysUsed: 0,
+    holidaysPaid: 0,
+    deductions: 0,
+    baseSalary: 0,
+    otPay: 0,
+    holidayPay: 0,
+    netSalary: 0,
+    isLoading: false
+  })
   // 🚀 Auto-switch tab based on URL search params (e.g. ?tab=verification)
   useEffect(() => {
     const checkIdAvailability = async () => {
@@ -255,6 +271,126 @@ export default function StaffProfile() {
     }
     void loadLinePreferences()
   }, [profile?.id, locale])
+
+  useEffect(() => {
+    const fetchAttendanceSummary = async () => {
+      if (!profile?.id || activeTab !== 'attendance') return
+      setAttendanceSummary(prev => ({ ...prev, isLoading: true }))
+      
+      try {
+        const now = new Date()
+        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString()
+
+        // 1. Fetch attendance logs
+        const { data: attendanceData } = await supabase
+          .from('attendance_logs')
+          .select('*, profiles(shift_start)')
+          .eq('profile_id', profile.id)
+          .gte('timestamp', firstDay)
+          .lte('timestamp', lastDay)
+
+        // 2. Fetch leaves
+        const { data: leaveData } = await supabase
+          .from('staff_leaves')
+          .select('*')
+          .eq('profile_id', profile.id)
+          .eq('status', 'approved')
+          .gte('start_date', firstDay)
+          .lte('start_date', lastDay)
+
+        // 3. Fetch cash advances (deductions)
+        const { data: advanceData } = await supabase
+          .from('staff_cash_advances')
+          .select('*')
+          .eq('profile_id', profile.id)
+          .gte('advance_date', firstDay)
+          .lte('advance_date', lastDay)
+
+        let daysWorked = 0
+        let lateMinutes = 0
+        let otHours = 0
+        let holidaysUsed = 0
+        let holidaysPaid = 0
+
+        if (attendanceData) {
+          const groupedByDate: Record<string, any> = {}
+          attendanceData.forEach(log => {
+            const dateStr = new Date(log.timestamp).toLocaleDateString()
+            if (!groupedByDate[dateStr]) groupedByDate[dateStr] = []
+            groupedByDate[dateStr].push(log)
+          })
+
+          Object.values(groupedByDate).forEach((logs: any[]) => {
+            const checkInLog = logs.find(l => l.type === 'check_in')
+            const checkOutLog = logs.find(l => l.type === 'check_out')
+
+            if (checkInLog) {
+              daysWorked++
+              
+              // Calculate late minutes
+              const shiftStart = checkInLog.profiles?.shift_start || "08:30"
+              const [sHour, sMin] = shiftStart.split(':').map(Number)
+              const checkInDate = new Date(checkInLog.timestamp)
+              const checkInMins = checkInDate.getHours() * 60 + checkInDate.getMinutes()
+              const targetMins = (sHour || 8) * 60 + (sMin || 30)
+              const gracePeriod = 10
+              
+              if (checkInMins > targetMins + gracePeriod) {
+                lateMinutes += (checkInMins - targetMins)
+              }
+              
+              // Count holidays
+              if (checkInLog.holiday_pay_status === 'approved_dayoff') {
+                holidaysUsed++
+              } else if (checkInLog.holiday_pay_status === 'approved_pay') {
+                holidaysPaid++
+              }
+            }
+
+            // Calculate OT
+            if (checkOutLog && checkOutLog.ot_status === 'approved') {
+              otHours += (checkOutLog.ot_approved_minutes || 0) / 60
+            }
+          })
+        }
+
+        const leaveDays = leaveData ? leaveData.length : 0
+        const deductions = advanceData ? advanceData.reduce((acc, curr) => acc + Number(curr.amount), 0) : 0
+        
+        // --- SALARY CALCULATION ---
+        const salaryType = realTimeProfile?.salary_type || profile?.salary_type || 'daily'
+        const dailyWage = Number(realTimeProfile?.daily_wage || profile?.daily_wage || 0)
+        const otRate = Number(realTimeProfile?.overtime_rate_per_hour || profile?.overtime_rate_per_hour || 0)
+
+        const otPay = otHours * otRate
+        const holidayPay = holidaysPaid * (salaryType === 'monthly' ? (dailyWage / 30) : dailyWage)
+        const baseSalary = salaryType === 'monthly' ? dailyWage : (daysWorked * dailyWage)
+        const netSalary = Math.max(0, baseSalary + otPay + holidayPay - deductions)
+
+        setAttendanceSummary({
+          daysWorked,
+          lateMinutes,
+          otHours,
+          leaveDays,
+          holidaysUsed,
+          holidaysPaid,
+          deductions,
+          baseSalary,
+          otPay,
+          holidayPay,
+          netSalary,
+          isLoading: false
+        })
+
+      } catch (err) {
+        console.error('Error fetching attendance summary:', err)
+        setAttendanceSummary(prev => ({ ...prev, isLoading: false }))
+      }
+    }
+
+    fetchAttendanceSummary()
+  }, [profile?.id, activeTab])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -409,6 +545,7 @@ export default function StaffProfile() {
 
   const menuItems = [
     { id: 'personal', label: pickLocalizedText(locale, copy.fullName), sub: 'จัดการชื่อ เบอร์โทร และที่อยู่', icon: <User size={24} />, color: 'bg-blue-50 text-blue-600' },
+    { id: 'attendance', label: 'ประวัติการเข้างานและค่าแรง', sub: 'ดูสรุปวันทำงาน โอที และวันหยุด', icon: <CalendarDays size={24} />, color: 'bg-indigo-50 text-indigo-600' },
     // Only show verification if NOT verified
     ...(!profile?.is_verified ? [{ 
         id: 'verification', 
@@ -434,92 +571,206 @@ export default function StaffProfile() {
   ]
 
   return (
-    <div className="max-w-4xl mx-auto pb-24 px-4 font-bold">
-      
-      {/* 1. COMPACT PROFILE SUMMARY */}
-      <section className="mb-12 pt-12 flex items-center gap-6">
-        <div className="w-24 h-24 bg-[#1A1A18] text-white flex items-center justify-center text-3xl font-light overflow-hidden shadow-xl ring-4 ring-white relative">
-            {displayName ? displayName.slice(0,1).toUpperCase() : <User size={32} />}
-            {profile?.is_verified && (
-                <div className="absolute bottom-0 right-0 bg-blue-500 text-white p-1 rounded-full border-2 border-white">
-                    <CheckCircle2 size={12} fill="white" className="text-blue-500" />
+    <div className="bg-[#FAF9F6] text-[#1A1A18] font-sans min-h-screen pb-24">
+      {/* 📱 Top Organic Header */}
+      <div className="pt-4 pb-2 px-4 max-w-[800px] mx-auto flex items-center justify-between relative text-[#1A1A18]">
+        <div className="flex-1 text-center">
+          <h1 className="text-[12px] font-bold tracking-widest uppercase text-gray-500">
+            {locale === 'en' ? 'Staff Profile' : locale === 'zh' ? '员工个人资料' : 'โปรไฟล์พนักงาน'}
+          </h1>
+        </div>
+      </div>
+
+      {/* 🌿 Profile Summary Header Card */}
+      <div className="px-4 pt-2 pb-3 max-w-[800px] mx-auto text-[#1A1A18]">
+        <div className="bg-white border border-gray-200/60 rounded-[28px] p-5 shadow-xs flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gray-100 text-[#1A1A18] rounded-full flex items-center justify-center text-xl sm:text-2xl font-light overflow-hidden border border-gray-200 relative shrink-0 shadow-xs">
+              {profile?.avatar_url || (profile as any)?.line_picture_url || (profile as any)?.picture_url || (profile as any)?.image_url ? (
+                <img 
+                  src={profile?.avatar_url || (profile as any)?.line_picture_url || (profile as any)?.picture_url || (profile as any)?.image_url} 
+                  alt={displayName} 
+                  className="w-full h-full object-cover" 
+                />
+              ) : (
+                <User size={26} className="text-gray-400" />
+              )}
+              {profile?.is_verified && (
+                <div className="absolute bottom-0 right-0 bg-blue-500 text-white p-0.5 rounded-full border-2 border-white">
+                  <CheckCircle2 size={10} fill="white" className="text-blue-500" />
                 </div>
-            )}
-        </div>
-        <div>
-            <h1 className="text-3xl font-light tracking-tight text-[#1A1A18] flex items-center gap-3">
-                {displayName || 'พนักงาน'}
-                {profile?.is_verified && <span className="text-[9px] font-black bg-blue-100 text-blue-600 px-2 py-0.5 rounded tracking-widest uppercase">Verified</span>}
-            </h1>
-            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mt-1 flex items-center gap-2">
-                <span className={`w-2 h-2 rounded-full ${profile?.is_verified ? 'bg-green-500' : 'bg-amber-500'} animate-pulse`}></span>
-                {profile?.staff_type === 'cafe' ? 'Cafe Staff' : (profile?.staff_type === 'garden' ? 'Garden Staff' : 'Staff')}
-                <span className="text-gray-200">|</span>
-                <span className="text-black font-black bg-gray-100 px-2 py-0.5 rounded-sm">
-                  {(realTimeProfile?.salary_type || profile?.salary_type) === 'monthly' ? 'รายเดือน' : 'รายวัน'}
+              )}
+            </div>
+            <div className="space-y-1 min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[10px] font-bold tracking-widest uppercase px-2.5 py-0.5 rounded-full bg-[#1A1A18] text-white">
+                  STAFF PROFILE
                 </span>
-                <span className="text-gray-200">|</span>
-                {profile?.branch_code || 'Main Branch'}
-            </p>
-        </div>
-        <button 
+                {profile?.is_verified && (
+                  <span className="text-[10px] font-bold tracking-widest uppercase px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    VERIFIED
+                  </span>
+                )}
+              </div>
+              <h1 className="text-xl font-bold tracking-tight text-[#1A1A18] truncate">
+                {displayName || 'พนักงาน'}
+              </h1>
+              <p className="text-[11px] text-gray-500 font-mono font-bold tracking-wider truncate">
+                ID: {profile?.staff_code || profile?.id?.substring(0, 8).toUpperCase()} • {profile?.branch_code || 'Main Branch'}
+              </p>
+            </div>
+          </div>
+
+          <button 
             onClick={async () => { await signOut(); router.push('/login'); }}
-            className="ml-auto p-4 text-red-400 hover:text-red-600 hover:bg-red-50 transition-all rounded-full"
-        >
-            <LogOut size={20} />
-        </button>
-      </section>
+            className="p-3 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 transition-all rounded-full shrink-0 active:scale-95"
+            title="ออกจากระบบ"
+          >
+            <LogOut size={18} />
+          </button>
+        </div>
+      </div>
+
+      {/* 🤍 Main Content Container */}
+      <main className="bg-[#FAF9F6] p-4 sm:p-6 relative z-20 max-w-[800px] mx-auto flex flex-col gap-4 text-[#1A1A18]">
 
       <AnimatePresence mode="wait">
         {activeTab === 'menu' ? (
           /* 2. MENU GRID VIEW */
           <motion.div 
             key="menu"
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+            exit={{ opacity: 0, scale: 0.98 }}
+            className="grid grid-cols-1 sm:grid-cols-2 gap-3.5"
           >
             {menuItems.map((item) => (
-                <button 
-                    key={item.id}
-                    onClick={() => setActiveTab(item.id as ActiveTab)}
-                    className="flex items-center gap-5 p-6 bg-white border border-[#EFEFEF] hover:border-black hover:shadow-xl transition-all text-left group relative overflow-hidden"
-                >
-                    <div className={`w-14 h-14 shrink-0 flex items-center justify-center rounded-xl ${item.color} group-hover:scale-110 transition-transform`}>
-                        {item.icon}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-[13px] font-black uppercase tracking-widest text-[#1A1A18]">{item.label}</h3>
-                            {item.badge && <span className={`text-[7px] font-black px-1.5 py-0.5 rounded ${item.color} opacity-80`}>{item.badge}</span>}
-                        </div>
-                        <p className="text-[10px] text-gray-400 font-bold truncate mt-1">{item.sub}</p>
-                    </div>
-                    <ArrowRight size={16} className="ml-2 text-gray-300 group-hover:text-black group-hover:translate-x-1 transition-all" />
-                </button>
+              <button 
+                key={item.id}
+                onClick={() => setActiveTab(item.id as ActiveTab)}
+                className="flex items-center gap-4 p-5 bg-white border border-gray-200/60 rounded-[24px] hover:border-gray-300 hover:shadow-md transition-all text-left group relative overflow-hidden active:scale-[0.99]"
+              >
+                <div className="w-12 h-12 shrink-0 flex items-center justify-center rounded-2xl bg-[#FAF9F6] text-[#1A1A18] border border-gray-200/50 group-hover:scale-105 transition-transform">
+                  {item.icon}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-1">
+                    <h3 className="text-[13px] font-bold text-[#1A1A18]">{item.label}</h3>
+                    {item.badge && (
+                      <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-[#1A1A18] text-white">
+                        {item.badge}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-gray-500 truncate mt-0.5">{item.sub}</p>
+                </div>
+                <ArrowRight size={16} className="ml-1 text-gray-300 group-hover:text-black group-hover:translate-x-1 transition-all shrink-0" />
+              </button>
             ))}
           </motion.div>
         ) : (
           /* 3. DETAIL VIEW (FORM) */
           <motion.div 
             key="detail"
-            initial={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0, x: 15 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="bg-white border border-[#EFEFEF] shadow-sm overflow-hidden"
+            exit={{ opacity: 0, x: -15 }}
+            className="bg-white border border-gray-200/60 rounded-[28px] shadow-xs overflow-hidden"
           >
             {/* Sub-header */}
-            <div className="p-6 border-b border-gray-50 flex items-center gap-4 bg-gray-50/30">
-                <button onClick={() => setActiveTab('menu')} className="p-2 hover:bg-white rounded-full transition-all">
-                    <ArrowLeft size={20} />
-                </button>
-                <h2 className="text-[12px] font-black uppercase tracking-[0.2em]">
-                    {menuItems.find(m => m.id === activeTab)?.label}
-                </h2>
+            <div className="p-5 border-b border-gray-100 flex items-center gap-3 bg-[#FAF9F6]">
+              <button onClick={() => setActiveTab('menu')} className="p-2 hover:bg-white rounded-full transition-all text-gray-700">
+                <ArrowLeft size={18} />
+              </button>
+              <h2 className="text-[13px] font-bold text-[#1A1A18]">
+                {menuItems.find(m => m.id === activeTab)?.label}
+              </h2>
             </div>
 
             <div className="p-8 md:p-12">
+                {activeTab === 'attendance' && (
+                    <div className="space-y-8">
+                        <div className="flex items-center justify-between bg-indigo-50/50 p-6 rounded-2xl border border-indigo-100/50">
+                            <div>
+                                <h3 className="text-xl font-bold text-indigo-900">สรุปการเข้างานเดือนนี้</h3>
+                                <p className="text-xs text-indigo-600 font-bold mt-1">ข้อมูลตั้งแต่ต้นเดือน ถึงวันที่ {new Date().toLocaleDateString()}</p>
+                            </div>
+                            <CalendarDays size={32} className="text-indigo-400" />
+                        </div>
+
+                        {attendanceSummary.isLoading ? (
+                            <div className="flex justify-center py-12">
+                                <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+                            </div>
+                        ) : (
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <div className="p-5 bg-white border border-gray-100 rounded-2xl shadow-sm hover:border-black transition-all">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 block">วันมาทำงาน</span>
+                                        <div className="text-2xl font-light text-black flex items-baseline gap-1">
+                                            {attendanceSummary.daysWorked} <span className="text-xs font-bold text-gray-400">วัน</span>
+                                        </div>
+                                    </div>
+                                    <div className="p-5 bg-white border border-gray-100 rounded-2xl shadow-sm hover:border-black transition-all">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-red-400 mb-2 flex items-center gap-1"><Clock size={12}/> มาสายรวม</span>
+                                        <div className="text-2xl font-light text-red-600 flex items-baseline gap-1">
+                                            {attendanceSummary.lateMinutes} <span className="text-xs font-bold text-red-400">นาที</span>
+                                        </div>
+                                    </div>
+                                    <div className="p-5 bg-white border border-gray-100 rounded-2xl shadow-sm hover:border-black transition-all">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mb-2 block">โอทีรวม (OT)</span>
+                                        <div className="text-2xl font-light text-emerald-600 flex items-baseline gap-1">
+                                            {attendanceSummary.otHours.toFixed(1)} <span className="text-xs font-bold text-emerald-400">ชม.</span>
+                                        </div>
+                                    </div>
+                                    <div className="p-5 bg-white border border-gray-100 rounded-2xl shadow-sm hover:border-black transition-all">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-orange-400 mb-2 block">ลาหยุดใช้แล้ว</span>
+                                        <div className="text-2xl font-light text-orange-600 flex items-baseline gap-1">
+                                            {attendanceSummary.leaveDays} <span className="text-xs font-bold text-orange-400">วัน</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+
+
+                                {/* Salary Calculation Section */}
+                                <div className="bg-[#1A1A18] text-white rounded-2xl p-6 md:p-8 relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+                                        <Landmark size={120} />
+                                    </div>
+                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-white/50 mb-6">ประมาณการเงินเดือนสุทธิ (Net Expected Salary)</h4>
+                                    
+                                    <div className="space-y-4 relative z-10">
+                                        <div className="flex justify-between items-center pb-4 border-b border-white/10">
+                                            <span className="text-sm font-light text-white/80">ค่าแรงพื้นฐาน ({(realTimeProfile?.salary_type || profile?.salary_type) === 'monthly' ? 'รายเดือน' : 'รายวัน'})</span>
+                                            <span className="text-lg font-bold">{attendanceSummary.baseSalary.toLocaleString()} ฿</span>
+                                        </div>
+                                        <div className="flex justify-between items-center pb-4 border-b border-white/10">
+                                            <span className="text-sm font-light text-emerald-400">เงินล่วงเวลา (OT)</span>
+                                            <span className="text-lg font-bold text-emerald-400">+{attendanceSummary.otPay.toLocaleString()} ฿</span>
+                                        </div>
+                                        <div className="flex justify-between items-center pb-4 border-b border-white/10">
+                                            <span className="text-sm font-light text-blue-400">เงินชดเชยวันหยุด</span>
+                                            <span className="text-lg font-bold text-blue-400">+{attendanceSummary.holidayPay.toLocaleString()} ฿</span>
+                                        </div>
+                                        <div className="flex justify-between items-center pb-4 border-b border-white/10">
+                                            <span className="text-sm font-light text-rose-400">เบิกล่วงหน้า/หักเงิน</span>
+                                            <span className="text-lg font-bold text-rose-400">-{attendanceSummary.deductions.toLocaleString()} ฿</span>
+                                        </div>
+                                        <div className="flex justify-between items-center pt-4">
+                                            <span className="text-sm font-bold text-white uppercase tracking-wider">รวมสุทธิ</span>
+                                            <span className="text-4xl font-light text-white">{attendanceSummary.netSalary.toLocaleString()} <span className="text-lg font-bold text-white/50">฿</span></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        <p className="text-[10px] text-gray-400 font-bold mt-4 text-center uppercase tracking-widest">
+                            หากพบข้อมูลผิดพลาด กรุณาติดต่อฝ่ายบุคคล
+                        </p>
+                    </div>
+                )}
+
                 {activeTab === 'personal' && (
                     <form onSubmit={handleSubmit} className="space-y-8">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -779,6 +1030,7 @@ export default function StaffProfile() {
           </motion.div>
         )}
       </AnimatePresence>
+      </main>
 
       <AnimatePresence>
         {feedback && (

@@ -1,6 +1,6 @@
 "use client";
 import Link from 'next/link';
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/lib/AuthContext";
 import { JobService, JobAssignment } from "@/lib/jobService";
 import { supabase } from '@/lib/supabaseClient';
@@ -9,8 +9,14 @@ import { useI18n } from '@/lib/I18nContext'
 import { appCopy, pickLocalizedText } from '@/lib/appLocale'
 import { isFollowUpOrder } from '@/lib/serviceFlow'
 import { formatDateByLocale, formatDateTimeByLocale } from '@/lib/localeFormat'
+import { calculateDistance } from '@/lib/geoUtils'
 import { usePathname, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
+import gsap from 'gsap'
+import { useGSAP } from '@gsap/react'
+
+gsap.registerPlugin(useGSAP);
+
 import { 
   CalendarDaysIcon,
   ClockIcon,
@@ -24,12 +30,16 @@ import {
   PhoneIcon,
   UserIcon,
   XMarkIcon,
-  ArrowPathIcon
+  ArrowPathIcon,
+  CameraIcon
 } from "@heroicons/react/24/outline";
-import { Loader2 } from 'lucide-react'
+import { Loader2, Landmark, Clock, CalendarDays, ChevronLeft, Package, Calculator } from 'lucide-react'
 import { useSidebar } from '../_shared/sidebar-context'
 import { AttendanceCheckIn } from '@/components/dashboard/AttendanceCheckIn'
 import PointGenerator from '@/components/pos/PointGenerator'
+import { StaffWorkCalendar } from '@/components/dashboard/StaffWorkCalendar'
+import Holidays from 'date-holidays';
+import { StaffGamification } from '@/components/dashboard/StaffGamification';
 
 interface TaskStats {
   today: number;
@@ -70,9 +80,11 @@ interface OpenOrder {
 }
 
 export default function StaffDashboard() {
+  const containerRef = React.useRef<HTMLDivElement>(null);
   const { sidebarLocked } = useSidebar();
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
   const { locale } = useI18n()
+  const router = useRouter();
   const copy = appCopy.staffDashboard
   
   // States
@@ -84,21 +96,52 @@ export default function StaffDashboard() {
     completedThisWeek: 0,
     total: 0
   });
-  const [cafeStats, setCafeStats] = useState({
+  const [attendanceSummary, setAttendanceSummary] = useState({
     daysWorked: 0,
     lateMinutes: 0,
-    otMinutes: 0,
-    totalHours: 0
+    otHours: 0,
+    leaveDays: 0,
+    holidaysUsed: 0,
+    holidaysPaid: 0,
+    deductions: 0,
+    baseSalary: 0,
+    otPay: 0,
+    holidayPay: 0,
+    netSalary: 0,
+    isLoading: false
   });
+  const [realTimeProfile, setRealTimeProfile] = useState<any>(null);
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
+  const [activeHeroSlide, setActiveHeroSlide] = useState(0);
   const [openOrders, setOpenOrders] = useState<OpenOrder[]>([])
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>("");
-  const [message, setMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
   const [claimingOrderId, setClaimingOrderId] = useState<string | null>(null)
   const [expandedCard, setExpandedCard] = useState<string | null>(null)
   const [pendingConfirmation, setPendingConfirmation] = useState(false)
+
+  // Attendance Instant Clock States
+  const [todayAttendanceLogs, setTodayAttendanceLogs] = useState<any[]>([])
+  const [clockingIn, setClockingIn] = useState(false)
+  const [showClockOutModal, setShowClockOutModal] = useState(false)
+  const [attendanceNotice, setAttendanceNotice] = useState<{
+    type: 'success' | 'warning' | 'error' | 'info';
+    title: string;
+    message: string;
+  } | null>(null)
+  const [avatarError, setAvatarError] = useState(false)
+  const [checklistItems, setChecklistItems] = useState<string[]>([])
+  const [checkedItems, setCheckedItems] = useState<number[]>([])
+  const [requiredAuditCategories, setRequiredAuditCategories] = useState<string[]>([])
+  const [missingAuditCategories, setMissingAuditCategories] = useState<any[]>([])
+  const allChecklistCompleted = checklistItems.length === 0 || checkedItems.length === checklistItems.length;
+  
+  // Checkout Photos
+  const [requiredPhotoZones, setRequiredPhotoZones] = useState<any[]>([])
+  const [missingPhotoZones, setMissingPhotoZones] = useState<any[]>([])
+  const [checkoutPhotos, setCheckoutPhotos] = useState<{ [zone_id: string]: File }>({})
+  const [isUploadingPhotos, setIsUploadingPhotos] = useState(false)
 
   useEffect(() => {
     const checkStatus = async () => {
@@ -123,48 +166,490 @@ export default function StaffDashboard() {
       console.log('Staff Type:', profile.staff_type);
       
       const isActuallyCafe = profile.staff_type === 'cafe';
-      if (isActuallyCafe) {
-        fetchCafeStats();
-      } else {
+      fetchAttendanceSummary();
+      fetchTodayAttendance();
+      fetchChecklistSettings();
+      if (!isActuallyCafe) {
         refreshAll()
       }
     }
   }, [profile]);
 
-  const fetchCafeStats = async () => {
-    if (!profile?.id) return;
+  const fetchChecklistSettings = async () => {
+    if (!profile?.branch_code) return;
+    
     try {
-      setLoading(true);
-      const startOfMonth = new Date();
-      startOfMonth.setDate(1);
-      startOfMonth.setHours(0, 0, 0, 0);
+      const { data: branch } = await supabase
+        .from('branches')
+        .select('id')
+        .eq('branch_code', profile.branch_code)
+        .maybeSingle()
+      
+      if (branch) {
+        const { data: settings } = await supabase
+          .from('pos_shop_settings')
+          .select('opening_hours, checkout_photo_zones')
+          .eq('branch_id', branch.id)
+          .maybeSingle()
+          
+        if (settings?.opening_hours) {
+          if (settings.opening_hours.checkout_checklist) {
+            setChecklistItems(settings.opening_hours.checkout_checklist)
+          }
+          if (settings.opening_hours.required_audit_categories) {
+            setRequiredAuditCategories(settings.opening_hours.required_audit_categories)
+          }
+        }
+        if (settings?.checkout_photo_zones) {
+          setRequiredPhotoZones(settings.checkout_photo_zones)
+        }
 
-      const { data: logs } = await supabase
-        .from('attendance_logs')
-        .select('*')
-        .eq('profile_id', profile.id)
-        .gte('timestamp', startOfMonth.toISOString())
-        .order('timestamp', { ascending: true });
-
-      if (logs) {
-        const { calculateAttendanceStats } = await import('@/lib/attendanceUtils');
-        const stats = calculateAttendanceStats(
-          logs, 
-          profile.shift_start || "08:30", 
-          profile.shift_end || "17:30"
-        );
-
-        const uniqueDays = new Set(logs.map(l => new Date(l.timestamp).toDateString()));
-
-        setCafeStats({
-          daysWorked: uniqueDays.size,
-          lateMinutes: stats.lateMinutes,
-          otMinutes: stats.otMinutes,
-          totalHours: stats.totalHours
-        });
       }
     } catch (err) {
-      console.error('Error cafe stats:', err);
+      console.error('Error fetching checklist settings', err)
+    }
+  }
+
+  const fetchTodayAttendance = async () => {
+    if (!profile?.id) return
+    const start = new Date()
+    start.setHours(0, 0, 0, 0)
+    const end = new Date()
+    end.setHours(23, 59, 59, 999)
+
+    const { data } = await supabase
+      .from('attendance_logs')
+      .select('*')
+      .eq('profile_id', profile.id)
+      .gte('timestamp', start.toISOString())
+      .lte('timestamp', end.toISOString())
+      .order('timestamp', { ascending: false })
+
+    if (data) {
+      setTodayAttendanceLogs(data)
+    }
+  }
+
+  const hasCheckedInToday = todayAttendanceLogs.some(log => log.type === 'check_in')
+  const hasCheckedOutToday = todayAttendanceLogs.some(log => log.type === 'check_out')
+  const isCheckedIn = hasCheckedInToday && !hasCheckedOutToday
+  const isCompletedToday = hasCheckedInToday && hasCheckedOutToday
+
+  const handleHeroClockClick = async () => {
+    if (isCompletedToday) {
+      setAttendanceNotice({
+        type: 'info',
+        title: 'บันทึกเวลาครบถ้วนแล้ว',
+        message: 'วันนี้คุณได้ลงเวลาเข้างานและออกงานเรียบร้อยแล้วค่ะ'
+      })
+      return
+    }
+
+    if (isCheckedIn) {
+      // Clock Out -> Require Confirmation Modal First to avoid accidental clicks
+      
+      // 1. Check required stock audits
+      if (requiredAuditCategories.length > 0) {
+        setClockingIn(true)
+        const start = new Date()
+        start.setHours(0, 0, 0, 0)
+        const end = new Date()
+        end.setHours(23, 59, 59, 999)
+        
+        // Get all staff IDs in the same branch
+        const { data: branchStaff } = await supabase
+           .from('profiles')
+           .select('id')
+           .eq('branch_code', profile.branch_code)
+        
+        const branchStaffIds = branchStaff?.map(s => s.id) || [profile.id]
+
+        const { data: sessions } = await supabase
+          .from('pos_inventory_audit_sessions')
+          .select('notes')
+          .in('staff_id', branchStaffIds)
+          .gte('created_at', start.toISOString())
+          .lte('created_at', end.toISOString())
+        
+        let allAudited = false
+        let auditedSet = new Set<string>()
+
+        if (sessions) {
+          for (const s of sessions) {
+            if (s.notes) {
+              try {
+                const parsed = JSON.parse(s.notes)
+                if (parsed.audited_categories === 'ALL') {
+                  allAudited = true
+                  break
+                }
+                if (Array.isArray(parsed.audited_categories)) {
+                  parsed.audited_categories.forEach((id: string) => auditedSet.add(id))
+                }
+              } catch (e) {}
+            }
+          }
+        }
+
+        if (!allAudited) {
+          const missingIds = requiredAuditCategories.filter(id => !auditedSet.has(id))
+          if (missingIds.length > 0) {
+            const { data: catData } = await supabase
+              .from('inventory_categories')
+              .select('id, name')
+              .in('id', missingIds)
+            
+            setMissingAuditCategories(catData || missingIds.map(id => ({ id, name: id })))
+          } else {
+            setMissingAuditCategories([])
+          }
+        } else {
+          setMissingAuditCategories([])
+        }
+      }
+
+      // 2. Check required photo zones
+      if (requiredPhotoZones.length > 0) {
+        setClockingIn(true)
+        const start = new Date()
+        start.setHours(0, 0, 0, 0)
+        const end = new Date()
+        end.setHours(23, 59, 59, 999)
+
+        let bStaffIds = [profile.id]
+        if (profile.branch_code) {
+          const { data: branchStaff } = await supabase
+             .from('profiles')
+             .select('id')
+             .eq('branch_code', profile.branch_code)
+          if (branchStaff) {
+             bStaffIds = branchStaff.map(s => s.id)
+          }
+        }
+
+        const { data: logs } = await supabase
+          .from('attendance_logs')
+          .select('checkout_zone_photos')
+          .in('profile_id', bStaffIds)
+          .eq('type', 'check_out')
+          .gte('timestamp', start.toISOString())
+          .lte('timestamp', end.toISOString())
+          .not('checkout_zone_photos', 'is', null)
+
+        let uploadedZoneIds = new Set<string>()
+        if (logs) {
+          for (const log of logs) {
+            if (log.checkout_zone_photos && Array.isArray(log.checkout_zone_photos)) {
+              log.checkout_zone_photos.forEach((photo: any) => {
+                if (photo.zone_id) uploadedZoneIds.add(photo.zone_id)
+              })
+            }
+          }
+        }
+
+        const missingZones = requiredPhotoZones.filter(zone => !uploadedZoneIds.has(zone.id))
+        setMissingPhotoZones(missingZones)
+        setClockingIn(false)
+      } else {
+        setMissingPhotoZones([])
+      }
+
+      setShowClockOutModal(true)
+      return
+    }
+
+    // Clock In
+    await executeClockAction('check_in')
+  }
+
+  const executeClockAction = async (type: 'check_in' | 'check_out') => {
+    if (!profile?.id) return
+    setClockingIn(true)
+    setAttendanceNotice(null)
+
+    // Fetch Branch Geofence Location
+    const { data: branch } = await supabase
+      .from('branches')
+      .select('id, latitude, longitude')
+      .eq('branch_code', profile.branch_code || 'MAIN')
+      .maybeSingle()
+
+    let targetLat = branch?.latitude || 13.7563
+    let targetLng = branch?.longitude || 100.5018
+    let targetRadius = 50
+
+    if (branch?.id) {
+      const { data: settings } = await supabase
+        .from('pos_shop_settings')
+        .select('check_in_radius, latitude, longitude')
+        .eq('branch_id', branch.id)
+        .maybeSingle()
+
+      if (settings?.latitude) targetLat = Number(settings.latitude)
+      if (settings?.longitude) targetLng = Number(settings.longitude)
+      if (settings?.check_in_radius) targetRadius = Number(settings.check_in_radius)
+    }
+
+    if (!navigator.geolocation) {
+      setAttendanceNotice({
+        type: 'error',
+        title: 'ไม่สามารถดึงตำแหน่งพิกัดได้',
+        message: 'อุปกรณ์ของคุณไม่รองรับการดึงพิกัด GPS'
+      })
+      setClockingIn(false)
+      return
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords
+        const distMeters = Math.round(calculateDistance(latitude, longitude, targetLat, targetLng))
+        const isWithin = distMeters <= targetRadius
+
+        if (!isWithin) {
+          setAttendanceNotice({
+            type: 'error',
+            title: 'อยู่นอกพื้นที่ร้าน',
+            message: `ท่านอยู่ห่างจากจุดลงเวลา ${distMeters} เมตร (อนุญาตไม่เกิน ${targetRadius} เมตร)`
+          })
+          setClockingIn(false)
+          setShowClockOutModal(false)
+          return
+        }
+
+        let mappedZonePhotos: any[] = []
+        if (type === 'check_out' && Object.keys(checkoutPhotos).length > 0) {
+          setIsUploadingPhotos(true)
+          for (const [zoneId, photoFile] of Object.entries(checkoutPhotos)) {
+            const formData = new FormData()
+            formData.append('file', photoFile)
+            formData.append('bucket', 'attendance-photos')
+            try {
+              const res = await fetch('/api/admin/storage/upload', {
+                method: 'POST',
+                body: formData
+              })
+              const data = await res.json()
+              if (data.publicUrl) {
+                mappedZonePhotos.push({ zone_id: zoneId, url: data.publicUrl })
+              }
+            } catch (e) {
+              console.error('Failed to upload photo for zone ' + zoneId, e)
+            }
+          }
+          setIsUploadingPhotos(false)
+        }
+
+        const insertPayload: any = {
+          profile_id: profile.id,
+          type,
+          latitude,
+          longitude,
+          is_within_range: true
+        }
+
+        if (type === 'check_out' && mappedZonePhotos.length > 0) {
+          insertPayload.checkout_zone_photos = mappedZonePhotos
+        }
+
+        const { error: insErr } = await supabase.from('attendance_logs').insert(insertPayload)
+
+        if (insErr) {
+          setAttendanceNotice({
+            type: 'error',
+            title: 'เกิดข้อผิดพลาดในการลงเวลา',
+            message: insErr.message
+          })
+        } else {
+          const now = new Date()
+          const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.'
+
+          if (type === 'check_in') {
+            const shiftStart = profile.shift_start || '08:30'
+            const [sHrs, sMins] = shiftStart.split(':').map(Number)
+            const shiftTotalMins = sHrs * 60 + sMins
+            const currentTotalMins = now.getHours() * 60 + now.getMinutes()
+            const lateMins = currentTotalMins - shiftTotalMins
+
+            if (lateMins <= 0) {
+              setAttendanceNotice({
+                type: 'success',
+                title: `เข้างานเวลา ${timeStr}`,
+                message: 'เข้างานตรงเวลา/ก่อนเวลา ยอดเยี่ยมมากค่ะ! 🎉'
+              })
+            } else {
+              setAttendanceNotice({
+                type: 'warning',
+                title: `เข้างานเวลา ${timeStr}`,
+                message: `เข้างานสาย ${lateMins} นาที (กะเริ่ม ${shiftStart} น.)`
+              })
+            }
+          } else {
+            setAttendanceNotice({
+              type: 'success',
+              title: `ออกงานเวลา ${timeStr}`,
+              message: 'บันทึกเวลาเลิกงานเรียบร้อย ขอให้เดินทางกลับบ้านโดยสวัสดิภาพค่ะ! 🏠'
+            })
+          }
+
+          fetchTodayAttendance()
+          fetchAttendanceSummary()
+        }
+        setClockingIn(false)
+        setShowClockOutModal(false)
+      },
+      (err) => {
+        setAttendanceNotice({
+          type: 'error',
+          title: 'ดึงพิกัดตำแหน่งไม่สำเร็จ',
+          message: err.code === err.PERMISSION_DENIED
+            ? 'กรุณาเปิดสิทธิ์เข้าถึง Location (ตำแหน่งที่ตั้ง) บนเบราว์เซอร์แล้วลองอีกครั้ง'
+            : 'ไม่สามารถดึงข้อมูลพิกัด GPS ได้ในขณะนี้'
+        })
+        setClockingIn(false)
+        setShowClockOutModal(false)
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    )
+  }
+
+  const fetchAttendanceSummary = async () => {
+    if (!profile?.id) return
+    setAttendanceSummary(prev => ({ ...prev, isLoading: true }))
+    
+    try {
+      // Fetch latest profile info for accurate wage calculations
+      const { data: latestProfile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', profile.id)
+        .single();
+      
+      if (latestProfile) setRealTimeProfile(latestProfile);
+      
+      const now = new Date()
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString()
+
+      // 1. Fetch attendance logs
+      const { data: attendanceData } = await supabase
+        .from('attendance_logs')
+        .select('*, profiles(shift_start)')
+        .eq('profile_id', profile.id)
+        .gte('timestamp', firstDay)
+        .lte('timestamp', lastDay)
+
+      // 2. Fetch leaves
+      const { data: leaveData } = await supabase
+        .from('staff_leaves')
+        .select('*')
+        .eq('profile_id', profile.id)
+        .eq('status', 'approved')
+        .gte('start_date', firstDay)
+        .lte('start_date', lastDay)
+
+      // 3. Fetch cash advances (deductions)
+      const { data: advanceData } = await supabase
+        .from('staff_cash_advances')
+        .select('*')
+        .eq('profile_id', profile.id)
+        .gte('advance_date', firstDay)
+        .lte('advance_date', lastDay)
+
+      const hd = new Holidays('TH');
+
+      let daysWorked = 0
+      let lateMinutes = 0
+      let otHours = 0
+      let holidaysUsed = 0
+      let holidaysPaid = 0
+
+      if (attendanceData) {
+        const groupedByDate: Record<string, any> = {}
+        attendanceData.forEach(log => {
+          const dateStr = new Date(log.timestamp).toLocaleDateString()
+          if (!groupedByDate[dateStr]) groupedByDate[dateStr] = []
+          groupedByDate[dateStr].push(log)
+        })
+
+        Object.values(groupedByDate).forEach((logs: any[]) => {
+          const checkInLog = logs.find(l => l.type === 'check_in')
+          const checkOutLog = logs.find(l => l.type === 'check_out')
+
+          if (checkInLog) {
+            daysWorked++
+            
+            // Calculate late minutes
+            const shiftStart = checkInLog.profiles?.shift_start || "08:30"
+            const [sHour, sMin] = shiftStart.split(':').map(Number)
+            const checkInDate = new Date(checkInLog.timestamp)
+            const checkInMins = checkInDate.getHours() * 60 + checkInDate.getMinutes()
+            const targetMins = (sHour || 8) * 60 + (sMin || 30)
+            const gracePeriod = 10
+            
+            if (checkInMins > targetMins + gracePeriod) {
+              lateMinutes += (checkInMins - targetMins)
+            }
+            
+            // Count holidays
+            const dateObj = checkInDate;
+            const holidaysForDay = hd.isHoliday(dateObj);
+            const isPublicHoliday = holidaysForDay && holidaysForDay.length > 0;
+            
+            if (isPublicHoliday && checkInLog.holiday_pay_status !== 'rejected') {
+              // Auto-approve based on profile preference if they worked on a public holiday
+              const activeProfile = latestProfile || profile;
+              if (activeProfile?.holiday_compensation_type === 'dayoff' || checkInLog.holiday_pay_status === 'approved_dayoff') {
+                holidaysUsed++
+              } else {
+                holidaysPaid++
+              }
+            } else if (checkInLog.holiday_pay_status === 'approved_dayoff') {
+              holidaysUsed++
+            } else if (checkInLog.holiday_pay_status === 'approved_pay') {
+              holidaysPaid++
+            }
+          }
+
+          // Calculate OT
+          if (checkOutLog && checkOutLog.ot_status === 'approved') {
+            otHours += (checkOutLog.ot_approved_minutes || 0) / 60
+          }
+        })
+      }
+
+      const leaveDays = leaveData ? leaveData.length : 0
+      const deductions = advanceData ? advanceData.reduce((acc, curr) => acc + Number(curr.amount), 0) : 0
+      
+      const activeProfile = latestProfile || profile;
+      const salaryType = activeProfile?.salary_type || 'daily'
+      const compType = activeProfile?.holiday_compensation_type || 'money';
+      const dailyWage = Number(activeProfile?.daily_wage || 0)
+      const otRate = Number(activeProfile?.overtime_rate_per_hour || 0)
+
+      const otPay = otHours * otRate
+      const holidayPay = compType === 'dayoff' ? 0 : (holidaysPaid * (salaryType === 'monthly' ? (dailyWage / 30) : dailyWage))
+      const baseSalary = salaryType === 'monthly' ? dailyWage : (daysWorked * dailyWage)
+      const netSalary = Math.max(0, baseSalary + otPay + holidayPay - deductions)
+
+      setAttendanceSummary({
+        daysWorked,
+        lateMinutes,
+        otHours,
+        leaveDays,
+        holidaysUsed,
+        holidaysPaid,
+        deductions,
+        baseSalary,
+        otPay,
+        holidayPay,
+        netSalary,
+        isLoading: false
+      })
+
+    } catch (err) {
+      console.error('Error fetching attendance summary:', err)
+      setAttendanceSummary(prev => ({ ...prev, isLoading: false }))
     } finally {
       setLoading(false);
     }
@@ -446,50 +931,55 @@ export default function StaffDashboard() {
     return (
       <div
         key={order.id}
-        className={`p-8 relative overflow-hidden group hover:shadow-2xl transition-all duration-500 flex flex-col justify-between ${
-          isFollowUpVariant ? 'border border-[#C9B37E] bg-[#FFFBEF]' : 'border border-[#111111] bg-white'
+        className={`p-6 relative overflow-hidden group hover:shadow-md transition-all duration-300 flex flex-col justify-between rounded-[24px] shadow-sm ${
+          isFollowUpVariant ? 'bg-[#FFFDF7]' : 'bg-white'
         }`}
       >
         <div className="relative z-10">
-          <div className="flex justify-between items-start mb-8 gap-3">
+          <div className="flex justify-between items-start mb-5 gap-3">
             <div className="min-w-0">
               {isFollowUpVariant && (
-                <span className="text-[8px] font-black uppercase tracking-[0.28em] text-[#A68A49] block mb-2">FOLLOW-UP VISIT</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-[#A68A49] block mb-1">FOLLOW-UP VISIT</span>
               )}
-              <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[#A3A3A3] block mb-2">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-[#A3A3A3] block mb-2">
                 {order.order_code || `#${order.id.slice(0, 8)}`}
               </span>
-              <h3 className="font-serif-thai text-2xl text-[#111111] uppercase tracking-tight leading-none truncate">
+              <h3 className="text-[16px] font-bold text-[#1A1A18] tracking-tight leading-tight truncate">
                 {serviceData?.service_name || 'งานดูแลสวน'}
               </h3>
             </div>
-            <div className="text-right shrink-0 ml-4">
+            <div className="text-right shrink-0">
               {isFollowUpVariant ? (
-                <span className="border border-[#C9B37E] bg-white px-2 py-1 text-[8px] font-black uppercase tracking-[0.18em] text-[#7B5F22]">{locale === 'en' ? 'ต่อเนื่อง' : locale === 'zh' ? 'ต่อเนื่อง' : 'ต่อเนื่อง'}</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-[#7B5F22] bg-[#F7F2E6] px-3 py-1.5 rounded-full">{locale === 'en' ? 'ต่อเนื่อง' : locale === 'zh' ? 'ต่อเนื่อง' : 'ต่อเนื่อง'}</span>
               ) : (
-                <>
-                  <span className="text-sm font-black text-[#111111]">{locale === 'en' ? '฿' : locale === 'zh' ? '฿' : '฿'}{order.total?.toLocaleString() || '0'}</span>
-                  <p className="text-[7px] text-[#A3A3A3] uppercase tracking-widest mt-1 font-bold">{locale === 'en' ? 'รายได้' : locale === 'zh' ? 'รายได้' : 'รายได้'}</p>
-                </>
+                <div className="bg-[#FAFAFA] px-3 py-1.5 rounded-xl border border-[#F0F0F0]">
+                  <span className="text-[14px] font-bold text-[#1A1A18]">{locale === 'en' ? '฿' : locale === 'zh' ? '฿' : '฿'}{order.total?.toLocaleString() || '0'}</span>
+                  <p className="text-[9px] text-[#A3A3A3] uppercase tracking-widest font-medium mt-0.5">{locale === 'en' ? 'รายได้' : locale === 'zh' ? 'รายได้' : 'รายได้'}</p>
+                </div>
               )}
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 mb-8">
-            <div className="flex flex-col gap-2">
-              <span className="text-[7px] font-black uppercase tracking-widest text-[#D4D4D4]">{locale === 'en' ? 'วันนัดหมาย' : locale === 'zh' ? 'วันนัดหมาย' : 'วันนัดหมาย'}</span>
-              <div className="flex items-center gap-2">
-                <CalendarDaysIcon className="w-4 h-4 text-[#111111]" />
-                <span className="text-[9px] font-bold text-[#111111] uppercase tracking-widest">
+          <div className="space-y-3 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-[#FAFAFA] flex items-center justify-center shrink-0">
+                <CalendarDaysIcon className="w-4 h-4 text-[#70706B]" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[9px] font-medium uppercase tracking-widest text-[#A3A3A3] block">{locale === 'en' ? 'วันนัดหมาย' : locale === 'zh' ? 'วันนัดหมาย' : 'วันนัดหมาย'}</span>
+                <span className="text-[12px] font-bold text-[#1A1A18] uppercase tracking-widest">
                   {formatDateByLocale(order.scheduled_date, locale)}
                 </span>
               </div>
             </div>
-            <div className="flex flex-col gap-2">
-              <span className="text-[7px] font-black uppercase tracking-widest text-[#D4D4D4]">{locale === 'en' ? 'location' : locale === 'zh' ? '地点' : 'สถานที่'}</span>
-              <div className="flex items-center gap-2 min-w-0">
-                <ShieldCheckIcon className="w-4 h-4 text-[#111111]" />
-                <span className="text-[9px] font-bold text-[#111111] uppercase tracking-widest truncate">
+            
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-[#FAFAFA] flex items-center justify-center shrink-0">
+                <MapPinIcon className="w-4 h-4 text-[#70706B]" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[9px] font-medium uppercase tracking-widest text-[#A3A3A3] block">{locale === 'en' ? 'location' : locale === 'zh' ? '地点' : 'สถานที่'}</span>
+                <span className="text-[12px] font-bold text-[#1A1A18] uppercase tracking-widest truncate block">
                   {houseData?.name || 'ไม่ระบุ'}
                 </span>
               </div>
@@ -497,33 +987,50 @@ export default function StaffDashboard() {
           </div>
         </div>
 
-        <div className="relative z-10 space-y-3">
+        <div className="relative z-10 flex flex-col gap-2">
           <button
             onClick={() => handleClaimOrder(order)}
             disabled={claimingOrderId === order.id}
-            className={`w-full text-white py-5 font-bold text-[10px] uppercase tracking-[0.3em] transition-all disabled:opacity-30 active:scale-[0.98] ${
-              isFollowUpVariant ? 'bg-[#7B5F22] hover:bg-[#604818]' : 'bg-[#111111] hover:bg-black'
+            className={`w-full text-white py-4 font-bold text-[10px] uppercase tracking-[0.2em] rounded-xl transition-all disabled:opacity-30 active:scale-[0.98] ${
+              isFollowUpVariant ? 'bg-[#7B5F22] hover:bg-[#604818]' : 'bg-[#1A1A18] hover:bg-black'
             }`}
           >
             {claimingOrderId === order.id ? 'กำลังดำเนินการ...' : isFollowUpVariant ? 'รับงานต่อเนื่อง' : 'กดรับงานทันที'}
           </button>
           <button
             onClick={() => setSelectedOrderForDetail(order)}
-            className={`w-full py-4 font-bold text-[9px] uppercase tracking-[0.3em] transition-all ${
+            className={`w-full py-3.5 font-bold text-[10px] uppercase tracking-[0.2em] rounded-xl transition-all ${
               isFollowUpVariant
-                ? 'bg-white text-[#7B5F22] border border-[#C9B37E] hover:bg-[#FFFCF4]'
-                : 'bg-white text-[#111111] border border-[#111111] hover:bg-[#FAFAFA]'
+                ? 'bg-transparent text-[#7B5F22] hover:bg-[#F7F2E6]'
+                : 'bg-[#FAFAFA] text-[#70706B] hover:bg-gray-100'
             }`}
           >
-            {locale === 'en' ? '             ดูรายละเอียดงาน           ' : locale === 'zh' ? '             ดูรายละเอียดงาน           ' : '             ดูรายละเอียดงาน           '}</button>
+            {locale === 'en' ? 'ดูรายละเอียดงาน' : locale === 'zh' ? 'ดูรายละเอียดงาน' : 'ดูรายละเอียดงาน'}
+          </button>
         </div>
       </div>
     )
   }
 
+  useGSAP(() => {
+    if (!loading) {
+      gsap.fromTo('.gsap-reveal', 
+        { y: 30, opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          duration: 1.2,
+          stagger: 0.12,
+          ease: 'power3.out',
+          clearProps: 'transform'
+        }
+      );
+    }
+  }, { dependencies: [loading], scope: containerRef });
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-[#F5F5F7] flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-[#E5E5DF] rounded-full animate-spin border-t-[#1A1A1A] mx-auto"></div>
           <div className="mt-4 text-[#70706B] font-medium">{pickLocalizedText(locale, copy.loading)}</div>
@@ -534,67 +1041,155 @@ export default function StaffDashboard() {
 
   return (
     <>
-      <div className={`transition-all duration-300 ${sidebarLocked ? "ml-64" : "ml-0"} bg-white min-h-screen pb-20`}>
-      {/* Header Section */}
-      <div className="border-b border-[#EFEFEF] pt-12 pb-16 px-8 mb-12">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
-          <div>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-8 h-px bg-[#111111]" />
-              <span className="text-[9px] font-bold uppercase tracking-[0.4em] text-[#A3A3A3]">{profile?.staff_type?.toUpperCase() || 'STAFF'} {locale === 'en' ? ' // สถานีงาน' : locale === 'zh' ? ' // สถานีงาน' : ' // สถานีงาน'}</span>
-            </div>
-            <div className="flex items-center gap-6">
-              <h1 className="font-serif-thai text-4xl font-light text-[#111111] tracking-tight">
-                {pickLocalizedText(locale, copy.title)}
-              </h1>
-              <button 
-                onClick={refreshAll}
-                className="w-10 h-10 flex items-center justify-center border border-[#111111] hover:bg-[#111111] hover:text-white transition-all group"
-                title="Refresh All Data"
-              >
-                <ArrowPathIcon className={`w-5 h-5 ${loading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
-              </button>
-            </div>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-[#A3A3A3] font-medium mt-2">
-              {locale === 'en' ? '               ยินดีต้อนรับ ' : locale === 'zh' ? '               ยินดีต้อนรับ ' : '               ยินดีต้อนรับ '}{(profile?.display_name || 'พนักงาน').toUpperCase()} {locale === 'en' ? ' เข้าสู่ระบบ             ' : locale === 'zh' ? ' เข้าสู่ระบบ             ' : ' เข้าสู่ระบบ             '}</p>
-          </div>
-
-          <div className="flex gap-2">
-            {!isCafe && (
-              <>
-                <Link href="/dashboard/staff/jobs" className="bg-[#111111] text-white px-8 py-4 font-bold text-[10px] uppercase tracking-widest hover:bg-[#1A3626] transition-all">
-                  {pickLocalizedText(locale, copy.viewAllJobs)}
-                </Link>
-                <button onClick={refreshAll} className="border border-[#111111] text-[#111111] px-8 py-4 font-bold text-[10px] uppercase tracking-widest hover:bg-[#F9F9F9] transition-all">
-                  {pickLocalizedText(locale, copy.refresh)}
-                </button>
-              </>
-            )}
-          </div>
+      <div ref={containerRef} className={`transition-all duration-300 ${sidebarLocked ? "ml-64" : "ml-0"} bg-[#F5F5F7] text-[#1D1D1F] font-sans min-h-screen pb-24`}>
+        {/* 📱 Organic Top Navigation Bar */}
+        <div className="pt-4 pb-2 px-4 max-w-[800px] mx-auto flex items-center justify-end relative text-[#1A1A18] gsap-reveal opacity-0">
+          {!isCafe && (
+            <Link href="/dashboard/staff/jobs" className="w-8 h-8 flex items-center justify-center text-[#1A1A18] hover:bg-gray-200/60 active:scale-95 transition-all bg-white rounded-full border border-gray-200 shadow-xs">
+              <BriefcaseIcon className="w-4 h-4" />
+            </Link>
+          )}
         </div>
-      </div>
 
-      <div className="px-4 max-w-[1400px] mx-auto">
+        {/* 🌿 Top Organic Greeting Section (No boxed card container) */}
+        <div className="px-4 pb-4 pt-6 max-w-[800px] mx-auto text-[#1D1D1F] gsap-reveal opacity-0">
+          {(() => {
+            const p = realTimeProfile || profile;
+            const t = (p?.staff_type || '').toLowerCase();
+            const d = (p?.department || '').toLowerCase();
+
+            let categoryLabel = 'พนักงานคาเฟ่';
+
+            if (t === 'cafe' || d.includes('cafe')) {
+              categoryLabel = 'พนักงานคาเฟ่ / หน้าร้าน';
+            } else if (t === 'kitchen' || d.includes('kitchen')) {
+              categoryLabel = 'พนักงานห้องครัว';
+            } else if (t === 'landscape' || t === 'garden' || d.includes('landscape') || d.includes('garden')) {
+              categoryLabel = 'พนักงานดูแลสวน';
+            } else if (p?.role === 'admin') {
+              categoryLabel = 'ผู้ดูแลระบบ (Admin)';
+            } else if (p?.department && !d.includes('landscape')) {
+              categoryLabel = p.department;
+            }
+
+            return (
+              <div className="flex flex-col gap-8">
+                <div className="flex flex-col items-center justify-center text-center py-2">
+                  <h2 className="text-[28px] font-semibold leading-tight truncate text-[#1D1D1F] tracking-tighter">
+                    สวัสดี, {p?.display_name || 'พนักงาน'}
+                  </h2>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-[12px] font-medium text-gray-500 tracking-wide">
+                      {categoryLabel}
+                    </span>
+                    <span className="text-gray-300">•</span>
+                    <span className="text-[12px] text-gray-400 font-mono tracking-wider">
+                      {p?.staff_code || p?.id?.substring(0, 8).toUpperCase()}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Action Buttons Row (Dynamic Island Style) */}
+                <div className="flex items-center justify-between gap-2 mt-2 bg-white/70 backdrop-blur-2xl rounded-[32px] p-2.5 mx-auto w-full max-w-[320px] shadow-[0_8px_32px_rgba(0,0,0,0.04)] border border-white/60">
+                  {/* Hero Clock In / Out Action Button */}
+                  <div className="flex flex-col items-center gap-1.5 flex-1">
+                    <motion.button 
+                      whileTap={{ scale: 0.95 }}
+                      onClick={handleHeroClockClick}
+                      disabled={clockingIn || isCompletedToday}
+                      className={`w-[52px] h-[52px] rounded-full flex items-center justify-center transition-all disabled:opacity-50 text-white shadow-sm mx-auto ${
+                        isCompletedToday ? 'bg-gray-200 text-gray-500 shadow-none' :
+                        isCheckedIn ? 'bg-[#1D1D1F] hover:bg-black shadow-[0_4px_12px_rgba(0,0,0,0.15)]' :
+                        'bg-[#2E5E48] hover:bg-[#244A39] shadow-[0_4px_12px_rgba(46,94,72,0.3)]'
+                      }`}
+                    >
+                      {clockingIn ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : isCompletedToday ? (
+                        <CheckCircleIcon className="w-5 h-5 text-gray-500" />
+                      ) : isCheckedIn ? (
+                        <motion.div animate={{ rotate: [0, -15, 15, -15, 0] }} transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut", repeatDelay: 1 }}>
+                          <ClockIcon className="w-5 h-5" />
+                        </motion.div>
+                      ) : (
+                        <motion.div animate={{ rotate: [0, -15, 15, -15, 0] }} transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut", repeatDelay: 1 }}>
+                          <ClockIcon className="w-5 h-5" />
+                        </motion.div>
+                      )}
+                    </motion.button>
+                    {/* Animated Text */}
+                    <motion.span 
+                      animate={{ opacity: [0.6, 1, 0.6] }} 
+                      transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                      className={`text-[9px] font-semibold tracking-wide ${isCompletedToday ? 'text-gray-400' : 'text-[#2E5E48]'}`}
+                    >
+                      {clockingIn ? 'กำลังบันทึก...' : isCompletedToday ? 'ลงเวลาแล้ว' : isCheckedIn ? 'ลงเวลาออก' : 'ลงเวลาเข้า'}
+                    </motion.span>
+                  </div>
+                  
+                  {/* Stock Count Button */}
+                  <div className="flex flex-col items-center gap-1.5 flex-1">
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => {
+                          if (typeof window !== 'undefined') {
+                            localStorage.setItem('xyl_pos_active_view', 'inventory');
+                            window.location.href = '/dashboard/pos';
+                          }
+                      }}
+                      className="w-[52px] h-[52px] shrink-0 bg-white text-[#1D1D1F] rounded-full flex items-center justify-center hover:bg-gray-50 shadow-[0_2px_8px_rgba(0,0,0,0.04)] mx-auto transition-colors"
+                    >
+                      <Package className="w-5 h-5" />
+                    </motion.button>
+                    <span className="text-[9px] font-semibold text-gray-500 tracking-wide">นับสต็อก</span>
+                  </div>
+
+                  {/* POS Button */}
+                  <div className="flex flex-col items-center gap-1.5 flex-1">
+                    <Link href="/dashboard/pos">
+                      <motion.button
+                        whileTap={{ scale: 0.95 }}
+                        className="w-[52px] h-[52px] shrink-0 bg-white text-[#1D1D1F] rounded-full flex items-center justify-center hover:bg-gray-50 shadow-[0_2px_8px_rgba(0,0,0,0.04)] mx-auto transition-colors"
+                      >
+                        <Calculator className="w-5 h-5" />
+                      </motion.button>
+                    </Link>
+                    <span className="text-[9px] font-semibold text-gray-500 tracking-wide">เข้า POS</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+
+        {/* 🤍 Main Content Container */}
+        <main className="p-4 sm:p-6 relative z-20 max-w-[800px] mx-auto flex flex-col gap-6 text-[#1D1D1F] gsap-reveal opacity-0">
+
+        {/* Gamification Dashboard */}
+        {profile?.id && profile?.branch_code && (
+            <StaffGamification profileId={profile.id} branchCode={profile.branch_code} />
+        )}
+
         {/* Verification Alert */}
         {!profile?.is_verified && (
           <motion.div 
             initial={{ opacity: 0, y: 10 }} 
             animate={{ opacity: 1, y: 0 }} 
-            className={`mb-6 border border-dashed p-4 flex items-center justify-between ${pendingConfirmation ? 'border-amber-400 bg-amber-50' : 'border-[#E54D2E] bg-[#FEF6F5]'}`}
+            className={`p-4 rounded-[24px] flex items-center justify-between shadow-xs border bg-white text-[#1A1A18] ${pendingConfirmation ? 'border-amber-200/60' : 'border-red-200'} gsap-reveal`}
           >
-            <div className={`flex items-center gap-3 ${pendingConfirmation ? 'text-amber-600' : 'text-[#E54D2E]'}`}>
+            <div className={`flex items-center gap-3 ${pendingConfirmation ? 'text-amber-800' : 'text-red-600'}`}>
               {pendingConfirmation ? (
-                <Loader2 className="w-5 h-5 shrink-0 animate-spin" />
+                <Loader2 className="w-4.5 h-4.5 shrink-0 animate-spin" />
               ) : (
-                <ExclamationTriangleIcon className="w-5 h-5 shrink-0" />
+                <ExclamationTriangleIcon className="w-4.5 h-4.5 shrink-0" />
               )}
-              <span className="text-[10px] font-bold uppercase tracking-widest leading-relaxed">
-                {pendingConfirmation ? 'อยู่ระหว่างตรวจสอบ' : 'บัญชียังไม่ยืนยันตัวตน'}
+              <span className="text-xs font-bold leading-relaxed">
+                {pendingConfirmation ? 'อยู่ระหว่างตรวจสอบบัญชี' : 'บัญชียังไม่ยืนยันตัวตน'}
               </span>
             </div>
             <Link 
               href="/dashboard/staff/profile?tab=verification" 
-              className={`text-[10px] font-black underline uppercase tracking-widest shrink-0 ${pendingConfirmation ? 'text-amber-600' : 'text-[#E54D2E]'}`}
+              className="text-xs font-bold px-4 py-1.5 rounded-full transition-transform active:scale-95 text-white bg-[#1A1A18] hover:bg-black"
             >
               {pendingConfirmation ? 'ดูข้อมูล' : 'ยืนยัน'}
             </Link>
@@ -603,355 +1198,382 @@ export default function StaffDashboard() {
 
         {/* Message Banner */}
         {message && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-6 border border-[#111111] p-4 bg-[#111111] text-white text-[10px] font-bold uppercase tracking-[0.3em] text-center">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-2 border border-gray-200 p-3.5 rounded-[24px] bg-white text-[#1A1A18] text-xs font-bold text-center shadow-xs">
             {message.text}
           </motion.div>
         )}
 
-        {/* Available Tasks Section (Garden Staff only) - NOW AT TOP */}
-         {!isCafe && (
-          <section className="mb-12">
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-px bg-[#111111]" />
-                <span className="text-[9px] font-black uppercase tracking-[0.4em] text-[#A3A3A3]">{locale === 'en' ? 'งานที่พร้อมรับ // OPEN QUEUE' : locale === 'zh' ? 'งานที่พร้อมรับ // OPEN QUEUE' : 'งานที่พร้อมรับ // OPEN QUEUE'}</span>
-              </div>
-              {openOrders.length > 0 && (
-                <div className="flex items-center gap-2">
-                   <div className="w-2 h-2 bg-[#E54D2E] rounded-full animate-ping" />
-                   <span className="text-[10px] font-bold text-[#E54D2E] uppercase tracking-widest">
-                     {freshOpenOrders.length} {locale === 'en' ? ' งานใหม่ / ' : locale === 'zh' ? ' งานใหม่ / ' : ' งานใหม่ / '}{followUpOpenOrders.length} {locale === 'en' ? ' งานต่อเนื่อง                    ' : locale === 'zh' ? ' งานต่อเนื่อง                    ' : ' งานต่อเนื่อง                    '}</span>
+
+
+        {/* Floating Attendance Notice Overlay Modal */}
+        <AnimatePresence>
+          {attendanceNotice && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.92, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.92, y: 15 }}
+                className="bg-white rounded-[32px] p-6 max-w-sm w-full shadow-xl border border-gray-100 text-center relative overflow-hidden"
+              >
+                <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-4 mx-auto border ${
+                  attendanceNotice.type === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' :
+                  attendanceNotice.type === 'warning' ? 'bg-amber-50 border-amber-100 text-amber-600' :
+                  attendanceNotice.type === 'error' ? 'bg-rose-50 border-rose-100 text-rose-600' :
+                  'bg-gray-100 border-gray-200 text-gray-700'
+                }`}>
+                  {attendanceNotice.type === 'success' && <CheckCircleIcon className="w-7 h-7" />}
+                  {attendanceNotice.type === 'warning' && <ExclamationTriangleIcon className="w-7 h-7" />}
+                  {attendanceNotice.type === 'error' && <XMarkIcon className="w-7 h-7" />}
+                  {attendanceNotice.type === 'info' && <ClockIcon className="w-7 h-7" />}
                 </div>
+
+                <h3 className="font-bold text-base text-[#1A1A18] mb-2 leading-tight">
+                  {attendanceNotice.title}
+                </h3>
+                <p className="text-xs text-gray-500 leading-relaxed mb-5">
+                  {attendanceNotice.message}
+                </p>
+
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => setAttendanceNotice(null)}
+                  className="w-full py-3 px-4 rounded-full bg-[#1A1A18] hover:bg-black text-xs font-bold text-white transition-all shadow-xs active:scale-[0.98]"
+                >
+                  ตกลง / รับทราบ
+                </motion.button>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* Clock Out Confirmation Modal */}
+        {showClockOutModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pb-24 bg-black/60 backdrop-blur-md">
+            <div className="bg-white rounded-[32px] p-6 max-w-sm w-full shadow-2xl flex flex-col max-h-[80vh] overflow-hidden">
+              <div className="w-14 h-14 rounded-full bg-rose-50 flex items-center justify-center mb-4 mx-auto text-rose-600 shrink-0">
+                <ClockIcon className="w-7 h-7" />
+              </div>
+              <h3 className="font-bold text-lg text-center text-[#1D1D1F] mb-1 shrink-0">
+                ยืนยันการลงเวลาออกงาน?
+              </h3>
+              <p className="text-sm text-center text-gray-500 mb-6 shrink-0">
+                โปรดตรวจสอบความเรียบร้อยก่อนลงเวลาออกงาน
+              </p>
+
+              <div className="flex-1 overflow-y-auto pr-1 -mr-1">
+
+                {/* Stock Audit Validation */}
+                {missingAuditCategories.length > 0 && (
+                  <div className="mb-6 p-4 rounded-2xl bg-rose-50 text-left">
+                    <h4 className="text-sm font-semibold text-rose-700 mb-2">ยังไม่ได้นับสต็อกหมวดหมู่ต่อไปนี้:</h4>
+                    <ul className="list-disc pl-5 text-sm text-rose-600 mb-3 space-y-1">
+                      {missingAuditCategories.map((cat, idx) => (
+                        <li key={idx}>{cat.name}</li>
+                      ))}
+                    </ul>
+                    <p className="text-xs text-rose-500/80 leading-relaxed">กรุณาไปที่ <span className="font-semibold">ระบบ POS &gt; จัดการสต็อก</span> เพื่อบันทึกการนับสต็อกหมวดหมู่เหล่านี้ให้เรียบร้อย</p>
+                  </div>
+                )}
+
+                {/* Checklist */}
+                {checklistItems.length > 0 && (
+                  <div className="flex flex-col gap-3 mb-6">
+                    {checklistItems.map((item, idx) => {
+                      const isChecked = checkedItems.includes(idx);
+                      return (
+                        <label key={idx} className="flex items-start gap-3 cursor-pointer group text-left">
+                          <div className={`w-5 h-5 mt-0.5 rounded flex items-center justify-center border shrink-0 transition-colors ${isChecked ? 'bg-emerald-500 border-emerald-500' : 'bg-white border-gray-300 group-hover:border-emerald-500'}`}>
+                            {isChecked && <CheckCircleIcon className="w-3.5 h-3.5 text-white" />}
+                          </div>
+                          <span className={`text-xs font-medium leading-relaxed transition-colors ${isChecked ? 'text-gray-900' : 'text-gray-600'}`}>{item}</span>
+                          <input 
+                            type="checkbox" 
+                            className="hidden" 
+                            checked={isChecked} 
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setCheckedItems(prev => [...prev, idx]);
+                              } else {
+                                setCheckedItems(prev => prev.filter(i => i !== idx));
+                              }
+                            }} 
+                          />
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Photo Enforcement */}
+                {missingPhotoZones.length > 0 && (
+                  <div className="mb-6 text-left">
+                    <label className="block text-sm font-semibold text-[#1D1D1F] mb-3">ถ่ายรูปความเรียบร้อยของโซน <span className="text-rose-500">*</span></label>
+                    {missingAuditCategories.length > 0 ? (
+                      <div className="p-4 bg-gray-50 rounded-2xl text-center">
+                        <p className="text-xs text-gray-500">กรุณานับสต็อกให้เสร็จสิ้นก่อนทำการถ่ายรูป</p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-3">
+                        {missingPhotoZones.map((zone) => {
+                          const hasPhoto = !!checkoutPhotos[zone.id]
+                          return (
+                            <div key={zone.id} className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                              <div className="flex-1">
+                                <p className="text-sm font-bold text-gray-900">{zone.name}</p>
+                                <p className="text-[10px] font-medium text-rose-500 mt-0.5">{hasPhoto ? 'ถ่ายรูปแล้ว' : 'รอการอัปโหลด'}</p>
+                              </div>
+                              {hasPhoto ? (
+                                <div className="relative w-14 h-14 rounded-lg overflow-hidden border border-gray-200">
+                                  <img src={URL.createObjectURL(checkoutPhotos[zone.id])} className="w-full h-full object-cover" />
+                                  <button onClick={() => {
+                                    const newPhotos = {...checkoutPhotos}
+                                    delete newPhotos[zone.id]
+                                    setCheckoutPhotos(newPhotos)
+                                  }} className="absolute top-0 right-0 bg-black/60 backdrop-blur text-white rounded-bl-lg p-1 hover:bg-rose-500 transition-colors">
+                                    <XMarkIcon className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <label className="w-14 h-14 rounded-lg bg-white border border-gray-200 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-100 transition-colors text-gray-400">
+                                  <CameraIcon className="w-5 h-5 mb-0.5" />
+                                  <span className="text-[8px] font-medium">ถ่ายรูป</span>
+                                  <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => {
+                                    if (e.target.files && e.target.files[0]) {
+                                      setCheckoutPhotos(prev => ({...prev, [zone.id]: e.target.files![0]}))
+                                    }
+                                  }} />
+                                </label>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-3 mt-6 shrink-0">
+                  <button
+                    onClick={() => {
+                      setShowClockOutModal(false)
+                      setCheckoutPhotos({})
+                    }}
+                    disabled={isUploadingPhotos || clockingIn}
+                    className="flex-1 py-3 px-4 rounded-full border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                  >
+                    ยกเลิก
+                  </button>
+                  {missingAuditCategories.length > 0 ? (
+                    <button
+                      onClick={() => {
+                        if (typeof window !== 'undefined') {
+                          localStorage.setItem('xyl_pos_active_view', 'inventory');
+                          window.location.href = '/dashboard/pos';
+                        }
+                      }}
+                      className="flex-1 py-3 px-4 rounded-full text-xs font-bold text-white transition-all shadow-xs bg-[#1A1A18] hover:bg-black"
+                    >
+                      ไปนับสต็อกที่ POS
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => executeClockAction('check_out')}
+                      disabled={!allChecklistCompleted || Object.keys(checkoutPhotos).length < missingPhotoZones.length || isUploadingPhotos || clockingIn}
+                      className={`flex-1 py-3 px-4 rounded-full text-xs font-bold text-white transition-all flex items-center justify-center shadow-xs ${allChecklistCompleted && Object.keys(checkoutPhotos).length >= missingPhotoZones.length ? 'bg-rose-600 hover:bg-rose-700' : 'bg-rose-300 cursor-not-allowed'}`}
+                    >
+                      {isUploadingPhotos ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        'ยืนยันออกงาน'
+                      )}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+        {/* Available Tasks Section (Garden Staff only) */}
+        {!isCafe && (
+          <section className="mt-2">
+            <div className="flex items-center justify-between mb-4 px-2">
+              <h3 className="text-base font-semibold text-[#1D1D1F] tracking-tight">งานที่พร้อมรับ</h3>
+              {openOrders.length > 0 && (
+                <span className="text-[11px] font-medium px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 tracking-wide">
+                  {freshOpenOrders.length} งานใหม่ • {followUpOpenOrders.length} งานต่อเนื่อง
+                </span>
               )}
             </div>
 
             {openOrders.length > 0 ? (
-              <div className="space-y-10">
+              <div className="space-y-6">
                 <div>
-                  <div className="flex items-center gap-3 mb-5">
-                    <span className="text-[9px] font-black uppercase tracking-[0.35em] text-[#111111]">{locale === 'en' ? 'งานใหม่' : locale === 'zh' ? 'งานใหม่' : 'งานใหม่'}</span>
-                    <div className="h-px flex-1 bg-[#EFEFEF]" />
-                  </div>
+                  <h4 className="text-xs font-semibold text-gray-500 mb-3 px-2 tracking-wide">งานใหม่</h4>
                   {freshOpenOrders.length > 0 ? (
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {freshOpenOrders.map((order) => renderOpenOrderCard(order, 'fresh'))}
                     </div>
                   ) : (
-                    <div className="border border-dashed border-[#EFEFEF] p-10 text-center">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-[#A3A3A3]">{locale === 'en' ? 'ไม่มีงานใหม่ที่รอรับ' : locale === 'zh' ? 'ไม่มีงานใหม่ที่รอรับ' : 'ไม่มีงานใหม่ที่รอรับ'}</p>
+                    <div className="bg-white rounded-[32px] p-6 text-center shadow-[0_8px_32px_rgba(0,0,0,0.02)] border border-white">
+                      <p className="text-[12px] font-medium text-gray-400">ไม่มีงานใหม่ที่รอรับ</p>
                     </div>
                   )}
                 </div>
 
                 <div>
-                  <div className="flex items-center gap-3 mb-5">
-                    <span className="text-[9px] font-black uppercase tracking-[0.35em] text-[#7B5F22]">{locale === 'en' ? 'งานดูแลต่อเนื่อง' : locale === 'zh' ? 'งานดูแลต่อเนื่อง' : 'งานดูแลต่อเนื่อง'}</span>
-                    <div className="h-px flex-1 bg-[#E9DFC5]" />
-                  </div>
+                  <h4 className="text-xs font-semibold text-gray-500 mb-3 px-2 tracking-wide">งานดูแลต่อเนื่อง</h4>
                   {followUpOpenOrders.length > 0 ? (
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {followUpOpenOrders.map((order) => renderOpenOrderCard(order, 'follow-up'))}
                     </div>
                   ) : (
-                    <div className="border border-dashed border-[#E9DFC5] p-10 text-center bg-[#FFFCF4]">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-[#B79A58]">{locale === 'en' ? 'ยังไม่มีงานดูแลต่อเนื่องในคิว' : locale === 'zh' ? 'ยังไม่มีงานดูแลต่อเนื่องในคิว' : 'ยังไม่มีงานดูแลต่อเนื่องในคิว'}</p>
+                    <div className="bg-white rounded-[32px] p-6 text-center shadow-[0_8px_32px_rgba(0,0,0,0.02)] border border-white">
+                      <p className="text-[12px] font-medium text-gray-400">ยังไม่มีงานดูแลต่อเนื่องในคิว</p>
                     </div>
                   )}
                 </div>
               </div>
             ) : (
-              <div className="border border-dashed border-[#EFEFEF] py-16 text-center">
-                <BriefcaseIcon className="w-12 h-12 text-[#EFEFEF] mx-auto mb-4" />
-                <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#A3A3A3]">{locale === 'en' ? 'ไม่มีงานที่รอดำเนินการในขณะนี้' : locale === 'zh' ? 'ไม่มีงานที่รอดำเนินการในขณะนี้' : 'ไม่มีงานที่รอดำเนินการในขณะนี้'}</p>
-                <button onClick={refreshAll} className="mt-6 text-[9px] font-black uppercase tracking-widest text-[#111111] underline underline-offset-8 decoration-1 hover:text-[#A3A3A3] transition-colors">
-                  {locale === 'en' ? '                   ตรวจสอบอีกครั้ง // REFRESH                 ' : locale === 'zh' ? '                   ตรวจสอบอีกครั้ง // REFRESH                 ' : '                   ตรวจสอบอีกครั้ง // REFRESH                 '}</button>
-                {/* Admin Debug Only */}
-                {profile?.role === 'admin' && (
-                  <div className="mt-8 pt-8 border-t border-[#EFEFEF] max-w-xs mx-auto text-left">
-                     <p className="text-[8px] font-black text-[#EFEFEF] uppercase mb-2">Admin Debug Data</p>
-                     <pre className="text-[8px] text-[#A3A3A3] overflow-hidden truncate">
-                       Role: {profile.role} | Branch: {profile.branch_code || 'null'} | Orders: {openOrders.length}
-                     </pre>
-                  </div>
-                )}
+              <div className="bg-white rounded-[32px] p-10 text-center shadow-[0_8px_32px_rgba(0,0,0,0.02)] border border-white">
+                <BriefcaseIcon className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-[13px] font-medium text-gray-400">ไม่มีงานที่รอดำเนินการในขณะนี้</p>
+                <button onClick={refreshAll} className="mt-5 text-[12px] font-semibold text-[#1D1D1F] hover:underline">
+                  ตรวจสอบอีกครั้ง
+                </button>
               </div>
             )}
           </section>
         )}
 
-        {/* ===== STATS GRID LAYOUT ===== */}
-        <div className="grid grid-cols-2 gap-3">
-
-          {/* Card 1: ลงเวลางาน */}
-          <motion.div
-            layout
-            onClick={() => setExpandedCard(expandedCard === 'attendance' ? null : 'attendance')}
-            style={{ gridColumn: expandedCard === 'attendance' ? 'span 2' : 'span 1' }}
-            className={`cursor-pointer border transition-colors ${expandedCard === 'attendance' ? 'border-[#111111]' : 'border-[#EFEFEF] bg-white hover:border-[#111111]'}`}
-          >
-            <div className="p-4">
-              <div className="flex items-center gap-3 mb-2">
-                <ClockIcon className="w-5 h-5 text-[#111111]" />
-                <span className="text-[9px] font-black uppercase tracking-widest text-[#A3A3A3]">{locale === 'en' ? 'ลงเวลางาน' : locale === 'zh' ? 'ลงเวลางาน' : 'ลงเวลางาน'}</span>
-              </div>
-              {expandedCard !== 'attendance' && (
-                <p className="text-[10px] text-[#A3A3A3] mt-1">{locale === 'en' ? 'กดเพื่อลงเวลาเข้า-ออกงาน' : locale === 'zh' ? 'กดเพื่อลงเวลาเข้า-ออกงาน' : 'กดเพื่อลงเวลาเข้า-ออกงาน'}</p>
-              )}
+        {/* ===== STATS & ATTENDANCE DASHBOARD ===== */}
+        <div className="w-full mt-2">
+          {/* Cafe Staff Attendance & Salary Metrics */}
+          <div className="w-full flex flex-col gap-5">
+            <div className="flex items-center justify-between px-2">
+              <h3 className="text-base font-semibold text-[#1D1D1F] tracking-tight">ค่าแรงและการเข้างานประจำเดือน</h3>
             </div>
-            <AnimatePresence>
-              {expandedCard === 'attendance' && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="overflow-hidden"
-                >
-                  <AttendanceCheckIn />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
 
-          {!isCafe ? (
-            <>
-              {/* Card 2: สรุปงาน */}
-              <motion.div
-                layout
-                onClick={() => setExpandedCard(expandedCard === 'summary' ? null : 'summary')}
-                style={{ gridColumn: expandedCard === 'summary' ? 'span 2' : 'span 1' }}
-                className={`cursor-pointer border transition-colors ${expandedCard === 'summary' ? 'border-[#111111] bg-[#111111] text-white' : 'border-[#EFEFEF] bg-white hover:border-[#111111]'}`}
-              >
-                <div className="p-4">
-                  <div className="flex items-center gap-3 mb-2">
-                    <ChartBarIcon className={`w-5 h-5 ${expandedCard === 'summary' ? 'text-white' : 'text-[#111111]'}`} />
-                    <span className={`text-[9px] font-black uppercase tracking-widest ${expandedCard === 'summary' ? 'text-white/50' : 'text-[#A3A3A3]'}`}>{locale === 'en' ? 'สรุปภาพรวม' : locale === 'zh' ? 'สรุปภาพรวม' : 'สรุปภาพรวม'}</span>
-                  </div>
-                  {expandedCard !== 'summary' && (
-                    <div className="flex items-baseline gap-2 mt-1">
-                      <span className="text-2xl font-light text-[#111111]">{stats.today}</span>
-                      <span className="text-[9px] text-[#A3A3A3]">{locale === 'en' ? 'งานวันนี้' : locale === 'zh' ? 'งานวันนี้' : 'งานวันนี้'}</span>
-                    </div>
-                  )}
-                </div>
-                <AnimatePresence>
-                  {expandedCard === 'summary' && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="overflow-hidden px-4 pb-5"
-                    >
-                      <div className="grid grid-cols-2 gap-3 mt-2">
-                        <div className="border border-white/20 p-4">
-                          <span className="text-[8px] font-black uppercase tracking-widest text-white/40 block mb-2">{locale === 'en' ? 'วันนี้' : locale === 'zh' ? 'วันนี้' : 'วันนี้'}</span>
-                          <div className="text-3xl font-light">{stats.today}</div>
-                        </div>
-                        <div className="border border-white/20 p-4">
-                          <span className="text-[8px] font-black uppercase tracking-widest text-white/40 block mb-2">{locale === 'en' ? 'รอมอบหมาย' : locale === 'zh' ? 'รอมอบหมาย' : 'รอมอบหมาย'}</span>
-                          <div className="text-3xl font-light">{stats.pending}</div>
-                        </div>
-                        <div className="border border-white/20 p-4">
-                          <span className="text-[8px] font-black uppercase tracking-widest text-white/40 block mb-2">{locale === 'en' ? 'กำลังทำ' : locale === 'zh' ? 'กำลังทำ' : 'กำลังทำ'}</span>
-                          <div className="text-3xl font-light">{stats.inProgress}</div>
-                        </div>
-                        <div className="border border-white/20 p-4">
-                          <span className="text-[8px] font-black uppercase tracking-widest text-white/40 block mb-2">{locale === 'en' ? 'สำเร็จสัปดาห์นี้' : locale === 'zh' ? 'สำเร็จสัปดาห์นี้' : 'สำเร็จสัปดาห์นี้'}</span>
-                          <div className="text-3xl font-light">{stats.completedThisWeek}</div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-
-              {/* Card 3: คิวงาน */}
-              <motion.div
-                layout
-                onClick={() => setExpandedCard(expandedCard === 'queue' ? null : 'queue')}
-                style={{ gridColumn: expandedCard === 'queue' ? 'span 2' : 'span 1' }}
-                className={`cursor-pointer border transition-colors ${expandedCard === 'queue' ? 'border-[#111111]' : 'border-[#EFEFEF] bg-white hover:border-[#111111]'}`}
-              >
-                <div className="p-4">
-                  <div className="flex items-center gap-3 mb-2">
-                    <PlayIcon className="w-5 h-5 text-[#111111]" />
-                    <span className="text-[9px] font-black uppercase tracking-widest text-[#A3A3A3]">{locale === 'en' ? 'คิวงาน' : locale === 'zh' ? 'คิวงาน' : 'คิวงาน'}</span>
-                  </div>
-                  {expandedCard !== 'queue' && (
-                    <div className="flex items-baseline gap-2 mt-1">
-                      <span className="text-2xl font-light text-[#111111]">{jobs.length}</span>
-                      <span className="text-[9px] text-[#A3A3A3]">{locale === 'en' ? 'งานทั้งหมด' : locale === 'zh' ? 'งานทั้งหมด' : 'งานทั้งหมด'}</span>
-                    </div>
-                  )}
-                </div>
-                <AnimatePresence>
-                  {expandedCard === 'queue' && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="overflow-hidden"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div className="border-t border-[#EFEFEF]">
-                        {jobs.length > 0 ? jobs.slice(0, 5).map((job) => {
-                          const statusInfo = JobService.getStatusInfo(job.status);
-                          return (
-                            <div key={job.id} className="p-4 border-b border-[#EFEFEF] last:border-0">
-                              <div className="flex items-center gap-3 mb-2">
-                                <span className="text-[9px] font-black text-[#111111] tracking-widest">#{job.id.slice(0, 8).toUpperCase()}</span>
-                                <span className={`text-[7px] font-bold uppercase tracking-widest px-2 py-0.5 border ${statusInfo.color}`}>
-                                  {statusInfo.text === 'Assigned' ? 'รอมอบหมาย' : statusInfo.text === 'In Progress' ? locale === 'en' ? 'In Progress' : locale === 'zh' ? '进行中' : 'กำลังดำเนินการ' : 'สำเร็จ'}
-                                </span>
-                              </div>
-                              <p className="font-serif-thai text-sm font-light italic text-[#111111] mb-3">
-                                {job.notes ? job.notes.split('\n')[0] : 'งานสวน'}
-                              </p>
-                              <div className="flex items-center gap-4 text-[9px] text-[#A3A3A3]">
-                                <span>{formatDateByLocale(job.assigned_date, locale)}</span>
-                                <span className="mx-2">.</span>
-                                <span className="uppercase">{job.status === 'assigned' ? 'รอมอบหมาย' : locale === 'en' ? 'In Progress' : locale === 'zh' ? '进行中' : 'กำลังดำเนินการ'}</span>
-                              </div>
-                              {statusInfo.nextAction && (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); handleUpdateStatus(job.id, statusInfo.nextStatus!); }}
-                                  disabled={isUpdating === job.id}
-                                  className="mt-3 w-full bg-[#111111] text-white py-3 font-bold text-[9px] uppercase tracking-[0.3em] hover:bg-[#1A3626] transition-all disabled:opacity-20"
-                                >
-                                  {isUpdating === job.id ? '...' : statusInfo.nextAction === 'Start' ? 'เริ่มงาน' : locale === 'en' ? 'Completed' : locale === 'zh' ? '已完成' : 'เสร็จสิ้น'}
-                                </button>
-                              )}
-                            </div>
-                          )
-                        }) : (
-                          <div className="p-8 text-center">
-                            <p className="text-[10px] font-bold text-[#A3A3A3] uppercase tracking-[0.4em] italic">{locale === 'en' ? 'ไม่มีคิวงาน' : locale === 'zh' ? 'ไม่มีคิวงาน' : 'ไม่มีคิวงาน'}</p>
+            {attendanceSummary.isLoading ? (
+              <div className="flex justify-center py-10 bg-white rounded-[32px] shadow-[0_8px_32px_rgba(0,0,0,0.02)] border border-white">
+                <Loader2 className="w-6 h-6 animate-spin text-gray-300" />
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4">
+                {/* Metrics Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                    {/* Card 1: วันมาทำงาน */}
+                    <Link href="/dashboard/staff/schedule" className="block outline-none">
+                      <motion.div 
+                          whileTap={{ scale: 0.97 }}
+                          className="p-5 bg-white rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.04)] cursor-pointer hover:shadow-[0_8px_32px_rgba(0,0,0,0.08)] transition-all group h-full flex flex-col justify-between border border-white"
+                      >
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                              <span className="text-[10px] font-bold text-gray-400 tracking-wide">วันมาทำงาน</span>
+                              <CalendarDaysIcon className="w-3.5 h-3.5 text-gray-400 group-hover:text-black transition-colors" />
                           </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
+                          <div className="text-[22px] font-bold text-[#1D1D1F] flex items-baseline gap-1 tracking-tight">
+                              {attendanceSummary.daysWorked} <span className="text-[11px] font-medium text-gray-400">วัน</span>
+                          </div>
+                        </div>
+                        <span className="text-[10px] text-[#2E5E48] font-semibold mt-3 block">ดูปฏิทิน ➔</span>
+                      </motion.div>
+                    </Link>
 
-              {/* Card 4: ดูงานทั้งหมด */}
-              <Link href="/dashboard/staff/jobs" className="border border-[#111111] bg-[#111111] p-4 flex flex-col justify-between hover:bg-[#1A3626] transition-colors">
-                <div className="flex items-center gap-3 mb-2">
-                  <ShieldCheckIcon className="w-5 h-5 text-white" />
-                  <span className="text-[9px] font-black uppercase tracking-widest text-white/50">{locale === 'en' ? 'ดูงานทั้งหมด' : locale === 'zh' ? 'ดูงานทั้งหมด' : 'ดูงานทั้งหมด'}</span>
+                    {/* Card 2: มาสายรวม */}
+                    <Link href="/dashboard/staff/lateness" className="block outline-none">
+                      <motion.div 
+                          whileTap={{ scale: 0.97 }}
+                          className="p-5 bg-white rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.04)] cursor-pointer hover:shadow-[0_8px_32px_rgba(0,0,0,0.08)] transition-all group h-full flex flex-col justify-between border border-white"
+                      >
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                              <span className="text-[10px] font-bold text-amber-500 tracking-wide">มาสายรวม</span>
+                              <CalendarDaysIcon className="w-3.5 h-3.5 text-amber-400 group-hover:text-amber-500 transition-colors" />
+                          </div>
+                          <div className="text-[22px] font-bold text-amber-500 flex items-baseline gap-1 tracking-tight">
+                              {attendanceSummary.lateMinutes} <span className="text-[11px] font-medium text-amber-500/70">นาที</span>
+                          </div>
+                        </div>
+                        <span className="text-[10px] text-amber-600 font-semibold mt-3 block">ประวัติลงเวลา ➔</span>
+                      </motion.div>
+                    </Link>
+
+                    {/* Card 3: โอทีรวม */}
+                    <Link href="/dashboard/staff/ot" className="block outline-none">
+                      <motion.div 
+                          whileTap={{ scale: 0.97 }}
+                          className="p-4 bg-white border border-gray-200/60 rounded-[24px] shadow-[0_2px_15px_rgba(0,0,0,0.02)] cursor-pointer hover:border-gray-300 transition-all group h-full flex flex-col justify-between"
+                      >
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                              <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">โอทีรวม (OT)</span>
+                              <CalendarDaysIcon className="w-3.5 h-3.5 text-emerald-400 group-hover:text-emerald-700 transition-colors" />
+                          </div>
+                          <div className="text-xl font-bold text-emerald-700 flex items-baseline gap-1">
+                              {attendanceSummary.otHours.toFixed(1)} <span className="text-xs font-normal text-emerald-600/70">ชม.</span>
+                          </div>
+                        </div>
+                        <span className="text-[9px] text-emerald-600 font-bold mt-2 block">ดูรายละเอียด ➔</span>
+                      </motion.div>
+                    </Link>
+
+                    {/* Card 4: ลาหยุดใช้แล้ว */}
+                    <Link href="/dashboard/staff/leaves" className="block outline-none">
+                      <motion.div 
+                          whileTap={{ scale: 0.97 }}
+                          className="p-4 bg-white border border-gray-200/60 rounded-[24px] shadow-[0_2px_15px_rgba(0,0,0,0.02)] cursor-pointer hover:border-gray-300 transition-all group h-full flex flex-col justify-between"
+                      >
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">ลาหยุดใช้แล้ว</span>
+                              <CalendarDaysIcon className="w-3.5 h-3.5 text-gray-400 group-hover:text-gray-700 transition-colors" />
+                          </div>
+                          <div className="text-xl font-bold text-gray-800 flex items-baseline gap-1">
+                              {attendanceSummary.leaveDays} <span className="text-xs font-normal text-gray-400">วัน</span>
+                          </div>
+                        </div>
+                        <span className="text-[9px] text-gray-500 font-bold mt-2 block">ดูประวัติลางาน ➔</span>
+                      </motion.div>
+                    </Link>
+
                 </div>
-                <p className="text-[10px] text-white/60 mt-1">{locale === 'en' ? 'เปิดหน้ารายการงานเต็ม' : locale === 'zh' ? 'เปิดหน้ารายการงานเต็ม' : 'เปิดหน้ารายการงานเต็ม'}</p>
-              </Link>
-            </>
-          ) : (
-            <>
-              {/* Cafe Card 2: ข้อมูลเชิงลึก */}
-              <motion.div
-                layout
-                onClick={() => setExpandedCard(expandedCard === 'insight' ? null : 'insight')}
-                style={{ gridColumn: expandedCard === 'insight' ? 'span 2' : 'span 1' }}
-                className={`cursor-pointer border transition-colors ${expandedCard === 'insight' ? 'border-[#111111] bg-[#111111] text-white' : 'border-[#EFEFEF] bg-white hover:border-[#111111]'}`}
-              >
-                <div className="p-4">
-                  <div className="flex items-center gap-3 mb-2">
-                    <ChartBarIcon className={`w-5 h-5 ${expandedCard === 'insight' ? 'text-white' : 'text-[#111111]'}`} />
-                    <span className={`text-[9px] font-black uppercase tracking-widest ${expandedCard === 'insight' ? 'text-white/50' : 'text-[#A3A3A3]'}`}>{locale === 'en' ? 'ข้อมูลเชิงลึก' : locale === 'zh' ? 'ข้อมูลเชิงลึก' : 'ข้อมูลเชิงลึก'}</span>
-                  </div>
-                  {expandedCard !== 'insight' && (
-                    <div className="flex items-baseline gap-2 mt-1">
-                      <span className="text-2xl font-light text-[#111111]">{(cafeStats.daysWorked / 24 * 100).toFixed(0)}%</span>
-                      <span className="text-[9px] text-[#A3A3A3]">{locale === 'en' ? 'ความสม่ำเสมอ' : locale === 'zh' ? 'ความสม่ำเสมอ' : 'ความสม่ำเสมอ'}</span>
+
+                {/* Salary Calculation Section */}
+                    <div className="bg-white border border-gray-200/50 rounded-[28px] p-5 shadow-[0_2px_15px_rgba(0,0,0,0.02)]">
+                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">ประมาณการเงินเดือนสุทธิ</h4>
+                        
+                        <div className="space-y-3">
+                            <div className="flex justify-between items-center pb-2.5 border-b border-gray-100">
+                                <span className="text-xs text-gray-500 font-medium">ค่าแรงพื้นฐาน</span>
+                                <span className="text-sm font-semibold text-[#1A1A18]">{attendanceSummary.baseSalary.toLocaleString()} ฿</span>
+                            </div>
+                            <div className="flex justify-between items-center pb-2.5 border-b border-gray-100">
+                                <span className="text-xs text-gray-500 font-medium">ล่วงเวลา (OT)</span>
+                                <span className="text-sm font-semibold text-emerald-600">+{attendanceSummary.otPay.toLocaleString()} ฿</span>
+                            </div>
+                            {(realTimeProfile?.holiday_compensation_type || profile?.holiday_compensation_type) !== 'dayoff' && (
+                              <div className="flex justify-between items-center pb-2.5 border-b border-gray-100">
+                                  <span className="text-xs text-gray-500 font-medium">ชดเชยวันหยุด</span>
+                                  <span className="text-sm font-semibold text-emerald-600">+{attendanceSummary.holidayPay.toLocaleString()} ฿</span>
+                              </div>
+                            )}
+                            <div className="flex justify-between items-center pb-2.5 border-b border-gray-100">
+                                <span className="text-xs text-gray-500 font-medium">หักเงิน / เบิกล่วงหน้า</span>
+                                <span className="text-sm font-semibold text-rose-500">-{attendanceSummary.deductions.toLocaleString()} ฿</span>
+                            </div>
+                            <div className="flex justify-between items-center pt-3 mt-1 bg-gray-50/80 p-4 rounded-[20px] border border-gray-100">
+                                <span className="text-xs font-bold text-[#1A1A18] uppercase tracking-wider">รวมสุทธิ</span>
+                                <span className="text-2xl font-bold text-[#1A1A18] leading-none">{attendanceSummary.netSalary.toLocaleString()} <span className="text-xs text-gray-400 font-medium">฿</span></span>
+                            </div>
+                        </div>
                     </div>
-                  )}
-                </div>
-                <AnimatePresence>
-                  {expandedCard === 'insight' && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="overflow-hidden px-4 pb-5"
-                    >
-                      <div className="space-y-6 mt-2">
-                        <div className="flex justify-between items-end border-b border-white/10 pb-3">
-                          <span className="text-[9px] font-bold text-white/60 uppercase tracking-widest">{locale === 'en' ? 'ความสม่ำเสมอ' : locale === 'zh' ? 'ความสม่ำเสมอ' : 'ความสม่ำเสมอ'}</span>
-                          <span className="text-2xl font-light">{(cafeStats.daysWorked / 24 * 100).toFixed(0)}%</span>
-                        </div>
-                        <div className="flex justify-between items-end border-b border-white/10 pb-3">
-                          <span className="text-[9px] font-bold text-white/60 uppercase tracking-widest">{locale === 'en' ? 'ความตรงต่อเวลา' : locale === 'zh' ? 'ความตรงต่อเวลา' : 'ความตรงต่อเวลา'}</span>
-                          <span className="text-2xl font-light">{Math.max(0, 100 - (cafeStats.lateMinutes / 10)).toFixed(0)}%</span>
-                        </div>
-                        <div className="flex justify-between items-end border-b border-white/10 pb-3">
-                          <span className="text-[9px] font-bold text-white/60 uppercase tracking-widest">{locale === 'en' ? 'แต้มบริการ' : locale === 'zh' ? 'แต้มบริการ' : 'แต้มบริการ'}</span>
-                          <span className="text-2xl font-light">{profile?.loyalty_points || 0}</span>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-
-              {/* Cafe Card 3: สถิติการทำงาน */}
-              <motion.div
-                layout
-                onClick={() => setExpandedCard(expandedCard === 'cafestats' ? null : 'cafestats')}
-                style={{ gridColumn: expandedCard === 'cafestats' ? 'span 2' : 'span 1' }}
-                className={`cursor-pointer border transition-colors ${expandedCard === 'cafestats' ? 'border-[#111111]' : 'border-[#EFEFEF] bg-white hover:border-[#111111]'}`}
-              >
-                <div className="p-4">
-                  <div className="flex items-center gap-3 mb-2">
-                    <CalendarDaysIcon className="w-5 h-5 text-[#111111]" />
-                    <span className="text-[9px] font-black uppercase tracking-widest text-[#A3A3A3]">{locale === 'en' ? 'สถิติการทำงาน' : locale === 'zh' ? 'สถิติการทำงาน' : 'สถิติการทำงาน'}</span>
                   </div>
-                  {expandedCard !== 'cafestats' && (
-                    <div className="flex items-baseline gap-2 mt-1">
-                      <span className="text-2xl font-light text-[#111111]">{cafeStats.daysWorked}</span>
-                      <span className="text-[9px] text-[#A3A3A3]">{locale === 'en' ? 'วัน เดือนนี้' : locale === 'zh' ? 'วัน เดือนนี้' : 'วัน เดือนนี้'}</span>
-                    </div>
-                  )}
-                </div>
-                <AnimatePresence>
-                  {expandedCard === 'cafestats' && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="overflow-hidden px-4 pb-5"
-                    >
-                      <div className="space-y-5 mt-2">
-                        <div className="border border-[#EFEFEF] p-4">
-                          <span className="text-[8px] font-black text-[#A3A3A3] uppercase tracking-widest block mb-2">{locale === 'en' ? 'มาทำงานรวม' : locale === 'zh' ? 'มาทำงานรวม' : 'มาทำงานรวม'}</span>
-                          <div className="text-3xl font-light text-[#111111]">{cafeStats.daysWorked} <span className="text-sm text-[#A3A3A3]">{locale === 'en' ? 'day' : locale === 'zh' ? '天' : 'วัน'}</span></div>
-                        </div>
-                        <div className="border border-[#EFEFEF] p-4">
-                          <span className="text-[8px] font-black text-[#A3A3A3] uppercase tracking-widest block mb-2">{locale === 'en' ? 'ชั่วโมงสะสม' : locale === 'zh' ? 'ชั่วโมงสะสม' : 'ชั่วโมงสะสม'}</span>
-                          <div className="text-3xl font-light text-[#111111]">{cafeStats.totalHours} <span className="text-sm text-[#A3A3A3]">{locale === 'en' ? 'ชม.' : locale === 'zh' ? 'ชม.' : 'ชม.'}</span></div>
-                        </div>
-                        <div className="border border-[#EFEFEF] p-4">
-                          <span className="text-[8px] font-black text-[#A3A3A3] uppercase tracking-widest block mb-2">{locale === 'en' ? 'สายสะสม' : locale === 'zh' ? 'สายสะสม' : 'สายสะสม'}</span>
-                          <div className={`text-3xl font-light ${cafeStats.lateMinutes > 0 ? 'text-[#E54D2E]' : 'text-[#111111]'}`}>{cafeStats.lateMinutes} <span className="text-sm text-[#A3A3A3]">{locale === 'en' ? 'minute' : locale === 'zh' ? '分钟' : 'นาที'}</span></div>
-                        </div>
-                        <div className="border border-[#EFEFEF] p-4">
-                          <span className="text-[8px] font-black text-[#A3A3A3] uppercase tracking-widest block mb-2">{locale === 'en' ? 'ล่วงเวลา' : locale === 'zh' ? 'ล่วงเวลา' : 'ล่วงเวลา'}</span>
-                          <div className="text-3xl font-light text-[#111111]">{cafeStats.otMinutes} <span className="text-sm text-[#A3A3A3]">{locale === 'en' ? 'minute' : locale === 'zh' ? '分钟' : 'นาที'}</span></div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-
-              {/* Cafe Card 4: POS */}
-              <Link href="/dashboard/pos" className="border border-[#111111] bg-[#111111] p-4 flex flex-col justify-between hover:bg-[#1A3626] transition-colors">
-                <div className="flex items-center gap-3 mb-2">
-                  <ShieldCheckIcon className="w-5 h-5 text-white" />
-                  <span className="text-[9px] font-black uppercase tracking-widest text-white/50">{locale === 'en' ? 'เปิดหน้า POS' : locale === 'zh' ? 'เปิดหน้า POS' : 'เปิดหน้า POS'}</span>
-                </div>
-                <p className="text-[10px] text-white/60 mt-1">{locale === 'en' ? 'เครื่องขายหน้าร้าน' : locale === 'zh' ? 'เครื่องขายหน้าร้าน' : 'เครื่องขายหน้าร้าน'}</p>
-              </Link>
-            </>
-          )}
+                )}
+              </div>
         </div>
-      </div>
+      </main>
 
       {/* Task Intelligence Overlay */}
       <AnimatePresence>

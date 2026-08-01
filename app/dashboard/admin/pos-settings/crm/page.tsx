@@ -475,24 +475,22 @@ export default function LoyaltySettingsPage() {
                   onChange={e => setCoupons(coupons.map(c => c.id === coupon.id ? { ...c, discount_type: e.target.value } : c))}
                   className="w-full border-gray-300 rounded-md text-sm"
                 >
-                  <option value="free_item">ฟรี 1 รายการ (ลดของที่ถูกสุด)</option>
+                  <option value="free_item">ฟรี 1 รายการ (ระบุมูลค่าสูงสุดได้)</option>
                   <option value="percent">ส่วนลด %</option>
                   <option value="fixed">ส่วนลดบาท</option>
                 </select>
               </div>
-              {coupon.discount_type !== 'free_item' ? (
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">มูลค่า (Value)</label>
-                  <input 
-                    type="number" 
-                    value={coupon.discount_value || 0} 
-                    onChange={e => setCoupons(coupons.map(c => c.id === coupon.id ? { ...c, discount_value: parseFloat(e.target.value) } : c))}
-                    className="w-full border-gray-300 rounded-md text-sm"
-                  />
-                </div>
-              ) : (
-                <div />
-              )}
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">
+                  {coupon.discount_type === 'free_item' ? 'มูลค่าสูงสุดที่แลกได้ (0 = ไม่จำกัด)' : 'มูลค่า (Value)'}
+                </label>
+                <input 
+                  type="number" 
+                  value={coupon.discount_value || 0} 
+                  onChange={e => setCoupons(coupons.map(c => c.id === coupon.id ? { ...c, discount_value: parseFloat(e.target.value) } : c))}
+                  className="w-full border-gray-300 rounded-md text-sm"
+                />
+              </div>
             </div>
             
             {/* Image upload preview & box */}

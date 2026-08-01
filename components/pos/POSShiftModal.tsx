@@ -27,6 +27,7 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
   const [showLeaveModal, setShowLeaveModal] = useState(false)
   const [selectedStaffForLeave, setSelectedStaffForLeave] = useState<string>('')
   const [leaveReason, setLeaveReason] = useState<string>('แจ้งลาป่วย/ลากะทันหัน')
+  const [leaveType, setLeaveType] = useState<'leave' | 'late'>('leave')
   const [isSubmittingLeave, setIsSubmittingLeave] = useState(false)
 
   const checkEligibility = async (): Promise<boolean> => {
@@ -184,11 +185,11 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
                   {/* Overlay Header */}
                   <div className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between bg-white">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center">
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${leaveType === 'late' ? 'bg-blue-50 text-blue-600' : 'bg-amber-50 text-amber-600'}`}>
                         <AlertTriangle size={17} />
                       </div>
                       <h3 className="text-sm font-black text-neutral-900 tracking-tight">
-                        แจ้งลากะทันหัน
+                        {leaveType === 'late' ? 'แจ้งมาสาย' : 'แจ้งลากะทันหัน'}
                       </h3>
                     </div>
                     <button 
@@ -224,9 +225,9 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
                       type="button"
                       onClick={() => handleGrantEmergencyLeave(selectedStaffForLeave)}
                       disabled={isSubmittingLeave}
-                      className="w-full h-11 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-2xl text-xs transition-all flex items-center justify-center gap-2 active:scale-98 shadow-sm"
+                      className={`w-full h-11 text-white font-bold rounded-2xl text-xs transition-all flex items-center justify-center gap-2 active:scale-98 shadow-sm ${leaveType === 'late' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-amber-500 hover:bg-amber-600'}`}
                     >
-                      {isSubmittingLeave ? <XYLLoader mini /> : 'ยืนยันแจ้งลา'}
+                      {isSubmittingLeave ? <XYLLoader mini /> : (leaveType === 'late' ? 'ยืนยันแจ้งมาสาย' : 'ยืนยันแจ้งลา')}
                     </button>
                   </div>
                 </motion.div>
@@ -271,16 +272,32 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
                     {eligibilityData?.missingCheckInStaff?.map((staff: any) => (
                       <div key={staff.id} className="flex justify-between items-center bg-white p-2.5 rounded-xl border border-neutral-200/60 shadow-xs">
                         <span className="text-xs font-bold text-neutral-900">• {staff.display_name || staff.full_name || staff.email}</span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedStaffForLeave(staff.id);
-                            setShowLeaveModal(true);
-                          }}
-                          className="text-[11px] font-bold text-amber-600 hover:text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200/60 transition-colors"
-                        >
-                          แจ้งลา
-                        </button>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedStaffForLeave(staff.id);
+                              setLeaveType('late');
+                              setLeaveReason('แจ้งมาสาย (จะเข้างานทีหลัง)');
+                              setShowLeaveModal(true);
+                            }}
+                            className="text-[11px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200/60 transition-colors"
+                          >
+                            มาสาย
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedStaffForLeave(staff.id);
+                              setLeaveType('leave');
+                              setLeaveReason('แจ้งลาป่วย/ลากะทันหัน');
+                              setShowLeaveModal(true);
+                            }}
+                            className="text-[11px] font-bold text-amber-600 hover:text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200/60 transition-colors"
+                          >
+                            ลา
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>

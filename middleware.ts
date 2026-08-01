@@ -30,7 +30,7 @@ export function middleware(request: NextRequest) {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "img-src 'self' data: https: blob: https://*.cloudflarestorage.com https://*.r2.cloudflarestorage.com https://*.r2.dev",
     "font-src 'self' data: https://fonts.gstatic.com",
-    "connect-src 'self' https://*.supabase.co https://api.stripe.com wss://*.supabase.co https://*.line-apps.com https://*.line.me https://maps.googleapis.com https://maps.gstatic.com https://tile.googleapis.com https://*.googleapis.com https://*.gstatic.com https://*.google.com https://*.cloudflarestorage.com https://*.r2.cloudflarestorage.com https://*.r2.dev https://*.r2.cloudflare.com",
+    "connect-src 'self' blob: https://*.supabase.co https://api.stripe.com wss://*.supabase.co https://*.line-apps.com https://*.line.me https://maps.googleapis.com https://maps.gstatic.com https://tile.googleapis.com https://*.googleapis.com https://*.gstatic.com https://*.google.com https://*.cloudflarestorage.com https://*.r2.cloudflarestorage.com https://*.r2.dev https://*.r2.cloudflare.com",
     "frame-src 'self' https://www.google.com https://maps.google.com https://js.stripe.com https://*.line.me https://*.line-apps.com",
     "object-src 'none'",
     "base-uri 'self'",

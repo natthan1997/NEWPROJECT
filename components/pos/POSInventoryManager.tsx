@@ -12,6 +12,7 @@ import {
 import { supabase } from '@/lib/supabaseClient'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useI18n } from "@/lib/I18nContext";
+import { useSearchParams } from 'next/navigation'
 import POSInventoryCategoryManager from './POSInventoryCategoryManager';
 
 interface POSInventoryManagerProps {
@@ -30,6 +31,7 @@ export default function POSInventoryManager({
   profile, activeView, allowedNav, onSetView, onShiftModalOpen, activeShift, setViewExtraHeader, categories = [], shopSettings
 }: POSInventoryManagerProps) {
   const { locale } = useI18n();
+  const searchParams = useSearchParams();
   const [inventory, setInventory] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -114,6 +116,15 @@ export default function POSInventoryManager({
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shopSettings?.branch_id])
+
+  useEffect(() => {
+    const auditCats = searchParams.get('audit_categories');
+    if (auditCats) {
+      const cats = auditCats.split(',');
+      setAuditCategory(cats);
+      setIsAuditMode(true);
+    }
+  }, [searchParams])
 
 
   useEffect(() => {

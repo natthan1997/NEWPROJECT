@@ -1746,21 +1746,27 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   useEffect(() => {
     const handleApplyCoupon = (e: any) => {
       const coupon = e.detail;
-      setDiscountType(coupon.discount_type === 'percent' ? 'percent' : 'fixed');
       if (coupon.discount_type === 'free_item') {
-        // Find the lowest priced item in cart
-        if (cart.length > 0) {
-          const sorted = [...cart].sort((a, b) => (a.price || 0) - (b.price || 0));
-          setDiscountValue(sorted[0].price || 0);
+        setActiveCoupon(coupon);
+        setDiscountValue(0);
+        setDiscountRate(0);
+        setDiscountType('fixed');
+        setDiscountName(coupon.coupon_name || coupon.name);
+        setAppliedCouponId(coupon.id);
+        
+        if (coupon.applicable_categories && coupon.applicable_categories.length > 0) {
+          setActiveCategoryId(coupon.applicable_categories[0]);
+          alert(`นำคูปอง "${coupon.coupon_name || coupon.name}" ไปประยุกต์ใช้สำเร็จ! ระบบนำไปยังหมวดหมู่สินค้าแล้ว กรุณาเลือกสินค้าฟรีเข้าตะกร้า 1 รายการ`);
         } else {
-          setDiscountValue(0);
+          alert(`นำคูปอง "${coupon.coupon_name || coupon.name}" ไปประยุกต์ใช้สำเร็จ! กรุณาเลือกสินค้าฟรีเข้าตะกร้า 1 รายการ`);
         }
       } else {
+        setDiscountType(coupon.discount_type === 'percent' ? 'percent' : 'fixed');
         setDiscountValue(coupon.discount_value || 0);
         if (coupon.discount_type === 'percent') setDiscountRate(coupon.discount_value || 0);
+        setDiscountName(coupon.coupon_name || coupon.name);
+        setAppliedCouponId(coupon.id);
       }
-      setDiscountName(coupon.coupon_name);
-      setAppliedCouponId(coupon.id);
     };
 
     window.addEventListener('applyPOSCoupon', handleApplyCoupon);
@@ -2240,7 +2246,14 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         const basePrice = getEffectiveItemUnitPrice(item);
         const modsPrice = modifiers.reduce((ma: number, m: any) => ma + ((m.price_adjustment || 0) * (m.qty || 1)), 0) || 0;
         const unitPrice = basePrice + modsPrice;
-        discountAmount = unitPrice * 1;
+        
+        const maxLimit = activeCoupon.discount_value || 0;
+        if (maxLimit > 0 && unitPrice > maxLimit) {
+          discountAmount = maxLimit;
+          alert(`แจ้งเตือน: สินค้าราคา ${unitPrice} บาท เกินมูลค่าคูปองฟรีสูงสุด (${maxLimit} บาท)\nลูกค้าต้องชำระส่วนต่าง ${unitPrice - maxLimit} บาท`);
+        } else {
+          discountAmount = unitPrice * 1;
+        }
         
         // Clear activeCoupon so only the first added item is free!
         setActiveCoupon(null);
@@ -2283,7 +2296,13 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
           const basePrice = getEffectiveItemUnitPrice(item);
           const modsPrice = modifiers.reduce((ma: number, m: any) => ma + ((m.price_adjustment || 0) * (m.qty || 1)), 0) || 0;
           const unitPrice = basePrice + modsPrice;
-          copy[existingIdx].discount_amount = unitPrice * 1;
+          
+          const maxLimit = activeCoupon.discount_value || 0;
+          if (maxLimit > 0 && unitPrice > maxLimit) {
+            copy[existingIdx].discount_amount = maxLimit;
+          } else {
+            copy[existingIdx].discount_amount = unitPrice * 1;
+          }
         }
         return copy
       }
@@ -2292,7 +2311,8 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         quantity: qty, 
         selected_modifiers: modifiers, 
         discount_amount: discountAmount > 0 ? discountAmount : undefined,
-        is_free_coupon_item: isFreeByCoupon 
+        is_free_coupon_item: isFreeByCoupon,
+        coupon_max_limit: isFreeByCoupon ? (activeCoupon.discount_value || 0) : undefined
       }]
     })
     setModifierModalItem(null)
@@ -2308,7 +2328,13 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             const basePrice = getEffectiveItemUnitPrice(i);
             const modsPrice = i.selected_modifiers?.reduce((ma: number, m: any) => ma + ((m.price_adjustment || 0) * (m.qty || 1)), 0) || 0;
             const unitPrice = basePrice + modsPrice;
-            newDiscount = unitPrice * 1; // Only 1 free item!
+            
+            const maxLimit = i.coupon_max_limit || 0;
+            if (maxLimit > 0 && unitPrice > maxLimit) {
+              newDiscount = maxLimit;
+            } else {
+              newDiscount = unitPrice * 1; // Only 1 free item!
+            }
           }
           return { ...i, quantity: newQty, discount_amount: newDiscount }
         }
@@ -2971,26 +2997,113 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       };
 
       try {
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
         const ingredientsToFetch: { ingredient_id: string, usage: number }[] = [];
-        
+
         for (const item of cart) {
+          const selectedMods = item.selected_modifiers || []
+          
+          // Phase 1: Context Extraction from selected modifiers
+          let sweetnessRatio = 1.0
+          let activeRoastIngredientId: string | null = null
+          const substitutionsMap = new Map<string, { newIngredientId: string, name: string }>()
+
+          selectedMods.forEach((mod: any) => {
+            if (mod.sweetness_multiplier !== undefined && mod.sweetness_multiplier !== null) {
+              sweetnessRatio = Number(mod.sweetness_multiplier)
+            } else if (mod.name) {
+              if (mod.name.includes('0%')) sweetnessRatio = 0.0
+              else if (mod.name.includes('25%')) sweetnessRatio = 0.25
+              else if (mod.name.includes('50%')) sweetnessRatio = 0.50
+              else if (mod.name.includes('125%')) sweetnessRatio = 1.25
+            }
+
+            const modRecipes = mod.recipe_data || []
+            modRecipes.forEach((ing: any) => {
+              if (mod.name && (mod.name.includes('คั่ว') || mod.name.includes('Roast')) && ing.ingredient_id) {
+                if (uuidRegex.test(ing.ingredient_id)) {
+                  activeRoastIngredientId = ing.ingredient_id
+                }
+              }
+              if (ing.is_substitution || mod.is_substitution || (mod.name && (mod.name.includes('Almond') || mod.name.includes('Oat') || mod.name.includes('อัลมอนด์')))) {
+                if (ing.ingredient_id && uuidRegex.test(ing.ingredient_id)) {
+                  const targetName = ing.substitute_target_name || 'นมสด'
+                  substitutionsMap.set(targetName, { newIngredientId: ing.ingredient_id, name: ing.name })
+                }
+              }
+            })
+          })
+
+          // Phase 2: Base Menu Recipe Deduction
+          let reducedSweetenerVolume = 0
+          let baseLiquidIngIndex = -1
+          const baseIngredientsToDeduct: { ingredient_id: string, quantity: number, factor: number }[] = []
+
           if (item.recipe_data && Array.isArray(item.recipe_data)) {
-            for (const ing of item.recipe_data) {
-              if (ing.order_types && Array.isArray(ing.order_types) && !ing.order_types.includes(orderType)) continue;
-              const usage = Number(ing.quantity || 0) * Number(ing.factor || 1) * Number(item.quantity)
-              if (ing.ingredient_id && usage > 0) {
-                ingredientsToFetch.push({ ingredient_id: ing.ingredient_id, usage });
+            item.recipe_data.forEach((ing: any, idx: number) => {
+              if (ing.order_types && Array.isArray(ing.order_types) && !ing.order_types.includes(orderType)) return;
+
+              let baseQty = Number(ing.quantity || 0)
+              const factor = Number(ing.factor || 1)
+
+              const isSweetener = ing.is_sweetener || (ing.name && (ing.name.includes('น้ำเชื่อม') || ing.name.includes('นมข้น') || ing.name.includes('ไซรัป') || ing.name.includes('Syrup')))
+              const isBaseLiquid = ing.is_base_liquid || (ing.name && (ing.name.includes('ชา') || ing.name.includes('กาแฟ') || ing.name.includes('Coffee') || ing.name.includes('Tea')))
+
+              if (isSweetener) {
+                const scaledQty = baseQty * sweetnessRatio
+                reducedSweetenerVolume += (baseQty - scaledQty) * factor
+                baseQty = scaledQty
+              } else if (isBaseLiquid && baseLiquidIngIndex === -1) {
+                baseLiquidIngIndex = idx
+              }
+
+              let targetId = ing.ingredient_id
+              substitutionsMap.forEach((sub, key) => {
+                if (ing.name && ing.name.includes(key)) {
+                  targetId = sub.newIngredientId
+                }
+              })
+
+              if (targetId && uuidRegex.test(targetId) && baseQty > 0) {
+                baseIngredientsToDeduct.push({ ingredient_id: targetId, quantity: baseQty, factor })
+              }
+            })
+
+            if (reducedSweetenerVolume > 0 && baseLiquidIngIndex !== -1 && item.recipe_data[baseLiquidIngIndex]) {
+              const baseIng = item.recipe_data[baseLiquidIngIndex]
+              const baseFactor = Number(baseIng.factor || 1)
+              const topUpQty = reducedSweetenerVolume / (baseFactor || 1)
+              
+              const existingDeduct = baseIngredientsToDeduct.find(b => b.ingredient_id === baseIng.ingredient_id)
+              if (existingDeduct) {
+                existingDeduct.quantity += topUpQty
+              }
+            }
+
+            for (const bIng of baseIngredientsToDeduct) {
+              const usage = bIng.quantity * bIng.factor * Number(item.quantity)
+              if (bIng.ingredient_id && uuidRegex.test(bIng.ingredient_id) && usage > 0) {
+                ingredientsToFetch.push({ ingredient_id: bIng.ingredient_id, usage });
               }
             }
           }
+
+          // Phase 3: Extra Modifier Recipe Deduction
           if (item.selected_modifiers && Array.isArray(item.selected_modifiers)) {
             for (const mod of item.selected_modifiers) {
               if (mod.recipe_data && Array.isArray(mod.recipe_data)) {
                 for (const ing of mod.recipe_data) {
                   if (ing.order_types && Array.isArray(ing.order_types) && !ing.order_types.includes(orderType)) continue;
+                  if (ing.is_substitution) continue;
+
+                  let targetIngId = ing.ingredient_id
+                  if ((ing.is_contextual_roast || (mod.name && mod.name.includes('Shot'))) && activeRoastIngredientId) {
+                    targetIngId = activeRoastIngredientId
+                  }
+
                   const usage = Number(ing.quantity || 0) * Number(ing.factor || 1) * Number(item.quantity)
-                  if (ing.ingredient_id && usage > 0) {
-                    ingredientsToFetch.push({ ingredient_id: ing.ingredient_id, usage });
+                  if (targetIngId && uuidRegex.test(targetIngId) && usage > 0) {
+                    ingredientsToFetch.push({ ingredient_id: targetIngId, usage });
                   }
                 }
               }
@@ -3146,6 +3259,18 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 
       if (newStatus === 'completed' && selectedTable?.id) {
         fetchTables();
+      }
+
+      // --- Trigger Gamification Evaluation ---
+      if (newStatus === 'completed' && selectedCustomer?.id && finalOrderId) {
+        fetch('/api/gamification/evaluate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            order_id: finalOrderId,
+            member_id: selectedCustomer.id
+          })
+        }).catch(err => console.error('Gamification eval error:', err));
       }
 
       // --- Hardware Printing Logic ---
@@ -4582,7 +4707,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 
       {/* 9. PAYMENT MODAL - PREMIUM REDESIGN */}
       {showPaymentModal && (
-        <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[2700] flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-[#1A1A18]/60 backdrop-blur-md"
             onClick={() => setShowPaymentModal(false)}
@@ -5077,7 +5202,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       {/* MANAGER PIN AUTHORIZATION MODAL */}
       {/* CASH PAYMENT MODAL */}
       {showCashPaymentModal && !paymentSuccessData && (
-        <div className="fixed inset-0 z-[1200] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[2800] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-[#3a3a38]/40 backdrop-blur-md" onClick={() => !isProcessing && setShowCashPaymentModal(false)}></div>
           <div className="relative w-full max-w-md bg-white shadow-2xl animate-in fade-in zoom-in-95 p-8 flex flex-col font-bold">
             <div className="flex justify-between items-center mb-6">
@@ -5730,7 +5855,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 
       {/* GLOBAL PAYMENT SUCCESS MODAL - PREMIUM REDESIGN */}
       {paymentSuccessData && (
-        <div className="fixed inset-0 z-[2500] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[3500] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-[#1A1A18]/80 backdrop-blur-md" onClick={() => setPaymentSuccessData(null)}></div>
           <div className="relative w-full max-w-md bg-white rounded-[2.5rem] shadow-[0_30px_100px_-20px_rgba(0,0,0,0.5)] animate-in fade-in zoom-in-95 flex flex-col overflow-hidden border border-white/20">
             {/* Top Pattern Header */}

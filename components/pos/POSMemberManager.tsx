@@ -62,6 +62,7 @@ export default function POSMemberManager({
     const { locale } = useI18n();
     const [loading, setLoading] = useState(true)
     const [customers, setCustomers] = useState<Customer[]>([])
+    const [memberStats, setMemberStats] = useState({ total: 0, registered: 0, unregistered: 0 })
     const [selectedMember, setSelectedMember] = useState<Customer | null>(null)
     const [pointsHistory, setPointsHistory] = useState<PointsHistory[]>([])
     const [activeCoupons, setActiveCoupons] = useState<Coupon[]>([])
@@ -74,10 +75,12 @@ export default function POSMemberManager({
 
     useEffect(() => {
         fetchMembers()
+        fetchMemberStats()
         
         const channel = supabase.channel('pos_members_manager_realtime')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_members' }, () => {
                 fetchMembers()
+                fetchMemberStats()
                 if (selectedMember) {
                     fetchPointsHistory(selectedMember.id)
                 }
@@ -140,7 +143,7 @@ export default function POSMemberManager({
             if (searchTerm) {
                 query = query.or(`display_name.ilike.%${searchTerm}%,full_name.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%`)
             } else {
-                query = query.order('points', { ascending: false }).limit(20)
+                query = query.order('points', { ascending: false }).limit(100)
             }
 
             const { data, error } = await query
@@ -151,6 +154,26 @@ export default function POSMemberManager({
         } finally {
             setLoading(false)
         }
+    }
+
+    const fetchMemberStats = async () => {
+        const branchId = shopSettings?.shared_member_branch_id || shopSettings?.branch_id
+        
+        let totalQuery = supabase.from('pos_members').select('*', { count: 'exact', head: true })
+        if (branchId) totalQuery = totalQuery.or(`branch_id.eq.${branchId},branch_id.is.null`)
+        else totalQuery = totalQuery.is('branch_id', null)
+        const { count: total } = await totalQuery
+        
+        let unregQuery = supabase.from('pos_members').select('*', { count: 'exact', head: true }).is('phone', null)
+        if (branchId) unregQuery = unregQuery.or(`branch_id.eq.${branchId},branch_id.is.null`)
+        else unregQuery = unregQuery.is('branch_id', null)
+        const { count: unregistered } = await unregQuery
+        
+        setMemberStats({
+            total: total || 0,
+            registered: (total || 0) - (unregistered || 0),
+            unregistered: unregistered || 0
+        })
     }
 
     const fetchCoupons = async (memberId: string) => {
@@ -272,7 +295,6 @@ export default function POSMemberManager({
                         <div className="flex items-center justify-between">
                              <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#1A1A18]">{locale === 'en' ? 'รายชื่อสมาชิก' : locale === 'zh' ? 'รายชื่อสมาชิก' : 'รายชื่อสมาชิก'}</h2>
                              <div className="flex gap-2 items-center">
-                                 <span className="text-[8px] font-black text-sage-600 bg-sage-50 px-2 py-1 uppercase tracking-widest">{customers.length} {locale === 'en' ? ' ท่าน' : locale === 'zh' ? ' ท่าน' : ' ท่าน'}</span>
                                  <button onClick={() => setShowQR(true)} className="p-1 text-gray-400 hover:text-[#1A1A18] transition-colors" title="QR สมัครสมาชิก">
                                      <QrCode size={14} />
                                  </button>
@@ -280,6 +302,22 @@ export default function POSMemberManager({
                                      <Settings size={14} />
                                  </button>
                              </div>
+                        </div>
+                        <div className="flex items-center justify-between px-1 pb-1">
+                            <div className="flex flex-col">
+                                <span className="text-[14px] font-black text-[#1A1A18]">{memberStats.total}</span>
+                                <span className="text-[7px] font-black text-gray-400 uppercase tracking-widest">ทั้งหมด</span>
+                            </div>
+                            <div className="w-[1px] h-6 bg-[#F0F0E8]"></div>
+                            <div className="flex flex-col items-center">
+                                <span className="text-[14px] font-black text-emerald-600">{memberStats.registered}</span>
+                                <span className="text-[7px] font-black text-emerald-400 uppercase tracking-widest">ลงทะเบียนแล้ว</span>
+                            </div>
+                            <div className="w-[1px] h-6 bg-[#F0F0E8]"></div>
+                            <div className="flex flex-col items-end">
+                                <span className="text-[14px] font-black text-amber-500">{memberStats.unregistered}</span>
+                                <span className="text-[7px] font-black text-amber-400 uppercase tracking-widest">ยังไม่ลงทะเบียน</span>
+                            </div>
                         </div>
                         <div className="relative group">
                            <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-[#1A1A18]" />

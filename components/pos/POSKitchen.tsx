@@ -64,6 +64,26 @@ export default function POSKitchen({
   const updateOrderStatus = async (orderId: string, status: string) => {
     await supabase.from('pos_orders').update({ status }).eq('id', orderId)
     const targetOrder = orders.find((order) => order.id === orderId)
+    
+    // Gamification Trigger
+    if ((status === 'completed' || status === 'paid') && targetOrder) {
+       let memberId = targetOrder.customer_id;
+       if (!memberId && targetOrder.line_user_id) {
+          const { data: member } = await supabase.from('pos_members').select('id').eq('line_user_id', targetOrder.line_user_id).maybeSingle();
+          if (member) memberId = member.id;
+       }
+       if (memberId) {
+           fetch('/api/gamification/evaluate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                order_id: orderId,
+                member_id: memberId
+              })
+           }).catch(err => console.error('Gamification eval error from kitchen:', err));
+       }
+    }
+
     if (targetOrder?.line_user_id && targetOrder.order_source === 'liff') {
       fetch('/api/line/notify', {
         method: 'POST',

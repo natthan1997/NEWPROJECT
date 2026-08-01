@@ -614,9 +614,9 @@ export default function POSRecipeManager({
                                                     <span>สัดส่วนต้นทุน: ฿{(Number(inventory.find(inv => inv.id === ing.ingredient_id)?.cost_price || 0) * Number(ing.quantity) * (ing.factor || 1)).toFixed(2)}</span>
                                                 </div>
 
-                                                <div className="pt-4 border-t border-gray-100/50">
-                                                    <label className="text-[9px] font-black uppercase text-gray-400 block mb-3">ใช้สำหรับออเดอร์ประเภท (Order Types)</label>
-                                                    <div className="flex gap-4">
+                                                <div className="pt-4 border-t border-gray-100/50 space-y-3">
+                                                    <label className="text-[9px] font-black uppercase text-gray-400 block mb-2">ใช้สำหรับออเดอร์ประเภท (Order Types)</label>
+                                                    <div className="flex gap-4 mb-3">
                                                         {['dine_in', 'takeaway', 'delivery'].map(type => {
                                                             const labels: Record<string, string> = { 'dine_in': 'ทานที่ร้าน', 'takeaway': 'กลับบ้าน', 'delivery': 'เดลิเวอรี่' };
                                                             const isSelected = (ing.order_types || ['dine_in', 'takeaway', 'delivery']).includes(type) && !(ing.order_types || []).includes('none');
@@ -637,6 +637,99 @@ export default function POSRecipeManager({
                                                             )
                                                         })}
                                                     </div>
+
+                                                    {/* DYNAMIC RECIPE & SUBSTITUTION CONTROLS */}
+                                                    {mode === 'modifiers' && (
+                                                        <div className="pt-3 border-t border-gray-100 flex flex-col gap-3 bg-amber-50/50 p-3 rounded-xl border border-amber-100/60">
+                                                            <span className="text-[9px] font-black text-amber-900 uppercase tracking-wider">บทบาทวัตถุดิบตัวเลือกเสริม (DYNAMIC MODIFIER BEHAVIOR)</span>
+                                                            
+                                                            {/* Substitution Toggle */}
+                                                            <div className="flex items-center justify-between gap-2">
+                                                                <label className="text-[10px] font-bold text-gray-700 flex items-center gap-1.5 cursor-pointer">
+                                                                    <input 
+                                                                        type="checkbox"
+                                                                        checked={ing.is_substitution || false}
+                                                                        onChange={(e) => updateIngredient(ing.ingredient_id, { is_substitution: e.target.checked })}
+                                                                        className="rounded text-amber-600 focus:ring-amber-500 w-3.5 h-3.5 cursor-pointer"
+                                                                    />
+                                                                    <span>🔄 แทนที่วัตถุดิบในสูตรหลัก (Inherit Base Volume)</span>
+                                                                </label>
+                                                                {ing.is_substitution && (
+                                                                    <select
+                                                                        value={ing.substitute_target_id || ing.substitute_target_name || ''}
+                                                                        onChange={(e) => {
+                                                                            const selectedInv = inventory.find(inv => inv.id === e.target.value || inv.name === e.target.value);
+                                                                            updateIngredient(ing.ingredient_id, { 
+                                                                                substitute_target_id: selectedInv ? selectedInv.id : e.target.value,
+                                                                                substitute_target_name: selectedInv ? selectedInv.name : e.target.value
+                                                                            });
+                                                                        }}
+                                                                        className="bg-white border border-amber-200 rounded-lg px-2.5 py-1 text-[10px] font-bold text-black outline-none shadow-sm max-w-[200px]"
+                                                                    >
+                                                                        <option value="">-- เลือกวัตถุดิบจริงในคลังที่จะแทนที่ --</option>
+                                                                        {inventory.map(invItem => (
+                                                                            <option key={invItem.id} value={invItem.id}>
+                                                                                {invItem.name} ({invItem.unit})
+                                                                            </option>
+                                                                        ))}
+                                                                    </select>
+                                                                )}
+                                                            </div>
+
+                                                            {/* Contextual Roast Inheritance */}
+                                                            <div className="flex items-center justify-between gap-2">
+                                                                <label className="text-[10px] font-bold text-gray-700 flex items-center gap-1.5 cursor-pointer">
+                                                                    <input 
+                                                                        type="checkbox"
+                                                                        checked={ing.is_contextual_roast || false}
+                                                                        onChange={(e) => updateIngredient(ing.ingredient_id, { is_contextual_roast: e.target.checked })}
+                                                                        className="rounded text-amber-600 focus:ring-amber-500 w-3.5 h-3.5 cursor-pointer"
+                                                                    />
+                                                                    <span>☕ สืบทอดเมล็ดกาแฟประจำแก้ว (Active Roast Bean)</span>
+                                                                </label>
+                                                            </div>
+
+                                                            {/* Sweetness Multiplier */}
+                                                            <div className="flex items-center justify-between gap-2">
+                                                                <span className="text-[10px] font-bold text-gray-700">🍩 สัดส่วนระดับความหวาน (Sweetness Multiplier):</span>
+                                                                <select
+                                                                    value={ing.sweetness_multiplier !== undefined ? ing.sweetness_multiplier : 1.0}
+                                                                    onChange={(e) => updateIngredient(ing.ingredient_id, { sweetness_multiplier: Number(e.target.value) })}
+                                                                    className="bg-white border border-amber-200 rounded-lg px-2 py-1 text-[10px] font-bold text-black outline-none"
+                                                                >
+                                                                    <option value={0.0}>0.0x (ไม่หวาน 0%)</option>
+                                                                    <option value={0.25}>0.25x (หวานน้อย 25%)</option>
+                                                                    <option value={0.50}>0.50x (หวานน้อย 50%)</option>
+                                                                    <option value={1.00}>1.00x (หวานปกติ 100%)</option>
+                                                                    <option value={1.25}>1.25x (เพิ่มหวาน 125%)</option>
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {mode === 'items' && (
+                                                        <div className="pt-3 border-t border-gray-100 flex items-center justify-between bg-sky-50/50 p-3 rounded-xl border border-sky-100/60">
+                                                            <label className="text-[10px] font-bold text-sky-900 flex items-center gap-1.5 cursor-pointer">
+                                                                <input 
+                                                                    type="checkbox"
+                                                                    checked={ing.is_sweetener || false}
+                                                                    onChange={(e) => updateIngredient(ing.ingredient_id, { is_sweetener: e.target.checked })}
+                                                                    className="rounded text-sky-600 focus:ring-sky-500 w-3.5 h-3.5 cursor-pointer"
+                                                                />
+                                                                <span>🍯 วัตถุดิบกลุ่มความหวาน (ปรับสัดส่วนตาม % ความหวาน)</span>
+                                                            </label>
+
+                                                            <label className="text-[10px] font-bold text-sky-900 flex items-center gap-1.5 cursor-pointer">
+                                                                <input 
+                                                                    type="checkbox"
+                                                                    checked={ing.is_base_liquid || false}
+                                                                    onChange={(e) => updateIngredient(ing.ingredient_id, { is_base_liquid: e.target.checked })}
+                                                                    className="rounded text-sky-600 focus:ring-sky-500 w-3.5 h-3.5 cursor-pointer"
+                                                                />
+                                                                <span>🍷 เบสหลักชดเชยปริมาตร (Auto Top-up Liquid)</span>
+                                                            </label>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         )

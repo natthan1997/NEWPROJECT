@@ -29,6 +29,10 @@ export const initAudio = async () => {
 
 export const playAppSound = async (soundId: 'pay' | 'notification' | 'table_call') => {
     try {
+        if (typeof window !== 'undefined' && localStorage.getItem('pos_mute_sounds') === 'true') {
+            return;
+        }
+
         if (!audioCtx) {
             await initAudio();
         }
