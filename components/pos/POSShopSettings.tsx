@@ -173,6 +173,8 @@ export default function POSShopSettings({
   const [zoom, setZoom] = useState(1)
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null)
   const [showCropModal, setShowCropModal] = useState(false)
+  const [editingRole, setEditingRole] = useState<string | null>(null)
+  const [editingRoleName, setEditingRoleName] = useState('')
 
   const [settings, setSettings] = useState<any>({
     id: null,
