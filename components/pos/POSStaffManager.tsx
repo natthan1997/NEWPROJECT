@@ -12,6 +12,7 @@ import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
 import { useI18n } from "@/lib/I18nContext";
 import { motion } from 'framer-motion'
+import POSSOPEditorModal from './POSSOPEditorModal'
 
 function bahtText(num: number): string {
     if (isNaN(num) || num === 0) return 'ศูนย์บาทถ้วน';
@@ -207,6 +208,7 @@ export default function POSStaffManager({
     const [slideOverViewMode, setSlideOverViewMode] = useState<'list' | 'calendar'>('list')
 
     const [showAddStaffModal, setShowAddStaffModal] = useState(false)
+    const [isSopEditorOpen, setIsSopEditorOpen] = useState(false)
     const [newStaffForm, setNewStaffForm] = useState({
         display_name: '',
         staff_code: '',
@@ -1715,15 +1717,13 @@ export default function POSStaffManager({
                     </button>
                 </div>
 
-                <a 
-                    href="/documents/SOP_Employee_Handbook.pdf" 
-                    target="_blank" 
-                    rel="noreferrer"
+                <button 
+                    onClick={() => setIsSopEditorOpen(true)}
                     className="flex items-center gap-2 bg-[#0F172A] text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-neutral-800 transition-colors self-start sm:self-auto mb-3"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                     ดาวน์โหลดคู่มือ SOP (PDF)
-                </a>
+                </button>
             </div>
 
             {/* CONTENT AREA */}
@@ -2628,6 +2628,13 @@ export default function POSStaffManager({
                     )}
                 </div>
             )}
+
+            <POSSOPEditorModal 
+                isOpen={isSopEditorOpen}
+                onClose={() => setIsSopEditorOpen(false)}
+                shopSettings={shopSettings}
+                branchId={shopSettings?.branch_id}
+            />
 
             <style jsx global>{`
           .no-scrollbar::-webkit-scrollbar { display: none; }
