@@ -58,23 +58,52 @@ const getCroppedImg = async (imageSrc: string, pixelCrop: any): Promise<Blob> =>
 
 
 const permissionOptions = [
-  { id: 'terminal', label: 'หน้าขาย (POS TERMINAL)', desc: 'หน้าขายหลักของระบบ POS สำหรับทำรายการขายหน้าร้าน' },
-  { id: 'kitchen', label: 'จอสั่งอาหาร (KITCHEN)', desc: 'จอแสดงออเดอร์สำหรับห้องครัวเพื่อเตรียมและเสิร์ฟอาหาร' },
-  { id: 'tables', label: 'จัดการโต๊ะ (TABLES)', desc: 'ระบบจัดการและแสดงสถานะโต๊ะอาหารภายในร้าน' },
-  { id: 'members', label: 'จัดการสมาชิก (MEMBERS)', desc: 'จัดการข้อมูลและแต้มสะสมของสมาชิก' },
-  { id: 'drawer', label: 'ลิ้นชักเงิน (DRAWER)', desc: 'ควบคุมประวัติการเปิด-ปิดกะลิ้นชักเก็บเงินสด' },
+  // POS Operations
+  { id: 'pos:access', label: 'เข้าใช้งานหน้าขาย (POS ACCESS)', desc: 'อนุญาตให้เข้าใช้งานหน้าเครื่องคิดเงิน' },
+  { id: 'pos:checkout', label: 'คิดเงินลูกค้า (CHECKOUT)', desc: 'อนุญาตให้ทำรายการชำระเงิน' },
+  { id: 'pos:void', label: 'ยกเลิกออเดอร์ (VOID)', desc: 'อนุญาตให้ยกเลิกหรือคืนเงินออเดอร์' },
+  { id: 'pos:discount', label: 'ให้ส่วนลด (DISCOUNT)', desc: 'อนุญาตให้ใส่ส่วนลดในออเดอร์' },
+  { id: 'pos:drawer', label: 'จัดการลิ้นชักเงิน (DRAWER)', desc: 'อนุญาตให้เปิดปิดลิ้นชักและดูประวัติ' },
+  
+  // Existing Base Permissions for Compatibility
+  { id: 'terminal', label: 'ฟังก์ชันหน้าขายเดิม (LEGACY TERMINAL)', desc: 'เข้าใช้งานหน้าขายแบบรวมศูนย์ (สำหรับความเข้ากันได้เดิม)' },
   { id: 'delivery', label: 'ศูนย์ส่งสินค้า (DELIVERY)', desc: 'จัดการออเดอร์เดลิเวอรี่และไรเดอร์' },
   { id: 'history', label: 'ประวัติการขาย (HISTORY)', desc: 'ดูบิลขายย้อนหลังและจัดการบิลที่ปิดแล้ว' },
+  { id: 'tables', label: 'จัดการโต๊ะ (TABLES)', desc: 'ระบบจัดการและแสดงสถานะโต๊ะอาหารภายในร้าน' },
+  { id: 'members', label: 'จัดการสมาชิก (MEMBERS)', desc: 'จัดการข้อมูลและแต้มสะสมของสมาชิก' },
+
+  // Reports
+  { id: 'reports:view', label: 'เข้าใช้งานรายงาน (REPORTS VIEW)', desc: 'อนุญาตให้เข้าดูหน้ารายงาน' },
+  { id: 'reports:sales', label: 'ดูยอดขายรวม (SALES REPORT)', desc: 'ดูยอดขายหน้าร้าน (Gross Sales)' },
+  { id: 'reports:profit', label: 'ดูกำไรและต้นทุน (PROFIT REPORT)', desc: 'ดูข้อมูลกำไรสุทธิและต้นทุน (Net Profit & COGS)' },
+  { id: 'reports:export', label: 'ส่งออกรายงาน (EXPORT)', desc: 'อนุญาตให้ดาวน์โหลดไฟล์รายงาน' },
+  { id: 'reports', label: 'ฟังก์ชันรายงานเดิม (LEGACY REPORTS)', desc: 'ดูรายงานแบบเก่า' },
+
+  // Inventory & Kitchen
+  { id: 'inventory:view', label: 'ดูสต็อก (INVENTORY VIEW)', desc: 'ดูข้อมูลวัตถุดิบและสต็อก' },
+  { id: 'inventory:edit', label: 'แก้ไขสต็อก (INVENTORY EDIT)', desc: 'แก้ไขสต็อกสินค้าและเพิ่มวัตถุดิบใหม่' },
+  { id: 'inventory:audit', label: 'นับสต็อก (INVENTORY AUDIT)', desc: 'บันทึกรายการนับสต็อกรายวัน' },
+  { id: 'kitchen:view', label: 'หน้าจอครัว (KITCHEN)', desc: 'เข้าใช้งานระบบแสดงออเดอร์ในครัว (KDS)' },
+  { id: 'inventory', label: 'คลังสินค้าเดิม (LEGACY INVENTORY)', desc: 'ระบบจัดการคลังวัตถุดิบแบบเก่า' },
+  { id: 'kitchen', label: 'จอสั่งอาหารเดิม (LEGACY KITCHEN)', desc: 'เข้าใช้ระบบจอครัวเก่า' },
+
+  // Menus
   { id: 'menu-management', label: 'จัดการเมนูหลัก (MENU MANAGEMENT)', desc: 'เข้าสู่หน้าจัดการเมนู หมวดหมู่ และการเรียงลำดับ' },
   { id: 'menu-stock-toggle', label: 'อัปเดตสต็อกสินค้าด่วน (STOCK TOGGLE)', desc: 'กดสลับสถานะสินค้าหมด / พร้อมขายหน้าร้าน' },
   { id: 'menu-edit-price', label: 'แก้ไขราคา & เมนู (EDIT MENU & PRICES)', desc: 'เพิ่ม/แก้ไข/ลบ รายการเมนู และปรับเปลี่ยนราคาขาย' },
-  { id: 'inventory', label: 'สต็อกวัตถุดิบ (INVENTORY)', desc: 'ควบคุมสต็อกวัตถุดิบและส่วนประกอบอาหาร' },
   { id: 'modifiers', label: 'จัดการตัวเลือก (MODIFIERS)', desc: 'เพิ่ม/แก้ไขตัวเลือกเสริม (Modifiers) ของเมนูอาหาร' },
   { id: 'recipes', label: 'จัดการสูตรอาหาร (RECIPES)', desc: 'ผูกสูตรอาหารเข้ากับสต็อกวัตถุดิบอัตโนมัติ' },
+
+  // Settings & Others
+  { id: 'staff:view', label: 'ดูพนักงาน (STAFF VIEW)', desc: 'ดูรายชื่อพนักงาน' },
+  { id: 'staff:manage', label: 'จัดการพนักงาน (STAFF MANAGE)', desc: 'จัดการข้อมูลและสิทธิ์พนักงาน' },
+  { id: 'settings:view', label: 'ดูการตั้งค่าร้าน (SETTINGS VIEW)', desc: 'เข้าดูหน้าตั้งค่าร้าน' },
+  { id: 'settings:manage', label: 'แก้ไขการตั้งค่าร้าน (SETTINGS MANAGE)', desc: 'แก้ไขข้อมูลร้านค้าและโปรโมชั่น' },
   { id: 'management', label: 'จัดการระบบ (MANAGEMENT)', desc: 'การจัดการข้อมูลเชิงลึกและระบบหลังบ้านของสาขา' },
-  { id: 'settings', label: 'ตั้งค่าร้าน (SHOP SETTINGS)', desc: 'จัดการวันเวลาเปิดปิดร้าน แบนเนอร์ และสิทธิ์พนักงาน' },
-  { id: 'reports', label: 'รายงานผล (REPORTS)', desc: 'รายงานยอดขายและสถิติสำคัญประจำกะ' },
-  { id: 'staff', label: 'จัดการพนักงาน (STAFF)', desc: 'ระบบจัดการสิทธิ์และรายชื่อพนักงานประจำร้าน' },
+  { id: 'settings', label: 'ตั้งค่าร้านเดิม (LEGACY SETTINGS)', desc: 'จัดการวันเวลาเปิดปิดร้าน แบนเนอร์' },
+  { id: 'staff', label: 'จัดการพนักงานเดิม (LEGACY STAFF)', desc: 'ระบบจัดการสิทธิ์และรายชื่อพนักงานประจำร้าน' },
+
+  // LINE Notifications
   { id: 'line-notify-inventory', label: '[LINE] แจ้งเตือนสต๊อก (STOCK ALERT)', desc: 'รับการแจ้งเตือนเมื่อสต๊อกวัตถุดิบใกล้หมด' },
   { id: 'line-notify-inventory-audit', label: '[LINE] นับสต๊อก (AUDIT ALERT)', desc: 'รับแจ้งเตือนเมื่อมีการนับสต๊อกวัตถุดิบและสรุปผล' },
   { id: 'line-notify-zreport', label: '[LINE] ปิดกะ Z-Report (Z-REPORT)', desc: 'รับยอดสรุปการขายเมื่อพนักงานทำการปิดกะ' },
@@ -137,8 +166,8 @@ export default function POSShopSettings({
     longitude: 100.5018,
     address: '',
     role_permissions: {
-      manager: ['terminal', 'menu-management', 'menu-stock-toggle', 'menu-edit-price', 'inventory', 'kitchen', 'tables', 'members', 'drawer', 'delivery', 'history', 'modifiers', 'recipes', 'settings'],
-      staff: ['terminal', 'menu-management', 'menu-stock-toggle', 'inventory', 'kitchen', 'tables', 'members', 'drawer', 'delivery', 'history']
+      manager: ['terminal', 'pos:access', 'pos:checkout', 'pos:void', 'pos:discount', 'pos:drawer', 'reports', 'reports:view', 'reports:sales', 'reports:profit', 'reports:export', 'menu-management', 'menu-stock-toggle', 'menu-edit-price', 'inventory', 'inventory:view', 'inventory:edit', 'inventory:audit', 'kitchen', 'kitchen:view', 'tables', 'members', 'drawer', 'delivery', 'history', 'modifiers', 'recipes', 'settings', 'settings:view', 'settings:manage', 'staff', 'staff:view', 'staff:manage', 'management'],
+      staff: ['terminal', 'pos:access', 'pos:checkout', 'menu-management', 'menu-stock-toggle', 'inventory', 'inventory:view', 'kitchen', 'kitchen:view', 'tables', 'members', 'drawer', 'delivery', 'history']
     },
     custom_roles: [
       { id: 'manager', label: 'ผู้จัดการสาขา (Manager)', is_system: true },
@@ -219,8 +248,8 @@ export default function POSShopSettings({
                 status: effectiveStatus,
                 is_open: effectiveStatus === 'open',
                 role_permissions: data.role_permissions || {
-                    manager: ['terminal', 'menu-management', 'menu-stock-toggle', 'menu-edit-price', 'inventory', 'kitchen', 'tables', 'members', 'drawer', 'delivery', 'history', 'modifiers', 'recipes', 'settings'],
-                    staff: ['terminal', 'menu-management', 'menu-stock-toggle', 'inventory', 'kitchen', 'tables', 'members', 'drawer', 'delivery', 'history']
+                    manager: ['terminal', 'pos:access', 'pos:checkout', 'pos:void', 'pos:discount', 'pos:drawer', 'reports', 'reports:view', 'reports:sales', 'reports:profit', 'reports:export', 'menu-management', 'menu-stock-toggle', 'menu-edit-price', 'inventory', 'inventory:view', 'inventory:edit', 'inventory:audit', 'kitchen', 'kitchen:view', 'tables', 'members', 'drawer', 'delivery', 'history', 'modifiers', 'recipes', 'settings', 'settings:view', 'settings:manage', 'staff', 'staff:view', 'staff:manage', 'management'],
+                    staff: ['terminal', 'pos:access', 'pos:checkout', 'menu-management', 'menu-stock-toggle', 'inventory', 'inventory:view', 'kitchen', 'kitchen:view', 'tables', 'members', 'drawer', 'delivery', 'history']
                 },
                 custom_roles: data.custom_roles || [
                     { id: 'manager', label: 'ผู้จัดการสาขา (Manager)', is_system: true },
@@ -493,8 +522,8 @@ const handleSave = async () => {
                 status: effectiveStatus,
                 is_open: effectiveStatus === 'open',
                 role_permissions: data.role_permissions || {
-                    manager: ['terminal', 'menu-management', 'menu-stock-toggle', 'menu-edit-price', 'inventory', 'kitchen', 'tables', 'members', 'drawer', 'delivery', 'history', 'modifiers', 'recipes', 'settings'],
-                    staff: ['terminal', 'menu-management', 'menu-stock-toggle', 'inventory', 'kitchen', 'tables', 'members', 'drawer', 'delivery', 'history']
+                    manager: ['terminal', 'pos:access', 'pos:checkout', 'pos:void', 'pos:discount', 'pos:drawer', 'reports', 'reports:view', 'reports:sales', 'reports:profit', 'reports:export', 'menu-management', 'menu-stock-toggle', 'menu-edit-price', 'inventory', 'inventory:view', 'inventory:edit', 'inventory:audit', 'kitchen', 'kitchen:view', 'tables', 'members', 'drawer', 'delivery', 'history', 'modifiers', 'recipes', 'settings', 'settings:view', 'settings:manage', 'staff', 'staff:view', 'staff:manage', 'management'],
+                    staff: ['terminal', 'pos:access', 'pos:checkout', 'menu-management', 'menu-stock-toggle', 'inventory', 'inventory:view', 'kitchen', 'kitchen:view', 'tables', 'members', 'drawer', 'delivery', 'history']
                 },
                 custom_roles: data.custom_roles || [
                     { id: 'manager', label: 'ผู้จัดการสาขา (Manager)', is_system: true },

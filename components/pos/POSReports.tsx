@@ -197,6 +197,10 @@ export default function POSReports({
     const [customRange, setCustomRange] = useState({ start: '', end: '' })
     const [showAddExpense, setShowAddExpense] = useState(false)
 
+    const role = profile?.role === 'admin' ? 'admin' : (profile?.staff_level || 'staff')
+    const hasProfitPermission = role === 'admin' || (shopSettings?.role_permissions?.[role] || []).includes('reports:profit')
+
+
     const [financials, setFinancials] = useState<any>({
         totalRevenue: 0, totalOrders: 0, laborCost: 0, totalWorkDays: 0, theoreticalCogs: 0, otherExpenses: 0, netProfit: 0,
         salesTrend: [], menuPerformance: [], categoryPerformance: [], worstPerformance: [], expenseList: [],
@@ -741,7 +745,7 @@ function OverviewReport({ financials }: any) {
                 </div>
             )
         },
-        {
+        ...(hasProfitPermission ? [{
             key: 'cost-breakdown',
             title: 'ต้นทุนและกำไร',
             subtitle: 'ดูสัดส่วนเงินที่ออกจากยอดขาย',
@@ -783,7 +787,7 @@ function OverviewReport({ financials }: any) {
                     </div>
                 </div>
             )
-        }
+        }] : [])
     ]
     const activeHours = financials.hourlyHeatmap?.filter((h: any) => h.revenue > 0 || h.orders > 0) || []
     const firstActiveHour = activeHours.length > 0 ? activeHours[0].hour : '08:00'
@@ -1042,6 +1046,7 @@ function OverviewReport({ financials }: any) {
                     </div>
                 </div>
 
+                {hasProfitPermission && (
                 <div className="bg-white p-8 rounded-3xl ring-1 ring-black/5 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
                     <h3 className="text-[12px] font-black uppercase tracking-widest mb-8 border-b border-neutral-100 pb-6 text-[#1A1A18]">{locale === 'en' ? 'งบกำไรขาดทุน (P&L)' : locale === 'zh' ? 'งบกำไรขาดทุน (P&L)' : 'งบกำไรขาดทุน (P&L)'}</h3>
                     <div className="space-y-6">
@@ -1095,11 +1100,11 @@ function OverviewReport({ financials }: any) {
                         <div className="pt-6 border-t border-black/5 flex justify-between items-end"><span className="text-[11px] font-black uppercase tracking-[0.2em]">{locale === 'en' ? 'กำไรสุทธิ' : locale === 'zh' ? 'กำไรสุทธิ' : 'กำไรสุทธิ'}</span><span className={`text-3xl font-black ${financials.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{locale === 'en' ? '฿ ' : locale === 'zh' ? '฿ ' : '฿ '}{financials.netProfit.toLocaleString()}</span></div>
                     </div>
                 </div>
+                )}
             </div>
         </div>
     )
-}
-
+} 
 function MetricCard({ title, value, icon, color, iconColor = "bg-white/20", unit = "บาท", noAbs = false }: any) {
     const displayValue = noAbs ? value : Math.abs(value)
     return (
@@ -1328,6 +1333,7 @@ function PaymentReport({ paymentData, totalRevenue, platformGpData, totalGpFee }
                             </tbody>
                         </table>
                     </div>
+                    {hasProfitPermission && (
                     <div className="p-8 bg-gray-50 flex flex-col justify-center items-center">
                         <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">{locale === 'en' ? 'ยอดรับรวมทั้งหมด' : locale === 'zh' ? 'ยอดรับรวมทั้งหมด' : 'ยอดรับรวมทั้งหมด'}</div>
                         <div className="text-4xl font-black text-black">{locale === 'en' ? '฿ ' : locale === 'zh' ? '฿ ' : '฿ '}{(totalRevenue || 0).toLocaleString()}</div>
@@ -1340,6 +1346,7 @@ function PaymentReport({ paymentData, totalRevenue, platformGpData, totalGpFee }
                             </div>
                         )}
                     </div>
+                    )}
                 </div>
 
                 {platformGpData && platformGpData.length > 0 && (
