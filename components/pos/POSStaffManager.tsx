@@ -1028,7 +1028,7 @@ export default function POSStaffManager({
                                     <div className="space-y-1.5">
                                         <label className="text-[10px] font-bold text-neutral-400">ระดับสิทธิ์</label>
                                         <select value={selectedStaff.staff_level || 'staff'} onChange={e => setSelectedStaff({ ...selectedStaff, staff_level: e.target.value })} className="w-full bg-neutral-50 rounded-lg border border-neutral-200 py-2.5 px-3 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors">
-                                            {(shopSettings?.custom_roles || []).map((role: any) => (
+                                            {(shopSettings?.custom_roles && shopSettings.custom_roles.length > 0 ? shopSettings.custom_roles : [{ id: 'manager', label: 'ผู้จัดการสาขา (Manager)' }, { id: 'staff', label: 'พนักงานทั่วไป (Staff)' }]).map((role: any) => (
                                                 <option key={role.id} value={role.id}>{role.label}</option>
                                             ))}
                                             <option value="admin">แอดมิน (Admin)</option>
@@ -2108,7 +2108,7 @@ export default function POSStaffManager({
                                     onChange={e => setNewStaffForm({ ...newStaffForm, staff_level: e.target.value })}
                                     className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
                                 >
-                                    {(shopSettings?.custom_roles || []).map((role: any) => (
+                                    {(shopSettings?.custom_roles && shopSettings.custom_roles.length > 0 ? shopSettings.custom_roles : [{ id: 'manager', label: 'ผู้จัดการสาขา (Manager)' }, { id: 'staff', label: 'พนักงานทั่วไป (Staff)' }]).map((role: any) => (
                                         <option key={role.id} value={role.id}>{role.label}</option>
                                     ))}
                                     <option value="admin">แอดมิน (Admin)</option>
