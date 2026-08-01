@@ -4,7 +4,7 @@ import { Capacitor } from '@capacitor/core'
 import { PrinterSocket } from 'custom-printer-plugin'
 import { printCustomerReceipt, printKitchenTicket } from '@/lib/printerUtils'
 import { printGraphicModeCustomerReceipt, printGraphicModeKitchenTicket } from '@/lib/graphicPrinter'
-import { Plus, Loader2, Save, X, Settings, Clock, Bell, Info, Image as ImageIcon, Star, Gift, ChevronDown, ChevronUp, Upload, Trash2, Menu as MenuIcon, ChevronRight, ArrowLeft, ShieldCheck, QrCode, MapPin, Printer, Truck, Flag, RefreshCw, Store, Navigation, Percent, Camera, Users } from 'lucide-react'
+import { Plus, Loader2, Save, X, Settings, Clock, Bell, Info, Image as ImageIcon, Star, Gift, ChevronDown, ChevronUp, Upload, Trash2, Menu as MenuIcon, ChevronRight, ArrowLeft, ShieldCheck, QrCode, MapPin, Printer, Truck, Flag, RefreshCw, Store, Navigation, Percent, Camera, Users, Edit2, Check } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
 import POSCampaignsTab from './POSCampaignsTab'
@@ -57,57 +57,79 @@ const getCroppedImg = async (imageSrc: string, pixelCrop: any): Promise<Blob> =>
 }
 
 
-const permissionOptions = [
-  // POS Operations
-  { id: 'pos:access', label: 'เข้าใช้งานหน้าขาย (POS ACCESS)', desc: 'อนุญาตให้เข้าใช้งานหน้าเครื่องคิดเงิน' },
-  { id: 'pos:checkout', label: 'คิดเงินลูกค้า (CHECKOUT)', desc: 'อนุญาตให้ทำรายการชำระเงิน' },
-  { id: 'pos:void', label: 'ยกเลิกออเดอร์ (VOID)', desc: 'อนุญาตให้ยกเลิกหรือคืนเงินออเดอร์' },
-  { id: 'pos:discount', label: 'ให้ส่วนลด (DISCOUNT)', desc: 'อนุญาตให้ใส่ส่วนลดในออเดอร์' },
-  { id: 'pos:drawer', label: 'จัดการลิ้นชักเงิน (DRAWER)', desc: 'อนุญาตให้เปิดปิดลิ้นชักและดูประวัติ' },
-  
-  // Existing Base Permissions for Compatibility
-  { id: 'terminal', label: 'ฟังก์ชันหน้าขายเดิม (LEGACY TERMINAL)', desc: 'เข้าใช้งานหน้าขายแบบรวมศูนย์ (สำหรับความเข้ากันได้เดิม)' },
-  { id: 'delivery', label: 'ศูนย์ส่งสินค้า (DELIVERY)', desc: 'จัดการออเดอร์เดลิเวอรี่และไรเดอร์' },
-  { id: 'history', label: 'ประวัติการขาย (HISTORY)', desc: 'ดูบิลขายย้อนหลังและจัดการบิลที่ปิดแล้ว' },
-  { id: 'tables', label: 'จัดการโต๊ะ (TABLES)', desc: 'ระบบจัดการและแสดงสถานะโต๊ะอาหารภายในร้าน' },
-  { id: 'members', label: 'จัดการสมาชิก (MEMBERS)', desc: 'จัดการข้อมูลและแต้มสะสมของสมาชิก' },
-
-  // Reports
-  { id: 'reports:view', label: 'เข้าใช้งานรายงาน (REPORTS VIEW)', desc: 'อนุญาตให้เข้าดูหน้ารายงาน' },
-  { id: 'reports:sales', label: 'ดูยอดขายรวม (SALES REPORT)', desc: 'ดูยอดขายหน้าร้าน (Gross Sales)' },
-  { id: 'reports:profit', label: 'ดูกำไรและต้นทุน (PROFIT REPORT)', desc: 'ดูข้อมูลกำไรสุทธิและต้นทุน (Net Profit & COGS)' },
-  { id: 'reports:export', label: 'ส่งออกรายงาน (EXPORT)', desc: 'อนุญาตให้ดาวน์โหลดไฟล์รายงาน' },
-  { id: 'reports', label: 'ฟังก์ชันรายงานเดิม (LEGACY REPORTS)', desc: 'ดูรายงานแบบเก่า' },
-
-  // Inventory & Kitchen
-  { id: 'inventory:view', label: 'ดูสต็อก (INVENTORY VIEW)', desc: 'ดูข้อมูลวัตถุดิบและสต็อก' },
-  { id: 'inventory:edit', label: 'แก้ไขสต็อก (INVENTORY EDIT)', desc: 'แก้ไขสต็อกสินค้าและเพิ่มวัตถุดิบใหม่' },
-  { id: 'inventory:audit', label: 'นับสต็อก (INVENTORY AUDIT)', desc: 'บันทึกรายการนับสต็อกรายวัน' },
-  { id: 'kitchen:view', label: 'หน้าจอครัว (KITCHEN)', desc: 'เข้าใช้งานระบบแสดงออเดอร์ในครัว (KDS)' },
-  { id: 'inventory', label: 'คลังสินค้าเดิม (LEGACY INVENTORY)', desc: 'ระบบจัดการคลังวัตถุดิบแบบเก่า' },
-  { id: 'kitchen', label: 'จอสั่งอาหารเดิม (LEGACY KITCHEN)', desc: 'เข้าใช้ระบบจอครัวเก่า' },
-
-  // Menus
-  { id: 'menu-management', label: 'จัดการเมนูหลัก (MENU MANAGEMENT)', desc: 'เข้าสู่หน้าจัดการเมนู หมวดหมู่ และการเรียงลำดับ' },
-  { id: 'menu-stock-toggle', label: 'อัปเดตสต็อกสินค้าด่วน (STOCK TOGGLE)', desc: 'กดสลับสถานะสินค้าหมด / พร้อมขายหน้าร้าน' },
-  { id: 'menu-edit-price', label: 'แก้ไขราคา & เมนู (EDIT MENU & PRICES)', desc: 'เพิ่ม/แก้ไข/ลบ รายการเมนู และปรับเปลี่ยนราคาขาย' },
-  { id: 'modifiers', label: 'จัดการตัวเลือก (MODIFIERS)', desc: 'เพิ่ม/แก้ไขตัวเลือกเสริม (Modifiers) ของเมนูอาหาร' },
-  { id: 'recipes', label: 'จัดการสูตรอาหาร (RECIPES)', desc: 'ผูกสูตรอาหารเข้ากับสต็อกวัตถุดิบอัตโนมัติ' },
-
-  // Settings & Others
-  { id: 'staff:view', label: 'ดูพนักงาน (STAFF VIEW)', desc: 'ดูรายชื่อพนักงาน' },
-  { id: 'staff:manage', label: 'จัดการพนักงาน (STAFF MANAGE)', desc: 'จัดการข้อมูลและสิทธิ์พนักงาน' },
-  { id: 'settings:view', label: 'ดูการตั้งค่าร้าน (SETTINGS VIEW)', desc: 'เข้าดูหน้าตั้งค่าร้าน' },
-  { id: 'settings:manage', label: 'แก้ไขการตั้งค่าร้าน (SETTINGS MANAGE)', desc: 'แก้ไขข้อมูลร้านค้าและโปรโมชั่น' },
-  { id: 'management', label: 'จัดการระบบ (MANAGEMENT)', desc: 'การจัดการข้อมูลเชิงลึกและระบบหลังบ้านของสาขา' },
-  { id: 'settings', label: 'ตั้งค่าร้านเดิม (LEGACY SETTINGS)', desc: 'จัดการวันเวลาเปิดปิดร้าน แบนเนอร์' },
-  { id: 'staff', label: 'จัดการพนักงานเดิม (LEGACY STAFF)', desc: 'ระบบจัดการสิทธิ์และรายชื่อพนักงานประจำร้าน' },
-
-  // LINE Notifications
-  { id: 'line-notify-inventory', label: '[LINE] แจ้งเตือนสต๊อก (STOCK ALERT)', desc: 'รับการแจ้งเตือนเมื่อสต๊อกวัตถุดิบใกล้หมด' },
-  { id: 'line-notify-inventory-audit', label: '[LINE] นับสต๊อก (AUDIT ALERT)', desc: 'รับแจ้งเตือนเมื่อมีการนับสต๊อกวัตถุดิบและสรุปผล' },
-  { id: 'line-notify-zreport', label: '[LINE] ปิดกะ Z-Report (Z-REPORT)', desc: 'รับยอดสรุปการขายเมื่อพนักงานทำการปิดกะ' },
-  { id: 'line-notify-checkout-photos', label: '[LINE] ลงเวลาออกงาน (CHECKOUT PHOTOS)', desc: 'รับรูปถ่ายสภาพร้านเมื่อพนักงานลงเวลาเลิกงาน' },
+const permissionGroups = [
+  {
+    groupLabel: 'ระบบหน้าร้าน (POS Operations)',
+    options: [
+      { id: 'pos:access', label: 'เข้าใช้งานหน้าขาย (POS ACCESS)', desc: 'อนุญาตให้เข้าใช้งานหน้าเครื่องคิดเงิน' },
+      { id: 'pos:checkout', label: 'คิดเงินลูกค้า (CHECKOUT)', desc: 'อนุญาตให้ทำรายการชำระเงิน' },
+      { id: 'pos:void', label: 'ยกเลิกออเดอร์ (VOID)', desc: 'อนุญาตให้ยกเลิกหรือคืนเงินออเดอร์' },
+      { id: 'pos:discount', label: 'ให้ส่วนลด (DISCOUNT)', desc: 'อนุญาตให้ใส่ส่วนลดในออเดอร์' },
+      { id: 'pos:drawer', label: 'จัดการลิ้นชักเงิน (DRAWER)', desc: 'อนุญาตให้เปิดปิดลิ้นชักและดูประวัติ' },
+    ]
+  },
+  {
+    groupLabel: 'รายงาน (Reports)',
+    options: [
+      { id: 'reports:view', label: 'เข้าใช้งานรายงาน (REPORTS VIEW)', desc: 'อนุญาตให้เข้าดูหน้ารายงาน' },
+      { id: 'reports:sales', label: 'ดูยอดขายรวม (SALES REPORT)', desc: 'ดูยอดขายหน้าร้าน (Gross Sales)' },
+      { id: 'reports:profit', label: 'ดูกำไรและต้นทุน (PROFIT REPORT)', desc: 'ดูข้อมูลกำไรสุทธิและต้นทุน (Net Profit & COGS)' },
+      { id: 'reports:export', label: 'ส่งออกรายงาน (EXPORT)', desc: 'อนุญาตให้ดาวน์โหลดไฟล์รายงาน' },
+    ]
+  },
+  {
+    groupLabel: 'จัดการสต็อกและหลังบ้าน (Inventory & Kitchen)',
+    options: [
+      { id: 'inventory:view', label: 'ดูสต็อก (INVENTORY VIEW)', desc: 'ดูข้อมูลวัตถุดิบและสต็อก' },
+      { id: 'inventory:edit', label: 'แก้ไขสต็อก (INVENTORY EDIT)', desc: 'แก้ไขสต็อกสินค้าและเพิ่มวัตถุดิบใหม่' },
+      { id: 'inventory:audit', label: 'นับสต็อก (INVENTORY AUDIT)', desc: 'บันทึกรายการนับสต็อกรายวัน' },
+      { id: 'kitchen:view', label: 'หน้าจอครัว (KITCHEN)', desc: 'เข้าใช้งานระบบแสดงออเดอร์ในครัว (KDS)' },
+    ]
+  },
+  {
+    groupLabel: 'จัดการเมนู (Menus)',
+    options: [
+      { id: 'menu-management', label: 'จัดการเมนูหลัก (MENU MANAGEMENT)', desc: 'เข้าสู่หน้าจัดการเมนู หมวดหมู่ และการเรียงลำดับ' },
+      { id: 'menu-stock-toggle', label: 'อัปเดตสต็อกสินค้าด่วน (STOCK TOGGLE)', desc: 'กดสลับสถานะสินค้าหมด / พร้อมขายหน้าร้าน' },
+      { id: 'menu-edit-price', label: 'แก้ไขราคา & เมนู (EDIT MENU & PRICES)', desc: 'เพิ่ม/แก้ไข/ลบ รายการเมนู และปรับเปลี่ยนราคาขาย' },
+      { id: 'modifiers', label: 'จัดการตัวเลือก (MODIFIERS)', desc: 'เพิ่ม/แก้ไขตัวเลือกเสริม (Modifiers) ของเมนูอาหาร' },
+      { id: 'recipes', label: 'จัดการสูตรอาหาร (RECIPES)', desc: 'ผูกสูตรอาหารเข้ากับสต็อกวัตถุดิบอัตโนมัติ' },
+    ]
+  },
+  {
+    groupLabel: 'พนักงานและการตั้งค่า (Settings & Staff)',
+    options: [
+      { id: 'staff:view', label: 'ดูพนักงาน (STAFF VIEW)', desc: 'ดูรายชื่อพนักงาน' },
+      { id: 'staff:manage', label: 'จัดการพนักงาน (STAFF MANAGE)', desc: 'จัดการข้อมูลและสิทธิ์พนักงาน' },
+      { id: 'settings:view', label: 'ดูการตั้งค่าร้าน (SETTINGS VIEW)', desc: 'เข้าดูหน้าตั้งค่าร้าน' },
+      { id: 'settings:manage', label: 'แก้ไขการตั้งค่าร้าน (SETTINGS MANAGE)', desc: 'แก้ไขข้อมูลร้านค้าและโปรโมชั่น' },
+      { id: 'management', label: 'จัดการระบบ (MANAGEMENT)', desc: 'การจัดการข้อมูลเชิงลึกและระบบหลังบ้านของสาขา' },
+    ]
+  },
+  {
+    groupLabel: 'แจ้งเตือนผ่านไลน์ (LINE Notifications)',
+    options: [
+      { id: 'line-notify-inventory', label: '[LINE] แจ้งเตือนสต๊อก (STOCK ALERT)', desc: 'รับการแจ้งเตือนเมื่อสต๊อกวัตถุดิบใกล้หมด' },
+      { id: 'line-notify-inventory-audit', label: '[LINE] นับสต๊อก (AUDIT ALERT)', desc: 'รับแจ้งเตือนเมื่อมีการนับสต๊อกวัตถุดิบและสรุปผล' },
+      { id: 'line-notify-zreport', label: '[LINE] ปิดกะ Z-Report (Z-REPORT)', desc: 'รับยอดสรุปการขายเมื่อพนักงานทำการปิดกะ' },
+      { id: 'line-notify-checkout-photos', label: '[LINE] ลงเวลาออกงาน (CHECKOUT PHOTOS)', desc: 'รับรูปถ่ายสภาพร้านเมื่อพนักงานลงเวลาเลิกงาน' },
+    ]
+  },
+  {
+    groupLabel: 'สิทธิ์ระบบเดิม (Legacy Compatibility)',
+    options: [
+      { id: 'terminal', label: 'ฟังก์ชันหน้าขายเดิม (LEGACY TERMINAL)', desc: 'เข้าใช้งานหน้าขายแบบรวมศูนย์ (สำหรับความเข้ากันได้เดิม)' },
+      { id: 'delivery', label: 'ศูนย์ส่งสินค้า (DELIVERY)', desc: 'จัดการออเดอร์เดลิเวอรี่และไรเดอร์' },
+      { id: 'history', label: 'ประวัติการขาย (HISTORY)', desc: 'ดูบิลขายย้อนหลังและจัดการบิลที่ปิดแล้ว' },
+      { id: 'tables', label: 'จัดการโต๊ะ (TABLES)', desc: 'ระบบจัดการและแสดงสถานะโต๊ะอาหารภายในร้าน' },
+      { id: 'members', label: 'จัดการสมาชิก (MEMBERS)', desc: 'จัดการข้อมูลและแต้มสะสมของสมาชิก' },
+      { id: 'reports', label: 'ฟังก์ชันรายงานเดิม (LEGACY REPORTS)', desc: 'ดูรายงานแบบเก่า' },
+      { id: 'inventory', label: 'คลังสินค้าเดิม (LEGACY INVENTORY)', desc: 'ระบบจัดการคลังวัตถุดิบแบบเก่า' },
+      { id: 'kitchen', label: 'จอสั่งอาหารเดิม (LEGACY KITCHEN)', desc: 'เข้าใช้ระบบจอครัวเก่า' },
+      { id: 'settings', label: 'ตั้งค่าร้านเดิม (LEGACY SETTINGS)', desc: 'จัดการวันเวลาเปิดปิดร้าน แบนเนอร์' },
+      { id: 'staff', label: 'จัดการพนักงานเดิม (LEGACY STAFF)', desc: 'ระบบจัดการสิทธิ์และรายชื่อพนักงานประจำร้าน' },
+    ]
+  }
 ];
 
 
@@ -1752,34 +1774,75 @@ const handleSave = async () => {
                                             <div key={role} className="space-y-4">
                                                 <h4 className="text-[13px] font-black uppercase tracking-[0.2em] mb-4 pb-3 border-b border-gray-100 flex items-center gap-2">
                                                     {role === 'manager' ? <Star size={16} className="text-yellow-500" /> : role === 'staff' ? <Info size={16} className="text-blue-500" /> : <Users size={16} className="text-indigo-500" />}
-                                                    {roleObj.label}
+                                                    {editingRole === role ? (
+                                                        <div className="flex items-center gap-2 w-full">
+                                                            <input 
+                                                                type="text"
+                                                                value={editingRoleName}
+                                                                onChange={(e) => setEditingRoleName(e.target.value)}
+                                                                className="border border-gray-200 rounded-lg px-2 py-1 text-sm font-black w-full"
+                                                                autoFocus
+                                                            />
+                                                            <button onClick={() => {
+                                                                if (editingRoleName.trim()) {
+                                                                    setSettings({
+                                                                        ...settings,
+                                                                        custom_roles: settings.custom_roles?.map((r: any) => r.id === role ? { ...r, label: editingRoleName.trim() } : r)
+                                                                    })
+                                                                }
+                                                                setEditingRole(null)
+                                                            }} className="p-1.5 bg-indigo-50 text-indigo-600 rounded-md hover:bg-indigo-100">
+                                                                <Check size={14} />
+                                                            </button>
+                                                            <button onClick={() => setEditingRole(null)} className="p-1.5 bg-gray-50 text-gray-500 rounded-md hover:bg-gray-100">
+                                                                <X size={14} />
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            <span className="flex-1">{roleObj.label}</span>
+                                                            <button onClick={() => {
+                                                                setEditingRole(role)
+                                                                setEditingRoleName(roleObj.label)
+                                                            }} className="p-1 text-gray-400 hover:text-indigo-500 transition-colors">
+                                                                <Edit2 size={14} />
+                                                            </button>
+                                                        </>
+                                                    )}
                                                 </h4>
-                                                <div className="space-y-3">
-                                                    {permissionOptions.map((opt) => {
-                                                        const isChecked = (settings.role_permissions?.[role] || []).includes(opt.id)
-                                                        return (
-                                                            <div key={opt.id} className="flex items-start gap-4 p-3 rounded-xl hover:bg-gray-50 transition-all border border-transparent hover:border-gray-100 group cursor-pointer"
-                                                                 onClick={() => {
-                                                                     const current = settings.role_permissions?.[role] || []
-                                                                     const next = isChecked ? current.filter((c: string) => c !== opt.id) : [...current, opt.id]
-                                                                     setSettings({
-                                                                         ...settings,
-                                                                         role_permissions: { ...settings.role_permissions, [role]: next }
-                                                                     })
-                                                                 }}
-                                                            >
-                                                                <button 
-                                                                    className={`w-6 h-6 rounded-md flex items-center justify-center transition-all flex-shrink-0 mt-0.5 ${isChecked ? 'bg-black text-white' : 'bg-gray-100 border border-gray-200'}`}
-                                                                >
-                                                                    {isChecked && <div className="w-2.5 h-2.5 rounded-sm bg-white" />}
-                                                                </button>
-                                                                <div>
-                                                                    <div className={`text-[12px] font-black uppercase tracking-tight transition-all ${isChecked ? 'text-black' : 'text-gray-500'}`}>{opt.label}</div>
-                                                                    <div className="text-[10px] text-gray-400 font-bold leading-tight mt-1 group-hover:text-gray-500">{opt.desc}</div>
-                                                                </div>
+                                                <div className="space-y-6">
+                                                    {permissionGroups.map((group, groupIdx) => (
+                                                        <div key={groupIdx}>
+                                                            <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3 ml-2">{group.groupLabel}</div>
+                                                            <div className="space-y-2">
+                                                                {group.options.map((opt) => {
+                                                                    const isChecked = (settings.role_permissions?.[role] || []).includes(opt.id)
+                                                                    return (
+                                                                        <div key={opt.id} className="flex items-start gap-4 p-3 rounded-xl hover:bg-gray-50 transition-all border border-transparent hover:border-gray-100 group cursor-pointer"
+                                                                             onClick={() => {
+                                                                                 const current = settings.role_permissions?.[role] || []
+                                                                                 const next = isChecked ? current.filter((c: string) => c !== opt.id) : [...current, opt.id]
+                                                                                 setSettings({
+                                                                                     ...settings,
+                                                                                     role_permissions: { ...settings.role_permissions, [role]: next }
+                                                                                 })
+                                                                             }}
+                                                                        >
+                                                                            <button 
+                                                                                className={`w-6 h-6 rounded-md flex items-center justify-center transition-all flex-shrink-0 mt-0.5 ${isChecked ? 'bg-black text-white' : 'bg-gray-100 border border-gray-200'}`}
+                                                                            >
+                                                                                {isChecked && <div className="w-2.5 h-2.5 rounded-sm bg-white" />}
+                                                                            </button>
+                                                                            <div>
+                                                                                <div className={`text-[12px] font-black uppercase tracking-tight transition-all ${isChecked ? 'text-black' : 'text-gray-500'}`}>{opt.label}</div>
+                                                                                <div className="text-[10px] text-gray-400 font-bold leading-tight mt-1 group-hover:text-gray-500">{opt.desc}</div>
+                                                                            </div>
+                                                                        </div>
+                                                                    )
+                                                                })}
                                                             </div>
-                                                        )
-                                                    })}
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             </div>
                                         )})}
