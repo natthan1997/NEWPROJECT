@@ -116,18 +116,18 @@ const permissionGroups = [
     ]
   },
   {
-    groupLabel: 'สิทธิ์ระบบเดิม (Legacy Compatibility)',
+    groupLabel: 'เข้าถึงเมนูหลัก (Main Menus)',
     options: [
-      { id: 'terminal', label: 'ฟังก์ชันหน้าขายเดิม (LEGACY TERMINAL)', desc: 'เข้าใช้งานหน้าขายแบบรวมศูนย์ (สำหรับความเข้ากันได้เดิม)' },
+      { id: 'terminal', label: 'หน้าขาย POS (TERMINAL)', desc: 'เข้าใช้งานหน้าขายแบบรวมศูนย์' },
       { id: 'delivery', label: 'ศูนย์ส่งสินค้า (DELIVERY)', desc: 'จัดการออเดอร์เดลิเวอรี่และไรเดอร์' },
       { id: 'history', label: 'ประวัติการขาย (HISTORY)', desc: 'ดูบิลขายย้อนหลังและจัดการบิลที่ปิดแล้ว' },
       { id: 'tables', label: 'จัดการโต๊ะ (TABLES)', desc: 'ระบบจัดการและแสดงสถานะโต๊ะอาหารภายในร้าน' },
       { id: 'members', label: 'จัดการสมาชิก (MEMBERS)', desc: 'จัดการข้อมูลและแต้มสะสมของสมาชิก' },
-      { id: 'reports', label: 'ฟังก์ชันรายงานเดิม (LEGACY REPORTS)', desc: 'ดูรายงานแบบเก่า' },
-      { id: 'inventory', label: 'คลังสินค้าเดิม (LEGACY INVENTORY)', desc: 'ระบบจัดการคลังวัตถุดิบแบบเก่า' },
-      { id: 'kitchen', label: 'จอสั่งอาหารเดิม (LEGACY KITCHEN)', desc: 'เข้าใช้ระบบจอครัวเก่า' },
-      { id: 'settings', label: 'ตั้งค่าร้านเดิม (LEGACY SETTINGS)', desc: 'จัดการวันเวลาเปิดปิดร้าน แบนเนอร์' },
-      { id: 'staff', label: 'จัดการพนักงานเดิม (LEGACY STAFF)', desc: 'ระบบจัดการสิทธิ์และรายชื่อพนักงานประจำร้าน' },
+      { id: 'reports', label: 'รายงาน (REPORTS)', desc: 'ดูรายงานยอดขาย' },
+      { id: 'inventory', label: 'คลังสินค้า (INVENTORY)', desc: 'ระบบจัดการคลังวัตถุดิบ' },
+      { id: 'kitchen', label: 'จอสั่งอาหาร (KITCHEN)', desc: 'เข้าใช้ระบบจอครัว' },
+      { id: 'settings', label: 'ตั้งค่าร้าน (SETTINGS)', desc: 'จัดการวันเวลาเปิดปิดร้าน แบนเนอร์' },
+      { id: 'staff', label: 'จัดการพนักงาน (STAFF)', desc: 'ระบบจัดการสิทธิ์และรายชื่อพนักงาน' },
     ]
   }
 ];
