@@ -643,9 +643,9 @@ export default function POSReports({
                 </div>
             ) : (
                 <div className="space-y-12 animate-in fade-in duration-700">
-                    {activeTab === 'overview' && <OverviewReport financials={financials} />}
+                    {activeTab === 'overview' && <OverviewReport financials={financials} hasProfitPermission={hasProfitPermission} />}
                     {activeTab === 'menu' && <MenuReport menuPerformance={financials.menuPerformance} categoryPerformance={financials.categoryPerformance} worstPerformance={financials.worstPerformance} topModifiers={financials.topModifiers} />}
-                    {activeTab === 'payment' && <PaymentReport paymentData={financials.paymentData} totalRevenue={financials.netRevenue} platformGpData={financials.platformGpData} totalGpFee={financials.totalGpFee} />}
+                    {activeTab === 'payment' && <PaymentReport paymentData={financials.paymentData} totalRevenue={financials.netRevenue} platformGpData={financials.platformGpData} totalGpFee={financials.totalGpFee} hasProfitPermission={hasProfitPermission} />}
                     {activeTab === 'inventory' && <InventoryReport varianceCost={financials.varianceCost} />}
                     {activeTab === 'expenses' && <ExpensesTab expenseList={financials.expenseList} total={financials.otherExpenses} onDelete={() => fetchData()} onAdd={() => setShowAddExpense(true)} />}
                     {activeTab === 'discounts_voids' && <DiscountsVoidsReport discountTotal={financials.discountTotal} voidedOrders={financials.voidedOrders} />}
@@ -689,7 +689,7 @@ export default function POSReports({
     )
 }
 
-function OverviewReport({ financials }: any) {
+function OverviewReport({ financials, hasProfitPermission }: any) {
     const { locale } = useI18n();
     const [expandLabor, setExpandLabor] = useState(false)
     const [expandExpenses, setExpandExpenses] = useState(false)
@@ -1272,7 +1272,7 @@ function MenuReport({ menuPerformance, categoryPerformance, worstPerformance, to
     )
 }
 
-function PaymentReport({ paymentData, totalRevenue, platformGpData, totalGpFee }: any) {
+function PaymentReport({ paymentData, totalRevenue, platformGpData, totalGpFee, hasProfitPermission }: any) {
     const { locale } = useI18n();
     return (
         <>
