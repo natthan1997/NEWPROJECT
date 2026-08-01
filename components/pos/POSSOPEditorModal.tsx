@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, Printer, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabaseClient';
-import ReactToPrint from 'react-to-print';
+import { useReactToPrint } from 'react-to-print';
 
 interface Props {
     isOpen: boolean;
@@ -73,6 +73,11 @@ export default function POSSOPEditorModal({ isOpen, onClose, shopSettings, branc
         }
     };
 
+    const handlePrint = useReactToPrint({
+        contentRef: printRef,
+        documentTitle: `SOP_${shopSettings?.opening_hours?.name_en || 'Shop'}`
+    });
+
     return (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
             <motion.div 
@@ -126,16 +131,13 @@ export default function POSSOPEditorModal({ isOpen, onClose, shopSettings, branc
                         {isSaving ? 'กำลังบันทึก...' : 'บันทึกข้อความ'}
                     </button>
 
-                    <ReactToPrint
-                        trigger={() => (
-                            <button className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/20">
-                                <Printer size={18} />
-                                พิมพ์ / ดาวน์โหลด PDF
-                            </button>
-                        )}
-                        content={() => printRef.current}
-                        documentTitle={`SOP_${shopSettings?.opening_hours?.name_en || 'Shop'}`}
-                    />
+                    <button 
+                        onClick={() => handlePrint()}
+                        className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/20"
+                    >
+                        <Printer size={18} />
+                        พิมพ์ / ดาวน์โหลด PDF
+                    </button>
                 </div>
                 
                 {/* Hidden Printable Area */}
