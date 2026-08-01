@@ -13,7 +13,8 @@ export default function PointGenerator({ onClose }: { onClose?: () => void }) {
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isClaimed, setIsClaimed] = useState(false);
-  const [earnRate, setEarnRate] = useState<number>(1); // 1 THB = 1 Point by default
+  const [earnThb, setEarnThb] = useState<number>(100);
+  const [earnPts, setEarnPts] = useState<number>(1);
 
   useEffect(() => {
     // Fetch shop settings for earn rate
@@ -23,8 +24,9 @@ export default function PointGenerator({ onClose }: { onClose?: () => void }) {
         .select('opening_hours')
         .limit(1)
         .single();
-      if (data && data.opening_hours && data.opening_hours.loyalty_earn_rate) {
-        setEarnRate(data.opening_hours.loyalty_earn_rate);
+      if (data && data.opening_hours) {
+        setEarnThb(data.opening_hours.loyalty_earn_thb !== undefined ? data.opening_hours.loyalty_earn_thb : (data.opening_hours.loyalty_earn_rate || 100));
+        setEarnPts(data.opening_hours.loyalty_earn_pts !== undefined ? data.opening_hours.loyalty_earn_pts : 1);
       }
     };
     fetchSettings();
@@ -63,7 +65,7 @@ export default function PointGenerator({ onClose }: { onClose?: () => void }) {
 
   // Calculate points based on earn rate
   const amountInt = parseInt(purchaseAmount) || 0;
-  const pointsToGenerate = earnRate > 0 ? Math.floor(amountInt / earnRate) : 0;
+  const pointsToGenerate = earnThb > 0 ? Math.floor(amountInt / earnThb) * earnPts : 0;
 
   const handleNumpadPress = (num: string) => {
     if (purchaseAmount.length < 6) setPurchaseAmount(prev => prev + num);
@@ -156,10 +158,10 @@ export default function PointGenerator({ onClose }: { onClose?: () => void }) {
                       {locale === 'en' ? 'Purchase Amount (THB)' : 'กรอกยอดชำระเงินของลูกค้า (บาท)'}
                     </p>
                   </div>
-                  {earnRate > 1 && (
+                  {earnThb > 0 && (
                     <div className="flex justify-center mb-2">
                        <span className="text-[9px] font-black tracking-widest text-emerald-500 bg-emerald-50 px-2 py-1 rounded-md uppercase">
-                         Rate: {earnRate} {locale === 'en' ? 'THB' : 'บาท'} = 1 {locale === 'en' ? 'PT' : 'แต้ม'}
+                         Rate: {earnThb} {locale === 'en' ? 'THB' : 'บาท'} = {earnPts} {locale === 'en' ? 'PT' : 'แต้ม'}
                        </span>
                     </div>
                   )}
