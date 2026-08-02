@@ -3,6 +3,32 @@ import { X, Save, Printer, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabaseClient';
 import { useReactToPrint } from 'react-to-print';
+import dynamic from 'next/dynamic';
+import 'react-quill/dist/quill.snow.css';
+
+const ReactQuill = dynamic(() => import('react-quill'), { 
+    ssr: false, 
+    loading: () => <div className="h-[400px] flex items-center justify-center bg-gray-50 rounded-2xl border border-gray-200">กำลังโหลดเครื่องมือจัดหน้า...</div>
+});
+
+const modules = {
+    toolbar: [
+        [{ 'header': [1, 2, 3, false] }],
+        ['bold', 'italic', 'underline', 'strike'],
+        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+        [{ 'align': [] }],
+        [{ 'color': [] }, { 'background': [] }],
+        ['clean']
+    ],
+};
+
+const formats = [
+    'header',
+    'bold', 'italic', 'underline', 'strike',
+    'list', 'bullet',
+    'align',
+    'color', 'background'
+];
 
 interface Props {
     isOpen: boolean;
@@ -112,12 +138,17 @@ export default function POSSOPEditorModal({ isOpen, onClose, shopSettings, branc
 
                 {/* Editor Area */}
                 <div className="flex-1 p-6 overflow-y-auto bg-gray-50">
-                    <textarea 
-                        value={content}
-                        onChange={(e) => setContent(e.target.value)}
-                        className="w-full h-full min-h-[400px] p-6 rounded-2xl border border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all resize-none font-medium text-gray-700 leading-relaxed text-sm bg-white shadow-sm"
-                        placeholder="พิมพ์ข้อความ SOP ของคุณที่นี่..."
-                    />
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                        <ReactQuill 
+                            theme="snow"
+                            value={content}
+                            onChange={setContent}
+                            modules={modules}
+                            formats={formats}
+                            className="h-[400px] border-none"
+                            placeholder="พิมพ์ข้อความ SOP ของคุณที่นี่..."
+                        />
+                    </div>
                 </div>
 
                 {/* Footer / Actions */}
@@ -148,13 +179,39 @@ export default function POSSOPEditorModal({ isOpen, onClose, shopSettings, branc
                             <h2 className="text-xl font-bold text-gray-600">คู่มือมาตรฐานการปฏิบัติงาน (Standard Operating Procedure)</h2>
                             <p className="text-sm mt-2 text-gray-500">อัปเดตล่าสุด: {new Date().toLocaleDateString('th-TH')}</p>
                         </div>
-                        <div className="whitespace-pre-wrap leading-relaxed text-base font-medium">
-                            {content}
-                        </div>
+                        <div className="whitespace-pre-wrap leading-relaxed text-base font-medium quill-print-content" dangerouslySetInnerHTML={{ __html: content }} />
                     </div>
                 </div>
 
             </motion.div>
+            
+            <style jsx global>{`
+                .quill-print-content h1 { font-size: 2em; font-weight: bold; margin-bottom: 0.5em; }
+                .quill-print-content h2 { font-size: 1.5em; font-weight: bold; margin-bottom: 0.5em; }
+                .quill-print-content h3 { font-size: 1.17em; font-weight: bold; margin-bottom: 0.5em; }
+                .quill-print-content ul { list-style-type: disc; padding-left: 2em; margin-bottom: 1em; }
+                .quill-print-content ol { list-style-type: decimal; padding-left: 2em; margin-bottom: 1em; }
+                .quill-print-content li { margin-bottom: 0.25em; }
+                .quill-print-content p { margin-bottom: 1em; }
+                .quill-print-content strong { font-weight: bold; }
+                .quill-print-content em { font-style: italic; }
+                .quill-print-content u { text-decoration: underline; }
+                .quill-print-content .ql-align-center { text-align: center; }
+                .quill-print-content .ql-align-right { text-align: right; }
+                .quill-print-content .ql-align-justify { text-align: justify; }
+                
+                /* Quill Editor overrides for fixed height */
+                .ql-container.ql-snow {
+                    border: none;
+                    height: 400px;
+                }
+                .ql-toolbar.ql-snow {
+                    border: none;
+                    border-bottom: 1px solid #e5e7eb;
+                    padding: 12px;
+                    background-color: #f9fafb;
+                }
+            `}</style>
         </div>
     );
 }
