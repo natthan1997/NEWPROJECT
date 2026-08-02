@@ -44,6 +44,11 @@ export default function POSSOPEditorModal({ isOpen, onClose, shopSettings, branc
         }
     }, [isOpen, shopSettings]);
 
+    const handlePrint = useReactToPrint({
+        contentRef: printRef,
+        documentTitle: `SOP_${shopSettings?.opening_hours?.name_en || 'Shop'}`
+    });
+
     if (!isOpen) return null;
 
     const handleSave = async () => {
@@ -72,11 +77,6 @@ export default function POSSOPEditorModal({ isOpen, onClose, shopSettings, branc
             setIsSaving(false);
         }
     };
-
-    const handlePrint = useReactToPrint({
-        contentRef: printRef,
-        documentTitle: `SOP_${shopSettings?.opening_hours?.name_en || 'Shop'}`
-    });
 
     return (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
