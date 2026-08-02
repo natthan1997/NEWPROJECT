@@ -37,26 +37,50 @@ interface Props {
     branchId: string;
 }
 
-const DEFAULT_SOP = `คู่มือมาตรฐานการปฏิบัติงาน (SOP) ประจำสาขา
+const DEFAULT_SOP = `<h2><strong>1. วัตถุประสงค์ (Purpose)</strong></h2>
+<p>เพื่อกำหนดมาตรฐานการปฏิบัติงานในการเปิด-ปิดร้าน การแต่งกาย การให้บริการลูกค้า และบทลงโทษ เพื่อให้พนักงานทุกคนปฏิบัติงานได้อย่างถูกต้องและมีมาตรฐานเดียวกัน</p>
 
-1. การแต่งกายและสุขอนามัย
-- พนักงานต้องแต่งกายด้วยชุดยูนิฟอร์มของร้านให้เรียบร้อย
-- ดูแลความสะอาดของร่างกายและมืออยู่เสมอ
-- สวมใส่หน้ากากอนามัยและผ้ากันเปื้อนขณะปฏิบัติงาน
+<h2><strong>2. ขอบเขต (Scope)</strong></h2>
+<p>ครอบคลุมพนักงานทุกคนที่ปฏิบัติงานภายในร้าน ตั้งแต่ระดับพนักงานบริการ พนักงานชงเครื่องดื่ม ไปจนถึงผู้จัดการสาขา</p>
 
-2. การเปิด-ปิดร้าน
-- ก่อนเปิดร้าน: ตรวจสอบความสะอาดของพื้นที่ เครื่องทำกาแฟ และสต็อกสินค้า
-- หลังปิดร้าน: ทำความสะอาดอุปกรณ์ทั้งหมด นับสต็อก และสรุปยอดขายรายวัน
+<h2><strong>3. ขั้นตอนการปฏิบัติงาน (Procedure)</strong></h2>
+<h3><strong>3.1 การแต่งกายและสุขอนามัยส่วนบุคคล</strong></h3>
+<ul>
+  <li>สวมใส่ชุดยูนิฟอร์มของร้านให้เรียบร้อยและสะอาดอยู่เสมอ</li>
+  <li>ผู้ชาย: ตัดผมสั้น หรือเซ็ตให้เรียบร้อย ห้ามไว้หนวดเครา</li>
+  <li>ผู้หญิง: รวบผมให้เรียบร้อย และสวมตาข่ายคลุมผม (ถ้ามี)</li>
+  <li>สวมหน้ากากอนามัย และล้างมือทุกครั้งก่อนสัมผัสอาหารหรือเครื่องดื่ม</li>
+</ul>
 
-3. การบริการลูกค้า
-- กล่าวทักทายลูกค้าด้วยความสุภาพและยิ้มแย้มเสมอ
-- รับออเดอร์อย่างระมัดระวังและทวนรายการสั่งซื้อทุกครั้ง
-- กรณีลูกค้ามีข้อร้องเรียน ให้รับฟังด้วยความใจเย็นและแจ้งผู้จัดการสาขาทันที
+<h3><strong>3.2 การเปิดร้าน (Opening Store)</strong></h3>
+<ol>
+  <li>มาถึงร้านก่อนเวลาเปิดให้บริการอย่างน้อย 30 นาที</li>
+  <li>ตรวจสอบความสะอาดของพื้นที่ให้บริการ โต๊ะ เก้าอี้ และห้องน้ำ</li>
+  <li>เปิดระบบเครื่องคิดเงิน (POS) และนับเงินทอนเตรียมไว้</li>
+  <li>เปิดเครื่องชงกาแฟ อุปกรณ์ต่างๆ และตรวจสอบวัตถุดิบ (Stock) ว่าเพียงพอต่อการขาย</li>
+</ol>
 
-4. บทลงโทษทางวินัย
-- มาสายเกิน 3 ครั้งใน 1 เดือน: ตักเตือนด้วยวาจา
-- ขาดงานโดยไม่แจ้งล่วงหน้า: หักค่าจ้างและตักเตือนเป็นลายลักษณ์อักษร
-- ทุจริตต่อหน้าที่: เลิกจ้างทันทีโดยไม่มีเงินชดเชย
+<h3><strong>3.3 การบริการลูกค้า (Customer Service)</strong></h3>
+<ul>
+  <li>กล่าวทักทายลูกค้าทันทีที่เดินเข้ามาในร้าน ด้วยคำว่า "สวัสดีครับ/ค่ะ ยินดีต้อนรับครับ/ค่ะ"</li>
+  <li>รับออเดอร์ด้วยความยิ้มแย้ม และทวนรายการอาหาร/เครื่องดื่มทุกครั้งก่อนคิดเงิน</li>
+  <li>หากลูกค้ามีข้อร้องเรียน ให้รับฟังอย่างตั้งใจ กล่าวคำขอโทษ และแจ้งผู้จัดการร้านทันที</li>
+</ul>
+
+<h3><strong>3.4 การปิดร้าน (Closing Store)</strong></h3>
+<ol>
+  <li>สรุปยอดขายรายวัน (End of Day) ในระบบ POS และนำเงินส่งผู้จัดการ</li>
+  <li>ทำความสะอาดเครื่องชงกาแฟ พื้นที่เตรียมอาหาร และล้างอุปกรณ์ทั้งหมด</li>
+  <li>เคลียร์ขยะ นำไปทิ้งในจุดที่กำหนด</li>
+  <li>ตรวจสอบการปิดไฟ แอร์ และล็อคประตูร้านให้เรียบร้อยก่อนกลับ</li>
+</ol>
+
+<h2><strong>4. บทลงโทษทางวินัย (Disciplinary Action)</strong></h2>
+<ul>
+  <li><strong>มาสายเกิน 3 ครั้ง/เดือน:</strong> ตักเตือนด้วยวาจา และบันทึกประวัติ</li>
+  <li><strong>ขาดงานโดยไม่แจ้งล่วงหน้า (ละทิ้งหน้าที่):</strong> หักค่าจ้างตามสัดส่วน และออกหนังสือเตือน</li>
+  <li><strong>ทุจริตต่อหน้าที่ (เช่น ขโมยเงิน/สินค้า):</strong> เลิกจ้างทันทีโดยไม่มีเงินชดเชย และดำเนินคดีตามกฎหมาย</li>
+</ul>
 `;
 
 export default function POSSOPEditorModal({ isOpen, onClose, shopSettings, branchId }: Props) {
@@ -138,16 +162,38 @@ export default function POSSOPEditorModal({ isOpen, onClose, shopSettings, branc
 
                 {/* Editor Area (A4 Paper Simulation) */}
                 <div className="flex-1 p-4 sm:p-8 overflow-y-auto bg-gray-100/80">
-                    <div className="w-full max-w-[800px] mx-auto bg-white shadow-xl min-h-[1131px] rounded-sm flex flex-col border border-gray-200">
-                        {/* Document Header (Matches Print Output) */}
-                        <div className="pt-16 px-16 pb-6 text-center border-b-2 border-gray-900 mx-16 mb-8 mt-4">
-                            <h1 className="text-3xl font-black mb-2">{shopSettings?.opening_hours?.name_en || shopSettings?.opening_hours?.branch_name_th || 'SHOP SOP'}</h1>
-                            <h2 className="text-xl font-bold text-gray-600">คู่มือมาตรฐานการปฏิบัติงาน (Standard Operating Procedure)</h2>
-                            <p className="text-sm mt-2 text-gray-500">อัปเดตล่าสุด: {new Date().toLocaleDateString('th-TH')}</p>
+                    <div className="w-full max-w-[800px] mx-auto bg-white shadow-xl min-h-[1131px] rounded-sm flex flex-col border border-gray-200 print-a4-page">
+                        {/* Document Header (Formal SOP Style) */}
+                        <div className="pt-12 px-12 pb-4 mb-4 mt-4">
+                            <table className="w-full border-collapse border border-gray-900 text-sm">
+                                <tbody>
+                                    <tr>
+                                        <td rowSpan={3} className="border border-gray-900 p-4 text-center font-black text-2xl w-[35%] align-middle bg-gray-50">
+                                            {shopSettings?.opening_hours?.name_en || shopSettings?.opening_hours?.branch_name_th || 'LOGO / BRAND'}
+                                        </td>
+                                        <td className="border border-gray-900 p-2 font-bold bg-gray-50 w-[20%]">Document Title</td>
+                                        <td colSpan={3} className="border border-gray-900 p-2 font-black text-lg text-center">
+                                            Standard Operating Procedure (SOP)
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td className="border border-gray-900 p-2 font-bold bg-gray-50">Document No.</td>
+                                        <td className="border border-gray-900 p-2 text-center font-semibold">SOP-001</td>
+                                        <td className="border border-gray-900 p-2 font-bold bg-gray-50 w-[15%]">Revision</td>
+                                        <td className="border border-gray-900 p-2 text-center font-semibold w-[15%]">1.0</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="border border-gray-900 p-2 font-bold bg-gray-50">Effective Date</td>
+                                        <td className="border border-gray-900 p-2 text-center font-semibold">{new Date().toLocaleDateString('en-GB')}</td>
+                                        <td className="border border-gray-900 p-2 font-bold bg-gray-50">Page</td>
+                                        <td className="border border-gray-900 p-2 text-center font-semibold">1 of 1</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                         
                         {/* Editor Content */}
-                        <div className="px-16 pb-16 flex-1 flex flex-col">
+                        <div className="px-12 pb-16 flex-1 flex flex-col">
                             <ReactQuill 
                                 theme="snow"
                                 value={content}
@@ -183,26 +229,48 @@ export default function POSSOPEditorModal({ isOpen, onClose, shopSettings, branc
                 
                 {/* Hidden Printable Area */}
                 <div className="hidden">
-                    <div ref={printRef} className="p-12 font-sans bg-white text-black print:p-8">
-                        <div className="text-center border-b-2 border-black pb-6 mb-8">
-                            <h1 className="text-3xl font-black mb-2">{shopSettings?.opening_hours?.name_en || shopSettings?.opening_hours?.branch_name_th || 'SHOP SOP'}</h1>
-                            <h2 className="text-xl font-bold text-gray-600">คู่มือมาตรฐานการปฏิบัติงาน (Standard Operating Procedure)</h2>
-                            <p className="text-sm mt-2 text-gray-500">อัปเดตล่าสุด: {new Date().toLocaleDateString('th-TH')}</p>
+                    <div ref={printRef} className="p-0 font-sans bg-white text-black print-a4-page">
+                        <div className="pt-8 px-12 pb-4 mb-4 mt-4">
+                            <table className="w-full border-collapse border border-black text-[13px] leading-snug">
+                                <tbody>
+                                    <tr>
+                                        <td rowSpan={3} className="border border-black p-4 text-center font-black text-2xl w-[35%] align-middle bg-gray-100 print:bg-gray-100" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+                                            {shopSettings?.opening_hours?.name_en || shopSettings?.opening_hours?.branch_name_th || 'LOGO / BRAND'}
+                                        </td>
+                                        <td className="border border-black p-2 font-bold bg-gray-100 print:bg-gray-100 w-[20%]" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>Document Title</td>
+                                        <td colSpan={3} className="border border-black p-2 font-black text-lg text-center">
+                                            Standard Operating Procedure (SOP)
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td className="border border-black p-2 font-bold bg-gray-100 print:bg-gray-100" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>Document No.</td>
+                                        <td className="border border-black p-2 text-center font-semibold">SOP-001</td>
+                                        <td className="border border-black p-2 font-bold bg-gray-100 print:bg-gray-100 w-[15%]" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>Revision</td>
+                                        <td className="border border-black p-2 text-center font-semibold w-[15%]">1.0</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="border border-black p-2 font-bold bg-gray-100 print:bg-gray-100" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>Effective Date</td>
+                                        <td className="border border-black p-2 text-center font-semibold">{new Date().toLocaleDateString('en-GB')}</td>
+                                        <td className="border border-black p-2 font-bold bg-gray-100 print:bg-gray-100" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>Page</td>
+                                        <td className="border border-black p-2 text-center font-semibold">1 of 1</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
-                        <div className="whitespace-pre-wrap leading-relaxed text-base font-medium quill-print-content" dangerouslySetInnerHTML={{ __html: content }} />
+                        <div className="px-12 pb-16 whitespace-pre-wrap leading-relaxed text-[15px] font-medium quill-print-content" dangerouslySetInnerHTML={{ __html: content }} />
                     </div>
                 </div>
 
             </motion.div>
             
             <style jsx global>{`
-                .quill-print-content h1 { font-size: 2em; font-weight: bold; margin-bottom: 0.5em; }
-                .quill-print-content h2 { font-size: 1.5em; font-weight: bold; margin-bottom: 0.5em; }
-                .quill-print-content h3 { font-size: 1.17em; font-weight: bold; margin-bottom: 0.5em; }
-                .quill-print-content ul { list-style-type: disc; padding-left: 2em; margin-bottom: 1em; }
-                .quill-print-content ol { list-style-type: decimal; padding-left: 2em; margin-bottom: 1em; }
-                .quill-print-content li { margin-bottom: 0.25em; }
-                .quill-print-content p { margin-bottom: 1em; }
+                .quill-print-content h1 { font-size: 1.8em; font-weight: bold; margin-bottom: 0.5em; margin-top: 1em; color: #111827; }
+                .quill-print-content h2 { font-size: 1.4em; font-weight: bold; margin-bottom: 0.5em; margin-top: 1em; color: #1f2937; }
+                .quill-print-content h3 { font-size: 1.15em; font-weight: bold; margin-bottom: 0.5em; margin-top: 1em; color: #374151; }
+                .quill-print-content ul { list-style-type: disc; padding-left: 2.5em; margin-bottom: 1em; }
+                .quill-print-content ol { list-style-type: decimal; padding-left: 2.5em; margin-bottom: 1em; }
+                .quill-print-content li { margin-bottom: 0.4em; }
+                .quill-print-content p { margin-bottom: 1em; line-height: 1.6; }
                 .quill-print-content strong { font-weight: bold; }
                 .quill-print-content em { font-style: italic; }
                 .quill-print-content u { text-decoration: underline; }
@@ -210,11 +278,19 @@ export default function POSSOPEditorModal({ isOpen, onClose, shopSettings, branc
                 .quill-print-content .ql-align-right { text-align: right; }
                 .quill-print-content .ql-align-justify { text-align: justify; }
                 
+                /* Ensure tables inside print match exactly */
+                @media print {
+                    .print-a4-page { width: 210mm !important; margin: 0 auto; box-shadow: none !important; }
+                    .print-a4-page table { border-color: black !important; }
+                    .print-a4-page td { border-color: black !important; }
+                }
+
                 /* Quill Editor overrides for document look */
                 .document-quill .ql-container.ql-snow {
                     border: none;
-                    font-size: 16px;
+                    font-size: 15px;
                     font-family: inherit;
+                    line-height: 1.6;
                 }
                 .document-quill .ql-editor {
                     padding: 0;
@@ -222,7 +298,7 @@ export default function POSSOPEditorModal({ isOpen, onClose, shopSettings, branc
                 }
                 .document-quill .ql-toolbar.ql-snow {
                     border: none;
-                    border-bottom: 2px dashed #f3f4f6;
+                    border-bottom: 2px dashed #e5e7eb;
                     padding: 12px 0;
                     margin-bottom: 20px;
                     background-color: transparent;
