@@ -136,18 +136,28 @@ export default function POSSOPEditorModal({ isOpen, onClose, shopSettings, branc
                     </button>
                 </div>
 
-                {/* Editor Area */}
-                <div className="flex-1 p-6 overflow-y-auto bg-gray-50">
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                        <ReactQuill 
-                            theme="snow"
-                            value={content}
-                            onChange={setContent}
-                            modules={modules}
-                            formats={formats}
-                            className="h-[400px] border-none"
-                            placeholder="พิมพ์ข้อความ SOP ของคุณที่นี่..."
-                        />
+                {/* Editor Area (A4 Paper Simulation) */}
+                <div className="flex-1 p-4 sm:p-8 overflow-y-auto bg-gray-100/80">
+                    <div className="w-full max-w-[800px] mx-auto bg-white shadow-xl min-h-[1131px] rounded-sm flex flex-col border border-gray-200">
+                        {/* Document Header (Matches Print Output) */}
+                        <div className="pt-16 px-16 pb-6 text-center border-b-2 border-gray-900 mx-16 mb-8 mt-4">
+                            <h1 className="text-3xl font-black mb-2">{shopSettings?.opening_hours?.name_en || shopSettings?.opening_hours?.branch_name_th || 'SHOP SOP'}</h1>
+                            <h2 className="text-xl font-bold text-gray-600">คู่มือมาตรฐานการปฏิบัติงาน (Standard Operating Procedure)</h2>
+                            <p className="text-sm mt-2 text-gray-500">อัปเดตล่าสุด: {new Date().toLocaleDateString('th-TH')}</p>
+                        </div>
+                        
+                        {/* Editor Content */}
+                        <div className="px-16 pb-16 flex-1 flex flex-col">
+                            <ReactQuill 
+                                theme="snow"
+                                value={content}
+                                onChange={setContent}
+                                modules={modules}
+                                formats={formats}
+                                className="flex-1 border-none document-quill"
+                                placeholder="พิมพ์ข้อความ SOP ของคุณที่นี่..."
+                            />
+                        </div>
                     </div>
                 </div>
 
@@ -200,16 +210,27 @@ export default function POSSOPEditorModal({ isOpen, onClose, shopSettings, branc
                 .quill-print-content .ql-align-right { text-align: right; }
                 .quill-print-content .ql-align-justify { text-align: justify; }
                 
-                /* Quill Editor overrides for fixed height */
-                .ql-container.ql-snow {
+                /* Quill Editor overrides for document look */
+                .document-quill .ql-container.ql-snow {
                     border: none;
-                    height: 400px;
+                    font-size: 16px;
+                    font-family: inherit;
                 }
-                .ql-toolbar.ql-snow {
+                .document-quill .ql-editor {
+                    padding: 0;
+                    min-height: 500px;
+                }
+                .document-quill .ql-toolbar.ql-snow {
                     border: none;
-                    border-bottom: 1px solid #e5e7eb;
-                    padding: 12px;
-                    background-color: #f9fafb;
+                    border-bottom: 2px dashed #f3f4f6;
+                    padding: 12px 0;
+                    margin-bottom: 20px;
+                    background-color: transparent;
+                    position: sticky;
+                    top: -16px;
+                    z-index: 10;
+                    background: rgba(255, 255, 255, 0.95);
+                    backdrop-filter: blur(4px);
                 }
             `}</style>
         </div>
