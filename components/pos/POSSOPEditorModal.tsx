@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Save, Printer, FileText } from 'lucide-react';
+import { X, Save, Printer, FileText, FileSignature } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabaseClient';
 import { useReactToPrint } from 'react-to-print';
@@ -37,7 +37,16 @@ interface Props {
     branchId: string;
 }
 
-const DEFAULT_SOP = `<h2><strong>1. วัตถุประสงค์ (Purpose)</strong></h2>
+interface SOPData {
+    docNo: string;
+    revision: string;
+    effectiveDate: string;
+    preparedBy: string;
+    approvedBy: string;
+    content: string;
+}
+
+const DEFAULT_CONTENT = `<h2><strong>1. วัตถุประสงค์ (Purpose)</strong></h2>
 <p>เพื่อกำหนดมาตรฐานการปฏิบัติงานในการเปิด-ปิดร้าน การแต่งกาย การให้บริการลูกค้า และบทลงโทษ เพื่อให้พนักงานทุกคนปฏิบัติงานได้อย่างถูกต้องและมีมาตรฐานเดียวกัน</p>
 
 <h2><strong>2. ขอบเขต (Scope)</strong></h2>
@@ -84,19 +93,38 @@ const DEFAULT_SOP = `<h2><strong>1. วัตถุประสงค์ (Purpos
 `;
 
 export default function POSSOPEditorModal({ isOpen, onClose, shopSettings, branchId }: Props) {
-    const [content, setContent] = useState('');
+    const [sopData, setSopData] = useState<SOPData>({
+        docNo: 'SOP-001',
+        revision: '1.0',
+        effectiveDate: new Date().toISOString().split('T')[0],
+        preparedBy: '',
+        approvedBy: '',
+        content: DEFAULT_CONTENT
+    });
+    
     const [isSaving, setIsSaving] = useState(false);
     const printRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        if (isOpen) {
-            setContent(shopSettings?.opening_hours?.sop_content || DEFAULT_SOP);
+        if (isOpen && shopSettings?.opening_hours?.sop_content) {
+            try {
+                const parsed = JSON.parse(shopSettings.opening_hours.sop_content);
+                if (parsed && typeof parsed === 'object' && parsed.content) {
+                    setSopData(parsed);
+                } else {
+                    // Fallback for old plain text format
+                    setSopData(prev => ({ ...prev, content: shopSettings.opening_hours.sop_content }));
+                }
+            } catch (e) {
+                // Fallback for old plain text format
+                setSopData(prev => ({ ...prev, content: shopSettings.opening_hours.sop_content }));
+            }
         }
     }, [isOpen, shopSettings]);
 
     const handlePrint = useReactToPrint({
         contentRef: printRef,
-        documentTitle: `SOP_${shopSettings?.opening_hours?.name_en || 'Shop'}`
+        documentTitle: `SOP_${sopData.docNo}_${shopSettings?.opening_hours?.name_en || 'Shop'}`
     });
 
     if (!isOpen) return null;
@@ -106,7 +134,7 @@ export default function POSSOPEditorModal({ isOpen, onClose, shopSettings, branc
         try {
             const updatedOpeningHours = {
                 ...(shopSettings?.opening_hours || {}),
-                sop_content: content
+                sop_content: JSON.stringify(sopData)
             };
 
             const { error } = await supabase
@@ -117,15 +145,16 @@ export default function POSSOPEditorModal({ isOpen, onClose, shopSettings, branc
             if (error) throw error;
             alert('บันทึกคู่มือ SOP สำเร็จ');
             
-            // Note: Since we are not passing an onUpdate callback right now, 
-            // the parent component will reload the setting on next refresh.
-            // In a more robust setup, we'd trigger a reload or update local state.
         } catch (err: any) {
             console.error(err);
             alert('เกิดข้อผิดพลาดในการบันทึก SOP');
         } finally {
             setIsSaving(false);
         }
+    };
+
+    const handleFieldChange = (field: keyof SOPData, value: string) => {
+        setSopData(prev => ({ ...prev, [field]: value }));
     };
 
     return (
@@ -142,17 +171,17 @@ export default function POSSOPEditorModal({ isOpen, onClose, shopSettings, branc
                 initial={{ opacity: 0, scale: 0.95, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                className="relative bg-white rounded-3xl shadow-2xl w-full max-w-4xl flex flex-col max-h-[90vh] overflow-hidden"
+                className="relative bg-white rounded-3xl shadow-2xl w-full max-w-5xl flex flex-col max-h-[90vh] overflow-hidden"
             >
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gray-50/50">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600">
-                            <FileText size={20} />
+                            <FileSignature size={20} />
                         </div>
                         <div>
-                            <h2 className="text-lg font-black text-gray-900">แก้ไขคู่มือมาตรฐาน (SOP)</h2>
-                            <p className="text-xs font-bold text-gray-500">ปรับแต่งข้อความก่อนพิมพ์หรือดาวน์โหลด PDF</p>
+                            <h2 className="text-lg font-black text-gray-900">เอกสารมาตรฐานปฏิบัติงาน (SOP)</h2>
+                            <p className="text-xs font-bold text-gray-500">จัดการรายละเอียดเอกสารและฟอร์มเซ็นรับทราบพนักงาน</p>
                         </div>
                     </div>
                     <button onClick={onClose} className="w-10 h-10 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 border border-gray-200 text-gray-500 transition-colors">
@@ -161,8 +190,65 @@ export default function POSSOPEditorModal({ isOpen, onClose, shopSettings, branc
                 </div>
 
                 {/* Editor Area (A4 Paper Simulation) */}
-                <div className="flex-1 p-4 sm:p-8 overflow-y-auto bg-gray-100/80">
-                    <div className="w-full max-w-[800px] mx-auto bg-white shadow-xl min-h-[1131px] rounded-sm flex flex-col border border-gray-200 print-a4-page">
+                <div className="flex-1 p-4 sm:p-8 overflow-y-auto bg-gray-100/80 flex justify-center gap-8 items-start">
+                    
+                    {/* Metadata Sidebar */}
+                    <div className="w-[300px] bg-white rounded-2xl shadow-sm border border-gray-200 p-5 flex-shrink-0 sticky top-0">
+                        <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2 border-b pb-3">
+                            รายละเอียดหัวเอกสาร
+                        </h3>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 mb-1">รหัสเอกสาร (Document No.)</label>
+                                <input 
+                                    type="text" 
+                                    value={sopData.docNo}
+                                    onChange={(e) => handleFieldChange('docNo', e.target.value)}
+                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 mb-1">ครั้งที่แก้ไข (Revision)</label>
+                                <input 
+                                    type="text" 
+                                    value={sopData.revision}
+                                    onChange={(e) => handleFieldChange('revision', e.target.value)}
+                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 mb-1">วันที่บังคับใช้ (Effective Date)</label>
+                                <input 
+                                    type="date" 
+                                    value={sopData.effectiveDate}
+                                    onChange={(e) => handleFieldChange('effectiveDate', e.target.value)}
+                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 mb-1">ผู้จัดทำ (Prepared By)</label>
+                                <input 
+                                    type="text" 
+                                    placeholder="ชื่อผู้จัดการ หรือแผนก"
+                                    value={sopData.preparedBy}
+                                    onChange={(e) => handleFieldChange('preparedBy', e.target.value)}
+                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 mb-1">ผู้อนุมัติ (Approved By)</label>
+                                <input 
+                                    type="text" 
+                                    placeholder="ชื่อผู้บริหาร หรือเจ้าของ"
+                                    value={sopData.approvedBy}
+                                    onChange={(e) => handleFieldChange('approvedBy', e.target.value)}
+                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="w-full max-w-[800px] bg-white shadow-xl min-h-[1131px] rounded-sm flex flex-col border border-gray-200 print-a4-page">
                         {/* Document Header (Formal SOP Style) */}
                         <div className="pt-12 px-12 pb-4 mb-4 mt-4">
                             <table className="w-full border-collapse border border-gray-900 text-sm">
@@ -178,13 +264,13 @@ export default function POSSOPEditorModal({ isOpen, onClose, shopSettings, branc
                                     </tr>
                                     <tr>
                                         <td className="border border-gray-900 p-2 font-bold bg-gray-50">Document No.</td>
-                                        <td className="border border-gray-900 p-2 text-center font-semibold">SOP-001</td>
+                                        <td className="border border-gray-900 p-2 text-center font-semibold">{sopData.docNo || '-'}</td>
                                         <td className="border border-gray-900 p-2 font-bold bg-gray-50 w-[15%]">Revision</td>
-                                        <td className="border border-gray-900 p-2 text-center font-semibold w-[15%]">1.0</td>
+                                        <td className="border border-gray-900 p-2 text-center font-semibold w-[15%]">{sopData.revision || '-'}</td>
                                     </tr>
                                     <tr>
                                         <td className="border border-gray-900 p-2 font-bold bg-gray-50">Effective Date</td>
-                                        <td className="border border-gray-900 p-2 text-center font-semibold">{new Date().toLocaleDateString('en-GB')}</td>
+                                        <td className="border border-gray-900 p-2 text-center font-semibold">{sopData.effectiveDate ? new Date(sopData.effectiveDate).toLocaleDateString('en-GB') : '-'}</td>
                                         <td className="border border-gray-900 p-2 font-bold bg-gray-50">Page</td>
                                         <td className="border border-gray-900 p-2 text-center font-semibold">1 of 1</td>
                                     </tr>
@@ -196,26 +282,48 @@ export default function POSSOPEditorModal({ isOpen, onClose, shopSettings, branc
                         <div className="px-12 pb-16 flex-1 flex flex-col">
                             <ReactQuill 
                                 theme="snow"
-                                value={content}
-                                onChange={setContent}
+                                value={sopData.content}
+                                onChange={(val) => handleFieldChange('content', val)}
                                 modules={modules}
                                 formats={formats}
                                 className="flex-1 border-none document-quill"
                                 placeholder="พิมพ์ข้อความ SOP ของคุณที่นี่..."
                             />
                         </div>
+
+                        {/* Signature Preview */}
+                        <div className="px-12 pb-12 mt-auto">
+                            <div className="border-t border-dashed border-gray-300 pt-8 mt-8">
+                                <h3 className="font-bold text-center text-gray-500 mb-6">ส่วนแสดงผลใบเซ็นรับทราบพนักงาน (จะแสดงตอนพิมพ์)</h3>
+                                <div className="p-8 bg-gray-50 rounded-xl border border-gray-200 opacity-70">
+                                    <p className="text-sm font-semibold mb-8 text-center text-gray-600">
+                                        "ข้าพเจ้าได้รับทราบและเข้าใจถึงระเบียบข้อบังคับและมาตรฐานการปฏิบัติงานฉบับนี้เป็นอย่างดี และยินดีปฏิบัติตามอย่างเคร่งครัด หากฝ่าฝืนยินยอมให้บริษัทดำเนินการตามบทลงโทษ"
+                                    </p>
+                                    <div className="flex justify-between items-end px-10">
+                                        <div className="flex flex-col items-center gap-2">
+                                            <div className="w-48 border-b border-gray-400"></div>
+                                            <p className="text-xs text-gray-500 font-bold">( ลงชื่อพนักงาน )</p>
+                                        </div>
+                                        <div className="flex flex-col items-center gap-2">
+                                            <div className="w-48 border-b border-gray-400"></div>
+                                            <p className="text-xs text-gray-500 font-bold">( วันที่ )</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 {/* Footer / Actions */}
-                <div className="p-6 border-t border-gray-100 bg-white flex justify-between items-center">
+                <div className="p-6 border-t border-gray-100 bg-white flex justify-between items-center z-10">
                     <button 
                         onClick={handleSave} 
                         disabled={isSaving}
                         className="flex items-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-black transition-colors disabled:opacity-50"
                     >
                         <Save size={18} />
-                        {isSaving ? 'กำลังบันทึก...' : 'บันทึกข้อความ'}
+                        {isSaving ? 'กำลังบันทึก...' : 'บันทึกแบบฟอร์ม'}
                     </button>
 
                     <button 
@@ -223,7 +331,7 @@ export default function POSSOPEditorModal({ isOpen, onClose, shopSettings, branc
                         className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/20"
                     >
                         <Printer size={18} />
-                        พิมพ์ / ดาวน์โหลด PDF
+                        พิมพ์เพื่อนำไปเซ็น (PDF)
                     </button>
                 </div>
                 
@@ -244,20 +352,64 @@ export default function POSSOPEditorModal({ isOpen, onClose, shopSettings, branc
                                     </tr>
                                     <tr>
                                         <td className="border border-black p-2 font-bold bg-gray-100 print:bg-gray-100" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>Document No.</td>
-                                        <td className="border border-black p-2 text-center font-semibold">SOP-001</td>
+                                        <td className="border border-black p-2 text-center font-semibold">{sopData.docNo || '-'}</td>
                                         <td className="border border-black p-2 font-bold bg-gray-100 print:bg-gray-100 w-[15%]" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>Revision</td>
-                                        <td className="border border-black p-2 text-center font-semibold w-[15%]">1.0</td>
+                                        <td className="border border-black p-2 text-center font-semibold w-[15%]">{sopData.revision || '-'}</td>
                                     </tr>
                                     <tr>
                                         <td className="border border-black p-2 font-bold bg-gray-100 print:bg-gray-100" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>Effective Date</td>
-                                        <td className="border border-black p-2 text-center font-semibold">{new Date().toLocaleDateString('en-GB')}</td>
+                                        <td className="border border-black p-2 text-center font-semibold">{sopData.effectiveDate ? new Date(sopData.effectiveDate).toLocaleDateString('en-GB') : '-'}</td>
                                         <td className="border border-black p-2 font-bold bg-gray-100 print:bg-gray-100" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>Page</td>
                                         <td className="border border-black p-2 text-center font-semibold">1 of 1</td>
                                     </tr>
                                 </tbody>
                             </table>
+                            {/* Prepared By / Approved By row */}
+                            <table className="w-full border-collapse border-l border-r border-b border-black text-[13px] leading-snug mt-[-1px]">
+                                <tbody>
+                                    <tr>
+                                        <td className="border border-black p-2 font-bold bg-gray-100 print:bg-gray-100 w-[15%]" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>Prepared By</td>
+                                        <td className="border border-black p-2 text-center font-semibold w-[35%]">{sopData.preparedBy || '-'}</td>
+                                        <td className="border border-black p-2 font-bold bg-gray-100 print:bg-gray-100 w-[15%]" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>Approved By</td>
+                                        <td className="border border-black p-2 text-center font-semibold w-[35%]">{sopData.approvedBy || '-'}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
-                        <div className="px-12 pb-16 whitespace-pre-wrap leading-relaxed text-[15px] font-medium quill-print-content" dangerouslySetInnerHTML={{ __html: content }} />
+                        
+                        <div className="px-12 pb-16 whitespace-pre-wrap leading-relaxed text-[15px] font-medium quill-print-content min-h-[500px]" dangerouslySetInnerHTML={{ __html: sopData.content }} />
+
+                        {/* Formal Signature Section */}
+                        <div className="px-12 pb-12 mt-auto" style={{ pageBreakInside: 'avoid' }}>
+                            <div className="border-t-2 border-black pt-8 mt-8">
+                                <h3 className="font-bold text-center text-lg mb-6 underline">บันทึกข้อตกลงและรับทราบระเบียบข้อบังคับ</h3>
+                                <p className="text-sm font-semibold mb-12 text-center leading-relaxed">
+                                    "ข้าพเจ้าได้รับทราบและเข้าใจถึงระเบียบข้อบังคับและมาตรฐานการปฏิบัติงาน (SOP) ฉบับนี้เป็นอย่างดี <br/>และยินดีปฏิบัติตามอย่างเคร่งครัด หากฝ่าฝืนยินยอมให้บริษัทดำเนินการตามบทลงโทษ"
+                                </p>
+                                
+                                <div className="grid grid-cols-2 gap-12 max-w-2xl mx-auto">
+                                    <div className="flex flex-col items-center gap-4">
+                                        <div className="w-full border-b border-black mt-8"></div>
+                                        <div className="flex w-full justify-between px-2 text-sm">
+                                            <span>(</span>
+                                            <span className="text-gray-400">ตัวบรรจง</span>
+                                            <span>)</span>
+                                        </div>
+                                        <p className="text-sm font-bold mt-[-8px]">ผู้รับรอง/พนักงาน</p>
+                                    </div>
+                                    <div className="flex flex-col justify-end gap-4">
+                                        <div className="flex items-end gap-2 w-full">
+                                            <span className="text-sm font-bold">ตำแหน่ง:</span>
+                                            <div className="flex-1 border-b border-black border-dotted"></div>
+                                        </div>
+                                        <div className="flex items-end gap-2 w-full mt-4">
+                                            <span className="text-sm font-bold">วันที่:</span>
+                                            <div className="flex-1 border-b border-black border-dotted"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -294,7 +446,7 @@ export default function POSSOPEditorModal({ isOpen, onClose, shopSettings, branc
                 }
                 .document-quill .ql-editor {
                     padding: 0;
-                    min-height: 500px;
+                    min-height: 300px;
                 }
                 .document-quill .ql-toolbar.ql-snow {
                     border: none;
