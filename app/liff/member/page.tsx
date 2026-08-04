@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, Suspense, useRef } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { 
-  ChevronRight, ChevronLeft, Info, X, Gift, Phone, Globe, Facebook, MessageCircle, QrCode, Coins, Sparkles, AlertCircle, Loader2, CheckCircle2, HelpCircle, ArrowRight, History
+  ChevronRight, ChevronLeft, Info, X, Gift, Phone, Globe, Facebook, MessageCircle, QrCode, Coins, Sparkles, AlertCircle, Loader2, CheckCircle2, HelpCircle, ArrowRight, History, XCircle, Clock
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useScroll, useTransform, useMotionValue, animate } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
 import { useLiff } from '@/components/liff/LiffProvider';
 import XYLLoader from '@/components/loaders/XYLLoader';
@@ -25,7 +25,71 @@ const ScanPointsIcon = ({ size = 24, className = "" }) => (
   </svg>
 );
 
-export default function LiffMemberPage() {
+// Animated Counter for Points
+const AnimatedCounter = ({ value }: { value: number }) => {
+  const count = useMotionValue(0);
+  const rounded = useTransform(count, (latest) => Math.round(latest));
+  const [displayValue, setDisplayValue] = useState(0);
+
+  useEffect(() => {
+    const controls = animate(count, value, {
+      duration: 1.2,
+      ease: [0.22, 1, 0.36, 1],
+      onUpdate: (latest) => setDisplayValue(Math.round(latest))
+    });
+    return controls.stop;
+  }, [value, count]);
+
+  return <>{displayValue}</>;
+};
+
+// Minimalist Particle Explosion
+const ParticleExplosion = () => {
+  const particles = Array.from({ length: 40 });
+  
+  return (
+    <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-0 overflow-hidden">
+      {particles.map((_, i) => {
+        const angle = (i / particles.length) * 360;
+        const velocity = 100 + Math.random() * 150;
+        const radian = (angle * Math.PI) / 180;
+        const tx = Math.cos(radian) * velocity;
+        const ty = Math.sin(radian) * velocity;
+        const size = Math.random() * 6 + 4;
+        const isCircle = Math.random() > 0.5;
+        const delay = Math.random() * 0.2;
+        
+        return (
+          <motion.div
+            key={i}
+            initial={{ x: 0, y: 0, scale: 0, opacity: 1 }}
+            animate={{ 
+              x: [0, tx, tx + (Math.random() * 20 - 10)], 
+              y: [0, ty, ty + 100 + Math.random() * 50],
+              scale: [0, 1, 0],
+              opacity: [1, 1, 0],
+              rotate: [0, Math.random() * 360]
+            }}
+            transition={{ 
+              duration: 1.5 + Math.random() * 1, 
+              delay: 0.1 + delay,
+              ease: [0.16, 1, 0.3, 1] 
+            }}
+            className="absolute"
+            style={{
+              width: size,
+              height: size,
+              backgroundColor: Math.random() > 0.7 ? '#9CA3AF' : '#1A1A18', // Mix of gray and black
+              borderRadius: isCircle ? '50%' : '2px'
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+};
+
+function LiffMemberContent() {
   const { locale } = useI18n();
   const router = useRouter();
   const supabase = createClient();
@@ -89,6 +153,71 @@ export default function LiffMemberPage() {
   // Smart Reward Suggestion
   const [suggestedReward, setSuggestedReward] = useState<any>(null);
   const [showSuggestionModal, setShowSuggestionModal] = useState(false);
+
+  // Claim Points state
+  const searchParams = useSearchParams();
+  const claimToken = searchParams.get('claimToken');
+  const [claimState, setClaimState] = useState<'idle'|'loading'|'success'|'error'|'pending_payment'>(claimToken ? 'loading' : 'idle');
+  const [showClaimPopup, setShowClaimPopup] = useState(!!claimToken);
+  const [claimPointsEarned, setClaimPointsEarned] = useState(0);
+  const [claimMessage, setClaimMessage] = useState('');
+  const [claimOrderItems, setClaimOrderItems] = useState<any[]>([]);
+  const processingClaimRef = useRef(false);
+
+  useEffect(() => {
+    if (isDataReady && claimToken && !processingClaimRef.current && lineProfile?.userId) {
+      processingClaimRef.current = true;
+      const processClaim = async () => {
+        setClaimState('loading');
+        setShowClaimPopup(true);
+        try {
+          const res = await fetch('/api/liff/points/claim', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: claimToken, lineUserId: lineProfile.userId })
+          });
+          const data = await res.json();
+          
+          if (data.success) {
+            setClaimState('success');
+            setClaimPointsEarned(data.pointsAdded || 0);
+            setClaimOrderItems(data.orderItems || []);
+            // Clean URL silently
+            const newUrl = new URL(window.location.href);
+            newUrl.searchParams.delete('claimToken');
+            window.history.replaceState({}, '', newUrl.toString());
+            
+            // Re-fetch member info to show updated points behind popup
+            fetchData(true);
+
+            // Auto close after 4.5 seconds
+            setTimeout(() => {
+                setShowClaimPopup(false);
+            }, 4500);
+          } else if (data.isPendingPayment) {
+            setClaimState('pending_payment');
+            setClaimPointsEarned(data.pointsPending || 0);
+            setClaimOrderItems(data.orderItems || []);
+            setClaimMessage(data.message || 'คุณจะได้รับคะแนนสะสมหลังจากชำระเงินเรียบร้อยแล้ว');
+            
+            // Clean URL silently
+            const newUrl = new URL(window.location.href);
+            newUrl.searchParams.delete('claimToken');
+            window.history.replaceState({}, '', newUrl.toString());
+
+            fetchData(true);
+          } else {
+            setClaimState('error');
+            setClaimMessage(data.error || 'ไม่สามารถรับแต้มได้');
+          }
+        } catch (e) {
+          setClaimState('error');
+          setClaimMessage('เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง');
+        }
+      };
+      processClaim();
+    }
+  }, [isDataReady, claimToken, claimState, lineProfile]);
 
   const t = {
     th: {
@@ -180,23 +309,38 @@ export default function LiffMemberPage() {
         const result = await res.json();
         
         if (result.success) {
-            Swal.fire({
-              icon: 'success',
-              title: 'สมัครสมาชิกสำเร็จ!',
-              text: 'กำลังพากลับไปยังหน้าแชทของร้าน...',
-              showConfirmButton: false,
-              timer: 2000
-            }).then(() => {
-              try {
-                if (window.liff && window.liff.isInClient()) {
-                  window.liff.openWindow({ url: 'https://line.me/R/ti/p/@xylstudio', external: false });
-                } else {
+            if (claimToken) {
+              Swal.fire({
+                icon: 'success',
+                title: 'สมัครสมาชิกสำเร็จ!',
+                text: 'ระบบกำลังดำเนินการรับคะแนนสะสมของคุณ...',
+                showConfirmButton: false,
+                timer: 1500
+              }).then(() => {
+                processingClaimRef.current = false;
+                setClaimState('idle');
+                setShowClaimPopup(false);
+                fetchData(true);
+              });
+            } else {
+              Swal.fire({
+                icon: 'success',
+                title: 'สมัครสมาชิกสำเร็จ!',
+                text: 'กำลังพากลับไปยังหน้าแชทของร้าน...',
+                showConfirmButton: false,
+                timer: 2000
+              }).then(() => {
+                try {
+                  if (window.liff && window.liff.isInClient()) {
+                    window.liff.openWindow({ url: 'https://line.me/R/ti/p/@xylstudio', external: false });
+                  } else {
+                    window.location.href = 'https://line.me/R/ti/p/@xylstudio';
+                  }
+                } catch (e) {
                   window.location.href = 'https://line.me/R/ti/p/@xylstudio';
                 }
-              } catch (e) {
-                window.location.href = 'https://line.me/R/ti/p/@xylstudio';
-              }
-            });
+              });
+            }
         } else {
             alert(result.error || 'Failed to register');
         }
@@ -273,7 +417,7 @@ export default function LiffMemberPage() {
       }
 
       try {
-        const { data: rewardsData } = await supabase.from('pos_loyalty_coupons').select('*').eq('is_active', true).order('cost_points', { ascending: true }).limit(5);
+        const { data: rewardsData } = await supabase.from('pos_loyalty_coupons').select('*').eq('is_active', true).eq('is_gacha_only', false).order('cost_points', { ascending: true }).limit(5);
         if (rewardsData) {
             setQuickRewards(rewardsData);
             
@@ -285,7 +429,7 @@ export default function LiffMemberPage() {
                 
                 if (affordableRewards.length > 0) {
                     const hasShown = sessionStorage.getItem('reward_suggestion_shown');
-                    if (!hasShown) {
+                    if (!hasShown && !claimToken) {
                         setSuggestedReward(affordableRewards[0]);
                         setShowSuggestionModal(true);
                         sessionStorage.setItem('reward_suggestion_shown', 'true');
@@ -651,8 +795,8 @@ export default function LiffMemberPage() {
     };
   }, [activeCheckInId]);
 
-  if (liffLoading && !isDataReady) return <XYLLoader tagline={dict.loading} />;
-  if (loading && !isDataReady) return <XYLLoader tagline={dict.loading} />;
+  if (liffLoading && !isDataReady && !claimToken) return <XYLLoader tagline={dict.loading} />;
+  if (loading && !isDataReady && !claimToken) return <XYLLoader tagline={dict.loading} />;
 
   if (!memberInfo || !memberInfo.phone || !memberInfo.pdpa_consent) {
     return <RegistrationForm key={memberInfo?.id || 'new'} lineProfile={lineProfile} onSubmit={handleRegistrationSubmit} isSubmitting={isLinkingPhone} initialData={memberInfo} />;
@@ -801,11 +945,11 @@ export default function LiffMemberPage() {
 
 
 
-        {/* 🎯 Featured Mission Progress */}
+        {/* 🎯 Featured Mission & Campaigns Progress */}
         {missionsLoading ? (
           <div className="mb-8">
             <div className="flex justify-between items-baseline mb-4">
-              <h3 className="text-[16px] font-semibold text-gray-900 tracking-tight">แคมเปญพิเศษ</h3>
+              <h3 className="text-[16px] font-semibold text-gray-900 tracking-tight">แคมเปญและภารกิจพิเศษ</h3>
               <div className="w-16 h-4 bg-gray-100 rounded animate-pulse" />
             </div>
             <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
@@ -833,146 +977,136 @@ export default function LiffMemberPage() {
               </motion.div>
             </div>
           </div>
-        ) : activeMissions.length > 0 ? (
+        ) : (
           <div className="-mx-5 mb-8">
             <div className="px-5 mb-4 flex justify-between items-baseline">
               <h3 className="text-[16px] font-semibold text-gray-900 tracking-tight">แคมเปญพิเศษ</h3>
               <button 
                 onClick={() => router.push('/liff/member/missions')}
-                className="text-[13px] font-bold text-[#8C6D53] hover:text-[#6A523E] flex items-center gap-1 transition-colors"
+                className="text-[13px] font-bold text-gray-400 hover:text-gray-900 flex items-center gap-1 transition-colors"
               >
                 ดูทั้งหมด <ArrowRight size={14} />
               </button>
             </div>
-            <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory px-5" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            
+            <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory px-5 items-stretch" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               <style jsx>{`div::-webkit-scrollbar { display: none; }`}</style>
+              
+              {/* 1. Missions */}
               {activeMissions.map((mission, idx) => (
                 <motion.div
                   key={mission.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.1 * idx }}
-                  className="bg-white p-5 rounded-[24px] border border-[#F0F0F0] shadow-[0_2px_10px_rgba(0,0,0,0.02)] relative active:scale-[0.98] transition-transform cursor-pointer min-w-[280px] w-[85vw] max-w-[320px] snap-center shrink-0 flex flex-col justify-between"
+                  className="bg-white p-5 rounded-[24px] border border-[#E5E5E5] shadow-sm relative active:scale-[0.98] transition-transform cursor-pointer min-w-[300px] w-[85vw] max-w-[340px] h-full snap-center shrink-0 flex flex-col justify-between"
                   onClick={() => router.push('/liff/member/missions')}
                 >
                   <div>
-                    <div className="flex justify-between items-start mb-3">
+                    <div className="flex justify-between items-start mb-2">
                       <div className="flex-1 pr-3">
-                        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[#FCF7E8] text-[#B48529] text-[9px] font-bold tracking-widest uppercase mb-2">
-                          <div className="w-1 h-1 bg-[#B48529] rounded-full animate-pulse"></div> แคมเปญปัจจุบัน
+                        <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-gray-100 text-[#1A1A18] text-[9px] font-bold tracking-widest uppercase mb-2">
+                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div> ภารกิจ (IN PROGRESS)
                         </div>
-                        <h4 className="text-[#1A1A18] font-bold text-[16px] leading-snug mb-1 line-clamp-2">{mission.title}</h4>
+                        <h4 className="text-[#1A1A18] font-bold text-[16px] leading-tight mb-1">{mission.title}</h4>
                         {mission.description && (
-                          <p className="text-gray-500 text-[12px] leading-relaxed line-clamp-2">
+                          <p className="text-gray-500 text-[12px] leading-snug line-clamp-2">
                             {mission.description}
                           </p>
                         )}
                       </div>
-                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-50 text-gray-400 shrink-0">
+                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-50 text-gray-400 shrink-0 shadow-inner">
                         <ChevronRight size={16} />
                       </div>
                     </div>
                   </div>
                   
-                  <div className="mt-4 pt-4 border-t border-gray-50">
+                  <div className="mt-2 pt-3 border-t border-gray-100">
                     <div className="flex justify-between items-baseline mb-2">
                       <span className="text-[11px] font-medium text-gray-500">ความคืบหน้า</span>
-                      <span className="text-[13px] font-bold text-[#1A1A18]">
-                        {mission.progress?.count || 0} <span className="text-gray-400 font-medium">/ {mission.condition_rules?.count || 1}</span>
+                      <span className="text-[14px] font-bold text-[#1A1A18]">
+                        {mission.progress?.count || 0} <span className="text-gray-400 font-medium text-[12px]">/ {mission.condition_rules?.count || 1}</span>
                       </span>
                     </div>
-                    <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden shadow-inner">
                       <div 
-                        className="h-full bg-gradient-to-r from-[#B89F89] to-[#8C6D53] rounded-full transition-all duration-1000 ease-out" 
+                        className="h-full bg-gradient-to-r from-gray-700 to-black rounded-full transition-all duration-1000 ease-out relative" 
                         style={{ width: `${Math.min(100, ((mission.progress?.count || 0) / (mission.condition_rules?.count || 1)) * 100)}%` }}
-                      />
+                      >
+                        <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+                      </div>
                     </div>
                   </div>
                 </motion.div>
               ))}
+
+              {/* 2. Campaigns */}
+              {campaigns.map((campaign, idx) => {
+                const isMysteryBox = campaign.title.includes('กล่องสุ่ม');
+                return (
+                  <div 
+                    key={campaign.id} 
+                    className="min-w-[300px] w-[85vw] max-w-[340px] h-full snap-center rounded-[24px] p-[1px] relative overflow-hidden shrink-0 cursor-pointer group active:scale-[0.98] transition-all duration-300 shadow-[0_8px_30px_rgba(0,0,0,0.04)]" 
+                    onClick={() => isMysteryBox ? setShowMysteryBox(true) : null}
+                  >
+                      {/* Animated Gradient Border Layer */}
+                      <div className="absolute inset-0 bg-gradient-to-br from-[#B48529]/30 via-[#F0F0F0] to-[#B48529]/20 opacity-80 group-active:from-[#B48529] group-active:via-[#F4E1A4] group-active:to-[#B48529] transition-colors duration-500"></div>
+                      
+                      {/* Inner Card content */}
+                      <div className="relative h-full bg-white/95 backdrop-blur-xl rounded-[23px] p-5 flex flex-col justify-between overflow-hidden">
+                          
+                          {/* Decorative Background Blob */}
+                          <div className="absolute -right-12 -top-12 w-40 h-40 bg-gradient-to-br from-[#F4E1A4]/40 to-[#B48529]/10 rounded-full blur-3xl group-active:scale-150 transition-transform duration-700 ease-out"></div>
+                          <div className="absolute -left-10 -bottom-10 w-32 h-32 bg-gradient-to-tr from-[#B48529]/10 to-transparent rounded-full blur-2xl group-active:scale-150 transition-transform duration-700 ease-out"></div>
+
+                          <div className="relative z-10 flex flex-col h-full justify-between">
+                              {/* Top Section */}
+                              <div>
+                                  <div className="flex justify-between items-start mb-2">
+                                      <div className="flex-1 pr-3">
+                                          <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-gradient-to-r from-[#B48529] to-[#996b1c] text-white text-[9px] font-bold tracking-widest uppercase shadow-sm mb-2">
+                                              <Sparkles size={10} className="animate-pulse text-[#F4E1A4]" /> {campaign.type_tag || 'SPECIAL EVENT'}
+                                          </div>
+                                          <h4 className="text-[#1A1A18] text-[16px] font-bold leading-tight mb-1 group-active:text-[#B48529] transition-colors duration-300">
+                                              {campaign.title}
+                                          </h4>
+                                          <p className="text-gray-500 text-[12px] leading-snug line-clamp-2">
+                                              {campaign.description}
+                                          </p>
+                                      </div>
+                                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm border border-[#B48529]/20 text-[#B48529] shrink-0 shadow-sm group-active:bg-[#B48529] group-active:text-white transition-colors duration-300">
+                                          <ChevronRight size={16} />
+                                      </div>
+                                  </div>
+                              </div>
+                              
+                              {/* Bottom Section (Mirrors Mission Progress Bar area) */}
+                              <div className="mt-2 pt-3 border-t border-[#B48529]/20">
+                                  <div className="flex items-center justify-between">
+                                      <span className="text-[11px] font-bold text-[#B48529]">
+                                         {isMysteryBox ? 'แตะเพื่อเปิดกล่องสุ่ม' : 'แตะเพื่อดูรายละเอียด'}
+                                      </span>
+                                      <span className="text-[10px] font-bold text-[#B48529]/50 uppercase tracking-widest">
+                                          Exclusive
+                                      </span>
+                                  </div>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+                );
+              })}
+
+              {/* Empty State */}
+              {activeMissions.length === 0 && campaigns.length === 0 && (
+                <div className="min-w-[300px] w-[85vw] max-w-[340px] h-full snap-center rounded-[24px] p-5 flex flex-col justify-center items-center relative overflow-hidden bg-gray-50 border border-gray-100 text-gray-400 shrink-0">
+                    <Gift size={32} className="text-gray-300 mb-2" />
+                    <p className="text-[12px] font-medium tracking-widest uppercase">รอพบกับแคมเปญใหม่ๆ เร็วๆนี้</p>
+                </div>
+              )}
             </div>
           </div>
-        ) : null}
-
-        {/* Campaign Cards Section */}
-        <motion.section 
-          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-          className="-mx-5 mt-2"
-        >
-          <div className="px-5 mb-4 flex justify-between items-baseline">
-            <h3 className="text-[16px] font-semibold text-gray-900 tracking-tight">แคมเปญพิเศษ</h3>
-          </div>
-          
-          <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory px-5" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            <style jsx>{`div::-webkit-scrollbar { display: none; }`}</style>
-            
-            {campaigns.length > 0 ? campaigns.map((campaign, idx) => {
-                const bgFrom = campaign.bg_gradient_from || 'from-[#1A1A18]';
-                const bgTo = campaign.bg_gradient_to || 'to-gray-800';
-                const textCol = campaign.text_color || 'text-white';
-                const tagCol = campaign.tag_color || 'text-white';
-                const icon = campaign.icon || '🎁';
-                
-                const isMysteryBox = campaign.title.includes('กล่องสุ่ม');
-                if (isMysteryBox) {
-                    return (
-                        <div onClick={() => setShowMysteryBox(true)} key={campaign.id} className={`min-w-[280px] h-[160px] snap-center rounded-[20px] p-5 flex flex-col justify-end relative overflow-hidden shadow-sm bg-gradient-to-br ${bgFrom} ${bgTo} cursor-pointer active:scale-95 transition-transform block`}>
-                            <div className="absolute top-4 right-4 opacity-90 w-16 h-16">
-                                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-md">
-                                    <rect x="20" y="45" width="60" height="45" fill="#F2ECE4" />
-                                    <rect x="15" y="30" width="70" height="15" fill="#FCF7E8" />
-                                    <rect x="42" y="30" width="16" height="60" fill="#E3D9C3" />
-                                    <rect x="20" y="45" width="60" height="45" stroke="#1A1A18" strokeWidth="4" strokeLinejoin="round" />
-                                    <rect x="15" y="30" width="70" height="15" stroke="#1A1A18" strokeWidth="4" strokeLinejoin="round" />
-                                    <line x1="42" y1="30" x2="42" y2="90" stroke="#1A1A18" strokeWidth="4" strokeLinejoin="round" />
-                                    <line x1="58" y1="30" x2="58" y2="90" stroke="#1A1A18" strokeWidth="4" strokeLinejoin="round" />
-                                    <path d="M50 30C50 30 25 15 35 30Z" fill="#F2ECE4" stroke="#1A1A18" strokeWidth="4" strokeLinejoin="round" />
-                                    <path d="M50 30C50 30 25 10 40 25C45 30 50 30 50 30Z" fill="#E3D9C3" stroke="#1A1A18" strokeWidth="4" strokeLinejoin="round" />
-                                    <path d="M50 30C50 30 75 15 65 30Z" fill="#F2ECE4" stroke="#1A1A18" strokeWidth="4" strokeLinejoin="round" />
-                                    <path d="M50 30C50 30 75 10 60 25C55 30 50 30 50 30Z" fill="#E3D9C3" stroke="#1A1A18" strokeWidth="4" strokeLinejoin="round" />
-                                    <circle cx="50" cy="30" r="5" fill="#FCF7E8" stroke="#1A1A18" strokeWidth="4" />
-                                </svg>
-                            </div>
-                            <div className="relative z-10">
-                                <span className={`inline-block px-2 py-1 bg-white/20 ${tagCol} text-[10px] font-bold tracking-widest uppercase rounded mb-2 backdrop-blur-sm`}>
-                                    {campaign.type_tag || 'PROMO'}
-                                </span>
-                                <h4 className={`${textCol} text-[18px] font-semibold leading-tight mb-1`}>{campaign.title}</h4>
-                                <p className={`${textCol} opacity-80 text-[12px]`}>
-                                    {campaign.description}
-                                </p>
-                            </div>
-                            <div className="absolute right-4 bottom-4 text-white/50">
-                                <ChevronRight size={20} />
-                            </div>
-                        </div>
-                    );
-                }
-
-                return (
-                    <div key={campaign.id} className={`min-w-[280px] h-[160px] snap-center rounded-[20px] p-5 flex flex-col justify-end relative overflow-hidden shadow-sm bg-gradient-to-br ${bgFrom} ${bgTo}`}>
-                        <div className="absolute top-0 right-0 p-4 opacity-20 text-[80px] leading-none">
-                            {icon}
-                        </div>
-                        <div className="relative z-10">
-                            <span className={`inline-block px-2 py-1 bg-white/20 ${tagCol} text-[10px] font-bold tracking-widest uppercase rounded mb-2 backdrop-blur-sm`}>
-                                {campaign.type_tag || 'PROMO'}
-                            </span>
-                            <h4 className={`${textCol} text-[18px] font-semibold leading-tight mb-1`}>{campaign.title}</h4>
-                            <p className={`${textCol} opacity-80 text-[12px]`}>
-                                {campaign.description}
-                            </p>
-                        </div>
-                    </div>
-                );
-            }) : (
-                <div className="min-w-[280px] h-[160px] snap-center rounded-[20px] p-5 flex flex-col justify-center items-center relative overflow-hidden shadow-sm border border-gray-100 bg-gray-50">
-                    <Gift size={32} className="text-gray-300 mb-2" />
-                    <p className="text-[13px] font-medium text-gray-500">รอพบกับแคมเปญใหม่ๆ เร็วๆนี้</p>
-                </div>
-            )}
-          </div>
-        </motion.section>
+        )}
 
         {/* 📢 Campaigns/Titles */}
         <motion.section 
@@ -1445,259 +1579,254 @@ export default function LiffMemberPage() {
         )}
       </AnimatePresence>
 
-      {/* 🟢 Real-time Check-in Loading & Success Modal */}
+
+
+      {/* Claim Popup Overlay */}
       <AnimatePresence>
-        {activeCheckInId && (
+        {showClaimPopup && (
           <motion.div 
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }} 
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-5"
+            exit={{ opacity: 0, transition: { duration: 0.8, ease: "easeInOut" } }}
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#fcfcf9] overflow-hidden px-8"
           >
-            <div className="absolute inset-0" onClick={() => { if (checkInStatus === 'completed') handleCloseCheckInModal(); }} />
-            
-            <motion.div 
-              initial={{ scale: 0.95, opacity: 0, y: 20 }} 
-              animate={{ scale: 1, opacity: 1, y: 0 }} 
-              exit={{ scale: 0.95, opacity: 0, y: 20 }} 
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="bg-white rounded-[2rem] w-full max-w-sm p-8 shadow-2xl relative z-10 border border-gray-50 flex flex-col items-center"
-            >
-              {checkInStatus !== 'completed' ? (
-                <div className="w-full flex flex-col items-center py-6 text-center">
-                  <div className="relative mb-6">
-                    <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600 shadow-inner">
-                      <Loader2 size={36} className="animate-spin text-emerald-600" />
-                    </div>
-                    {checkInStatus === 'linked' && (
-                      <motion.div 
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="absolute -bottom-1 -right-1 bg-emerald-500 text-white rounded-full p-1 border-2 border-white"
-                      >
-                        <CheckCircle2 size={16} />
-                      </motion.div>
-                    )}
-                  </div>
-
-                  <h3 className="text-lg font-black text-gray-900 mb-2">
-                    {checkInStatus === 'linked' ? 'เชื่อมต่อบิลสำเร็จ' : 'กำลังเชื่อมต่อเครื่องคิดเงิน'}
-                  </h3>
-                  <p className="text-gray-500 text-xs font-semibold leading-relaxed mb-8 px-4">
-                    {checkInStatus === 'linked' 
-                      ? 'ระบบผูกบิลของคุณเรียบร้อยแล้ว กรุณารอสักครู่เพื่อชำระเงิน...' 
-                      : 'เปิดหน้าจอนี้ไว้ แล้วแจ้งแคชเชียร์เพื่อเชื่อมโยงข้อมูลสมาชิกของคุณ'
-                    }
-                  </p>
-
-                  <button 
-                    onClick={handleCancelCheckIn}
-                    className="w-full py-4 border border-gray-200 text-gray-500 hover:text-black rounded-2xl text-xs font-bold uppercase tracking-widest active:scale-95 transition-all"
-                  >
-                    ยกเลิกเช็คอิน
-                  </button>
-                </div>
-              ) : (
-                <div className="w-full flex flex-col items-center text-center">
-                  {/* Celebration / Success Stage */}
-                  <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center shadow-inner mb-6 relative">
-                    <CheckCircle2 size={40} className="text-emerald-500" />
-                    <motion.div 
-                      animate={{ scale: [1, 1.3, 1], opacity: [0, 0.8, 0] }}
-                      transition={{ duration: 1.5, repeat: Infinity }}
-                      className="absolute inset-0 bg-emerald-100 rounded-full -z-10"
-                    />
-                  </div>
-
-                  <h3 className="text-xl font-black text-gray-900 tracking-tight mb-1">
-                    สะสมแต้มสำเร็จ! 🎉
-                  </h3>
-                  <div className="flex items-center justify-center gap-1.5 mb-6">
-                    <span className="text-3xl font-black text-emerald-600 tracking-tighter">
-                      +{linkedOrder?.points_earned || 0}
-                    </span>
-                    <span className="text-[10px] font-black text-emerald-600/50 uppercase tracking-widest mt-2">
-                      Points
-                    </span>
-                  </div>
-
-                  {linkedOrder?.order && (
-                    <div className="w-full bg-gray-50/50 border border-gray-100 rounded-2xl p-4 text-left space-y-3 mb-6">
-                      <div className="flex justify-between items-baseline border-b border-gray-100 pb-2">
-                        <span className="text-[10px] font-black tracking-wider text-gray-400 uppercase">
-                          {linkedOrder.order.order_type === 'dine_in' && linkedOrder.order.table_number ? `โต๊ะ ${linkedOrder.order.table_number}` : `บิลเลขที่: #${String(linkedOrder.order.queue_number || 0).padStart(3, '0')}`} ({linkedOrder.order.order_number})
-                        </span>
-                        <span className="text-xs font-black text-gray-900">
-                          ฿{(Number(linkedOrder.order.net_total || linkedOrder.order.total_amount || 0)).toLocaleString()}
-                        </span>
-                      </div>
-
-                      {/* Items List */}
-                      <div className="space-y-1.5 max-h-[120px] overflow-y-auto pr-1">
-                        {linkedOrder.order.pos_order_items?.map((item: any, idx: number) => (
-                          <div key={idx} className="flex justify-between items-center text-xs">
-                            <span className="font-bold text-gray-600 truncate flex-1 pr-2">
-                              {item.item?.name || item.name || 'สินค้า'}
-                            </span>
-                            <span className="font-black text-gray-900 shrink-0">
-                              x{item.quantity}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <button 
-                    onClick={handleCloseCheckInModal}
-                    className="w-full py-4.5 bg-black text-white hover:bg-gray-950 text-[13px] font-black uppercase tracking-[0.25em] active:scale-95 transition-all rounded-2xl shadow-xl shadow-black/10"
-                  >
-                    เรียบร้อย
-                  </button>
-                </div>
-              )}
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* 📘 Instructions / How to Use Modal */}
-      <AnimatePresence>
-        {showInstructionsModal && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[2500] flex items-end justify-center bg-black/60 backdrop-blur-xs font-sans"
-          >
-            {/* Backdrop click to close */}
-            <div className="absolute inset-0" onClick={() => setShowInstructionsModal(false)} />
-            
-            <motion.div 
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="relative w-full bg-white rounded-t-[2.5rem] p-8 pb-10 shadow-2xl flex flex-col items-center z-10 max-h-[85vh] overflow-y-auto"
-            >
-              {/* Top Drag Bar */}
-              <div className="w-12 h-1.5 bg-gray-200 rounded-full mb-6 shrink-0" />
-
-              <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mb-4 text-emerald-600 shrink-0">
-                <HelpCircle size={28} />
-              </div>
-
-              <h3 className="text-lg font-black text-gray-900 tracking-tight mb-1 text-center">
-                ขั้นตอนการสะสมคะแนนหน้าร้าน
-              </h3>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-8 text-center">
-                How to Earn Points at Store
-              </p>
-
-              {/* Steps List */}
-              <div className="w-full space-y-6 text-left mb-8">
-                {/* Step 1 */}
-                <div className="flex gap-4">
-                  <div className="w-8 h-8 rounded-full bg-gray-900 text-white flex items-center justify-center text-sm font-black shrink-0">
-                    1
-                  </div>
-                  <div>
-                    <h4 className="font-black text-sm text-gray-950 mb-0.5">กดปุ่มเช็คอิน</h4>
-                    <p className="text-xs text-gray-500 font-medium">กดปุ่ม "กดเช็คอิน" บนหน้าบัตรสมาชิกนี้เพื่อสร้างคำขอสะสมแต้ม</p>
-                  </div>
-                </div>
-
-                {/* Step 2 */}
-                <div className="flex gap-4">
-                  <div className="w-8 h-8 rounded-full bg-gray-900 text-white flex items-center justify-center text-sm font-black shrink-0">
-                    2
-                  </div>
-                  <div>
-                    <h4 className="font-black text-sm text-gray-950 mb-0.5">แจ้งพนักงานเพื่อเชื่อมต่อบิล</h4>
-                    <p className="text-xs text-gray-500 font-medium">พนักงานแคชเชียร์จะเห็นชื่อของคุณและทำการเลือกเชื่อมต่อเข้ากับบิลปัจจุบัน หรือบิลที่เปิดค้างของคุณบน POS</p>
-                  </div>
-                </div>
-
-                {/* Step 3 */}
-                <div className="flex gap-4">
-                  <div className="w-8 h-8 rounded-full bg-gray-900 text-white flex items-center justify-center text-sm font-black shrink-0">
-                    3
-                  </div>
-                  <div>
-                    <h4 className="font-black text-sm text-gray-950 mb-0.5">ชำระเงินและรับพอยท์</h4>
-                    <p className="text-xs text-gray-500 font-medium">เมื่อพนักงานชำระเงินเรียบร้อย คะแนนสะสมและสรุปรายการอาหารจะเด้งเข้ามือถือของคุณทันที!</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Close Button */}
-              <button
-                onClick={() => setShowInstructionsModal(false)}
-                className="w-full py-4 bg-black text-white hover:bg-gray-950 text-[13px] font-black uppercase tracking-[0.25em] active:scale-95 transition-all rounded-2xl shadow-xl shadow-black/10"
-              >
-                เข้าใจแล้ว
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* 🚀 Floating Action Button for Collect Points */}
-      <div className="fixed bottom-6 left-0 right-0 z-40 flex flex-col items-center justify-center pointer-events-none px-4">
-        
-        {/* Animated Bouncing Tooltip */}
-        {!activeCheckInId && !claimLoading && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: [0, -6, 0] }}
-            transition={{ 
-              opacity: { duration: 0.3, delay: 0.5 },
-              y: { duration: 1.5, repeat: Infinity, ease: "easeInOut" } 
-            }}
-            className="mb-3 relative"
-          >
-            <div className="bg-[#1A1A18] text-white text-[12px] font-bold tracking-wide px-4 py-2 rounded-full shadow-lg border border-gray-800">
-              {locale === 'en' ? 'Earn Points' : 'สะสมแต้ม'}
-            </div>
-            {/* Tooltip Arrow */}
-            <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-[#1A1A18] rotate-45 border-b border-r border-gray-800"></div>
-          </motion.div>
-        )}
-
-        <motion.div
-          initial={{ scale: 0.5, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: "spring", stiffness: 400, damping: 25, delay: 0.1 }}
-          className="relative pointer-events-auto group"
-        >
-          {/* Subtle animated background glow */}
-          <div className="absolute -inset-2 bg-gradient-to-r from-gray-200 via-[#B48529]/20 to-gray-200 rounded-full blur-md opacity-60 animate-pulse"></div>
-
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={handleCheckIn}
-            disabled={claimLoading || !!activeCheckInId}
-            className="relative flex items-center justify-center w-[60px] h-[60px] bg-white backdrop-blur-md text-[#1A1A18] rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-gray-100 overflow-hidden"
-          >
-            {/* Shimmer sweep effect */}
-            <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-gray-100/50 to-transparent animate-shimmer" />
-            
-            <div className="relative z-10 flex items-center justify-center">
-              {claimLoading ? (
-                <div className="w-6 h-6 border-[2.5px] border-[#1A1A18] border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <motion.div 
-                  animate={{ rotate: [0, -10, 10, -10, 0] }}
-                  transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+            {claimState === 'loading' && (
+              <div className="flex flex-col items-center space-y-4 relative z-10">
+                <XYLLoader />
+                <motion.p 
+                  animate={{ opacity: [0.3, 1, 0.3] }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                  className="text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase"
                 >
-                  <ScanPointsIcon size={26} />
-                </motion.div>
-              )}
-            </div>
-          </motion.button>
-        </motion.div>
-      </div>
+                    Verifying
+                </motion.p>
+              </div>
+            )}
 
+            {claimState === 'success' && (
+              <motion.div 
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                className="flex flex-col items-center w-full max-w-sm relative z-10"
+              >
+                <ParticleExplosion />
+                <motion.div 
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ 
+                    type: "spring", 
+                    stiffness: 260, 
+                    damping: 20, 
+                    delay: 0.1 
+                  }}
+                  className="mb-8 flex items-center justify-center w-16 h-16 rounded-full bg-[#1A1A18] text-white shadow-2xl shadow-black/20"
+                >
+                  <motion.div
+                    initial={{ scale: 0, rotate: -45 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ delay: 0.3, type: "spring", stiffness: 300, damping: 20 }}
+                  >
+                    <CheckCircle2 size={32} strokeWidth={2} />
+                  </motion.div>
+                </motion.div>
+                
+                <div className="space-y-2 text-center w-full">
+                  <motion.p 
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6, delay: 0.2 }}
+                      className="text-[10px] font-bold text-gray-400 tracking-[0.2em] uppercase"
+                  >
+                      Points Earned
+                  </motion.p>
+                  <motion.div 
+                      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ duration: 0.8, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                      className="flex justify-center items-baseline"
+                  >
+                      <span className="text-[48px] font-light text-[#1A1A18] mr-1 tracking-tighter leading-none">+</span>
+                      <h1 className="text-[84px] font-medium text-[#1A1A18] tracking-tighter leading-none">
+                          <AnimatedCounter value={claimPointsEarned} />
+                      </h1>
+                  </motion.div>
+                </div>
+
+                {claimOrderItems && claimOrderItems.length > 0 && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    transition={{ duration: 0.8, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                    className="w-full mt-12 pt-8 border-t border-gray-100 overflow-hidden"
+                  >
+                    <motion.p 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.7 }}
+                      className="text-[10px] font-bold text-gray-400 mb-6 tracking-widest uppercase text-center"
+                    >
+                      Order Details
+                    </motion.p>
+                    <div className="space-y-4 max-h-[220px] overflow-y-auto w-full px-2" style={{ scrollbarWidth: 'none' }}>
+                      {claimOrderItems.map((item: any, i: number) => (
+                        <motion.div 
+                          key={i} 
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.5, delay: 0.8 + (i * 0.08), ease: "easeOut" }}
+                          className="flex justify-between items-start text-[14px]"
+                        >
+                          <span className="text-gray-800 font-medium pr-4 leading-snug">{item.item_name}</span>
+                          <span className="text-gray-400 font-medium whitespace-nowrap">x{item.quantity}</span>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </motion.div>
+            )}
+
+            {claimState === 'pending_payment' && (
+              <motion.div 
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                className="flex flex-col items-center w-full max-w-sm relative z-10"
+              >
+                <ParticleExplosion />
+                
+                <motion.div 
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ 
+                    type: "spring", 
+                    stiffness: 260, 
+                    damping: 20, 
+                    delay: 0.1 
+                  }}
+                  className="mb-6 flex items-center justify-center w-20 h-20 rounded-full bg-[#1A1A18] text-amber-400 shadow-2xl shadow-black/20 relative"
+                >
+                  <motion.div
+                    initial={{ scale: 0, rotate: -45 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ delay: 0.3, type: "spring", stiffness: 300, damping: 20 }}
+                  >
+                    <Clock size={38} strokeWidth={2} />
+                  </motion.div>
+                  <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                    <Sparkles size={14} className="relative text-amber-300" />
+                  </span>
+                </motion.div>
+                
+                <div className="space-y-2 text-center w-full">
+                  <motion.div 
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.2 }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-800 text-[10px] font-bold tracking-[0.2em] uppercase border border-amber-200/60 shadow-sm mb-1"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                    POINTS PENDING (รอชำระเงิน)
+                  </motion.div>
+                  
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ duration: 0.8, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                    className="flex justify-center items-baseline"
+                  >
+                    <span className="text-[48px] font-light text-[#1A1A18] mr-1 tracking-tighter leading-none">+</span>
+                    <h1 className="text-[84px] font-medium text-[#1A1A18] tracking-tighter leading-none">
+                      <AnimatedCounter value={claimPointsEarned} />
+                    </h1>
+                  </motion.div>
+
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                    className="px-4 pt-2"
+                  >
+                    <p className="text-[16px] font-bold text-[#1A1A18] leading-snug">
+                      เช็คอินสมาชิกสำเร็จ!
+                    </p>
+                    <p className="text-[13px] font-medium text-gray-500 mt-1 leading-relaxed">
+                      คุณจะได้รับคะแนนสะสม <span className="font-bold text-[#1A1A18]">+{claimPointsEarned} พอยท์</span> ทันทีหลังจากพนักงานชำระเงินเรียบร้อยแล้ว
+                    </p>
+                  </motion.div>
+                </div>
+
+                {claimOrderItems && claimOrderItems.length > 0 && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    transition={{ duration: 0.8, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                    className="w-full mt-6 pt-6 border-t border-gray-100 overflow-hidden"
+                  >
+                    <p className="text-[10px] font-bold text-gray-400 mb-4 tracking-widest uppercase text-center">
+                      รายการออเดอร์
+                    </p>
+                    <div className="space-y-3 max-h-[160px] overflow-y-auto w-full px-2" style={{ scrollbarWidth: 'none' }}>
+                      {claimOrderItems.map((item: any, i: number) => (
+                        <motion.div 
+                          key={i} 
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.5, delay: 0.6 + (i * 0.08), ease: "easeOut" }}
+                          className="flex justify-between items-start text-[13px]"
+                        >
+                          <span className="text-gray-800 font-medium pr-4 leading-snug">{item.item_name}</span>
+                          <span className="text-gray-400 font-medium whitespace-nowrap">x{item.quantity}</span>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+
+                <button 
+                  onClick={() => setShowClaimPopup(false)}
+                  className="mt-8 w-full h-[52px] bg-[#1A1A18] text-white rounded-2xl font-bold text-[13px] tracking-wider uppercase hover:bg-black transition-all shadow-xl shadow-black/10 active:scale-95 flex items-center justify-center gap-2"
+                >
+                  รับทราบ
+                </button>
+              </motion.div>
+            )}
+
+            {claimState === 'error' && (
+              <motion.div 
+                initial={{ opacity: 0, y: 15 }} 
+                animate={{ opacity: 1, y: 0 }} 
+                transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                className="flex flex-col items-center w-full max-w-sm relative z-10"
+              >
+                <div className="w-16 h-16 flex items-center justify-center rounded-full bg-red-50 text-red-500 mb-6">
+                    <XCircle size={32} strokeWidth={1.5} />
+                </div>
+                <div className="space-y-2 text-center w-full">
+                    <p className="text-[10px] font-bold text-gray-400 tracking-[0.2em] uppercase">Claim Failed</p>
+                    <p className="text-[15px] text-[#1A1A18] font-medium px-4">{claimMessage}</p>
+                </div>
+                <button 
+                  onClick={() => setShowClaimPopup(false)}
+                  className="mt-10 w-full h-[50px] bg-[#1A1A18] text-white rounded-full font-bold text-[13px] tracking-wide hover:bg-gray-900 transition-colors shadow-xl shadow-black/10 active:scale-95"
+                >
+                  ย้อนกลับ
+                </button>
+              </motion.div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
+  );
+}
+
+export default function LiffMemberPage() {
+  return (
+    <Suspense fallback={<div className="bg-[#fcfcf9] min-h-screen fixed inset-0 z-50"></div>}>
+      <LiffMemberContent />
+    </Suspense>
   );
 }

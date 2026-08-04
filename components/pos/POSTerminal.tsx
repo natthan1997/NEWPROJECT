@@ -5643,7 +5643,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                       <div className="flex flex-col items-center justify-center py-4 space-y-6 animate-in fade-in duration-300">
                         <div className="p-6 bg-white border-2 border-gray-100 rounded-3xl shadow-xl flex items-center justify-center">
                           <QRCodeSVG
-                            value={`https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}/liff/member${posQrLoyaltyToken ? `?claimToken=${posQrLoyaltyToken}` : ''}`}
+                            value={`https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}/?path=${encodeURIComponent(`/liff/member${posQrLoyaltyToken ? `?claimToken=${posQrLoyaltyToken}` : ''}`)}`}
                             size={220}
                             level="H"
                             includeMargin={true}
@@ -6225,7 +6225,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                       <div className="flex flex-col items-center justify-center py-2 space-y-3">
                         <div className="p-4 bg-white border border-gray-100 rounded-2xl shadow-md flex items-center justify-center">
                           <QRCodeSVG
-                            value={`https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}/liff/member`}
+                            value={`https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}/?path=${encodeURIComponent('/liff/member')}`}
                             size={160}
                             level="H"
                             includeMargin={true}
