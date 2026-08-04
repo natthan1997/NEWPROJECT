@@ -165,18 +165,33 @@ function LiffMemberContent() {
   const processingClaimRef = useRef(false);
 
   useEffect(() => {
+    // Add debug alert to help trace on mobile
+    if (claimToken) {
+       Swal.fire({
+         title: 'Debug Scanner',
+         html: `Token: ${claimToken}<br>isDataReady: ${isDataReady}<br>UserId: ${lineProfile?.userId || 'N/A'}<br>processing: ${processingClaimRef.current}`,
+         icon: 'info'
+       });
+    }
+  }, [claimToken, isDataReady, lineProfile]);
+
+  useEffect(() => {
+    console.log('[Claim Effect Triggered]', { isDataReady, claimToken, isProcessing: processingClaimRef.current, userId: lineProfile?.userId });
     if (isDataReady && claimToken && !processingClaimRef.current && lineProfile?.userId) {
+      console.log('[Claim Effect] Entering processClaim');
       processingClaimRef.current = true;
       const processClaim = async () => {
         setClaimState('loading');
         setShowClaimPopup(true);
         try {
+          console.log('[Claim Effect] Sending request to /api/liff/points/claim');
           const res = await fetch('/api/liff/points/claim', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token: claimToken, lineUserId: lineProfile.userId })
           });
           const data = await res.json();
+          console.log('[Claim Effect] Response:', data);
           
           if (data.success) {
             setClaimState('success');
@@ -211,6 +226,7 @@ function LiffMemberContent() {
             setClaimMessage(data.error || 'ไม่สามารถรับแต้มได้');
           }
         } catch (e) {
+          console.error('[Claim Effect] Error:', e);
           setClaimState('error');
           setClaimMessage('เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง');
         }
