@@ -1721,31 +1721,26 @@ function LiffMemberContent() {
                     damping: 20, 
                     delay: 0.1 
                   }}
-                  className="mb-6 flex items-center justify-center w-20 h-20 rounded-full bg-[#1A1A18] text-amber-400 shadow-2xl shadow-black/20 relative"
+                  className="mb-8 flex items-center justify-center w-16 h-16 rounded-full bg-[#1A1A18] text-white shadow-2xl shadow-black/20"
                 >
                   <motion.div
                     initial={{ scale: 0, rotate: -45 }}
                     animate={{ scale: 1, rotate: 0 }}
                     transition={{ delay: 0.3, type: "spring", stiffness: 300, damping: 20 }}
                   >
-                    <Clock size={38} strokeWidth={2} />
+                    <CheckCircle2 size={32} strokeWidth={2} />
                   </motion.div>
-                  <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                    <Sparkles size={14} className="relative text-amber-300" />
-                  </span>
                 </motion.div>
                 
                 <div className="space-y-2 text-center w-full">
-                  <motion.div 
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: 0.2 }}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-800 text-[10px] font-bold tracking-[0.2em] uppercase border border-amber-200/60 shadow-sm mb-1"
+                  <motion.p 
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6, delay: 0.2 }}
+                      className="text-[10px] font-bold text-gray-400 tracking-[0.2em] uppercase"
                   >
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                    POINTS PENDING (รอชำระเงิน)
-                  </motion.div>
+                      Points Earned
+                  </motion.p>
                   
                   <motion.div 
                     initial={{ opacity: 0, y: 20, scale: 0.95 }}
@@ -1765,11 +1760,8 @@ function LiffMemberContent() {
                     transition={{ delay: 0.4 }}
                     className="px-4 pt-2"
                   >
-                    <p className="text-[16px] font-bold text-[#1A1A18] leading-snug">
-                      เช็คอินสมาชิกสำเร็จ!
-                    </p>
-                    <p className="text-[13px] font-medium text-gray-500 mt-1 leading-relaxed">
-                      คุณจะได้รับคะแนนสะสม <span className="font-bold text-[#1A1A18]">+{claimPointsEarned} พอยท์</span> ทันทีหลังจากพนักงานชำระเงินเรียบร้อยแล้ว
+                    <p className="text-[14px] font-medium text-gray-500 mt-1 leading-relaxed">
+                      คุณจะได้รับคะแนนสะสมเท่านี้ แต่จะได้รับก็ต่อเมื่อการชำระเงินสำเร็จ
                     </p>
                   </motion.div>
                 </div>
