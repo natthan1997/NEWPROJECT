@@ -166,14 +166,14 @@ function LiffMemberContent() {
 
   useEffect(() => {
     // Add debug alert to help trace on mobile
-    if (claimToken) {
+    if (typeof window !== 'undefined') {
        Swal.fire({
-         title: 'Debug Scanner',
-         html: `Token: ${claimToken}<br>isDataReady: ${isDataReady}<br>UserId: ${lineProfile?.userId || 'N/A'}<br>processing: ${processingClaimRef.current}`,
+         title: 'Debug Scanner V2',
+         html: `Token: ${claimToken || 'NULL'}<br>URL: ${window.location.href}<br>isDataReady: ${isDataReady}<br>UserId: ${lineProfile?.userId || 'N/A'}<br>Path searchParam: ${searchParams.get('path') || 'NULL'}`,
          icon: 'info'
        });
     }
-  }, [claimToken, isDataReady, lineProfile]);
+  }, [claimToken, isDataReady, lineProfile, searchParams]);
 
   useEffect(() => {
     console.log('[Claim Effect Triggered]', { isDataReady, claimToken, isProcessing: processingClaimRef.current, userId: lineProfile?.userId });
