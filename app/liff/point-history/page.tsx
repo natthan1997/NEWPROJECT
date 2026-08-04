@@ -82,6 +82,19 @@ export default function LiffPointHistoryPage() {
 
   useEffect(() => {
     fetchPointHistory();
+
+    const channel = supabase.channel('point_history_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_points_history' }, () => {
+        fetchPointHistory();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_members' }, () => {
+        fetchPointHistory();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [lineProfile, phone]);
 
   if (liffLoading && !hasSeenLoader) return <XYLLoader tagline={locale === 'en' ? 'Loading points...' : locale === 'zh' ? 'Loading points...' : 'กำลังโหลดประวัติพอยท์...'} />;
@@ -172,13 +185,15 @@ export default function LiffPointHistoryPage() {
                  {transactions
                    .filter(tx => new Date(tx.created_at).toLocaleDateString('th-TH', { month: 'long', year: 'numeric' }) === selectedMonth)
                    .map((tx, idx) => {
+                     const isPending = tx.status === 'pending';
                      const isEarn = tx.type === 'earn';
                      const isRefund = tx.type === 'refund';
                      const isPositive = tx.points_change > 0 || isEarn || isRefund;
                      const pointsAmount = tx.points || Math.abs(tx.points_change) || 0;
                      const pointsText = isPositive ? `+${pointsAmount}` : `-${pointsAmount}`;
-                     const pointsColor = isPositive ? 'text-emerald-500' : 'text-red-500';
-                     const title = isPositive ? 'เพิ่มพอยท์' : 'ใช้พอยท์';
+                     const pointsColor = isPending ? 'text-amber-500' : isPositive ? 'text-emerald-500' : 'text-red-500';
+                     const title = isPending ? 'เพิ่มพอยท์ (รอชำระเงิน)' : isPositive ? 'เพิ่มพอยท์' : 'ใช้พอยท์';
+                     const accentBg = isPending ? 'bg-amber-400' : isPositive ? 'bg-emerald-500' : 'bg-red-500';
                      
                      return (
                        <motion.div 
@@ -189,10 +204,18 @@ export default function LiffPointHistoryPage() {
                          className="bg-white rounded-none p-5 shadow-sm border border-gray-100 flex flex-col gap-3 relative overflow-hidden"
                        >
                          {/* Left accent border */}
-                         <div className={`absolute left-0 top-0 bottom-0 w-1 ${isPositive ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                         <div className={`absolute left-0 top-0 bottom-0 w-1 ${accentBg}`} />
 
                          <div className="flex justify-between items-start">
-                           <h4 className="text-[12px] font-black uppercase tracking-widest text-[#1A1A18]">{title}</h4>
+                           <div className="flex items-center gap-2">
+                             <h4 className="text-[12px] font-black uppercase tracking-widest text-[#1A1A18]">{title}</h4>
+                             {isPending && (
+                               <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-bold text-[9px] border border-amber-200/80 uppercase tracking-widest flex items-center gap-1">
+                                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                 รอชำระเงิน
+                               </span>
+                             )}
+                           </div>
                            <span className={`text-[16px] font-black tracking-tighter ${pointsColor}`}>{pointsText}</span>
                          </div>
                          

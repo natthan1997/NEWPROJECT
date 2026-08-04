@@ -15,6 +15,9 @@ export default function PointGenerator({ onClose }: { onClose?: () => void }) {
   const [isClaimed, setIsClaimed] = useState(false);
   const [earnThb, setEarnThb] = useState<number>(100);
   const [earnPts, setEarnPts] = useState<number>(1);
+  const [specialDayActive, setSpecialDayActive] = useState<boolean>(false);
+  const [specialDayIndex, setSpecialDayIndex] = useState<number>(3);
+  const [specialDayMultiplier, setSpecialDayMultiplier] = useState<number>(2);
 
   useEffect(() => {
     // Fetch shop settings for earn rate
@@ -27,6 +30,9 @@ export default function PointGenerator({ onClose }: { onClose?: () => void }) {
       if (data && data.opening_hours) {
         setEarnThb(data.opening_hours.loyalty_earn_thb !== undefined ? data.opening_hours.loyalty_earn_thb : (data.opening_hours.loyalty_earn_rate || 100));
         setEarnPts(data.opening_hours.loyalty_earn_pts !== undefined ? data.opening_hours.loyalty_earn_pts : 1);
+        setSpecialDayActive(data.opening_hours.loyalty_special_day_active || false);
+        setSpecialDayIndex(data.opening_hours.loyalty_special_day_index !== undefined ? data.opening_hours.loyalty_special_day_index : 3);
+        setSpecialDayMultiplier(data.opening_hours.loyalty_special_day_multiplier || 2);
       }
     };
     fetchSettings();
@@ -65,7 +71,14 @@ export default function PointGenerator({ onClose }: { onClose?: () => void }) {
 
   // Calculate points based on earn rate
   const amountInt = parseInt(purchaseAmount) || 0;
-  const pointsToGenerate = earnThb > 0 ? Math.floor(amountInt / earnThb) * earnPts : 0;
+  let basePoints = earnThb > 0 ? Math.floor(amountInt / earnThb) * earnPts : 0;
+  
+  // Apply special day multiplier
+  if (specialDayActive && new Date().getDay() === specialDayIndex) {
+    basePoints = basePoints * specialDayMultiplier;
+  }
+  
+  const pointsToGenerate = basePoints;
 
   const handleNumpadPress = (num: string) => {
     if (purchaseAmount.length < 6) setPurchaseAmount(prev => prev + num);
@@ -113,7 +126,7 @@ export default function PointGenerator({ onClose }: { onClose?: () => void }) {
   };
 
   const qrUrl = token 
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(`https://liff.line.me/2009322178-2dtfXAvi/points/claim?token=${token}`)}`
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(`https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}/?path=${encodeURIComponent(`/liff/member?claimToken=${token}`)}`)}`
     : null;
 
   const resetGenerator = () => {

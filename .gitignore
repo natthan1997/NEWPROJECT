@@ -98,6 +98,28 @@ build/
 .vercel
 .env*.local
 .env.vercel*
+
+# Scratch & test scripts
+scratch/
+test-*.js
+test_*.mjs
+check-*.js
+check_*.mjs
+check-*.mjs
+get-*.js
+list-*.js
+merge-*.js
+remove-*.js
+delete-*.js
+update_*.mjs
+fix-*.js
+scratch-*.js
+*.mjs
+run-migration*.js
+test-*.sql
+check-db.js
+test-db.js
+test_db.js
 .github/workflows/
 
 .env*

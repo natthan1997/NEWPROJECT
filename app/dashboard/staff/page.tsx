@@ -31,7 +31,8 @@ import {
   UserIcon,
   XMarkIcon,
   ArrowPathIcon,
-  CameraIcon
+  CameraIcon,
+  DocumentTextIcon
 } from "@heroicons/react/24/outline";
 import { Loader2, Landmark, Clock, CalendarDays, ChevronLeft, Package, Calculator } from 'lucide-react'
 import { useSidebar } from '../_shared/sidebar-context'
@@ -142,6 +143,8 @@ export default function StaffDashboard() {
   const [missingPhotoZones, setMissingPhotoZones] = useState<any[]>([])
   const [checkoutPhotos, setCheckoutPhotos] = useState<{ [zone_id: string]: File }>({})
   const [isUploadingPhotos, setIsUploadingPhotos] = useState(false)
+  const [canViewShiftSummary, setCanViewShiftSummary] = useState(false)
+  const [latestClosedShiftId, setLatestClosedShiftId] = useState<string | null>(null)
 
   useEffect(() => {
     const checkStatus = async () => {
@@ -188,12 +191,33 @@ export default function StaffDashboard() {
       if (branch) {
         const { data: settings } = await supabase
           .from('pos_shop_settings')
-          .select('opening_hours, checkout_photo_zones')
+          .select('opening_hours, checkout_photo_zones, role_permissions')
           .eq('branch_id', branch.id)
           .maybeSingle()
           
-        if (settings?.opening_hours) {
-          if (settings.opening_hours.checkout_checklist) {
+        if (settings) {
+        // Check shift summary permission
+        const role = profile.staff_level || profile.role || 'staff';
+        const isAdmin = ['admin', 'owner', 'superadmin'].includes(role);
+        const hasPermission = isAdmin || (settings.role_permissions?.[role] || []).includes('staff:shift-summary');
+        setCanViewShiftSummary(hasPermission);
+
+        if (hasPermission) {
+          const { data: latestShift } = await supabase
+            .from('pos_shifts')
+            .select('id')
+            .eq('branch_id', branch.id)
+            .eq('status', 'closed')
+            .order('closed_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+            
+          if (latestShift) {
+            setLatestClosedShiftId(latestShift.id);
+          }
+        }
+
+        if (settings?.opening_hours?.checkout_checklist) {
             setChecklistItems(settings.opening_hours.checkout_checklist)
           }
           if (settings.opening_hours.required_audit_categories) {
@@ -403,7 +427,7 @@ export default function StaffDashboard() {
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const { latitude, longitude } = pos.coords
-        const distMeters = Math.round(calculateDistance(latitude, longitude, targetLat, targetLng))
+        const distMeters = Math.round(calculateDistance(latitude, longitude, targetLat, targetLng) * 1000)
         const isWithin = distMeters <= targetRadius
 
         if (!isWithin) {
@@ -420,6 +444,7 @@ export default function StaffDashboard() {
         let mappedZonePhotos: any[] = []
         if (type === 'check_out' && Object.keys(checkoutPhotos).length > 0) {
           setIsUploadingPhotos(true)
+          const { data: { session } } = await supabase.auth.getSession()
           for (const [zoneId, photoFile] of Object.entries(checkoutPhotos)) {
             const formData = new FormData()
             formData.append('file', photoFile)
@@ -427,6 +452,9 @@ export default function StaffDashboard() {
             try {
               const res = await fetch('/api/admin/storage/upload', {
                 method: 'POST',
+                headers: {
+                  ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
+                },
                 body: formData
               })
               const data = await res.json()
@@ -1538,6 +1566,26 @@ export default function StaffDashboard() {
                       </motion.div>
                     </Link>
 
+                    {/* Card 5: รายงานปิดกะล่าสุด (Gated by Permission) */}
+                    {canViewShiftSummary && (
+                      <Link href={latestClosedShiftId ? `/share/shift-summary/${latestClosedShiftId}` : "#"} className={`block outline-none ${!latestClosedShiftId ? 'opacity-50 pointer-events-none' : ''}`}>
+                        <motion.div 
+                            whileTap={{ scale: 0.97 }}
+                            className="p-4 bg-neutral-900 border border-neutral-800 rounded-[24px] shadow-[0_2px_15px_rgba(0,0,0,0.1)] cursor-pointer hover:bg-black transition-all group h-full flex flex-col justify-between"
+                        >
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                                <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">รายงานปิดกะล่าสุด</span>
+                                <DocumentTextIcon className="w-3.5 h-3.5 text-neutral-400 group-hover:text-white transition-colors" />
+                            </div>
+                            <div className="text-[15px] leading-tight font-black text-white mt-2">
+                                {latestClosedShiftId ? 'ดูสรุป Z-Report' : 'ไม่มีกะที่ปิดแล้ว'}
+                            </div>
+                          </div>
+                          <span className="text-[9px] text-neutral-400 font-bold mt-2 block group-hover:text-white transition-colors">เปิดรายงาน ➔</span>
+                        </motion.div>
+                      </Link>
+                    )}
                 </div>
 
                 {/* Salary Calculation Section */}

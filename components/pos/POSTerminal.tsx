@@ -398,6 +398,8 @@ export default function POSTerminal({
 
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   
+  const qrTargetOrderIdRef = useRef<string | null>(null)
+  
   const editingOrderIdRef = useRef(editingOrderId)
   useEffect(() => { editingOrderIdRef.current = editingOrderId }, [editingOrderId])
 
@@ -462,6 +464,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   // Member Checkout Flow States
   const [showMemberCheckoutFlow, setShowMemberCheckoutFlow] = useState(false)
   const [memberCheckoutStep, setMemberCheckoutStep] = useState<'lookup' | 'points'>('lookup')
+  const [memberAvailableCoupons, setMemberAvailableCoupons] = useState<any[]>([])
   const [memberSearchQuery, setMemberSearchQuery] = useState('')
   const [isSearchingMember, setIsSearchingMember] = useState(false)
   const [redeemPointsAmount, setRedeemPointsAmount] = useState<string>('')
@@ -766,7 +769,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       return firstPaidMethod || o.payment_method || 'cash'
     }
 
-    return {
+    const orderData: any = {
       orderNumber: order.order_number,
       queueNumber: order.queue_number ? String(order.queue_number) : undefined,
       date: new Date(order.created_at).toLocaleString('th-TH'),
@@ -795,6 +798,17 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       referenceName: order.reference_name || undefined,
       deliveryFee: Number(order.delivery_fee || 0),
     }
+
+    if (order.id && !order.customer_id && !order.customer_name && (!order.points_earned || order.points_earned === 0)) {
+      const netTotal = Number(order.net_total ?? order.total_amount ?? 0)
+      const { token, points } = await fetchOrGenerateLoyaltyToken(order.id, netTotal, shopSettings)
+      if (token) {
+        orderData.loyaltyClaimToken = token
+        orderData.pointsEarned = points
+      }
+    }
+
+    return orderData
   }
 
   const executeNativePrint = async (type: 'receipt' | 'kitchen', openDrawer: boolean = false) => {
@@ -987,8 +1001,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       return firstPaidMethod || o.payment_method || 'cash'
     }
 
-    // 2. Map exactly like POSHistory buildPrintOrder
-    const orderData = {
+    const orderData: any = {
       orderNumber: order.order_number,
       queueNumber: order.queue_number ? String(order.queue_number) : undefined,
       date: new Date(order.created_at).toLocaleString('th-TH'),
@@ -1015,6 +1028,15 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       referenceName: order.reference_name || undefined,
       deliveryFee: Number(order.delivery_fee || 0),
     };
+
+    if (type === 'receipt' && order.id && !order.customer_id && !order.customer_name && (!order.points_earned || order.points_earned === 0)) {
+      const netTotal = Number(order.net_total ?? order.total_amount ?? 0)
+      const { token, points } = await fetchOrGenerateLoyaltyToken(order.id, netTotal, shopSettings)
+      if (token) {
+        orderData.loyaltyClaimToken = token
+        orderData.pointsEarned = points
+      }
+    }
 
     // 3. Map shop settings exactly like POSHistory
     const shopData = {
@@ -1246,6 +1268,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       const getQrToken = async () => {
         try {
           const targetOrderId = editingOrderId || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `cart_${Date.now()}`);
+          qrTargetOrderIdRef.current = targetOrderId;
           const res = await fetchOrGenerateLoyaltyToken(targetOrderId, cartTotal > 0 ? cartTotal : 100, shopSettings);
           if (res.token) {
             setPosQrLoyaltyToken(res.token);
@@ -1931,11 +1954,24 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
           if (payload.eventType === 'INSERT') {
             const newItem = payload.new;
             if (newItem.status === 'pending') {
-              setMemberCheckIns(prev => {
-                if (prev.some(item => item.id === newItem.id)) return prev;
-                return [...prev, newItem];
-              });
-              playAppSound('notification');
+              // Check if check-in belongs to the current terminal's active QR or order
+              if (newItem.order_id && (newItem.order_id === editingOrderIdRef.current || newItem.order_id === qrTargetOrderIdRef.current)) {
+                supabase.from('pos_members').select('*').eq('id', newItem.member_id).maybeSingle().then(({data}) => {
+                  if (data) {
+                    setSelectedCustomer(data);
+                    setLinkedCheckInId(newItem.id);
+                    supabase.from('pos_member_checkins').update({ status: 'linked' }).eq('id', newItem.id).then(()=>{});
+                    playAppSound('success');
+                    setMemberCheckoutStep('points');
+                  }
+                });
+              } else {
+                setMemberCheckIns(prev => {
+                  if (prev.some(item => item.id === newItem.id)) return prev;
+                  return [...prev, newItem];
+                });
+                playAppSound('notification');
+              }
             }
           } else if (payload.eventType === 'UPDATE') {
             const updatedItem = payload.new;
@@ -2157,6 +2193,33 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       setDiscountName('');
     }
   }, [selectedCustomer, memberTiers]);
+
+  useEffect(() => {
+    if (selectedCustomer?.id) {
+      const fetchCoupons = async () => {
+        const { data } = await supabase
+          .from('pos_member_coupons')
+          .select('*, pos_loyalty_coupons(*)')
+          .eq('member_id', selectedCustomer.id)
+          .eq('status', 'available');
+        if (data) {
+          const mapped = data.map((c: any) => ({
+            ...c.pos_loyalty_coupons,
+            id: c.id,
+            coupon_name: c.pos_loyalty_coupons?.coupon_name || c.pos_loyalty_coupons?.name,
+            discount_type: c.pos_loyalty_coupons?.discount_type,
+            discount_value: c.pos_loyalty_coupons?.discount_value,
+          }));
+          setMemberAvailableCoupons(mapped);
+        } else {
+          setMemberAvailableCoupons([]);
+        }
+      };
+      fetchCoupons();
+    } else {
+      setMemberAvailableCoupons([]);
+    }
+  }, [selectedCustomer]);
 
   async function fetchTables() {
     const branchId = shopSettings?.branch_id
@@ -3762,67 +3825,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                 </button>
               </div>
 
-              {/* Member Check-in Pill / Status Bar */}
-              <button
-                type="button"
-                onClick={() => {
-                  setMemberCheckoutStep('lookup');
-                  setShowMemberCheckoutFlow(true);
-                }}
-                className={`mt-3 flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition-all active:scale-[0.99] ${
-                  selectedCustomer
-                    ? 'border-emerald-200 bg-emerald-50/70 hover:bg-emerald-50'
-                    : 'border-gray-200 bg-white hover:bg-gray-50 shadow-sm'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`flex h-9 w-9 items-center justify-center rounded-xl font-bold ${
-                    selectedCustomer ? 'bg-emerald-500 text-white shadow-md' : 'bg-[#1A1A18] text-white'
-                  }`}>
-                    <QrCode size={18} />
-                  </div>
-                  <div>
-                    {selectedCustomer ? (
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-black text-[#1A1A18]">
-                            {selectedCustomer.full_name || selectedCustomer.display_name || selectedCustomer.phone}
-                          </span>
-                          <span className="rounded-full bg-emerald-500 px-2 py-0.5 text-[9px] font-black text-white">
-                            {selectedCustomer.points || 0} PTS
-                          </span>
-                        </div>
-                        <p className="text-[10px] font-bold text-gray-400">
-                          {selectedCustomer.phone || 'สมาชิก'}
-                        </p>
-                      </div>
-                    ) : (
-                      <div>
-                        <p className="text-xs font-black text-[#1A1A18]">
-                          {locale === 'en' ? 'Check Member / Scan QR' : 'ตรวจสอบสมาชิก / แสดง QR Code'}
-                        </p>
-                        <p className="text-[10px] font-bold text-gray-400">
-                          {locale === 'en' ? 'Tap to enter phone or show QR' : 'แตะเพื่อกรอกเบอร์โทร หรือสแกน QR หน้าร้าน'}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
 
-                {selectedCustomer ? (
-                  <div
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedCustomer(null);
-                    }}
-                    className="text-[10px] font-black uppercase text-gray-400 hover:text-red-500 bg-white px-2.5 py-1 rounded-lg border border-gray-200 cursor-pointer"
-                  >
-                    ยกเลิก
-                  </div>
-                ) : (
-                  <ChevronRight size={18} className="text-gray-400" />
-                )}
-              </button>
 
               {orderType === 'delivery' && (
                   <button
@@ -5643,7 +5646,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                       <div className="flex flex-col items-center justify-center py-4 space-y-6 animate-in fade-in duration-300">
                         <div className="p-6 bg-white border-2 border-gray-100 rounded-3xl shadow-xl flex items-center justify-center">
                           <QRCodeSVG
-                            value={`https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}/?path=${encodeURIComponent(`/liff/member${posQrLoyaltyToken ? `?claimToken=${posQrLoyaltyToken}` : ''}`)}`}
+                            value={`https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}?path=${encodeURIComponent(`/liff/member${posQrLoyaltyToken ? `?claimToken=${posQrLoyaltyToken}` : ''}`)}${posQrLoyaltyToken ? `&claimToken=${posQrLoyaltyToken}` : ''}`}
                             size={220}
                             level="H"
                             includeMargin={true}

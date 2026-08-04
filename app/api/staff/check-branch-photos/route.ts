@@ -48,7 +48,13 @@ export async function POST(req: Request) {
     // A log might exist with '[]' if no photos were actually uploaded, 
     // but the logic relies on anyone who uploaded real photos.
     // Let's ensure it has an actual photo by checking array length.
-    const hasPhotos = logsWithPhotos?.some(log => Array.isArray(log.checkout_zone_photos) && log.checkout_zone_photos.length > 0) || false;
+    const hasPhotos = logsWithPhotos?.some(log => {
+      let photos = log.checkout_zone_photos;
+      if (typeof photos === 'string') {
+        try { photos = JSON.parse(photos); } catch(e) { return false; }
+      }
+      return Array.isArray(photos) && photos.length > 0;
+    }) || false;
 
     return NextResponse.json({ hasPhotos })
 

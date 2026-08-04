@@ -44,6 +44,7 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json().catch(() => ({}))
     const points = Number(body?.points || 10)
+    const orderId = body?.orderId || null
 
     if (isNaN(points) || points <= 0) {
       return NextResponse.json({ error: 'Invalid points amount' }, { status: 400 })
@@ -57,6 +58,7 @@ export async function POST(req: NextRequest) {
       .insert({
         token,
         points,
+        order_id: orderId,
         created_by: requestUser.id,
       })
       .select('token')

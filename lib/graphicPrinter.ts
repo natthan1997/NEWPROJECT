@@ -81,8 +81,10 @@ const formatDateTimeThai = (value?: string) => {
 };
 
 const pickReceiptStory = (shop: PrintShopData) => {
-  if (!shop.receipt_story_mode || !shop.receipt_stories || shop.receipt_stories.length === 0) return null;
-  return shop.receipt_stories[Math.floor(Math.random() * shop.receipt_stories.length)];
+  const isEnabled = shop.receipt_story_mode === true || String(shop.receipt_story_mode) === 'true';
+  const stories = Array.isArray(shop.receipt_stories) ? shop.receipt_stories : [];
+  if (!isEnabled || stories.length === 0) return null;
+  return stories[Math.floor(Math.random() * stories.length)];
 };
 
 const normalizePaymentMethod = (method?: string) => String(method || '').trim().toLowerCase();
@@ -94,7 +96,7 @@ const shouldPrintReceiptPaymentQr = (order: PrintOrderData, shop: PrintShopData)
   return source === 'liff' && order.orderType === 'delivery' && ['cod', 'cash_on_delivery', 'cash-on-delivery'].includes(paymentMethod);
 };
 
-const GRAPHIC_RECEIPT_WIDTH = 512;
+const GRAPHIC_RECEIPT_WIDTH = 576;
 
 const renderReceiptHtml = (order: PrintOrderData, shop: PrintShopData) => {
   let html = '';
@@ -157,7 +159,7 @@ const renderReceiptHtml = (order: PrintOrderData, shop: PrintShopData) => {
   html += `<div style="line-height: 1.38; text-align:left;">`;
   order.items.forEach((item) => {
     const price = item.subtotal !== undefined ? formatCurrency(item.subtotal) : '';
-    html += `<div style="display:flex; justify-content:space-between; gap:12px; font-size:${itemFontSize}px; font-weight:900; line-height:1.25; margin-bottom:4px;"><span style="max-width:390px;">${escapeHtml(`${item.quantity}x ${item.name}`)}</span><span style="white-space:nowrap;">${escapeHtml(price)}</span></div>`;
+    html += `<div style="display:flex; justify-content:space-between; gap:12px; font-size:${itemFontSize}px; font-weight:900; line-height:1.25; margin-bottom:4px;"><span style="max-width:440px;">${escapeHtml(`${item.quantity}x ${item.name}`)}</span><span style="white-space:nowrap;">${escapeHtml(price)}</span></div>`;
     getPrintedModifierLines(item).forEach((modifier) => {
       html += `<div style="padding-left: 26px; font-weight: 700; color:#222; font-size:${modifierFontSize}px; line-height:1.25; margin-bottom:2px;">- ${escapeHtml(modifier)}</div>`;
     });
@@ -176,9 +178,6 @@ const renderReceiptHtml = (order: PrintOrderData, shop: PrintShopData) => {
     html += `<div style="display:flex; justify-content:space-between; font-size:25px; font-weight:900; line-height:1.3;"><span>เงินทอน</span><span>${formatCurrency(order.changeAmount || 0)}</span></div>`;
   }
 
-  html += `<div style="border-top: 3px dashed black; margin: 14px 0;"></div>`;
-  if (shop.receiptFooter) html += `<div style="white-space: pre-wrap; text-align:center; font-size:21px; line-height:1.35;">${escapeHtml(shop.receiptFooter)}</div>`;
-  else html += `<div style="white-space: pre-wrap; text-align:center; font-size:21px; line-height:1.35; font-weight:800;">Thank you<br/>Powered by XYL STUDIO</div>`;
   const story = pickReceiptStory(shop);
   if (story) {
     html += `<div style="margin-top: 14px; border-top: 2px dashed #000; padding-top: 12px;">`;
@@ -192,6 +191,22 @@ const renderReceiptHtml = (order: PrintOrderData, shop: PrintShopData) => {
     html += `<div style="display:flex; justify-content:center;"><img src="${escapeHtml(shop.receiptPaymentQrImage || '')}" crossorigin="anonymous" alt="Payment QR" style="width:220px; height:auto; display:block;" /></div>`;
     html += `</div>`;
   }
+  if (order.loyaltyClaimQrUrl || order.loyaltyClaimToken) {
+    const token = order.loyaltyClaimToken || '';
+    const liffId = typeof process !== 'undefined' ? (process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi') : '2009322178-2dtfXAvi';
+    const qrUrl = order.loyaltyClaimQrUrl || `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(`https://liff.line.me/${liffId}/?path=${encodeURIComponent(`/liff/member?claimToken=${token}`)}`)}`;
+    html += `<div style="margin-top: 16px; border-top: 2px dashed #000; padding-top: 12px; text-align:center;">`;
+    html += `<div style="font-size:22px; font-weight:900; margin-bottom: 4px; line-height:1.2;">สะสมแต้มผ่าน LINE</div>`;
+    html += `<div style="font-size:16px; font-weight:700; margin-bottom: 8px; line-height:1.2;">สแกน QR เพื่อรับแต้มสะสมจากบิลนี้</div>`;
+    if (order.pointsEarned && order.pointsEarned > 0) {
+      html += `<div style="font-size:18px; font-weight:900; margin-bottom: 6px;">(+${order.pointsEarned} PTS)</div>`;
+    }
+    html += `<div style="display:flex; justify-content:center;"><img src="${escapeHtml(qrUrl)}" crossorigin="anonymous" alt="Loyalty QR" style="width:200px; height:auto; display:block;" /></div>`;
+    html += `</div>`;
+  }
+  html += `<div style="border-top: 3px dashed black; margin: 14px 0;"></div>`;
+  if (shop.receiptFooter) html += `<div style="white-space: pre-wrap; text-align:center; font-size:21px; line-height:1.35;">${escapeHtml(shop.receiptFooter)}</div>`;
+  else html += `<div style="white-space: pre-wrap; text-align:center; font-size:21px; line-height:1.35; font-weight:800;">Thank you<br/>Powered by XYL STUDIO</div>`;
   return html;
 };
 
@@ -307,9 +322,17 @@ const renderZReportHtml = (report: PrintZReportData, shop: PrintShopData) => {
   }
   if (transactionRows.length > 0) {
     html += `<div style="border-top: 2px dashed #000; margin: 10px 0;"></div>`;
-    html += `<div style="font-size:22px; font-weight:900; margin-bottom:4px; line-height:1.15;">รายการเงินเข้าออก</div>`;
+    html += `<div style="font-size:22px; font-weight:900; margin-bottom:4px; line-height:1.15;">สรุปนำเงินเข้า-ออก</div>`;
     transactionRows.forEach((row) => {
       html += `<div style="display:flex; justify-content:space-between; gap:12px; font-size:17px; line-height:1.45;"><span>${escapeHtml(row.label)}</span><span>฿ ${formatCurrency(row.amount)}</span></div>`;
+    });
+  }
+  if (report.transactionsList && report.transactionsList.length > 0) {
+    html += `<div style="border-top: 2px dashed #000; margin: 10px 0;"></div>`;
+    html += `<div style="font-size:22px; font-weight:900; margin-bottom:4px; line-height:1.15;">รายละเอียดเงินเข้า-ออก</div>`;
+    report.transactionsList.forEach((tx: any) => {
+      const prefix = tx.type === 'pay_in' ? '+' : '-';
+      html += `<div style="display:flex; justify-content:space-between; gap:12px; font-size:16px; line-height:1.45;"><span>${escapeHtml(tx.reason)}</span><span>${prefix}฿ ${formatCurrency(tx.amount || 0)}</span></div>`;
     });
   }
   html += `<div style="border-top: 2px dashed #000; margin: 10px 0;"></div>`;

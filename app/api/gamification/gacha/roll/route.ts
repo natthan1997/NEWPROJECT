@@ -122,15 +122,34 @@ export async function POST(req: NextRequest) {
         // Prepare History inserts and points compensation
         const historyInserts = [];
         for (const res of results) {
-            // Handle duplicate compensation for limited items (e.g., coupons)
-            // For now, if it's type 'coupon' we could check if user already has it, 
-            // but since we don't have coupon logic fully integrated here, 
-            // we will just use value_points if reward_type === 'points'.
-            
             let compensated = 0;
             if (res.reward.reward_type === 'points') {
                 compensated = res.reward.value_points || 0;
                 newPoints += compensated;
+            } else if (res.reward.reward_type === 'coupon' && res.reward.item_id) {
+                // Fetch coupon details
+                const { data: coupon, error: couponError } = await supabase
+                    .from('pos_loyalty_coupons')
+                    .select('*')
+                    .eq('id', res.reward.item_id)
+                    .single();
+
+                if (!couponError && coupon && coupon.is_active) {
+                    // Grant coupon to member
+                    await supabase.from('pos_member_coupons').insert({
+                        member_id: memberId,
+                        coupon_id: coupon.id,
+                        coupon_name: coupon.name,
+                        discount_type: coupon.discount_type,
+                        discount_value: coupon.discount_value,
+                        applicable_categories: coupon.applicable_categories,
+                        image_url: coupon.image_url,
+                        status: 'active'
+                    });
+                } else {
+                    // If coupon is missing or inactive, we could compensate with points or just do nothing
+                    console.warn(`Coupon ${res.reward.item_id} not found or inactive for reward ${res.reward.id}`);
+                }
             }
 
             historyInserts.push({

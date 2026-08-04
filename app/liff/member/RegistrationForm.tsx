@@ -24,13 +24,42 @@ export default function RegistrationForm({ lineProfile, onSubmit, isSubmitting, 
   const [consent, setConsent] = useState(initialData?.pdpa_consent || initialData?.pdpaConsent || false);
 
   const handleSubmit = () => {
-    if (!firstName.trim() || !lastName.trim() || phone.length < 9 || !dob || !gender || !consent) {
+    if (!firstName.trim()) {
+      document.getElementById('firstName')?.focus();
       return;
     }
+    if (!lastName.trim()) {
+      document.getElementById('lastName')?.focus();
+      return;
+    }
+    if (phone.length < 9) {
+      document.getElementById('phone')?.focus();
+      return;
+    }
+    if (!dob) {
+      document.getElementById('dob')?.focus();
+      return;
+    }
+    if (!gender) {
+      document.getElementById('genderContainer')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    if (!consent) {
+      document.getElementById('consentContainer')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    let formattedPhone = phone.trim();
+    if (formattedPhone.startsWith('0')) {
+       formattedPhone = '+66' + formattedPhone.slice(1);
+    } else if (!formattedPhone.startsWith('+66')) {
+       formattedPhone = '+66' + formattedPhone;
+    }
+
     onSubmit({
       firstName,
       lastName,
-      phone,
+      phone: formattedPhone,
       dateOfBirth: dob,
       gender,
       pdpaConsent: consent
@@ -78,6 +107,7 @@ export default function RegistrationForm({ lineProfile, onSubmit, isSubmitting, 
               ชื่อ <span className="text-red-500">*</span>
             </label>
             <input 
+              id="firstName"
               type="text" 
               value={firstName} 
               onChange={e => setFirstName(e.target.value)} 
@@ -92,6 +122,7 @@ export default function RegistrationForm({ lineProfile, onSubmit, isSubmitting, 
               นามสกุล <span className="text-red-500">*</span>
             </label>
             <input 
+              id="lastName"
               type="text" 
               value={lastName} 
               onChange={e => setLastName(e.target.value)} 
@@ -105,19 +136,15 @@ export default function RegistrationForm({ lineProfile, onSubmit, isSubmitting, 
             <label className="block text-[13px] tracking-wide text-gray-500 mb-2 uppercase">
               เบอร์โทรศัพท์ <span className="text-red-500">*</span>
             </label>
-            <div className="flex gap-2">
-              <div className="flex items-center gap-2 bg-[#FAFAFA] shadow-sm rounded-[12px] px-4 py-4 text-gray-500 shrink-0">
-                <span className="text-[14px]">+66</span>
-                <ChevronDown size={14} />
-              </div>
-              <input 
-                type="tel" 
-                value={phone} 
-                onChange={e => setPhone(e.target.value)} 
-                placeholder="Phone Number" 
-                className="w-full bg-[#FAFAFA] border-none rounded-[12px] px-5 py-4 text-[15px] focus:bg-white focus:ring-1 focus:ring-gray-300 outline-none transition-all placeholder:text-gray-400 text-gray-900 shadow-sm" 
-              />
-            </div>
+            <input 
+              id="phone"
+              type="tel" 
+              value={phone} 
+              onChange={e => setPhone(e.target.value.replace(/[^0-9+]/g, ''))} 
+              placeholder="08XXXXXXXX" 
+              maxLength={12}
+              className="w-full bg-[#FAFAFA] border-none rounded-[12px] px-5 py-4 text-[15px] focus:bg-white focus:ring-1 focus:ring-gray-300 outline-none transition-all placeholder:text-gray-400 text-gray-900 shadow-sm" 
+            />
           </div>
 
           {/* Date of Birth */}
@@ -127,6 +154,7 @@ export default function RegistrationForm({ lineProfile, onSubmit, isSubmitting, 
             </label>
             <div className="relative mt-2">
               <input 
+                id="dob"
                 type="date" 
                 value={dob} 
                 onChange={e => setDob(e.target.value)} 
@@ -140,7 +168,7 @@ export default function RegistrationForm({ lineProfile, onSubmit, isSubmitting, 
         <div className="h-[1px] w-full bg-gray-100 my-10"></div>
 
         {/* Gender */}
-        <div className="space-y-5">
+        <div id="genderContainer" className="space-y-5">
           <label className="block text-[13px] tracking-wide text-gray-500 uppercase">
             เพศ <span className="text-red-500">*</span>
           </label>
@@ -168,7 +196,7 @@ export default function RegistrationForm({ lineProfile, onSubmit, isSubmitting, 
         <div className="h-[1px] w-full bg-gray-100 my-10"></div>
 
         {/* Consent */}
-        <div className="space-y-6">
+        <div id="consentContainer" className="space-y-6">
           <label className="flex items-start gap-4 cursor-pointer group">
             <div className={`mt-0.5 w-[24px] h-[24px] shrink-0 rounded-[6px] border flex items-center justify-center transition-all ${consent ? 'bg-gray-900 border-gray-900' : 'border-gray-300 bg-white group-hover:border-gray-400'}`}>
               {consent && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>}
@@ -195,14 +223,10 @@ export default function RegistrationForm({ lineProfile, onSubmit, isSubmitting, 
         <div className="max-w-lg mx-auto">
           <button
             onClick={handleSubmit}
-            disabled={!isFormValid || isSubmitting}
-            className={`w-full py-4 rounded-[12px] font-medium text-[15px] tracking-wide flex justify-center items-center transition-all duration-300 ${
-              isFormValid 
-                ? 'bg-gray-900 text-white hover:bg-black hover:scale-[0.98] shadow-lg shadow-gray-900/20' 
-                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-            }`}
+            disabled={isSubmitting}
+            className={`w-full py-4 rounded-[12px] font-medium text-[15px] tracking-wide flex justify-center items-center transition-all duration-300 bg-gray-900 text-white shadow-lg shadow-gray-900/20 active:scale-[0.98]`}
           >
-            {isSubmitting ? <Loader2 size={18} className="animate-spin text-gray-400" /> : 'CONFIRM REGISTRATION'}
+            {isSubmitting ? <Loader2 size={18} className="animate-spin text-white" /> : 'CONFIRM REGISTRATION'}
           </button>
         </div>
       </div>

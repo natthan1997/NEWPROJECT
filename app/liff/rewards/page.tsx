@@ -33,7 +33,7 @@ export default function RewardsPage() {
       if (member) {
         setMemberInfo(member);
       }
-      const { data: rewardsData } = await supabase.from('pos_loyalty_coupons').select('*').eq('is_active', true).order('cost_points', { ascending: true });
+      const { data: rewardsData } = await supabase.from('pos_loyalty_coupons').select('*').eq('is_active', true).eq('is_gacha_only', false).order('cost_points', { ascending: true });
       if (rewardsData) setRewards(rewardsData);
       
     } catch (err) {

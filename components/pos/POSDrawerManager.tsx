@@ -393,7 +393,7 @@ export default function POSDrawerManager({
       open: true,
       type,
       amount: '',
-      reason: type === 'pay_in' ? 'นำเงินเข้า' : 'นำเงินออก',
+      reason: '',
     })
   }
 
@@ -412,6 +412,7 @@ export default function POSDrawerManager({
 
     const amount = Number(transactionModal.amount)
     if (!Number.isFinite(amount) || amount <= 0) return
+    if (!transactionModal.reason.trim()) return
 
     setLoading(true)
     try {
@@ -419,7 +420,7 @@ export default function POSDrawerManager({
         shift_id: activeShift.id,
         type: transactionModal.type,
         amount,
-        reason: transactionModal.reason.trim() || (transactionModal.type === 'pay_in' ? 'นำเงินเข้า' : 'นำเงินออก'),
+        reason: transactionModal.reason.trim(),
       })
 
       if (error) throw error
@@ -574,6 +575,7 @@ export default function POSDrawerManager({
           paymentBreakdown,
           orderTypeBreakdown: Array.from(orderTypeGroups.values()).sort((a, b) => b.count - a.count),
           transactionBreakdown: Array.from(txGroups.values()),
+          transactionsList: transactions,
           notes: closingCash === (shiftStats?.expected || 0)
             ? 'ยอดตรงตามระบบ'
             : closingCash < (shiftStats?.expected || 0)
@@ -595,11 +597,13 @@ export default function POSDrawerManager({
 
         // LINE Notification for Z-Report
         try {
-          await fetch('/api/line/notify', {
+          const res = await fetch('/api/line/notify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ type: 'z_report', reportData })
           })
+          const notifyRes = await res.json()
+          console.log('[POS Shift Close] LINE Z-Report Notify Result:', notifyRes)
         } catch (e) { console.error('Failed to send LINE notify for Z-Report:', e) }
 
       await onCloseShift(closingCash)
@@ -1227,7 +1231,7 @@ export default function POSDrawerManager({
                       </button>
                       <button
                         onClick={submitTransaction}
-                        disabled={loading || !transactionModal.amount}
+                        disabled={loading || !transactionModal.amount || !transactionModal.reason.trim()}
                         className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-white disabled:opacity-50 ${transactionModal.type === 'pay_in' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'}`}
                       >
                         {loading ? 'กำลังบันทึก...' : 'บันทึก'}

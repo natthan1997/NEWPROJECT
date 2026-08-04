@@ -30,7 +30,6 @@ export async function POST(req: NextRequest) {
             .from('pos_qr_reward_tokens')
             .select('*')
             .eq('token', token)
-            .eq('is_used', false)
             .maybeSingle()
 
         if (tokenError) {
@@ -40,6 +39,14 @@ export async function POST(req: NextRequest) {
 
         if (!tokenInfo) {
             return NextResponse.json({ error: 'Token ไม่ถูกต้อง หรือถูกใช้งานไปแล้ว' }, { status: 400 })
+        }
+
+        if (tokenInfo.is_used && tokenInfo.claimed_by === lineUserId) {
+            return NextResponse.json({ error: 'คุณได้รับคะแนนสำหรับออเดอร์นี้ไปแล้ว' }, { status: 400 })
+        }
+
+        if (tokenInfo.is_used) {
+            return NextResponse.json({ error: 'QR Code นี้ถูกใช้งานไปแล้ว' }, { status: 400 })
         }
 
         // 2. Ensure member exists
@@ -161,6 +168,108 @@ export async function POST(req: NextRequest) {
             }
         }
 
+        // 2.5 Check if order is pending payment (scanned before cashier checkout)
+        if (tokenInfo.order_id) {
+            const { data: order } = await supabase
+                .from('pos_orders')
+                .select('id, status, payment_status, total_amount, points_earned')
+                .eq('id', tokenInfo.order_id)
+                .maybeSingle();
+
+            const isOrderPaid = order && (
+                order.payment_status === 'paid' || 
+                order.status === 'completed' || 
+                order.status === 'paid'
+            );
+
+            if (!order || !isOrderPaid) {
+                // Link customer to POS terminal via check-ins
+                if (member) {
+                    const memberName = member.full_name || member.first_name || member.display_name || 'สมาชิก';
+                    
+                    try {
+                        // Find and delete any existing pending check-ins for this user
+                        await supabase
+                            .from('pos_member_checkins')
+                            .update({ status: 'cancelled' })
+                            .eq('line_user_id', lineUserId)
+                            .eq('status', 'pending');
+                            
+                        await supabase.from('pos_member_checkins').insert({
+                            line_user_id: lineUserId,
+                            member_id: member.id,
+                            customer_name: memberName,
+                            customer_image: member.avatar_url || avatarUrl || null,
+                            status: 'pending',
+                            order_id: tokenInfo.order_id
+                        });
+                    } catch(e) {
+                        console.error('Insert checkin error:', e);
+                    }
+
+                    // Update actual order if it exists
+                    if (order) {
+                        await supabase.from('pos_orders').update({
+                            customer_id: member.id,
+                            customer_name: memberName,
+                            points_earned: tokenInfo.points
+                        }).eq('id', order.id);
+                    }
+
+                    // Record pending point transaction in history if order exists
+                    if (order) {
+                        try {
+                            const historyPayload: any = {
+                                member_id: member.id,
+                                order_id: tokenInfo.order_id,
+                                points: tokenInfo.points,
+                                points_change: tokenInfo.points,
+                                type: 'earn',
+                                status: 'pending',
+                                description: 'สะสมพอยท์ (รอชำระเงิน)',
+                                created_at: new Date().toISOString()
+                            };
+
+                            const { error: hErr } = await supabase.from('pos_points_history').upsert(historyPayload, {
+                                onConflict: 'order_id'
+                            });
+
+                            if (hErr && (hErr.message.includes('column "status"') || hErr.message.includes('column "order_id"'))) {
+                                delete historyPayload.order_id;
+                                await supabase.from('pos_points_history').insert(historyPayload);
+                            }
+                        } catch (historyErr) {
+                            console.error('Pending history record error:', historyErr);
+                        }
+                    }
+                }
+
+                // Fetch order items for display in the animation overlay
+                let orderItems: any[] = [];
+                const { data: items } = await supabase
+                    .from('pos_order_items')
+                    .select('quantity, item:pos_menu_items!item_id(name), unit_price, subtotal, status')
+                    .eq('order_id', tokenInfo.order_id);
+
+                if (items) {
+                    orderItems = items
+                      .filter((i: any) => i.status !== 'cancelled' && i.status !== 'void' && i.status !== 'refunded')
+                      .map((i: any) => ({
+                        ...i,
+                        item_name: i.item?.name || 'Unknown Item'
+                      }));
+                }
+
+                return NextResponse.json({
+                    success: false,
+                    isPendingPayment: true,
+                    pointsPending: tokenInfo.points,
+                    orderItems,
+                    message: 'คุณจะได้รับคะแนนสะสมหลังจากชำระเงินเรียบร้อยแล้ว'
+                });
+            }
+        }
+
         // 3. Mark token as used (Atomic-ish)
         const { error: updateTokenError } = await supabase
             .from('pos_qr_reward_tokens')
@@ -174,6 +283,20 @@ export async function POST(req: NextRequest) {
 
         if (updateTokenError) {
             return NextResponse.json({ error: 'ไม่สามารถระบุการใช้งาน Token ได้' }, { status: 400 })
+        }
+
+        // 3.5 Update pos_orders with customer info & points earned if linked to an order
+        if (tokenInfo.order_id) {
+            const memberName = member?.full_name || member?.first_name || member?.display_name || 'สมาชิก';
+            await supabase
+                .from('pos_orders')
+                .update({
+                    customer_id: member?.id || undefined,
+                    customer_name: memberName,
+                    points_earned: tokenInfo.points,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', tokenInfo.order_id);
         }
 
         // 4. Increment member points
@@ -215,10 +338,31 @@ export async function POST(req: NextRequest) {
         } catch (hErr) {
             console.error('History record error (non-fatal):', hErr)
         }
+        let orderItems = [];
+        if (tokenInfo.order_id) {
+            const { data: items, error: itemsError } = await supabase
+                .from('pos_order_items')
+                .select('quantity, item:pos_menu_items!item_id(name), unit_price, subtotal, status')
+                .eq('order_id', tokenInfo.order_id);
+            
+            if (itemsError) {
+                console.error('Error fetching order items:', itemsError);
+            }
+            
+            if (!itemsError && items) {
+                orderItems = items
+                  .filter((i: any) => i.status !== 'cancelled' && i.status !== 'void' && i.status !== 'refunded')
+                  .map((i: any) => ({
+                    ...i,
+                    item_name: i.item?.name || 'Unknown Item'
+                  }));
+            }
+        }
 
         return NextResponse.json({ 
             success: true, 
             pointsAdded: tokenInfo.points,
+            orderItems,
             message: `Successfully claimed ${tokenInfo.points} points!`
         })
     } catch (error) {

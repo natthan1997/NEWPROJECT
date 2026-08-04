@@ -737,6 +737,26 @@ export async function sendZReportFlex(to: string, reportData: any) {
             ]
           },
           { type: "separator", margin: "lg" },
+          ...(reportData.transactionsList && reportData.transactionsList.length > 0 ? [
+            {
+              type: "box",
+              layout: "vertical",
+              spacing: "sm",
+              margin: "lg",
+              contents: [
+                { type: "text", text: "รายการนำเงินเข้า-ออก", size: "sm", color: "#8C8A81", weight: "bold" },
+                ...reportData.transactionsList.map((tx: any) => ({
+                  type: "box",
+                  layout: "horizontal",
+                  contents: [
+                    { type: "text", text: `- ${tx.reason}`, size: "xs", color: "#A3A3A3", flex: 3, wrap: true },
+                    { type: "text", text: `${tx.type === 'pay_in' ? '+' : '-'}฿${Number(tx.amount).toLocaleString()}`, size: "xs", color: tx.type === 'pay_in' ? "#10B981" : "#EF4444", align: "end", weight: "bold", flex: 2 }
+                  ]
+                }))
+              ]
+            },
+            { type: "separator", margin: "lg" }
+          ] : []),
           {
             type: "box",
             layout: "vertical",
@@ -747,6 +767,17 @@ export async function sendZReportFlex(to: string, reportData: any) {
               { type: "text", text: "เวลาปิด: " + reportData.closedAt, size: "xxs", color: "#A3A3A3" },
               { type: "text", text: "หมายเหตุ: " + (reportData.notes || "-"), size: "xxs", color: diffColor, wrap: true }
             ]
+          },
+          {
+            type: "button",
+            style: "primary",
+            color: "#10B981",
+            margin: "xl",
+            action: {
+              type: "uri",
+              label: "ดูรายละเอียดปิดกะ (สรุป)",
+              uri: `https://xylstudio.com/share/shift-summary/${reportData.shiftId}`
+            }
           }
         ]
       }

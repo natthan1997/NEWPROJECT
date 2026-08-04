@@ -576,22 +576,7 @@ export default function POSInventoryManager({
 
     // Notifications logic
     try {
-        // 1. Send Audit Summary to Admin
-        await fetch('/api/line/notify', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                type: 'inventory_audit', 
-                auditData: {
-                    staffName: profile.display_name || 'Staff',
-                    totalItems: auditedItemsList.length,
-                    totalDiscrepancies: auditedItemsList.filter(i => i.discrepancy !== 0).length,
-                    discrepancies: auditedItemsList.filter(i => i.discrepancy !== 0)
-                }
-            })
-        });
-
-        // 2. Send Low Stock Alerts if any
+        // Send Low Stock Alerts if any
         const lowStockItems = auditedItemsList.filter(audItem => {
             const item = inventory.find(i => i.id === audItem.item_id);
             return audItem.counted_quantity <= (item?.min_stock_level || 0);
@@ -1360,7 +1345,16 @@ export default function POSInventoryManager({
                               )}
                               </AnimatePresence>
 
-                              <div className="mt-4 hidden items-center justify-end border-t border-[#F3EFE7] pt-4 sm:flex">
+                              <div className="mt-4 hidden items-center justify-end gap-3 border-t border-[#F3EFE7] pt-4 sm:flex">
+                                {isAdmin && (
+                                  <button
+                                    onClick={(event) => { event.stopPropagation(); setEditingItem(item); setIsEditorOpen(true); setShowHistory(false); }}
+                                    className="inline-flex h-10 items-center justify-center border border-[#ECE7DE] bg-white px-4 text-[11px] font-black text-[#6F756D] hover:bg-gray-50 transition-colors"
+                                  >
+                                    <Edit3 size={14} className="mr-1.5" />
+                                    {locale === 'en' ? 'Edit' : locale === 'zh' ? '编辑' : 'แก้ไข'}
+                                  </button>
+                                )}
                                 <button
                                   onClick={(event) => { event.stopPropagation(); setEditingItem(item); setIsRestockOpen(true); setShowHistory(false); }}
                                   className={`inline-flex h-10 items-center justify-center px-4 text-[11px] font-black ${isLowStock ? 'bg-[#CF201C] text-white' : 'bg-[#171714] text-white'}`}

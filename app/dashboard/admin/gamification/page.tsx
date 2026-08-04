@@ -37,14 +37,19 @@ export default function AdminGamificationPage() {
     rarity_tier: 'R',
     probability_weight: 10,
     reward_type: 'points',
+    item_id: '',
     value_points: 0,
     is_active: true,
     max_quantity: '',
   });
 
+  // -- Coupons State --
+  const [coupons, setCoupons] = useState<any[]>([]);
+
   useEffect(() => {
     fetchMissions();
     fetchGachaPool();
+    fetchCoupons();
   }, []);
 
   // -- API Calls: Missions --
@@ -143,6 +148,7 @@ export default function AdminGamificationPage() {
         rarity_tier: gachaFormData.rarity_tier,
         probability_weight: gachaFormData.probability_weight,
         reward_type: gachaFormData.reward_type,
+        item_id: gachaFormData.item_id || null,
         value_points: gachaFormData.value_points,
         is_active: gachaFormData.is_active,
         max_quantity: gachaFormData.max_quantity ? parseInt(gachaFormData.max_quantity as string) : null,
@@ -182,6 +188,19 @@ export default function AdminGamificationPage() {
     }
   };
 
+  // -- API Calls: Coupons --
+  const fetchCoupons = async () => {
+    try {
+      const res = await fetch('/api/admin/gamification/coupons', { cache: 'no-store' });
+      const data = await res.json();
+      if (data.success) {
+        setCoupons(data.coupons);
+      }
+    } catch (e) {
+      console.error('Failed to fetch coupons:', e);
+    }
+  };
+
   // -- Modals --
   const openNewMission = () => {
     setEditingMission(null);
@@ -211,7 +230,7 @@ export default function AdminGamificationPage() {
     setEditingGacha(null);
     setGachaFormData({
       name: '', description: '', rarity_tier: 'R', probability_weight: 10,
-      reward_type: 'points', value_points: 0, is_active: true, max_quantity: ''
+      reward_type: 'points', item_id: '', value_points: 0, is_active: true, max_quantity: ''
     });
     setShowGachaModal(true);
   };
@@ -221,6 +240,7 @@ export default function AdminGamificationPage() {
     setGachaFormData({
       name: g.name, description: g.description || '', rarity_tier: g.rarity_tier,
       probability_weight: g.probability_weight, reward_type: g.reward_type,
+      item_id: g.item_id || '',
       value_points: g.value_points, is_active: g.is_active, max_quantity: g.max_quantity || ''
     });
     setShowGachaModal(true);
@@ -553,6 +573,7 @@ export default function AdminGamificationPage() {
                     <label className="block text-sm font-semibold text-gray-700 mb-1">Reward Type <span className="text-red-500">*</span></label>
                     <select value={gachaFormData.reward_type} onChange={(e) => setGachaFormData({...gachaFormData, reward_type: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:border-black outline-none bg-white">
                       <option value="points">Points (Auto add)</option>
+                      <option value="coupon">Coupon (Auto add to member)</option>
                       <option value="discount">Discount Code</option>
                       <option value="free_item">Free Item</option>
                       <option value="other">Other / Manual</option>
@@ -562,6 +583,17 @@ export default function AdminGamificationPage() {
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-1">Points Value</label>
                       <input type="number" min={0} value={gachaFormData.value_points} onChange={(e) => setGachaFormData({...gachaFormData, value_points: parseInt(e.target.value) || 0})} className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:border-black outline-none" placeholder="e.g. 50" />
+                    </div>
+                  )}
+                  {gachaFormData.reward_type === 'coupon' && (
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">Select Coupon</label>
+                      <select value={gachaFormData.item_id} onChange={(e) => setGachaFormData({...gachaFormData, item_id: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:border-black outline-none bg-white">
+                        <option value="">-- Select a Coupon --</option>
+                        {coupons.map((c: any) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
                     </div>
                   )}
                 </div>

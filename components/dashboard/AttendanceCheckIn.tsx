@@ -266,23 +266,28 @@ export const AttendanceCheckIn: React.FC = () => {
   const handlePhotoUpload = async (zoneId: string, file: File) => {
     try {
       setLoading(true)
-      const fileExt = file.name.split('.').pop() || 'jpg'
-      const fileName = `checkout_${profile?.id}_${zoneId}_${Date.now()}.${fileExt}`
-      const filePath = `attendance/${fileName}`
+      const { data: { session } } = await supabase.auth.getSession()
 
-      const { error: uploadError } = await supabase.storage
-        .from('images')
-        .upload(filePath, file, { contentType: file.type || 'image/jpeg' })
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('bucket', 'attendance-photos')
 
-      if (uploadError) throw uploadError
+      const res = await fetch('/api/admin/storage/upload', {
+        method: 'POST',
+        headers: {
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
+        },
+        body: formData
+      })
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('images')
-        .getPublicUrl(filePath)
+      const data = await res.json()
+      if (!data.publicUrl) {
+        throw new Error(data.error || 'Upload failed')
+      }
 
       setCheckoutPhotos(prev => ({
         ...prev,
-        [zoneId]: publicUrl
+        [zoneId]: data.publicUrl
       }))
     } catch (error: any) {
       alert('อัปโหลดรูปภาพล้มเหลว: ' + error.message)
@@ -327,7 +332,7 @@ export const AttendanceCheckIn: React.FC = () => {
         )
 
         if (!withinRange) {
-          const dist = Math.round(calculateDistance(latitude, longitude, branchLocation.latitude, branchLocation.longitude));
+          const dist = Math.round(calculateDistance(latitude, longitude, branchLocation.latitude, branchLocation.longitude) * 1000);
           setStatus({
             type: 'error',
             message: `อยู่นอกเขตลงเวลา ห่างจากจุดที่กำหนด ${dist} ม. ระบบไม่อนุญาตให้ลงเวลา`,

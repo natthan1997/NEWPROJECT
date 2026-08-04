@@ -65,13 +65,15 @@ export default function POSMemberManager({
     const [memberStats, setMemberStats] = useState({ total: 0, registered: 0, unregistered: 0 })
     const [selectedMember, setSelectedMember] = useState<Customer | null>(null)
     const [pointsHistory, setPointsHistory] = useState<PointsHistory[]>([])
-    const [activeCoupons, setActiveCoupons] = useState<Coupon[]>([])
+    const [memberCoupons, setMemberCoupons] = useState<Coupon[]>([])
+    const [couponTab, setCouponTab] = useState<'active' | 'used'>('active')
     const [isEditing, setIsEditing] = useState(false)
     const [isSaving, setIsSaving] = useState(false)
     const [editData, setEditData] = useState<Partial<Customer>>({})
     const [searchTerm, setSearchTerm] = useState('')
     const [showCrmSettings, setShowCrmSettings] = useState(false)
     const [showQR, setShowQR] = useState(false)
+    const [pointsReason, setPointsReason] = useState<string>('')
 
     useEffect(() => {
         fetchMembers()
@@ -181,11 +183,11 @@ export default function POSMemberManager({
             .from('pos_member_coupons')
             .select('*')
             .eq('member_id', memberId)
-            .eq('status', 'active')
+            .in('status', ['active', 'used'])
             .order('created_at', { ascending: false })
         
-        if (data) setActiveCoupons(data)
-        else setActiveCoupons([])
+        if (data) setMemberCoupons(data)
+        else setMemberCoupons([])
     }
 
     const handleUseCoupon = async (coupon: any) => {
@@ -211,38 +213,85 @@ export default function POSMemberManager({
     const handleSelectMember = (member: Customer) => {
         setSelectedMember(member)
         setEditData(member)
+        setPointsReason('')
         setPointsHistory([])
-        setActiveCoupons([])
+        setMemberCoupons([])
         fetchHistory(member.id)
         fetchCoupons(member.id)
     }
 
     const handleSave = async () => {
         if (!selectedMember) return
+        const originalPoints = selectedMember.points ?? 0
+        const newPoints = editData.points ?? 0
+        const isPointsChanged = originalPoints !== newPoints
+
+        if (isPointsChanged && !pointsReason.trim()) {
+            alert('กรุณาระบุเหตุผลในการปรับปรุงแต้มสะสมสมาชิก')
+            return
+        }
+
         setIsSaving(true)
-        const { error } = await supabase
-            .from('pos_members')
-            .update({
-                display_name: editData.display_name || editData.full_name,
-                full_name: editData.full_name,
-                phone: editData.phone,
-                email: editData.email,
-                points: editData.points,
-                tier: editData.tier,
-                title: editData.title,
-                date_of_birth: editData.date_of_birth,
-                gender: editData.gender
-            })
-            .eq('id', selectedMember.id)
-        
-        if (!error) {
+        try {
+            const { error } = await supabase
+                .from('pos_members')
+                .update({
+                    display_name: editData.display_name || editData.full_name,
+                    full_name: editData.full_name,
+                    phone: editData.phone,
+                    email: editData.email,
+                    points: newPoints,
+                    tier: editData.tier,
+                    title: editData.title,
+                    date_of_birth: editData.date_of_birth,
+                    gender: editData.gender,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', selectedMember.id)
+            
+            if (error) throw error
+
+            // Record points history with reason if points were modified
+            if (isPointsChanged) {
+                const pointsDiff = newPoints - originalPoints
+                const changeType = pointsDiff > 0 ? 'earn' : 'redeem'
+                const staffName = profile?.full_name || profile?.display_name || 'พนักงาน'
+                const reasonText = pointsReason.trim()
+                const desc = `ปรับปรุงแต้มโดย ${staffName}: ${reasonText} (${pointsDiff > 0 ? '+' : ''}${pointsDiff} แต้ม)`
+
+                const historyObj: any = {
+                    member_id: selectedMember.id,
+                    points: Math.abs(pointsDiff),
+                    points_change: pointsDiff,
+                    type: changeType,
+                    description: desc,
+                    branch_id: shopSettings?.branch_id || null,
+                    created_at: new Date().toISOString()
+                }
+
+                const { error: histError } = await supabase
+                    .from('pos_points_history')
+                    .insert(historyObj)
+
+                if (histError && histError.message.includes('column "description" of relation "pos_points_history" does not exist')) {
+                    delete historyObj.description
+                    await supabase.from('pos_points_history').insert(historyObj)
+                }
+            }
+
             fetchMembers()
             setIsEditing(false)
-            setSelectedMember({...selectedMember, ...editData} as Customer)
-        } else {
-            alert('Error updating member: ' + error.message)
+            setPointsReason('')
+            const updatedMember = { ...selectedMember, ...editData, points: newPoints } as Customer
+            setSelectedMember(updatedMember)
+            fetchHistory(selectedMember.id)
+            alert('บันทึกข้อมูลสมาชิกสำเร็จ')
+        } catch (err: any) {
+            console.error('Update member error:', err)
+            alert('เกิดข้อผิดพลาดในการบันทึกข้อมูลสมาชิก: ' + err.message)
+        } finally {
+            setIsSaving(false)
         }
-        setIsSaving(false)
     }
 
     const translateHistoryDescription = (desc: string | undefined | null, locale: string) => {
@@ -516,11 +565,38 @@ export default function POSMemberManager({
                                                         <input 
                                                             type="number"
                                                             className="w-full h-14 bg-white border border-[#F0F0E8] px-6 text-sm font-bold outline-none focus:ring-1 focus:ring-[#1A1A18]"
-                                                            value={editData.points}
+                                                            value={editData.points ?? 0}
                                                             onChange={e => setEditData({...editData, points: parseInt(e.target.value) || 0})}
                                                         />
                                                     </div>
                                                 </div>
+
+                                                {(editData.points ?? 0) !== (selectedMember.points ?? 0) && (
+                                                    <div className="space-y-3 font-bold bg-amber-50/80 border border-amber-200 p-5 rounded-2xl animate-in fade-in duration-300">
+                                                        <div className="flex items-center justify-between flex-wrap gap-2">
+                                                            <label className="text-[10px] font-black uppercase text-amber-900 tracking-wider flex items-center gap-1.5">
+                                                                <ShieldAlert size={14} className="text-amber-600" />
+                                                                เหตุผลในการปรับปรุงแต้ม <span className="text-red-500 font-bold">*จำเป็นต้องระบุ</span>
+                                                            </label>
+                                                            <span className="text-[10px] font-bold text-amber-700">
+                                                                แต้มเดิม: {(selectedMember.points ?? 0).toLocaleString()} ➔ แต้มใหม่: {(editData.points ?? 0).toLocaleString()}
+                                                            </span>
+                                                        </div>
+                                                        <input 
+                                                            type="text"
+                                                            placeholder="เช่น คืนแต้มให้ลูกค้าจากบิลตกหล่น, ปรับแก้แต้มผิดพลาด ฯลฯ"
+                                                            className="w-full h-12 bg-white border border-amber-300 px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-amber-500 text-amber-950 placeholder:text-amber-400/80"
+                                                            value={pointsReason}
+                                                            onChange={e => setPointsReason(e.target.value)}
+                                                        />
+                                                        <div className="text-[10px] font-bold text-amber-800 flex items-center justify-between flex-wrap gap-2">
+                                                            <span>จะบันทึกประวัติการปรับปรุงแต้มนี้ลงในประวัติของสมาชิก</span>
+                                                            <span className={(editData.points ?? 0) >= (selectedMember.points ?? 0) ? 'text-emerald-700 font-black' : 'text-red-700 font-black'}>
+                                                                ผลต่าง: {(editData.points ?? 0) - (selectedMember.points ?? 0) > 0 ? '+' : ''}{(editData.points ?? 0) - (selectedMember.points ?? 0)} แต้ม
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                             <button 
                                                 disabled={isSaving}
@@ -532,99 +608,82 @@ export default function POSMemberManager({
                                          </div>
                                      ) : (
                                          <div className="space-y-10">
-                                            {/* Loyalty Module */}
-                                            <div className="bg-white border border-[#F0F0E8] p-6 sm:p-10 space-y-10 font-bold relative overflow-hidden shadow-sm">
-                                                <div className="absolute top-0 right-0 p-10 opacity-[0.02] rotate-12 select-none pointer-events-none">
-                                                    <Star size={200} fill="black" />
-                                                </div>
-
-                                                <header className="flex justify-between items-center font-bold relative z-10">
-                                                    <div className="space-y-1">
-                                                        <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#1A1A18] font-bold leading-none">{locale === 'en' ? 'บัตรสะสมคะแนนดิจิทัล' : locale === 'zh' ? 'บัตรสะสมคะแนนดิจิทัล' : 'บัตรสะสมคะแนนดิจิทัล'}</h3>
-                                                        <p className="text-[7px] text-sage-500 font-black uppercase tracking-widest">{locale === 'en' ? 'ระดับสมาชิก: ' : locale === 'zh' ? 'ระดับสมาชิก: ' : 'ระดับสมาชิก: '}{selectedMember.tier?.toUpperCase() || 'ทั่วไป'}</p>
-                                                    </div>
-                                                </header>
-
-                                                <div className="grid grid-cols-5 gap-3 sm:gap-4 relative z-10">
-                                                    {[...Array(10)].map((_, i) => {
-                                                        const pts = selectedMember.points ?? 0;
-                                                        const stampCount = Math.floor(pts / 100);
-                                                        const isFull = i < stampCount;
-                                                        const isCurrent = i === stampCount;
-                                                        const progress = isCurrent ? (pts % 100) : 0;
-
-                                                        return (
-                                                            <div 
-                                                                key={i} 
-                                                                className={`aspect-square border flex flex-col items-center justify-center relative transition-all duration-700 ${isFull ? 'bg-[#1A1A18] border-[#1A1A18] text-white shadow-xl' : 'bg-gray-50 border-gray-100 text-gray-200'}`}
-                                                            >
-                                                                {isFull ? (
-                                                                    <UserCheck size={20} className="animate-in zoom-in duration-500" />
-                                                                ) : (
-                                                                    <div className="relative">
-                                                                        <div className="w-1.5 h-1.5 rounded-full bg-current opacity-20" />
-                                                                        {isCurrent && progress > 0 && (
-                                                                            <div 
-                                                                                className="absolute bottom-0 left-0 right-0 bg-sage-500 transition-all duration-700 shadow-[0_0_10px_rgba(74,93,74,0.3)]" 
-                                                                                                        style={{ height: `${progress}%`, opacity: 0.8 }}
-                                                                                                    />
-                                                                        )}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        )
-                                                    })}
-                                                </div>
-
-                                                <div className="flex flex-wrap items-center justify-between font-bold gap-6 pt-8 border-t border-gray-100 relative z-10">
-                                                    <div className="space-y-1 font-bold">
-                                                        <div className="text-[8px] font-black uppercase text-gray-300 font-bold leading-none tracking-widest">{locale === 'en' ? 'คะแนนสะสมคงเหลือ (X-PULSE)' : locale === 'zh' ? 'คะแนนสะสมคงเหลือ (X-PULSE)' : 'คะแนนสะสมคงเหลือ (X-PULSE)'}</div>
-                                                        <div className="text-3xl font-black text-[#1A1A18] font-bold tabular-nums">{(selectedMember.points ?? 0).toLocaleString()} <span className="text-[10px] text-gray-300 ml-1">{locale === 'en' ? 'คะแนน' : locale === 'zh' ? 'คะแนน' : 'คะแนน'}</span></div>
-                                                    </div>
-                                                    <div className="text-right font-bold">
-                                                        <div className="text-[8px] font-black uppercase text-gray-300 font-bold leading-none tracking-widest mb-1.5">{locale === 'en' ? 'เป้าหมายรางวัลถัดไป' : locale === 'zh' ? 'เป้าหมายรางวัลถัดไป' : 'เป้าหมายรางวัลถัดไป'}</div>
-                                                        <div className="text-lg font-black text-sage-600 font-bold tabular-nums">{(Math.floor((selectedMember.points ?? 0) / 100) + 1) * 100} {locale === 'en' ? ' คะแนน' : locale === 'zh' ? ' คะแนน' : ' คะแนน'}</div>
-                                                    </div>
-                                                </div>
+                                            {/* Assets & Rewards */}
+                                            <div className="bg-white border border-[#F0F0E8] rounded-xl p-8 shadow-sm">
+                                               <h3 className="text-sm font-black uppercase tracking-widest text-[#1A1A18] mb-6 border-b border-gray-100 pb-4">{locale === 'en' ? 'Assets & Rewards' : 'ของรางวัลและสินทรัพย์ที่มี'}</h3>
+                                               <div className="grid grid-cols-2 gap-6">
+                                                  <div className="bg-gray-50 border border-gray-100 rounded-xl p-6 flex flex-col items-center justify-center">
+                                                     <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">{locale === 'en' ? 'Available Points' : 'คะแนนสะสมคงเหลือ'}</span>
+                                                     <span className="text-4xl font-black text-[#1A1A18]">{(selectedMember.points ?? 0).toLocaleString()}</span>
+                                                  </div>
+                                                  <div className="bg-purple-50/50 border border-purple-100 rounded-xl p-6 flex flex-col items-center justify-center">
+                                                     <span className="text-[10px] font-bold text-purple-600 uppercase tracking-widest mb-2">{locale === 'en' ? 'Gacha Tickets' : 'ตั๋วสุ่มกาชา'}</span>
+                                                     <span className="text-4xl font-black text-purple-700">{(selectedMember.gacha_tickets ?? 0).toLocaleString()}</span>
+                                                  </div>
+                                               </div>
                                             </div>
                                          </div>
                                      )}
 
 
-                                     {/* Active Coupons View */}
-                                     {activeCoupons.length > 0 && !isEditing && (
-                                         <div className="bg-sage-50/50 border border-sage-200 flex flex-col font-bold shadow-sm lg:col-span-2">
-                                            <header className="p-6 border-b border-sage-200 flex justify-between items-center font-bold bg-white">
+                                     {/* Coupons View */}
+                                     {memberCoupons.length > 0 && !isEditing && (
+                                         <div className="bg-white border border-[#F0F0E8] flex flex-col font-bold shadow-sm lg:col-span-2">
+                                            <header className="p-6 border-b border-[#F0F0E8] flex flex-col gap-4 font-bold bg-[#FAFAF9]">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-8 h-8 bg-sage-100 text-sage-600 flex items-center justify-center">
                                                         <Gift size={16} />
                                                     </div>
                                                     <div>
-                                                        <h3 className="text-[11px] font-black uppercase tracking-[0.2em] font-bold text-sage-800">คูปองที่สามารถใช้งานได้</h3>
-                                                        <p className="text-[8px] text-sage-500 uppercase tracking-widest">{activeCoupons.length} สิทธิ์ที่ยังไม่ได้ใช้</p>
+                                                        <h3 className="text-[11px] font-black uppercase tracking-[0.2em] font-bold text-[#1A1A18]">{locale === 'en' ? 'Coupons' : 'คูปองของฉัน'}</h3>
+                                                        <p className="text-[8px] text-gray-500 uppercase tracking-widest">{memberCoupons.length} {locale === 'en' ? 'Total Coupons' : 'รายการทั้งหมด'}</p>
                                                     </div>
                                                 </div>
+                                                
+                                                {/* Tabs */}
+                                                <div className="flex items-center gap-2 mt-2">
+                                                   <button
+                                                      onClick={() => setCouponTab('active')}
+                                                      className={`px-4 py-2 text-[10px] font-black uppercase tracking-[0.1em] transition-all rounded-full ${couponTab === 'active' ? 'bg-[#1A1A18] text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                                                   >
+                                                      {locale === 'en' ? 'Unused' : 'ยังไม่ได้ใช้'} ({memberCoupons.filter(c => c.status === 'active').length})
+                                                   </button>
+                                                   <button
+                                                      onClick={() => setCouponTab('used')}
+                                                      className={`px-4 py-2 text-[10px] font-black uppercase tracking-[0.1em] transition-all rounded-full ${couponTab === 'used' ? 'bg-[#1A1A18] text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                                                   >
+                                                      {locale === 'en' ? 'Used' : 'ใช้งานแล้ว'} ({memberCoupons.filter(c => c.status === 'used').length})
+                                                   </button>
+                                                </div>
                                             </header>
-                                            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                {activeCoupons.map(coupon => (
-                                                    <div key={coupon.id} className="bg-white border border-sage-200 p-4 flex items-center justify-between shadow-sm hover:shadow-md transition-all group">
-                                                        <div className="flex items-center gap-4">
-                                                            <div className="w-10 h-10 bg-sage-50 flex items-center justify-center text-sage-600">
-                                                                <Tag size={18} />
-                                                            </div>
-                                                            <div>
-                                                                <div className="text-xs font-black text-sage-800">{coupon.coupon_name}</div>
-                                                                <div className="text-[9px] text-sage-400 font-black uppercase tracking-widest mt-1">ได้รับเมื่อ: {new Date(coupon.created_at).toLocaleDateString('th-TH')}</div>
-                                                            </div>
-                                                        </div>
-                                                        <button 
-                                                            onClick={() => handleUseCoupon(coupon)}
-                                                            className="px-4 py-2 bg-sage-600 text-white text-[9px] font-black uppercase tracking-[0.2em] opacity-0 group-hover:opacity-100 transition-all hover:bg-sage-700"
-                                                        >
-                                                            ใช้งานสิทธิ์
-                                                        </button>
+                                            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4 bg-white">
+                                                {memberCoupons.filter(c => c.status === couponTab).length === 0 ? (
+                                                    <div className="col-span-full py-8 text-center text-gray-400 text-xs font-bold uppercase tracking-widest border border-dashed border-gray-200 rounded-xl">
+                                                       {locale === 'en' ? 'No coupons found' : 'ไม่มีคูปองในหมวดหมู่นี้'}
                                                     </div>
-                                                ))}
+                                                ) : (
+                                                   memberCoupons.filter(c => c.status === couponTab).map(coupon => (
+                                                       <div key={coupon.id} className={`border p-4 flex items-center justify-between shadow-sm transition-all group ${couponTab === 'active' ? 'bg-white border-sage-200 hover:shadow-md' : 'bg-gray-50 border-gray-200 opacity-60'}`}>
+                                                           <div className="flex items-center gap-4">
+                                                               <div className={`w-10 h-10 flex items-center justify-center ${couponTab === 'active' ? 'bg-sage-50 text-sage-600' : 'bg-gray-200 text-gray-400'}`}>
+                                                                   <Tag size={18} />
+                                                               </div>
+                                                               <div>
+                                                                   <div className={`text-xs font-black ${couponTab === 'active' ? 'text-sage-800' : 'text-gray-500 line-through'}`}>{coupon.coupon_name}</div>
+                                                                   <div className="text-[9px] text-gray-400 font-black uppercase tracking-widest mt-1">ได้รับเมื่อ: {new Date(coupon.created_at).toLocaleDateString('th-TH')}</div>
+                                                               </div>
+                                                           </div>
+                                                           {couponTab === 'active' && (
+                                                              <button 
+                                                                  onClick={() => handleUseCoupon(coupon)}
+                                                                  className="px-4 py-2 bg-[#1A1A18] text-white text-[9px] font-black uppercase tracking-[0.2em] opacity-0 group-hover:opacity-100 transition-all hover:bg-black"
+                                                              >
+                                                                  ใช้งานสิทธิ์
+                                                              </button>
+                                                           )}
+                                                       </div>
+                                                   ))
+                                                )}
                                             </div>
                                          </div>
                                      )}

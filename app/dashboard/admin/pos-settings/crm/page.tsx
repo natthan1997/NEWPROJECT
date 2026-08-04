@@ -102,11 +102,20 @@ export default function LoyaltySettingsPage() {
 
   const handleSaveCoupon = async (coupon: any) => {
     const { id, ...data } = coupon;
+    let res;
     if (id.startsWith('new-')) {
-      await supabase.from('pos_loyalty_coupons').insert([data]);
+      res = await supabase.from('pos_loyalty_coupons').insert([{ ...data, is_gacha_only: data.is_gacha_only || false }]);
     } else {
-      await supabase.from('pos_loyalty_coupons').update(data).eq('id', id);
+      res = await supabase.from('pos_loyalty_coupons').update({ ...data, is_gacha_only: data.is_gacha_only || false }).eq('id', id);
     }
+    
+    if (res.error) {
+      console.error('Error saving coupon:', res.error);
+      alert('Error saving coupon: ' + res.error.message);
+    } else {
+      alert('บันทึกคูปองสำเร็จ');
+    }
+    
     loadData();
   };
 
@@ -447,6 +456,14 @@ export default function LoyaltySettingsPage() {
                   onChange={e => setCoupons(coupons.map(c => c.id === coupon.id ? { ...c, is_active: e.target.checked } : c))}
                   className="rounded text-blue-600" 
                 /> เปิดใช้งาน
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-700 ml-2">
+                <input 
+                  type="checkbox" 
+                  checked={coupon.is_gacha_only || false} 
+                  onChange={e => setCoupons(coupons.map(c => c.id === coupon.id ? { ...c, is_gacha_only: e.target.checked } : c))}
+                  className="rounded text-purple-600" 
+                /> เฉพาะกาชา
               </label>
               <button onClick={() => handleSaveCoupon(coupon)} className="p-2 text-green-600 hover:bg-green-50 rounded-lg">
                 <Save className="w-5 h-5" />

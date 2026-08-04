@@ -101,6 +101,7 @@ const permissionGroups = [
     options: [
       { id: 'staff:view', label: 'ดูพนักงาน (STAFF VIEW)', desc: 'ดูรายชื่อพนักงาน' },
       { id: 'staff:manage', label: 'จัดการพนักงาน (STAFF MANAGE)', desc: 'จัดการข้อมูลและสิทธิ์พนักงาน' },
+      { id: 'staff:shift-summary', label: 'ดูรายงานปิดกะล่าสุด (SHIFT SUMMARY)', desc: 'อนุญาตให้ดูรายงานสรุปยอดและรูปถ่ายของกะล่าสุดผ่านหน้าพนักงาน' },
       { id: 'settings:view', label: 'ดูการตั้งค่าร้าน (SETTINGS VIEW)', desc: 'เข้าดูหน้าตั้งค่าร้าน' },
       { id: 'settings:manage', label: 'แก้ไขการตั้งค่าร้าน (SETTINGS MANAGE)', desc: 'แก้ไขข้อมูลร้านค้าและโปรโมชั่น' },
       { id: 'management', label: 'จัดการระบบ (MANAGEMENT)', desc: 'การจัดการข้อมูลเชิงลึกและระบบหลังบ้านของสาขา' },
@@ -493,6 +494,7 @@ const handleSave = async () => {
     }
 
     // Strip keys that don't exist in pos_shop_settings schema
+    delete payload.custom_roles;
     delete payload.receipt_header;
     delete payload.receipt_story_mode;
     delete payload.receipt_stories;
@@ -1554,6 +1556,73 @@ const handleSave = async () => {
                                                 <span className="text-[14px] font-bold text-emerald-600">{locale === 'en' ? 'THB' : 'บาท'}</span>
                                             </div>
                                         </div>
+                                    </div>
+                                    
+                                    <div className="mt-6 pt-6 border-t border-gray-100 space-y-6">
+                                        <div className="flex items-center justify-between bg-gray-50 p-5 rounded-2xl border border-gray-100">
+                                            <div>
+                                                <label className="text-[13px] font-black text-gray-900 block mb-1">แคมเปญวันพิเศษทวีคูณ (Special Day Multiplier)</label>
+                                                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">คูณคะแนนสะสมให้อัตโนมัติเมื่อตรงกับวันที่กำหนด</p>
+                                            </div>
+                                            <button 
+                                                onClick={() => {
+                                                    const h = settings.opening_hours || {};
+                                                    const isAllowed = h.loyalty_special_day_active === true;
+                                                    setSettings({...settings, opening_hours: { ...h, loyalty_special_day_active: !isAllowed }});
+                                                }}
+                                                className={`relative w-14 h-8 rounded-full transition-colors ${settings.opening_hours?.loyalty_special_day_active ? 'bg-black' : 'bg-gray-300'}`}
+                                            >
+                                                <div className={`absolute top-1 w-6 h-6 rounded-full bg-white transition-all ${settings.opening_hours?.loyalty_special_day_active ? 'left-7' : 'left-1'}`} />
+                                            </button>
+                                        </div>
+
+                                        {settings.opening_hours?.loyalty_special_day_active && (
+                                            <div className="bg-orange-50/50 p-6 rounded-2xl border border-orange-100 flex flex-col sm:flex-row items-center gap-4 animate-in fade-in zoom-in-95">
+                                                <div className="flex-1 w-full">
+                                                    <label className="text-[12px] font-black tracking-tight text-[#1A1A18] mb-2 block">
+                                                        เลือกวันที่จะคูณคะแนน (Day of Week)
+                                                    </label>
+                                                    <select 
+                                                        value={settings.opening_hours?.loyalty_special_day_index !== undefined ? settings.opening_hours.loyalty_special_day_index : 3}
+                                                        onChange={e => {
+                                                            const h = settings.opening_hours || {};
+                                                            setSettings({...settings, opening_hours: { ...h, loyalty_special_day_index: parseInt(e.target.value) }});
+                                                        }}
+                                                        className="w-full bg-white border border-gray-200 focus:border-orange-500 rounded-xl py-3 px-4 text-[14px] font-bold outline-none shadow-sm"
+                                                    >
+                                                        <option value={0}>วันอาทิตย์ (Sunday)</option>
+                                                        <option value={1}>วันจันทร์ (Monday)</option>
+                                                        <option value={2}>วันอังคาร (Tuesday)</option>
+                                                        <option value={3}>วันพุธ (Wednesday)</option>
+                                                        <option value={4}>วันพฤหัสบดี (Thursday)</option>
+                                                        <option value={5}>วันศุกร์ (Friday)</option>
+                                                        <option value={6}>วันเสาร์ (Saturday)</option>
+                                                    </select>
+                                                </div>
+                                                <div className="w-full sm:w-auto shrink-0 flex items-end gap-3">
+                                                    <div className="flex-1 sm:w-32">
+                                                        <label className="text-[12px] font-black tracking-tight text-[#1A1A18] mb-2 block">
+                                                            ตัวคูณ (Multiplier)
+                                                        </label>
+                                                        <div className="relative">
+                                                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-orange-500 font-black text-lg">x</div>
+                                                            <input 
+                                                                type="number"
+                                                                min="2"
+                                                                max="10"
+                                                                step="1"
+                                                                value={settings.opening_hours?.loyalty_special_day_multiplier !== undefined ? settings.opening_hours.loyalty_special_day_multiplier : 2}
+                                                                onChange={e => {
+                                                                    const h = settings.opening_hours || {};
+                                                                    setSettings({...settings, opening_hours: { ...h, loyalty_special_day_multiplier: parseFloat(e.target.value) || 2 }});
+                                                                }}
+                                                                className="w-full bg-white border border-gray-200 focus:border-orange-500 rounded-xl py-3 pl-10 pr-4 text-[14px] font-black outline-none shadow-sm"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 

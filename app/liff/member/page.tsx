@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, Suspense, useRef } from 'react';
+import React, { useState, useEffect, Suspense, useRef, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   ChevronRight, ChevronLeft, Info, X, Gift, Phone, Globe, Facebook, MessageCircle, QrCode, Coins, Sparkles, AlertCircle, Loader2, CheckCircle2, HelpCircle, ArrowRight, History, XCircle, Clock
@@ -156,24 +156,32 @@ function LiffMemberContent() {
 
   // Claim Points state
   const searchParams = useSearchParams();
-  const claimToken = searchParams.get('claimToken');
+  const rawClaimToken = searchParams.get('claimToken');
+  const pathParam = searchParams.get('path');
+  const liffState = searchParams.get('liff.state');
+  
+  const claimToken = useMemo(() => {
+    if (rawClaimToken) return rawClaimToken;
+    if (pathParam) {
+      const match = pathParam.match(/[?&]claimToken=([^&]+)/);
+      if (match) return match[1];
+    }
+    if (liffState) {
+      try {
+        const decoded = decodeURIComponent(liffState);
+        const match = decoded.match(/[?&]claimToken=([^&]+)/);
+        if (match) return match[1];
+      } catch {}
+    }
+    return null;
+  }, [rawClaimToken, pathParam, liffState]);
+
   const [claimState, setClaimState] = useState<'idle'|'loading'|'success'|'error'|'pending_payment'>(claimToken ? 'loading' : 'idle');
   const [showClaimPopup, setShowClaimPopup] = useState(!!claimToken);
   const [claimPointsEarned, setClaimPointsEarned] = useState(0);
   const [claimMessage, setClaimMessage] = useState('');
   const [claimOrderItems, setClaimOrderItems] = useState<any[]>([]);
   const processingClaimRef = useRef(false);
-
-  useEffect(() => {
-    // Add debug alert to help trace on mobile
-    if (typeof window !== 'undefined') {
-       Swal.fire({
-         title: 'Debug Scanner V2',
-         html: `Token: ${claimToken || 'NULL'}<br>URL: ${window.location.href}<br>isDataReady: ${isDataReady}<br>UserId: ${lineProfile?.userId || 'N/A'}<br>Path searchParam: ${searchParams.get('path') || 'NULL'}`,
-         icon: 'info'
-       });
-    }
-  }, [claimToken, isDataReady, lineProfile, searchParams]);
 
   useEffect(() => {
     console.log('[Claim Effect Triggered]', { isDataReady, claimToken, isProcessing: processingClaimRef.current, userId: lineProfile?.userId });

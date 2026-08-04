@@ -64,9 +64,7 @@ export default function POSCustomerSelect({ onSelect, selectedCustomer, onClose,
             .or(`display_name.ilike.%${searchTerm}%,full_name.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%`)
 
         if (branchId) {
-            query = query.eq('branch_id', branchId)
-        } else {
-            query = query.is('branch_id', null)
+            query = query.or(`branch_id.eq.${branchId},branch_id.is.null`)
         }
             
         const { data } = await query.limit(5)
@@ -85,9 +83,7 @@ export default function POSCustomerSelect({ onSelect, selectedCustomer, onClose,
             .order('updated_at', { ascending: false })
             
         if (branchId) {
-            query = query.eq('branch_id', branchId)
-        } else {
-            query = query.is('branch_id', null)
+            query = query.or(`branch_id.eq.${branchId},branch_id.is.null`)
         }
             
         const { data } = await query.limit(5)
@@ -310,7 +306,7 @@ export default function POSCustomerSelect({ onSelect, selectedCustomer, onClose,
                             <div className="p-4 bg-gray-50 rounded-xl relative group">
                                 <QRCodeCanvas
                                     id="member-qr-canvas"
-                                    value={`https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}/liff/member`}
+                                    value={`https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}/?path=${encodeURIComponent('/liff/member')}`}
                                     size={200}
                                     level="H"
                                     includeMargin={true}

@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Receipt, Trash2, RefreshCw, Printer, PencilLine, User, ChevronDown, ChevronUp, Filter, ShoppingBag, UtensilsCrossed, Truck, XCircle } from 'lucide-react'
+import { Receipt, Trash2, RefreshCw, Printer, PencilLine, User, ChevronDown, ChevronUp, Filter, ShoppingBag, UtensilsCrossed, Truck, XCircle, Award } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import POSPinModal from './POSPinModal'
 import { useI18n } from "@/lib/I18nContext";
 import { printCustomerReceipt } from '@/lib/printerUtils'
 import { printGraphicModeCustomerReceipt } from '@/lib/graphicPrinter'
+import { fetchOrGenerateLoyaltyToken } from '@/lib/loyaltyUtils'
+import POSHistoryPointsModal from './POSHistoryPointsModal'
 
 export function getDeliveryPlatformBadge(platform?: string | null) {
   const p = (platform || '').toLowerCase().trim();
@@ -79,6 +81,7 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
   const [pinDesc, setPinDesc] = useState('')
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null)
   const [printingOrderId, setPrintingOrderId] = useState<string | null>(null)
+  const [pointsOrderId, setPointsOrderId] = useState<any | null>(null)
   const [paymentEditOrder, setPaymentEditOrder] = useState<any | null>(null)
   const [paymentEditMethod, setPaymentEditMethod] = useState<string>('cash')
   const [paymentEditOpen, setPaymentEditOpen] = useState(false)
@@ -122,6 +125,23 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
   // Always fetch when component mounts
   useEffect(() => {
     fetchCompletedOrders()
+  }, [fetchCompletedOrders])
+
+  // Realtime subscription for instant member & points updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('pos_history_realtime_orders')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_orders' }, () => {
+        fetchCompletedOrders()
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_qr_reward_tokens' }, () => {
+        fetchCompletedOrders()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [fetchCompletedOrders])
 
   // Inject header actions into global POS layout
@@ -308,7 +328,18 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
 
     setPrintingOrderId(order.id)
     try {
-      const orderData = buildPrintOrder(order)
+      const orderData: any = buildPrintOrder(order)
+      
+      // Auto fetch/generate loyalty points claim token if non-member and points not earned yet
+      if (order.id && !order.customer_id && !order.customer_name && (!order.points_earned || order.points_earned === 0)) {
+        const netTotal = Number(order.net_total ?? order.total_amount ?? 0)
+        const { token, points } = await fetchOrGenerateLoyaltyToken(order.id, netTotal, shopSettings)
+        if (token) {
+          orderData.loyaltyClaimToken = token
+          orderData.pointsEarned = points
+        }
+      }
+
       const shopData = {
         name: shopSettings?.name || shopSettings?.branch_name || 'XYL STUDIO',
         branch: shopSettings?.branch_name || '',
@@ -318,8 +349,10 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
         receiptHeader: shopSettings?.receipt_header || '',
         receiptFooter: shopSettings?.receipt_footer || '',
         receiptFontSize: shopSettings?.receipt_font_size || 'normal',
-        receipt_story_mode: shopSettings?.receipt_story_mode || false,
-        receipt_stories: shopSettings?.receipt_stories || [],
+        receipt_story_mode: shopSettings?.receipt_story_mode ?? shopSettings?.opening_hours?.receipt_story_mode ?? false,
+        receipt_stories: (shopSettings?.receipt_stories && shopSettings.receipt_stories.length > 0)
+          ? shopSettings.receipt_stories
+          : (shopSettings?.opening_hours?.receipt_stories || []),
         receiptPaymentQrImage: shopSettings?.opening_hours?.receipt_payment_qr_image
           || shopSettings?.receipt_payment_qr_image
           || (shopSettings as any)?.receipt_payment_qr_image,
@@ -525,9 +558,10 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
                           {order.order_type === 'dine_in' ? 'ทานที่ร้าน' : order.order_type === 'delivery' ? 'จัดส่ง' : 'กลับบ้าน'}
                         </span>
 
-                        {order.customer ? (
-                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-sage-50 text-sage-600 flex items-center gap-1">
-                            <User size={10} /> {order.customer.full_name || order.customer.display_name || order.customer.phone || 'สมาชิก'}
+                        {(order.customer || order.customer_name || (order.points_earned && order.points_earned > 0)) ? (
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200/60 flex items-center gap-1">
+                            <User size={10} /> {order.customer?.full_name || order.customer?.display_name || order.customer?.phone || order.customer_name || 'สมาชิก'}
+                            {order.points_earned ? ` (+${order.points_earned} PTS)` : ''}
                           </span>
                         ) : null}
 
@@ -684,6 +718,17 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
                             <PencilLine size={16} />
                             {locale === 'en' ? 'Edit Pay' : 'แก้ชำระ'}
                           </button>
+
+                          {!order.customer_id && !order.customer_name && (!order.points_earned || order.points_earned === 0) && order.status !== 'cancelled' && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setPointsOrderId(order); }}
+                              className="flex-1 sm:flex-none h-12 px-5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl text-[12px] font-black uppercase tracking-wider active:scale-95 transition-all flex items-center justify-center gap-2"
+                              title="เลือกสะสมแต้มผ่าน QR Code หรือกรอกเบอร์โทร"
+                            >
+                              <Award size={16} />
+                              สะสมแต้ม
+                            </button>
+                          )}
                           
                           {order.status !== 'cancelled' && (
                             <button
@@ -778,6 +823,19 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
           </div>
         </div>
       )}
+
+      {pointsOrderId && (
+        <POSHistoryPointsModal
+          order={pointsOrderId}
+          shopSettings={shopSettings}
+          onClose={() => setPointsOrderId(null)}
+          onSuccess={() => {
+            setPointsOrderId(null)
+            fetchCompletedOrders()
+          }}
+        />
+      )}
+
     </div>
   )
 }

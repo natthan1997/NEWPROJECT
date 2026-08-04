@@ -43,6 +43,9 @@ export interface PrintOrderData {
   deliveryFee?: number
   comment?: string
   pickupTime?: string
+  loyaltyClaimToken?: string
+  loyaltyClaimQrUrl?: string
+  pointsEarned?: number
 }
 
 export interface PrintShopData {
@@ -265,13 +268,16 @@ const appendOrderNotes = (b: ESCPOSBuilder, order: PrintOrderData) => {
 }
 
 const appendReceiptStory = (b: ESCPOSBuilder, shop: PrintShopData) => {
-  if (!shop.receipt_story_mode || !shop.receipt_stories || shop.receipt_stories.length === 0) return
-  const story = shop.receipt_stories[Math.floor(Math.random() * shop.receipt_stories.length)]
+  const isEnabled = shop.receipt_story_mode === true || String(shop.receipt_story_mode) === 'true';
+  const stories = Array.isArray(shop.receipt_stories) ? shop.receipt_stories : [];
+  if (!isEnabled || stories.length === 0) return
+  const story = stories[Math.floor(Math.random() * stories.length)]
+  if (!story) return
   b.lf()
   b.align('center').bold(true).line('~*~*~*~*~*~*~*~*~').lf()
-  b.line(story.title).bold(false)
-  story.content.split('\n').forEach((l) => b.line(l))
-  b.lf()
+  if (story.title) b.line(story.title)
+  if (story.content) (story.content || '').split('\n').forEach((l) => b.line(l))
+  b.bold(false).lf()
 }
 
 const applyThaiLineSpacingHack = (text: string) => {
@@ -532,6 +538,25 @@ const appendReceiptPaymentQr = async (b: ESCPOSBuilder, order: PrintOrderData, s
   const qrBytes = canvasToRasterBytes(canvas)
   if (qrBytes.length > 0) {
     b.rawBytes(qrBytes)
+  }
+}
+
+const appendLoyaltyPointsQr = async (b: ESCPOSBuilder, order: PrintOrderData) => {
+  if (!order.loyaltyClaimQrUrl && !order.loyaltyClaimToken) return
+  const token = order.loyaltyClaimToken || ''
+  const liffId = typeof process !== 'undefined' ? (process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi') : '2009322178-2dtfXAvi'
+  const qrUrl = order.loyaltyClaimQrUrl || `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(`https://liff.line.me/${liffId}/?path=${encodeURIComponent(`/liff/member?claimToken=${token}`)}`)}`
+  
+  b.lf().align('center').bold(true).line('สแกน QR เพื่อสะสมแต้มผ่าน LINE').bold(false)
+  if (order.pointsEarned && order.pointsEarned > 0) {
+    b.bold(true).line(`(+${order.pointsEarned} PTS)`).bold(false)
+  }
+  const canvas = await imageSrcToCanvas(qrUrl, 200)
+  if (canvas) {
+    const qrBytes = canvasToRasterBytes(canvas)
+    if (qrBytes.length > 0) {
+      b.rawBytes(qrBytes)
+    }
   }
 }
 
@@ -797,16 +822,17 @@ export const printCustomerReceipt = async (
       b.bold(true).size(1, 2).row('เงินทอน', formatCurrency(order.changeAmount || 0), 30).size(1, 1).bold(false)
     }
 
-    b.dash().align('center')
+    appendReceiptStory(b, shop)
+    await appendReceiptPaymentQr(b, order, shop)
+    await appendLoyaltyPointsQr(b, order)
 
+    b.dash().align('center')
     if (shop.receiptFooter) {
       shop.receiptFooter.split('\n').forEach(l => b.line(l))
       b.lf()
     } else {
       b.line('Thank you').lf().line('Powered by XYL STUDIO').lf()
     }
-    appendReceiptStory(b, shop)
-    await appendReceiptPaymentQr(b, order, shop)
 
     b.cut()
 

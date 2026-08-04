@@ -160,6 +160,8 @@ export default function MyRewardsPage() {
   const [vouchersLoading, setVouchersLoading] = useState(true);
   const [usedVoucherNotification, setUsedVoucherNotification] = useState<any>(null);
   const [confirmingVoucher, setConfirmingVoucher] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<'active' | 'used'>('active');
+  const [selectedMonth, setSelectedMonth] = useState<string>('');
 
   useEffect(() => {
     if (ctxMemberInfo) {
@@ -293,13 +295,65 @@ export default function MyRewardsPage() {
       </header>
 
       <main className="px-5 pt-6 relative z-10 max-w-lg mx-auto flex flex-col gap-4">
+        {/* Tabs and Filter */}
+        <div className="flex items-center justify-between border-b border-gray-200 mb-2">
+          <div className="flex items-center gap-6">
+            <button
+              onClick={() => setActiveTab('active')}
+              className={`pb-3 text-[14px] font-bold transition-all relative ${
+                activeTab === 'active' ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'
+              }`}
+            >
+              ยังไม่ได้ใช้
+              {activeTab === 'active' && (
+                <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gray-900 rounded-t-full" />
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab('used')}
+              className={`pb-3 text-[14px] font-bold transition-all relative ${
+                activeTab === 'used' ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'
+              }`}
+            >
+              ใช้งานแล้ว
+              {activeTab === 'used' && (
+                <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gray-900 rounded-t-full" />
+              )}
+            </button>
+          </div>
+          
+          <select 
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            className="text-[12px] font-medium text-gray-500 bg-transparent outline-none pb-3 border-none text-right cursor-pointer appearance-none"
+            style={{ direction: 'rtl' }}
+          >
+            <option value="" style={{ direction: 'ltr' }}>ทั้งหมด</option>
+            {Array.from(new Set(vouchers.map(v => new Date(v.created_at).toISOString().slice(0, 7)))).sort((a, b) => b.localeCompare(a)).map(month => (
+              <option key={month} value={month} style={{ direction: 'ltr' }}>
+                {new Date(month + '-01').toLocaleDateString('th-TH', { month: 'short', year: 'numeric' })}
+              </option>
+            ))}
+          </select>
+        </div>
+
         {vouchersLoading ? (
           <div className="py-20 flex flex-col items-center justify-center text-center">
             <div className="w-8 h-8 border-4 border-gray-200 border-t-[#1A1A18] rounded-full animate-spin mb-3"></div>
             <p className="text-[13px] text-gray-500">กำลังโหลดคูปองของคุณ...</p>
           </div>
-        ) : vouchers.length > 0 ? (
-          vouchers.map((voucher) => (
+        ) : vouchers.filter(v => {
+          const matchesTab = activeTab === 'active' ? ['active', 'claiming'].includes(v.status) : ['used', 'expired'].includes(v.status);
+          if (!matchesTab) return false;
+          if (!selectedMonth) return true;
+          return new Date(v.created_at).toISOString().slice(0, 7) === selectedMonth;
+        }).length > 0 ? (
+          vouchers.filter(v => {
+            const matchesTab = activeTab === 'active' ? ['active', 'claiming'].includes(v.status) : ['used', 'expired'].includes(v.status);
+            if (!matchesTab) return false;
+            if (!selectedMonth) return true;
+            return new Date(v.created_at).toISOString().slice(0, 7) === selectedMonth;
+          }).map((voucher) => (
             <VoucherItem
               key={voucher.id}
               voucher={voucher}
@@ -313,13 +367,15 @@ export default function MyRewardsPage() {
               <Ticket size={28} className="text-gray-300" />
             </div>
             <h3 className="text-[15px] font-medium text-gray-900 mb-1">ยังไม่มีคูปอง</h3>
-            <p className="text-[13px] text-gray-500 mb-6">แลกของรางวัลเพื่อรับคูปองส่วนลดและสิทธิพิเศษมากมาย</p>
-            <Link
-              href="/liff/rewards"
-              className="bg-[#1A1A18] text-white px-6 py-2.5 rounded-full text-[13px] font-medium hover:bg-black transition-colors"
-            >
-              ไปที่หน้าของรางวัล
-            </Link>
+            <p className="text-[13px] text-gray-500 mb-6">คุณยังไม่มีคูปองในหมวดหมู่นี้</p>
+            {activeTab === 'active' && (
+              <Link
+                href="/liff/rewards"
+                className="bg-[#1A1A18] text-white px-6 py-2.5 rounded-full text-[13px] font-medium hover:bg-black transition-colors"
+              >
+                ไปที่หน้าของรางวัล
+              </Link>
+            )}
           </div>
         )}
       </main>
