@@ -4352,7 +4352,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                   </button>
                 ) : (
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       if (orderType === 'dine_in' && !selectedTable) {
                         fetchTables()
                         refreshPendingOrders()
@@ -4362,6 +4362,14 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                       if (orderType === 'delivery') {
                         setShowDeliveryCheckoutModal(true)
                         return
+                      }
+
+                      if (cart.length > 0) {
+                        try {
+                          await handleHoldOrder({ suppressProcessingState: true, suppressAlert: true, keepComposer: true });
+                        } catch (err) {
+                          console.error("Failed to hold order before checkout", err);
+                        }
                       }
 
                       if (selectedCustomer) {
