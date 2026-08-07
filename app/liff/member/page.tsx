@@ -8,6 +8,8 @@ import {
 import { motion, AnimatePresence, useScroll, useTransform, useMotionValue, animate } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
 import { useLiff } from '@/components/liff/LiffProvider';
+import { MemberOnboardingGuide } from '@/components/liff/MemberOnboardingGuide';
+import { HistoryListSkeleton } from '@/components/liff/LiffSkeleton';
 import XYLLoader from '@/components/loaders/XYLLoader';
 import { useI18n } from "@/lib/I18nContext";
 import RegistrationForm from './RegistrationForm';
@@ -98,6 +100,7 @@ function LiffMemberContent() {
   const [memberInfo, setMemberInfo] = useState<any>(ctxMemberInfo || null);
   const [isLinkingPhone, setIsLinkingPhone] = useState(false);
   const [isRegistrationSuccess, setIsRegistrationSuccess] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [loading, setLoading] = useState(!isDataReady);
 
   // Real-time check-in states
@@ -275,6 +278,15 @@ function LiffMemberContent() {
     }
   }, [isDataReady, claimToken, claimState, lineProfile, claimTrigger]);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (!showClaimPopup && claimState === 'success' && localStorage.getItem('pending_onboarding') === 'true') {
+          localStorage.removeItem('pending_onboarding');
+          setTimeout(() => setShowOnboarding(true), 500);
+      }
+    }
+  }, [showClaimPopup, claimState]);
+
   const t = {
     th: {
       loading: 'กำลังโหลดข้อมูล...',
@@ -375,18 +387,12 @@ function LiffMemberContent() {
                 setShowClaimPopup(false);
                 fetchData(true);
                 setClaimTrigger(prev => prev + 1);
+                localStorage.setItem('pending_onboarding', 'true');
               }, 2500);
             } else {
               setTimeout(() => {
-                try {
-                  if (window.liff && window.liff.isInClient()) {
-                    window.liff.openWindow({ url: 'https://line.me/R/ti/p/@xylstudio', external: false });
-                  } else {
-                    window.location.href = 'https://line.me/R/ti/p/@xylstudio';
-                  }
-                } catch (e) {
-                  window.location.href = 'https://line.me/R/ti/p/@xylstudio';
-                }
+                setIsRegistrationSuccess(false);
+                setShowOnboarding(true);
               }, 2500);
             }
         } else {
@@ -1673,6 +1679,22 @@ function LiffMemberContent() {
               </motion.p>
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Member Onboarding Guide */}
+      <AnimatePresence>
+        {showOnboarding && (
+          <MemberOnboardingGuide 
+            onClose={() => {
+              setShowOnboarding(false);
+              // If they don't have claimToken, redirect them or let them explore
+              // The original logic closed the window, but now they are exploring the page, so let them stay!
+              if (!claimToken) {
+                // Do nothing, they can just browse the member page!
+              }
+            }} 
+          />
         )}
       </AnimatePresence>
 
