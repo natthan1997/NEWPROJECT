@@ -97,6 +97,7 @@ function LiffMemberContent() {
   
   const [memberInfo, setMemberInfo] = useState<any>(ctxMemberInfo || null);
   const [isLinkingPhone, setIsLinkingPhone] = useState(false);
+  const [isRegistrationSuccess, setIsRegistrationSuccess] = useState(false);
   const [loading, setLoading] = useState(!isDataReady);
 
   // Real-time check-in states
@@ -161,17 +162,31 @@ function LiffMemberContent() {
   const liffState = searchParams.get('liff.state');
   
   const claimToken = useMemo(() => {
+    const extractFromStr = (str: string | null | undefined): string | null => {
+      if (!str) return null;
+      let cur = str;
+      for (let i = 0; i < 3; i++) {
+        const match = cur.match(/(?:[?&]|%3F|%26)claimToken(?:=3D|=)([^&%]+)/i) || cur.match(/claimToken=([^&]+)/i);
+        if (match && match[1]) return match[1];
+        try {
+          const dec = decodeURIComponent(cur);
+          if (dec === cur) break;
+          cur = dec;
+        } catch {
+          break;
+        }
+      }
+      return null;
+    };
+
     if (rawClaimToken) return rawClaimToken;
-    if (pathParam) {
-      const match = pathParam.match(/[?&]claimToken=([^&]+)/);
-      if (match) return match[1];
-    }
-    if (liffState) {
-      try {
-        const decoded = decodeURIComponent(liffState);
-        const match = decoded.match(/[?&]claimToken=([^&]+)/);
-        if (match) return match[1];
-      } catch {}
+    const fromPath = extractFromStr(pathParam);
+    if (fromPath) return fromPath;
+    const fromLiffState = extractFromStr(liffState);
+    if (fromLiffState) return fromLiffState;
+    if (typeof window !== 'undefined') {
+      const fromHref = extractFromStr(window.location.href);
+      if (fromHref) return fromHref;
     }
     return null;
   }, [rawClaimToken, pathParam, liffState]);
@@ -184,9 +199,16 @@ function LiffMemberContent() {
   const processingClaimRef = useRef(false);
 
   useEffect(() => {
-    console.log('[Claim Effect Triggered]', { isDataReady, claimToken, isProcessing: processingClaimRef.current, userId: lineProfile?.userId });
-    if (isDataReady && claimToken && !processingClaimRef.current && lineProfile?.userId) {
-      console.log('[Claim Effect] Entering processClaim');
+    if (claimToken) {
+      setShowClaimPopup(true);
+    }
+  }, [claimToken]);
+
+  useEffect(() => {
+    const userId = lineProfile?.userId || (typeof window !== 'undefined' ? localStorage.getItem('xylem_line_user_id') : null);
+    console.log('[Claim Effect Triggered]', { isDataReady, claimToken, isProcessing: processingClaimRef.current, userId });
+    if (claimToken && !processingClaimRef.current) {
+      console.log('[Claim Effect] Entering processClaim with userId:', userId);
       processingClaimRef.current = true;
       const processClaim = async () => {
         setClaimState('loading');
@@ -196,7 +218,12 @@ function LiffMemberContent() {
           const res = await fetch('/api/liff/points/claim', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: claimToken, lineUserId: lineProfile.userId })
+            body: JSON.stringify({ 
+              token: claimToken, 
+              lineUserId: userId,
+              displayName: lineProfile?.displayName,
+              avatarUrl: lineProfile?.pictureUrl
+            })
           });
           const data = await res.json();
           console.log('[Claim Effect] Response:', data);
@@ -228,6 +255,10 @@ function LiffMemberContent() {
             newUrl.searchParams.delete('claimToken');
             window.history.replaceState({}, '', newUrl.toString());
 
+            fetchData(true);
+          } else if (data.requirePhone) {
+            setClaimState('idle');
+            setShowClaimPopup(false);
             fetchData(true);
           } else {
             setClaimState('error');
@@ -333,27 +364,18 @@ function LiffMemberContent() {
         const result = await res.json();
         
         if (result.success) {
+            setIsRegistrationSuccess(true);
+            
             if (claimToken) {
-              Swal.fire({
-                icon: 'success',
-                title: 'สมัครสมาชิกสำเร็จ!',
-                text: 'ระบบกำลังดำเนินการรับคะแนนสะสมของคุณ...',
-                showConfirmButton: false,
-                timer: 1500
-              }).then(() => {
+              setTimeout(() => {
+                setIsRegistrationSuccess(false);
                 processingClaimRef.current = false;
                 setClaimState('idle');
                 setShowClaimPopup(false);
                 fetchData(true);
-              });
+              }, 2500);
             } else {
-              Swal.fire({
-                icon: 'success',
-                title: 'สมัครสมาชิกสำเร็จ!',
-                text: 'กำลังพากลับไปยังหน้าแชทของร้าน...',
-                showConfirmButton: false,
-                timer: 2000
-              }).then(() => {
+              setTimeout(() => {
                 try {
                   if (window.liff && window.liff.isInClient()) {
                     window.liff.openWindow({ url: 'https://line.me/R/ti/p/@xylstudio', external: false });
@@ -363,7 +385,7 @@ function LiffMemberContent() {
                 } catch (e) {
                   window.location.href = 'https://line.me/R/ti/p/@xylstudio';
                 }
-              });
+              }, 2500);
             }
         } else {
             alert(result.error || 'Failed to register');
@@ -1605,6 +1627,53 @@ function LiffMemberContent() {
 
 
 
+      {/* Registration Success Overlay */}
+      <AnimatePresence>
+        {isRegistrationSuccess && (
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0, transition: { duration: 0.8, ease: "easeInOut" } }}
+            className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-[#fcfcf9] overflow-hidden px-8"
+          >
+            <ParticleExplosion />
+            <motion.div 
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 260, damping: 20, delay: 0.1 }}
+              className="mb-8 flex items-center justify-center w-16 h-16 rounded-full bg-[#1A1A18] text-white shadow-2xl shadow-black/20"
+            >
+              <motion.div
+                initial={{ scale: 0, rotate: -45 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ delay: 0.3, type: "spring", stiffness: 300, damping: 20 }}
+              >
+                <CheckCircle2 size={32} strokeWidth={2} />
+              </motion.div>
+            </motion.div>
+            
+            <div className="space-y-4 text-center w-full relative z-10">
+              <motion.h1 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                  className="text-[28px] font-black text-[#1A1A18] tracking-tighter"
+              >
+                  สมัครสมาชิกสำเร็จ!
+              </motion.h1>
+              <motion.p 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.5 }}
+                  className="text-[12px] font-bold text-gray-500 tracking-widest uppercase"
+              >
+                  {claimToken ? 'กำลังดำเนินการรับคะแนน...' : 'กำลังพากลับไปยังแชท...'}
+              </motion.p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Claim Popup Overlay */}
       <AnimatePresence>
         {showClaimPopup && (
@@ -1769,7 +1838,7 @@ function LiffMemberContent() {
                     className="px-4 pt-2"
                   >
                     <p className="text-[14px] font-medium text-gray-500 mt-1 leading-relaxed">
-                      คุณจะได้รับคะแนนสะสมเท่านี้ แต่จะได้รับก็ต่อเมื่อการชำระเงินสำเร็จ
+                      คุณจะได้รับคะแนนนี้เมื่อชำระเงินสำเร็จ
                     </p>
                   </motion.div>
                 </div>
