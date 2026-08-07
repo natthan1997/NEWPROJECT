@@ -108,6 +108,7 @@ export function MemberOnboardingGuide({ onClose }: MemberOnboardingGuideProps) {
       setCurrentStep(prev => prev + 1);
     } else {
       onClose();
+      window.location.href = 'https://line.me/R/ti/p/@xylstudio';
     }
   };
 
