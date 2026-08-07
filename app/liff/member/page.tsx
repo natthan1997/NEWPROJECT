@@ -197,6 +197,7 @@ function LiffMemberContent() {
   const [claimMessage, setClaimMessage] = useState('');
   const [claimOrderItems, setClaimOrderItems] = useState<any[]>([]);
   const processingClaimRef = useRef(false);
+  const [claimTrigger, setClaimTrigger] = useState(0);
 
   useEffect(() => {
     if (claimToken) {
@@ -272,7 +273,7 @@ function LiffMemberContent() {
       };
       processClaim();
     }
-  }, [isDataReady, claimToken, claimState, lineProfile]);
+  }, [isDataReady, claimToken, claimState, lineProfile, claimTrigger]);
 
   const t = {
     th: {
@@ -373,6 +374,7 @@ function LiffMemberContent() {
                 setClaimState('idle');
                 setShowClaimPopup(false);
                 fetchData(true);
+                setClaimTrigger(prev => prev + 1);
               }, 2500);
             } else {
               setTimeout(() => {
