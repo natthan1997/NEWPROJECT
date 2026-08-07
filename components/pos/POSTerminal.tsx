@@ -81,6 +81,7 @@ import { printGraphicModeCustomerReceipt, printGraphicModeKitchenTicket } from '
 import POSCustomerSelect from './POSCustomerSelect'
 import POSShopStatusModal from './POSShopStatusModal'
 import PointGenerator from './PointGenerator'
+import POSHistoryPointsModal from './POSHistoryPointsModal'
 import POSPinModal from './POSPinModal'
 import POSSplitPaymentModal from './POSSplitPaymentModal'
 import POSPromotionsModal from './POSPromotionsModal'
@@ -378,6 +379,8 @@ export default function POSTerminal({
 
   const { locale } = useI18n();
   const [showPointModal, setShowPointModal] = useState(false)
+  const [showHistoryPointModalForCurrentOrder, setShowHistoryPointModalForCurrentOrder] = useState(false)
+  const [currentPointOrderId, setCurrentPointOrderId] = useState<string | null>(null)
   const [showTableModal, setShowTableModal] = useState(false)
   const [showNotificationModal, setShowNotificationModal] = useState(false)
   const [showDeliveryHub, setShowDeliveryHub] = useState(false)
@@ -435,6 +438,10 @@ const [isPinModalOpen, setIsPinModalOpen] = useState(false)
   const [pinDesc, setPinDesc] = useState('')
 
   const [couponSelectorCoupon, setCouponSelectorCoupon] = useState<any | null>(null)
+  const [activeCouponCount, setActiveCouponCount] = useState<number>(0)
+
+  // We keep this to show the member's available coupons in a future modal if needed
+  const [memberAvailableCoupons, setMemberAvailableCoupons] = useState<any[]>([])
 
   // Cash Payment Modal States
 const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
@@ -455,7 +462,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   const [memberLookupMode, setMemberLookupMode] = useState<'phone' | 'qr'>('phone')
   const [draftDeliveryPlatform, setDraftDeliveryPlatform] = useState('')
   const [draftPlatformOrderId, setDraftPlatformOrderId] = useState('')
-  const [heldCartFingerprint, setHeldCartFingerprint] = useState('')
+  const [heldCartFingerprint, setHeldCartFingerprint] = useState<string | null>(null)
 
   const activeDeliveryPlatforms = shopSettings?.opening_hours?.active_delivery_platforms || ['grab', 'lineman', 'shopee', 'foodpanda', 'robinhood']
 
@@ -463,14 +470,18 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 
   // Member Checkout Flow States
   const [showMemberCheckoutFlow, setShowMemberCheckoutFlow] = useState(false)
+  const showMemberCheckoutFlowRef = useRef(showMemberCheckoutFlow)
+  useEffect(() => {
+    showMemberCheckoutFlowRef.current = showMemberCheckoutFlow
+  }, [showMemberCheckoutFlow])
   const [memberCheckoutStep, setMemberCheckoutStep] = useState<'lookup' | 'points'>('lookup')
-  const [memberAvailableCoupons, setMemberAvailableCoupons] = useState<any[]>([])
   const [memberSearchQuery, setMemberSearchQuery] = useState('')
   const [isSearchingMember, setIsSearchingMember] = useState(false)
-  const [redeemPointsAmount, setRedeemPointsAmount] = useState<string>('')
   const [memberSearchResults, setMemberSearchResults] = useState<any[]>([])
   const [memberTiers, setMemberTiers] = useState<any[]>([])
   const [posQrLoyaltyToken, setPosQrLoyaltyToken] = useState<string | null>(null)
+  const [posQrPointsEarned, setPosQrPointsEarned] = useState<number>(0)
+  const [qrSessionId, setQrSessionId] = useState<string>('')
 
 
   const openDeliveryPlatformModal = (platformOverride?: string) => {
@@ -509,7 +520,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 
   const resetOrderComposer = () => {
     setCart([])
-    setHeldCartFingerprint('')
+    setHeldCartFingerprint(null)
     setEditingOrderId(null)
     setEditingOrderNumber(null)
     setSelectedTable(null)
@@ -549,6 +560,8 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   const longPressTimer = useRef<NodeJS.Timeout | null>(null)
   const isLongPressTriggered = useRef(false)
   const touchStartPos = useRef<{ x: number, y: number } | null>(null)
+  const [isAutoCreatingOrder, setIsAutoCreatingOrder] = useState(false)
+  const isAutoCreatingOrderLock = useRef(false)
 
   const handlePressStart = (e: React.TouchEvent | React.MouseEvent, item: MenuItem) => {
     isLongPressTriggered.current = false
@@ -1190,7 +1203,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 
   const cartItemCount = useMemo(() => cart.reduce((acc, item) => acc + item.quantity, 0), [cart])
   const cartFingerprint = useMemo(() => buildCartFingerprint(cart), [cart])
-  const isHeldOrderBaselineLoading = !!editingOrderId && !heldCartFingerprint
+  const isHeldOrderBaselineLoading = !!editingOrderId && heldCartFingerprint === null
   const hasUnsavedOrderChanges = !editingOrderId || cartFingerprint !== heldCartFingerprint
   const rawCartSubTotal = useMemo(
     () =>
@@ -1219,8 +1232,47 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   )
 
   const discountTotalValue = useMemo(() => {
+    if (activeCoupon && activeCoupon.discount_type !== 'free_item') {
+      // Check minimum spend
+      if (activeCoupon.min_order_amount > 0 && cartSubTotal < activeCoupon.min_order_amount) {
+        return 0; // Does not meet minimum spend
+      }
+
+      // Filter valid items for discount based on inclusions/exclusions
+      const validItems = cart.filter(item => {
+        if (activeCoupon.excluded_items?.includes(item.id)) return false;
+        if (activeCoupon.excluded_categories?.includes(item.category_id)) return false;
+        if (activeCoupon.applicable_items?.length > 0 && !activeCoupon.applicable_items.includes(item.id)) return false;
+        if (activeCoupon.applicable_categories?.length > 0 && !activeCoupon.applicable_categories.includes(item.category_id)) return false;
+        return true;
+      });
+
+      if (validItems.length === 0) return 0;
+
+      let discount = 0;
+      
+      if (activeCoupon.discount_type === 'percent') {
+        const validTotal = validItems.reduce((acc, item) => {
+          const modsPrice = item.selected_modifiers?.reduce((a: number, m: any) => a + ((m.price_adjustment || 0) * (m.qty || 1)), 0) || 0;
+          return acc + ((getEffectiveItemUnitPrice(item) + modsPrice) * item.quantity);
+        }, 0);
+        discount = validTotal * (activeCoupon.discount_value / 100);
+      } else if (activeCoupon.discount_type === 'fixed_amount' || activeCoupon.discount_type === 'fixed') {
+        discount = activeCoupon.discount_value;
+      }
+
+      // Cap at max discount if specified
+      if (activeCoupon.max_discount_amount && activeCoupon.max_discount_amount > 0) {
+        if (discount > activeCoupon.max_discount_amount) {
+          discount = activeCoupon.max_discount_amount;
+        }
+      }
+
+      return discount;
+    }
+
     return discountType === 'percent' ? cartSubTotal * (discountRate / 100) : discountValue
-  }, [cartSubTotal, discountType, discountRate, discountValue])
+  }, [activeCoupon, cart, cartSubTotal, discountType, discountRate, discountValue])
 
   const vatAmount = useMemo(() => {
     return hasVat ? (cartSubTotal - discountTotalValue) * (vatRate / 100) : 0
@@ -1264,22 +1316,42 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 
   // --- HEADER PORTAL ---
   useEffect(() => {
-    if (showMemberCheckoutFlow && memberLookupMode === 'qr') {
+    if (showMemberCheckoutFlow) {
+      setQrSessionId(Date.now().toString());
+      let isMounted = true;
       const getQrToken = async () => {
         try {
-          const targetOrderId = editingOrderId || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `cart_${Date.now()}`);
-          qrTargetOrderIdRef.current = targetOrderId;
-          const res = await fetchOrGenerateLoyaltyToken(targetOrderId, cartTotal > 0 ? cartTotal : 100, shopSettings);
-          if (res.token) {
-            setPosQrLoyaltyToken(res.token);
+          if (!qrTargetOrderIdRef.current) {
+            qrTargetOrderIdRef.current = editingOrderId || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `cart_${Date.now()}`);
+          }
+          const targetOrderId = qrTargetOrderIdRef.current;
+          const res = await fetchOrGenerateLoyaltyToken(targetOrderId, cartTotal, shopSettings);
+          if (isMounted) {
+            if (res.token) {
+              setPosQrLoyaltyToken(res.token);
+              setPosQrPointsEarned(res.points || 0);
+            } else {
+              setPosQrLoyaltyToken('general_member_checkin');
+              setPosQrPointsEarned(0);
+            }
           }
         } catch (err) {
           console.error("Failed to generate POS QR token", err);
+          if (isMounted) {
+            setPosQrLoyaltyToken('general_member_checkin');
+          }
         }
       };
       getQrToken();
+      return () => { isMounted = false; };
+    } else {
+      setPosQrLoyaltyToken(null);
+      setPosQrPointsEarned(0);
+      qrTargetOrderIdRef.current = null;
     }
-  }, [showMemberCheckoutFlow, memberLookupMode, editingOrderId, cartTotal, shopSettings]);
+  }, [showMemberCheckoutFlow, editingOrderId, cartTotal, shopSettings]);
+
+
 
 
   useEffect(() => {
@@ -1325,7 +1397,20 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
               </button>
               
               <button
-                onClick={() => setShowPointModal(true)}
+                onClick={async () => {
+                  if (cart.length > 0) {
+                    try {
+                      const res = await handleHoldOrder({ suppressProcessingState: true, suppressAlert: true, keepComposer: true });
+                      setCurrentPointOrderId(res?.orderId || editingOrderId);
+                      setShowHistoryPointModalForCurrentOrder(true);
+                    } catch (err) {
+                      console.error(err);
+                      alert('เกิดข้อผิดพลาดในการบันทึกบิลก่อนให้แต้ม');
+                    }
+                  } else {
+                    setShowPointModal(true);
+                  }
+                }}
                 className="relative flex h-9 w-9 sm:h-10 sm:w-10 rounded-full items-center justify-center border border-[#F0F0E8] bg-white text-[#1A1A18] hover:border-black font-bold transition-all"
                 title={locale === 'en' ? 'สะสมแต้ม' : locale === 'zh' ? 'สะสมแต้ม' : 'ให้แต้ม'}
               >
@@ -1442,7 +1527,13 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     const { data } = await query
 
     if (data) {
-      setPendingOrders(data)
+      // Filter out auto-generated "ghost" draft orders that haven't been saved yet (no items and total_amount === 0)
+      const validOrders = data.filter((order: any) => {
+        const hasItems = order.pos_order_items && order.pos_order_items.length > 0;
+        const isGhost = !hasItems && order.total_amount === 0;
+        return !isGhost;
+      })
+      setPendingOrders(validOrders)
     }
   }
 
@@ -1503,6 +1594,48 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
        orderNumber: editingOrderNumber || `ORDER-${Date.now()}` 
     }
   };
+
+  useEffect(() => {
+    let isMounted = true;
+    if (orderType === 'takeaway' && !editingOrderId && cart.length > 0 && !isAutoCreatingOrderLock.current) {
+      isAutoCreatingOrderLock.current = true;
+      setIsAutoCreatingOrder(true);
+      (async () => {
+        try {
+          const identity = await fetchOrderIdentity(null)
+          const payload: any = {
+            order_action: 'insert',
+            order: {
+              order_number: identity.orderNumber,
+              staff_id: profile?.id,
+              shift_id: activeShift?.id,
+              branch_id: shopSettings?.branch_id || activeShift?.branch_id || null,
+              status: 'pending',
+              total_amount: 0,
+              net_total: 0,
+              order_type: 'takeaway',
+              queue_number: identity.queueNumber,
+              order_source: 'pos',
+            }
+          }
+          const { data: rpcResult, error: rpcError } = await supabase.rpc('pos_checkout_order', { payload })
+          if (!rpcError && rpcResult?.order_id && isMounted) {
+            setEditingOrderId(rpcResult.order_id)
+            setEditingOrderNumber(identity.orderNumber)
+            setHeldCartFingerprint('')
+          }
+        } catch (err) {
+          console.error('Auto create takeaway order error:', err)
+        } finally {
+          if (isMounted) {
+            setIsAutoCreatingOrder(false);
+            isAutoCreatingOrderLock.current = false;
+          }
+        }
+      })();
+    }
+    return () => { isMounted = false; }
+  }, [orderType, cart.length, editingOrderId, profile?.id, activeShift?.id, shopSettings?.branch_id])
 
   const activePrintData = useMemo(() => {
     if (paymentSuccessData) return paymentSuccessData;
@@ -1815,8 +1948,38 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       }
     };
 
+    const handleCancelCoupon = (e: any) => {
+      const { id } = e.detail;
+      setAppliedCouponId((currentAppliedId) => {
+        if (currentAppliedId === id) {
+          setActiveCoupon(null);
+          setDiscountType('fixed');
+          setDiscountValue(0);
+          setDiscountRate(0);
+          setDiscountName('');
+          
+          // Remove any free items from the cart since the coupon was cancelled
+          setCart(prevCart => prevCart.filter(item => !item.is_free_coupon_item));
+          
+          // Play a sound or alert to notify cashier
+          playAppSound('error');
+          alert('ลูกค้ายกเลิกการใช้คูปองนี้จากโทรศัพท์มือถือแล้ว ระบบได้ทำการล้างคูปองออกจากออเดอร์');
+          return null;
+        }
+        return currentAppliedId;
+      });
+      setActiveCoupon((currentActive: any) => {
+         if (currentActive?.id === id) return null;
+         return currentActive;
+      });
+    };
+
     window.addEventListener('applyPOSCoupon', handleApplyCoupon);
-    return () => window.removeEventListener('applyPOSCoupon', handleApplyCoupon);
+    window.addEventListener('cancelPOSCoupon', handleCancelCoupon);
+    return () => {
+      window.removeEventListener('applyPOSCoupon', handleApplyCoupon);
+      window.removeEventListener('cancelPOSCoupon', handleCancelCoupon);
+    }
   }, [cart]);
 
 
@@ -1928,6 +2091,21 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         .eq('status', 'pending')
         .order('created_at', { ascending: true });
       if (data) {
+        data.forEach(item => {
+          const isTargetMatch = (item.order_id && (item.order_id === editingOrderIdRef.current || item.order_id === qrTargetOrderIdRef.current)) || showMemberCheckoutFlowRef.current;
+          if (isTargetMatch) {
+            supabase.from('pos_members').select('*').eq('id', item.member_id).maybeSingle().then(({data: memberData}) => {
+              if (memberData) {
+                setSelectedCustomer(memberData);
+                setLinkedCheckInId(item.id);
+                supabase.from('pos_member_checkins').update({ status: 'linked' }).eq('id', item.id).then(()=>{});
+                playAppSound('success');
+                setMemberCheckoutStep('points');
+              }
+            });
+          }
+        });
+
         setMemberCheckIns(prev => {
           const merged = [...prev];
           data.forEach(item => {
@@ -1953,19 +2131,22 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         (payload: any) => {
           if (payload.eventType === 'INSERT') {
             const newItem = payload.new;
-            if (newItem.status === 'pending') {
+            if (newItem.status === 'pending' || newItem.status === 'linked') {
               // Check if check-in belongs to the current terminal's active QR or order
-              if (newItem.order_id && (newItem.order_id === editingOrderIdRef.current || newItem.order_id === qrTargetOrderIdRef.current)) {
+              const isTargetMatch = (newItem.order_id && (newItem.order_id === editingOrderIdRef.current || newItem.order_id === qrTargetOrderIdRef.current)) || showMemberCheckoutFlowRef.current;
+              if (isTargetMatch) {
                 supabase.from('pos_members').select('*').eq('id', newItem.member_id).maybeSingle().then(({data}) => {
                   if (data) {
                     setSelectedCustomer(data);
                     setLinkedCheckInId(newItem.id);
-                    supabase.from('pos_member_checkins').update({ status: 'linked' }).eq('id', newItem.id).then(()=>{});
+                    if (newItem.status === 'pending') {
+                      supabase.from('pos_member_checkins').update({ status: 'linked' }).eq('id', newItem.id).then(()=>{});
+                    }
                     playAppSound('success');
                     setMemberCheckoutStep('points');
                   }
                 });
-              } else {
+              } else if (newItem.status === 'pending') {
                 setMemberCheckIns(prev => {
                   if (prev.some(item => item.id === newItem.id)) return prev;
                   return [...prev, newItem];
@@ -2199,25 +2380,21 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       const fetchCoupons = async () => {
         const { data } = await supabase
           .from('pos_member_coupons')
-          .select('*, pos_loyalty_coupons(*)')
+          .select('*')
           .eq('member_id', selectedCustomer.id)
-          .eq('status', 'available');
+          .eq('status', 'active');
         if (data) {
-          const mapped = data.map((c: any) => ({
-            ...c.pos_loyalty_coupons,
-            id: c.id,
-            coupon_name: c.pos_loyalty_coupons?.coupon_name || c.pos_loyalty_coupons?.name,
-            discount_type: c.pos_loyalty_coupons?.discount_type,
-            discount_value: c.pos_loyalty_coupons?.discount_value,
-          }));
-          setMemberAvailableCoupons(mapped);
+          setMemberAvailableCoupons(data);
+          setActiveCouponCount(data.length);
         } else {
           setMemberAvailableCoupons([]);
+          setActiveCouponCount(0);
         }
       };
       fetchCoupons();
     } else {
       setMemberAvailableCoupons([]);
+      setActiveCouponCount(0);
     }
   }, [selectedCustomer]);
 
@@ -2633,7 +2810,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     }
   };
 
-  async function handleHoldOrder(options?: { suppressProcessingState?: boolean; suppressAlert?: boolean }) {
+  async function handleHoldOrder(options?: { suppressProcessingState?: boolean; suppressAlert?: boolean; keepComposer?: boolean }) {
     if (cart.length === 0) return
     if (typeof window !== 'undefined' && !navigator.onLine) {
       logPOSPrintFlow('hold_guard:fail', { reason: 'offline' })
@@ -2670,6 +2847,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 	      let finalOrderNumber = editingOrderNumber || ''
 	      let finalQueueNumber = 0;
 	      let existingComparableItems: any[] = []
+          let newItems: any[] = []
 
           const identity = await fetchOrderIdentity(editingOrderId)
           finalOrderNumber = identity.orderNumber
@@ -2690,7 +2868,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             category_id: row.item?.category_id || 'uncategorized',
           }))
 
-          const newItems = computeNewCartItems(cart, existingComparableItems)
+          newItems = computeNewCartItems(cart, existingComparableItems)
           if (newItems.length === 0) {
             throw new Error('บิลนี้พักไว้แล้ว กรุณาเพิ่มรายการใหม่ก่อนส่งออเดอร์เพิ่ม')
           }
@@ -2820,7 +2998,9 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 	        newItems: newItemsForPrint,
 	      }
 
-	      resetOrderComposer()
+	      if (!options?.keepComposer) {
+	        resetOrderComposer()
+	      }
 	      refreshPendingOrders()
 	      return savedPayload
 	    } catch (e) {
@@ -2885,44 +3065,6 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     } finally {
       setIsSearchingMember(false);
     }
-  };
-
-  const handleApplyPointsDiscount = () => {
-    const pointsToUse = parseInt(redeemPointsAmount) || 0;
-    if (pointsToUse <= 0 || !selectedCustomer) {
-      setShowMemberCheckoutFlow(false);
-      setShowPaymentModal(true);
-      return;
-    }
-    
-    const maxPoints = selectedCustomer.points || 0;
-    if (pointsToUse > maxPoints) {
-      alert(locale === 'en' ? 'Not enough points' : 'แต้มไม่เพียงพอ');
-      return;
-    }
-    
-    const valPerPoint = Number(shopSettings?.opening_hours?.loyalty_redeem_thb !== undefined ? shopSettings.opening_hours.loyalty_redeem_thb : (shopSettings?.opening_hours?.loyalty_points_per_thb || 10)) || 10;
-    const discountValue = Math.floor(pointsToUse / (Number(shopSettings?.opening_hours?.loyalty_redeem_pts !== undefined ? shopSettings.opening_hours.loyalty_redeem_pts : 1) || 1)) * valPerPoint;
-    const grossTotal = cartSubTotal + vatAmount + serviceChargeAmount;
-    
-    if (discountValue > grossTotal) {
-       alert(locale === 'en' ? 'Discount exceeds cart total' : 'ส่วนลดเกินยอดบิล');
-       return;
-    }
-    
-    setBillDiscountModalType('fixed');
-    setBillDiscountInput(String(discountValue));
-    setBillDiscountReason('แลกแต้มสมาชิก (' + pointsToUse + ' pts)');
-    
-    // Automatically apply it (we need to mimic applyBillDiscount, or just set it and let applyBillDiscount run)
-    // To be safe, we just set the states and then call applyBillDiscount logic manually:
-    setDiscountType('fixed');
-    setDiscountValue(discountValue);
-    setDiscountName('แลกแต้มสมาชิก (' + pointsToUse + ' pts)');
-    setShowBillDiscountModal(false);
-    
-    setShowMemberCheckoutFlow(false);
-    setShowPaymentModal(true);
   };
 
   const handleProcessPayment = async (method: string, amount?: number) => {
@@ -3230,16 +3372,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         payload.member_id = selectedCustomer.id;
         payload.points_history = [];
         
-        if (redeemPointsAmount && parseInt(redeemPointsAmount) > 0) {
-          const pts = parseInt(redeemPointsAmount);
-          payload.points_to_deduct = pts;
-          payload.points_history.push({
-            points: -pts,
-            points_change: -pts,
-            type: 'redeem',
-            description: `Redeemed ${pts} pts for POS Order`
-          });
-        }
+
         
         if (appliedCouponId) {
           payload.coupon_id_to_mark_used = appliedCouponId;
@@ -3355,6 +3488,18 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                 .eq('order_id', orderIdToSearch);
             } catch (pErr) {
               console.error('Failed to update pending point history:', pErr);
+            }
+
+            // Update QR reward token to the final order ID if it was generated with a fake UUID
+            if (qrTargetOrderIdRef.current && qrTargetOrderIdRef.current !== orderIdToSearch) {
+              try {
+                await supabase
+                  .from('pos_qr_reward_tokens')
+                  .update({ order_id: orderIdToSearch })
+                  .eq('order_id', qrTargetOrderIdRef.current);
+              } catch (tErr) {
+                console.error('Failed to update token order id:', tErr);
+              }
             }
           }
         }
@@ -3593,6 +3738,54 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         </div>
       )}
 
+      {/* MOTION STATE OVERLAY - Replaces the box banner */}
+      {activeCoupon && activeCoupon.discount_type === 'free_item' && (
+        <motion.div 
+          className="absolute inset-0 z-40 pointer-events-none overflow-hidden rounded-xl"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          {/* Subtle Orange Glowing Edge Border */}
+          <motion.div 
+            className="absolute inset-0 border-[2px] border-orange-500/50 shadow-[inset_0_0_20px_rgba(249,115,22,0.15)] pointer-events-none"
+            animate={{ opacity: [0.4, 0.8, 0.4] }}
+            transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
+          />
+
+          {/* Clean Floating Action Text - Moved to bottom (Snackbar style) */}
+          <div className="absolute bottom-6 sm:bottom-8 left-0 right-0 flex justify-center pointer-events-none px-4">
+            <motion.div 
+              className="pointer-events-auto cursor-pointer flex items-center gap-3 bg-white/95 backdrop-blur-xl pl-2 pr-4 py-2 rounded-full shadow-[0_8px_30px_rgb(249,115,22,0.15)] border border-orange-200 group"
+              onClick={() => setActiveCoupon(null)}
+              whileHover={{ y: -2, scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+            >
+              <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-tr from-orange-100 to-orange-50 text-orange-600 shrink-0 shadow-sm border border-orange-100/50">
+                <Gift size={18} strokeWidth={2.5} className="group-hover:animate-bounce" />
+              </div>
+              
+              <div className="flex flex-col py-1">
+                <span className="font-bold text-[13px] text-gray-900 leading-tight">
+                  {locale === 'en' ? 'Select Free Item' : 'เลือกสินค้าสำหรับรับฟรี'}
+                </span>
+                <span className="text-[10px] font-semibold text-gray-500 leading-tight">
+                  {locale === 'en' ? 'Tap a menu to apply' : 'แตะที่เมนูเพื่อใช้สิทธิ์'}
+                </span>
+              </div>
+
+              <div className="w-[1px] h-6 bg-gray-200 mx-1"></div>
+
+              <span className="text-[11px] font-extrabold text-orange-500 group-hover:text-red-500 transition-colors px-2 uppercase tracking-wide">
+                {locale === 'en' ? 'Cancel' : 'ยกเลิก'}
+              </span>
+            </motion.div>
+          </div>
+        </motion.div>
+      )}
+
       {/* 3. MAIN TERMINAL GRID */}
       <main className="custom-scrollbar flex-1 overflow-y-auto bg-[#FDFDFB] p-4 sm:p-6 xl:p-8 font-bold min-h-0">
         <div className="mx-auto font-bold min-h-full pb-32">
@@ -3757,7 +3950,10 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                 {editingOrderId && (
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
+                      if (cart.length === 0) {
+                        await handleDeleteOrder(editingOrderId);
+                      }
                       resetOrderComposer();
                     }}
                     className="flex h-8 w-8 items-center justify-center text-gray-400 hover:text-black transition-colors"
@@ -4140,10 +4336,10 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
               <div className="flex gap-4 pt-2">
                 <button
                   onClick={handleSendOrder}
-                  disabled={isProcessing || cart.length === 0 || isHeldOrderBaselineLoading || (!!editingOrderId && !hasUnsavedOrderChanges)}
+                  disabled={isProcessing || isAutoCreatingOrder || cart.length === 0 || isHeldOrderBaselineLoading || (!!editingOrderId && !hasUnsavedOrderChanges)}
                   className="flex h-16 flex-1 items-center justify-center gap-3 border border-[#1A1A18] text-[10px] font-black uppercase tracking-[0.3em] transition-all hover:bg-black hover:text-white disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400"
                 >
-                  <Printer size={16} /> {isHeldOrderBaselineLoading ? 'กำลังเช็กบิลพัก' : !!editingOrderId && !hasUnsavedOrderChanges ? 'พักแล้ว เพิ่มรายการใหม่' : locale === 'en' ? 'พักบิล' : locale === 'zh' ? 'พักบิล' : 'พักบิล'}</button>
+                  <Printer size={16} /> {isAutoCreatingOrder ? 'กำลังสร้างออเดอร์...' : isHeldOrderBaselineLoading ? 'กำลังเช็กบิลพัก' : !!editingOrderId && !hasUnsavedOrderChanges ? 'พักแล้ว เพิ่มรายการใหม่' : locale === 'en' ? 'พักบิล' : locale === 'zh' ? 'พักบิล' : 'พักบิล'}</button>
                 {!!editingOrderId && cart.length === 0 ? (
                   <button
                     onClick={() => {
@@ -4175,9 +4371,9 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                         setShowMemberCheckoutFlow(true);
                       }
                     }}
-                    disabled={cart.length === 0}
+                    disabled={isAutoCreatingOrder || cart.length === 0}
                     className={`flex h-16 flex-[2] items-center justify-center gap-4 text-[11px] font-black uppercase tracking-[0.4em] text-white shadow-xl transition-all ${
-                      cart.length === 0 ? 'bg-gray-400 cursor-not-allowed' : orderType === 'delivery' ? 'bg-orange-500 hover:bg-orange-600' : 'bg-[#1A1A18] hover:bg-black'
+                      (isAutoCreatingOrder || cart.length === 0) ? 'bg-gray-400 cursor-not-allowed' : orderType === 'delivery' ? 'bg-orange-500 hover:bg-orange-600' : 'bg-[#1A1A18] hover:bg-black'
                     }`}
                   >
                     <span>{orderType === 'delivery' ? 'ยืนยันส่งออเดอร์' : locale === 'en' ? 'Checkout' : locale === 'zh' ? '结账' : 'ชำระเงิน'}</span>
@@ -4233,6 +4429,21 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             <PointGenerator onClose={() => setShowPointModal(false)} />
           </div>
         </div>
+      )}
+      
+      {showHistoryPointModalForCurrentOrder && (
+        <POSHistoryPointsModal
+          order={{ id: currentPointOrderId || editingOrderId, total_amount: cartTotal }}
+          shopSettings={shopSettings}
+          onClose={() => {
+            setShowHistoryPointModalForCurrentOrder(false)
+            setCurrentPointOrderId(null)
+          }}
+          onSuccess={() => {
+            setShowHistoryPointModalForCurrentOrder(false)
+            setCurrentPointOrderId(null)
+          }}
+        />
       )}
 
       {/* 7. TABLE SELECTION MODAL */}
@@ -5644,15 +5855,33 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                       </>
                     ) : (
                       <div className="flex flex-col items-center justify-center py-4 space-y-6 animate-in fade-in duration-300">
-                        <div className="p-6 bg-white border-2 border-gray-100 rounded-3xl shadow-xl flex items-center justify-center">
-                          <QRCodeSVG
-                            value={`https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}?path=${encodeURIComponent(`/liff/member${posQrLoyaltyToken ? `?claimToken=${posQrLoyaltyToken}` : ''}`)}${posQrLoyaltyToken ? `&claimToken=${posQrLoyaltyToken}` : ''}`}
-                            size={220}
-                            level="H"
-                            includeMargin={true}
-                          />
+                        <div className="p-6 bg-white border-2 border-gray-100 rounded-3xl shadow-xl flex items-center justify-center min-w-[260px] min-h-[260px]">
+                          {posQrLoyaltyToken ? (
+                            <QRCodeSVG
+                              value={
+                                posQrLoyaltyToken !== 'general_member_checkin'
+                                  ? `https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}?claimToken=${posQrLoyaltyToken}&session=${qrSessionId}&path=${encodeURIComponent(`/liff/member?claimToken=${posQrLoyaltyToken}&session=${qrSessionId}`)}`
+                                  : `https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}/?path=${encodeURIComponent('/liff/member')}`
+                              }
+                              size={220}
+                              level="H"
+                              includeMargin={true}
+                            />
+                          ) : (
+                            <div className="flex flex-col items-center justify-center space-y-3 py-6 px-4">
+                              <Loader2 className="animate-spin text-[#1A1A18]" size={36} />
+                              <span className="text-xs font-bold text-gray-500">{locale === 'en' ? 'Generating QR Code...' : 'กำลังสร้าง QR Code...'}</span>
+                            </div>
+                          )}
                         </div>
                         <div className="text-center space-y-1.5 px-4">
+                          {posQrPointsEarned > 0 ? (
+                            <div className="bg-emerald-50 text-emerald-600 px-4 py-3 rounded-2xl mb-4 font-black flex items-center justify-center gap-2">
+                              <span>ลูกค้าจะได้รับ</span>
+                              <span className="text-2xl">{posQrPointsEarned}</span>
+                              <span>คะแนน</span>
+                            </div>
+                          ) : null}
                           <p className="text-sm font-black text-[#1A1A18] uppercase tracking-wider">
                             {locale === 'en' ? 'Customers scan with LINE app' : 'ให้ลูกค้าเปิดแอป LINE แล้วสแกน QR Code นี้'}
                           </p>
@@ -5675,11 +5904,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                  </div>
                ) : (
                  <div className="p-8">
-                   <div className="flex items-center justify-between mb-8">
-                     <div>
-                       <h3 className="text-xl font-black text-[#1A1A18]">{selectedCustomer?.full_name || selectedCustomer?.display_name}</h3>
-                       <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">{selectedCustomer?.phone}</p>
-                     </div>
+                   <div className="flex items-center gap-4 mb-6 bg-gray-50 rounded-2xl p-4 border border-gray-100 relative">
                      <button 
                        onClick={() => {
                            if (linkedCheckInId) {
@@ -5690,83 +5915,77 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                            setMemberSearchQuery('')
                           setMemberCheckoutStep('lookup')
                        }}
-                       className="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-[#1A1A18] bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-full transition-all"
+                       className="absolute top-4 right-4 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-[#1A1A18] bg-white hover:bg-gray-100 shadow-sm px-3 py-1.5 rounded-full transition-all"
                      >
                        {locale === 'en' ? 'Change' : 'เปลี่ยนลูกค้า'}
                      </button>
-                   </div>
-
-                   <div className="bg-[#1A1A18] rounded-3xl p-8 mb-8 text-center text-white relative overflow-hidden shadow-2xl">
-                     <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -mr-10 -mt-10"></div>
-                     <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full blur-xl -ml-10 -mb-10"></div>
                      
-                     <div className="text-xs font-black uppercase tracking-[0.3em] text-white/50 mb-2">Available Points</div>
-                     <div className="flex items-center justify-center gap-2">
-                       <span className="text-6xl font-black tracking-tighter">{selectedCustomer?.points || 0}</span>
-                       <span className="text-xl font-bold uppercase mt-4 text-white/70">PTS</span>
-                     </div>
-                     <div className="mt-4 inline-flex items-center gap-2 bg-white/10 px-4 py-2 rounded-full text-xs font-bold text-white/90">
-                       <Award size={14} />
-                       {shopSettings?.opening_hours?.loyalty_redeem_pts !== undefined ? shopSettings.opening_hours.loyalty_redeem_pts : 1} PTS = {shopSettings?.opening_hours?.loyalty_redeem_thb !== undefined ? shopSettings.opening_hours.loyalty_redeem_thb : (shopSettings?.opening_hours?.loyalty_points_per_thb || 10)} ฿
-                     </div>
-                   </div>
-                   
-                   <div className="mb-8">
-                     <div className="flex items-center justify-between mb-4">
-                       <label className="block text-xs font-black uppercase tracking-widest text-gray-400">
-                         {locale === 'en' ? 'Redeem Points' : 'ระบุแต้มที่ใช้'}
-                       </label>
-                       {redeemPointsAmount && parseInt(redeemPointsAmount) > 0 && (
-                         <div className="text-xs font-black text-emerald-500 uppercase tracking-widest bg-emerald-50 px-3 py-1 rounded-full">
-                           -{Math.floor(parseInt(redeemPointsAmount) / (shopSettings?.opening_hours?.loyalty_redeem_pts !== undefined ? shopSettings.opening_hours.loyalty_redeem_pts : 1)) * (shopSettings?.opening_hours?.loyalty_redeem_thb !== undefined ? shopSettings.opening_hours.loyalty_redeem_thb : (shopSettings?.opening_hours?.loyalty_points_per_thb || 10)).toLocaleString()} ฿
-                         </div>
-                       )}
-                     </div>
-                     
-                     <div className="grid grid-cols-4 gap-2 mb-4">
-                        {[50, 100, 200].map(pts => {
-                           const canUse = (selectedCustomer?.points || 0) >= pts;
-                           // also check if this discount is larger than cart total
-                           const valPerPoint = (shopSettings?.opening_hours?.loyalty_points_per_thb) || 10;
-                           const isOverBill = (pts * valPerPoint) > cartTotal;
-                           return (
-                              <button
-                                 key={pts}
-                                 disabled={!canUse || isOverBill}
-                                 onClick={() => setRedeemPointsAmount(String(pts))}
-                                 className="py-3 bg-gray-50 hover:bg-gray-100 text-[#1A1A18] font-black rounded-xl text-sm transition-all disabled:opacity-30"
-                              >
-                                 {pts}
-                              </button>
-                           )
-                        })}
-                        <button
-                           disabled={(selectedCustomer?.points || 0) === 0}
-                           onClick={() => {
-                              const valPerPoint = (shopSettings?.opening_hours?.loyalty_points_per_thb) || 10;
-                              // Max points they can use is min(their points, cartTotal / valPerPoint)
-                              const maxPtsForBill = Math.ceil(cartTotal / valPerPoint);
-                              const ptsToUse = Math.min(selectedCustomer?.points || 0, maxPtsForBill);
-                              setRedeemPointsAmount(String(ptsToUse));
-                           }}
-                           className="py-3 bg-[#1A1A18] hover:bg-black text-white font-black rounded-xl text-[10px] uppercase tracking-widest transition-all disabled:opacity-30"
-                        >
-                           MAX
-                        </button>
-                     </div>
-                     
-                     <div className="relative">
-                       <input
-                         type="number"
-                         value={redeemPointsAmount}
-                         onChange={(e) => setRedeemPointsAmount(e.target.value)}
-                         placeholder="0"
-                         className="w-full bg-gray-50 border-2 border-transparent focus:border-[#1A1A18] rounded-2xl py-4 px-6 text-xl font-black focus:outline-none focus:bg-white transition-all appearance-none"
-                       />
-                       <div className="absolute right-6 top-1/2 -translate-y-1/2 text-gray-300 font-bold uppercase tracking-widest text-sm">
-                         PTS
+                     {selectedCustomer?.customer_image || selectedCustomer?.avatar_url ? (
+                       <img src={selectedCustomer?.customer_image || selectedCustomer?.avatar_url} alt="Profile" className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-sm" />
+                     ) : (
+                       <div className="w-16 h-16 rounded-full bg-gray-200 border-2 border-white shadow-sm flex items-center justify-center">
+                         <User size={24} className="text-gray-400" />
+                       </div>
+                     )}
+                     <div>
+                       <h3 className="text-lg font-black text-[#1A1A18] mb-0.5">{selectedCustomer?.full_name || selectedCustomer?.display_name}</h3>
+                       <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mb-2">{selectedCustomer?.phone}</p>
+                       <div className="bg-[#1A1A18] px-3 py-1 rounded-full flex items-center gap-1.5 w-fit">
+                         <Award size={12} className="text-yellow-400" />
+                         <span className="text-white font-bold text-[10px] tracking-widest">{selectedCustomer?.points || 0} PTS</span>
                        </div>
                      </div>
+                   </div>
+
+                   <div className="mb-8">
+                     <div className="flex items-center justify-between mb-4">
+                       <label className="block text-xs font-black uppercase tracking-widest text-[#1A1A18]">
+                         {locale === 'en' ? 'Available Coupons' : 'คูปองที่สามารถใช้ได้'}
+                       </label>
+                     </div>
+
+                     {memberAvailableCoupons.length > 0 ? (
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                         {memberAvailableCoupons.map((coupon, idx) => (
+                           <div key={idx} className="bg-white border-2 border-gray-100 rounded-2xl p-4 flex gap-4 items-center shadow-sm hover:shadow-md transition-all">
+                             {coupon.image_url ? (
+                               <img src={coupon.image_url} alt={coupon.coupon_name} className="w-16 h-16 object-cover rounded-xl" />
+                             ) : (
+                               <div className="w-16 h-16 bg-gray-100 rounded-xl flex items-center justify-center">
+                                 <Ticket size={24} className="text-gray-400" />
+                               </div>
+                             )}
+                             <div className="flex-1">
+                               <h4 className="font-bold text-sm text-[#1A1A18] line-clamp-1">{coupon.coupon_name}</h4>
+                               <p className="text-xs text-emerald-600 font-bold mt-1 uppercase tracking-widest">
+                                 {coupon.discount_type === 'free_item' ? (locale === 'en' ? 'Free Item' : 'รับฟรี 1 รายการ') : ''}
+                                 {coupon.discount_type === 'percent' ? `${coupon.discount_value}% OFF` : ''}
+                                 {coupon.discount_type === 'fixed' ? `${coupon.discount_value} THB OFF` : ''}
+                               </p>
+                             </div>
+                             <button
+                               onClick={() => {
+                                 const event = new CustomEvent('applyPOSCoupon', { detail: coupon });
+                                 window.dispatchEvent(event);
+                                 setShowMemberCheckoutFlow(false);
+                                 if (coupon.discount_type !== 'free_item') {
+                                    alert(`นำคูปอง "${coupon.coupon_name || coupon.name}" ไปประยุกต์ใช้สำเร็จ!`);
+                                    setShowPaymentModal(true);
+                                 }
+                               }}
+                               className="px-4 py-2 bg-[#1A1A18] hover:bg-black text-white font-black text-[10px] uppercase tracking-widest rounded-xl transition-all"
+                             >
+                               {locale === 'en' ? 'Use' : 'เลือกใช้'}
+                             </button>
+                           </div>
+                         ))}
+                       </div>
+                     ) : (
+                       <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-3xl p-8 text-center">
+                          <Ticket className="w-8 h-8 mx-auto text-gray-300 mb-2" />
+                          <p className="text-gray-500 font-bold text-sm">{locale === 'en' ? 'No active coupons' : 'ยังไม่มีคูปองที่ใช้งานได้'}</p>
+                       </div>
+                     )}
                    </div>
                    
                    <div className="flex gap-3">
@@ -5777,14 +5996,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                        }}
                        className="flex-1 py-5 bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-black font-black rounded-2xl transition-all uppercase tracking-widest text-[11px]"
                      >
-                       {locale === 'en' ? 'Skip' : 'ไม่ใช้แต้ม'}
-                     </button>
-                     <button
-                       onClick={handleApplyPointsDiscount}
-                       disabled={!redeemPointsAmount || parseInt(redeemPointsAmount) <= 0 || parseInt(redeemPointsAmount) > (selectedCustomer?.points || 0)}
-                       className="flex-[2] py-5 bg-[#1A1A18] hover:bg-black text-white font-black rounded-2xl transition-all uppercase tracking-widest text-[11px] disabled:opacity-50 shadow-xl"
-                     >
-                       {locale === 'en' ? 'Apply & Pay' : 'ใช้แต้ม & ชำระเงิน'}
+                       {locale === 'en' ? 'Skip & Pay without Coupons' : 'ข้ามไปหน้าชำระเงิน (ไม่ใช้คูปอง)'}
                      </button>
                    </div>
                  </div>
@@ -6011,51 +6223,50 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         </div>
       )}
 
-      {/* GLOBAL PAYMENT SUCCESS MODAL - PREMIUM REDESIGN */}
+      {/* GLOBAL PAYMENT SUCCESS MODAL - MINIMAL REDESIGN */}
       {paymentSuccessData && (
         <div className="fixed inset-0 z-[3500] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-[#1A1A18]/80 backdrop-blur-md" onClick={() => setPaymentSuccessData(null)}></div>
-          <div className="relative w-full max-w-md bg-white rounded-[2.5rem] shadow-[0_30px_100px_-20px_rgba(0,0,0,0.5)] animate-in fade-in zoom-in-95 flex flex-col overflow-hidden border border-white/20">
-            {/* Top Pattern Header */}
-            <div className="relative bg-gradient-to-br from-emerald-500 to-teal-700 px-8 pt-12 pb-8 text-center overflow-hidden">
-              <div className="absolute -top-24 -right-24 h-48 w-48 rounded-full bg-white/20 blur-3xl"></div>
-              <div className="absolute -bottom-24 -left-24 h-48 w-48 rounded-full bg-black/20 blur-3xl"></div>
-              
+          <div className="absolute inset-0 bg-[#1A1A18]/90 backdrop-blur-md" onClick={() => setPaymentSuccessData(null)}></div>
+          <div className="relative w-full max-w-md bg-[#F4F4F0] rounded-[2rem] shadow-2xl animate-in fade-in zoom-in-95 flex flex-col overflow-hidden">
+            {/* Minimalist Dark Header */}
+            <div className="relative bg-[#1A1A18] px-8 pt-12 pb-10 text-center">
               <div className="relative z-10 flex flex-col items-center">
-                <div className="w-20 h-20 bg-white text-emerald-500 rounded-full flex items-center justify-center mb-4 shadow-xl">
-                  <Check size={40} strokeWidth={3} />
+                <div className="w-16 h-16 bg-[#2A2A28] text-white rounded-full flex items-center justify-center mb-6 border border-white/5">
+                  <Check size={32} strokeWidth={2.5} />
                 </div>
-                <h2 className="text-[11px] font-black text-white/80 uppercase tracking-[0.3em] mb-2">{locale === 'en' ? 'Payment Successful' : locale === 'zh' ? '支付成功' : 'ชำระเงินสำเร็จ'}</h2>
+                <h2 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.4em] mb-4">{locale === 'en' ? 'Payment Successful' : locale === 'zh' ? '支付成功' : 'ชำระเงินสำเร็จ'}</h2>
                 
                 {paymentSuccessData.paymentMethod === 'cash' ? (
                    <>
-                     <div className="text-5xl sm:text-6xl font-black text-white tracking-tighter drop-shadow-md">
-                       <span className="text-3xl text-white/80 mr-1">{locale === 'en' ? '฿' : locale === 'zh' ? '฿' : '฿'}</span>{paymentSuccessData.change.toLocaleString()}
+                     <div className="text-6xl font-black text-white tracking-tighter flex items-start justify-center">
+                       <span className="text-3xl text-gray-500 font-medium mr-2 mt-1">{locale === 'en' ? '฿' : locale === 'zh' ? '฿' : '฿'}</span>
+                       {paymentSuccessData.change.toLocaleString()}
                      </div>
-                     <div className="mt-3 inline-flex items-center gap-2 bg-black/20 px-4 py-1.5 rounded-full text-[10px] font-black text-white tracking-widest uppercase backdrop-blur-sm border border-white/10">
-                       {locale === 'en' ? 'เงินทอน (Change)' : locale === 'zh' ? '找零 (Change)' : 'เงินทอน (Change)'}
+                     <div className="mt-5 inline-flex items-center gap-2 bg-white px-4 py-1.5 rounded-full text-[10px] font-black text-[#1A1A18] tracking-[0.2em] uppercase shadow-sm">
+                       {locale === 'en' ? 'CHANGE' : locale === 'zh' ? '找零 (CHANGE)' : 'เงินทอน (CHANGE)'}
                      </div>
                    </>
                 ) : (
                    <>
-                     <div className="text-5xl sm:text-6xl font-black text-white tracking-tighter drop-shadow-md">
-                       <span className="text-3xl text-white/80 mr-1">{locale === 'en' ? '฿' : locale === 'zh' ? '฿' : '฿'}</span>{paymentSuccessData.total.toLocaleString()}
+                     <div className="text-6xl font-black text-white tracking-tighter flex items-start justify-center">
+                       <span className="text-3xl text-gray-500 font-medium mr-2 mt-1">{locale === 'en' ? '฿' : locale === 'zh' ? '฿' : '฿'}</span>
+                       {paymentSuccessData.total.toLocaleString()}
                      </div>
-                     <div className="mt-3 inline-flex items-center gap-2 bg-black/20 px-4 py-1.5 rounded-full text-[10px] font-black text-white tracking-widest uppercase backdrop-blur-sm border border-white/10">
+                     <div className="mt-5 inline-flex items-center gap-2 bg-white px-4 py-1.5 rounded-full text-[10px] font-black text-[#1A1A18] tracking-[0.2em] uppercase shadow-sm">
                        {paymentSuccessData.paymentMethod}
                      </div>
                    </>
                 )}
               </div>
               
-              <button onClick={() => setPaymentSuccessData(null)} className="absolute top-6 right-6 p-2 rounded-full bg-black/10 hover:bg-black/20 text-white transition-colors backdrop-blur-sm">
+              <button onClick={() => setPaymentSuccessData(null)} className="absolute top-6 right-6 p-2 rounded-full text-gray-500 hover:text-white hover:bg-white/10 transition-colors">
                 <X size={18} strokeWidth={2.5} />
               </button>
             </div>
 
-            <div className="p-8 bg-[#FDFDFB]">
+            <div className="p-8 bg-[#F4F4F0]">
               {/* Story Selection */}
-              {(shopSettings?.receipt_story_mode || shopSettings?.opening_hours?.receipt_story_mode) && (shopSettings?.receipt_stories?.length > 0 || shopSettings?.opening_hours?.receipt_stories?.length > 0) && (
+              {(shopSettings?.opening_hours?.show_story_selection_at_checkout) && (shopSettings?.receipt_story_mode || shopSettings?.opening_hours?.receipt_story_mode) && (shopSettings?.receipt_stories?.length > 0 || shopSettings?.opening_hours?.receipt_stories?.length > 0) && (
                 <div className="mb-8 p-5 bg-white border border-gray-100 rounded-2xl shadow-sm">
                   <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3 text-center">{locale === 'en' ? 'Story Mode Options' : locale === 'zh' ? '故事模式选项' : 'ตัวเลือกเรื่องเล่าท้ายบิล'}</label>
                   <div className="relative group">
@@ -6077,82 +6288,74 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
               )}
 
               {/* LOYALTY MEMBER POINTS SECTION IN SUCCESS MODAL */}
-              <div className="mb-6 p-5 bg-white border border-gray-100 rounded-3xl shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-[#1A1A18] text-white flex items-center justify-center font-black">
+              {selectedCustomer ? (
+                <div className="mb-4 bg-emerald-50 border border-emerald-100 p-3 rounded-2xl flex items-center justify-between shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
                       <User size={16} />
                     </div>
-                    <span className="text-xs font-black uppercase tracking-wider text-[#1A1A18]">
-                      {locale === 'en' ? 'Loyalty Member Points' : 'สะสมแต้มสมาชิก'}
-                    </span>
-                  </div>
-                  {selectedCustomer && (
-                    <button
-                      onClick={() => {
-                        setSelectedCustomer(null);
-                        setMemberSearchQuery('');
-                      }}
-                      className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-600 bg-red-50 px-3 py-1 rounded-full transition-all"
-                    >
-                      {locale === 'en' ? 'Change' : 'เปลี่ยนสมาชิก'}
-                    </button>
-                  )}
-                </div>
-
-                {selectedCustomer ? (
-                  <div className="bg-[#F8F8F6] p-4 rounded-2xl border border-gray-100 flex items-center justify-between">
                     <div>
-                      <p className="font-black text-gray-900 text-sm">
-                        {selectedCustomer.full_name || selectedCustomer.display_name || 'No Name'}
-                      </p>
-                      <p className="text-xs font-bold text-gray-400 tracking-widest uppercase mt-0.5">
-                        {selectedCustomer.phone || 'No Phone'}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-xs font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl block mb-1">
-                        + {Math.floor((paymentSuccessData?.total || 0) / (Number(shopSettings?.opening_hours?.loyalty_points_per_thb) || 25))} PTS
-                      </span>
-                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                        {selectedCustomer.points || 0} PTS (รวม)
-                      </span>
+                      <p className="text-xs font-black text-emerald-900">{selectedCustomer.full_name || selectedCustomer.display_name || 'No Name'}</p>
+                      <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">+ {Math.floor((paymentSuccessData?.total || 0) / (Number(shopSettings?.opening_hours?.loyalty_points_per_thb) || 25))} PTS</p>
                     </div>
                   </div>
-                ) : (
-                  <div>
-                    {/* Tab Switcher: Phone Keypad vs QR Code */}
-                    <div className="flex bg-[#F4F4F0] p-1 rounded-xl mb-4 font-bold text-[11px]">
+                  <button onClick={() => { setSelectedCustomer(null); setMemberSearchQuery(''); }} className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-full border border-red-100 transition-colors">
+                    {locale === 'en' ? 'Change' : 'เปลี่ยน / ยกเลิก'}
+                  </button>
+                </div>
+              ) : (
+                <details className="mb-4 bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden group">
+                  <summary className="flex items-center justify-between p-3 cursor-pointer list-none hover:bg-gray-50 transition-colors [&::-webkit-details-marker]:hidden">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center font-black group-open:bg-[#1A1A18] group-open:text-white transition-colors">
+                        <User size={14} />
+                      </div>
+                      <span className="text-[11px] font-black uppercase tracking-wider text-gray-600 group-open:text-[#1A1A18]">
+                        {locale === 'en' ? 'Member Points' : 'สะสมแต้มสมาชิก'}
+                      </span>
+                    </div>
+                    <div className="text-[10px] font-bold text-gray-500 bg-gray-50 border border-gray-200 px-3 py-1 rounded-full group-open:hidden tracking-wider">
+                      {locale === 'en' ? 'EXPAND' : 'กดเพื่อเพิ่มแต้ม'}
+                    </div>
+                    <div className="hidden text-[10px] font-bold text-gray-400 hover:text-red-500 group-open:block tracking-widest px-2 transition-colors">
+                      {locale === 'en' ? 'CLOSE' : 'ย่อเก็บ'}
+                    </div>
+                  </summary>
+
+                  <div className="p-3 pt-2 border-t border-gray-50">
+                    <div className="flex bg-[#F4F4F0] p-1 rounded-xl mb-3 font-bold text-[10px]">
                       <button
                         type="button"
                         onClick={() => setMemberLookupMode('phone')}
-                        className={`flex-1 py-2 rounded-lg font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${
+                        className={`flex-1 py-1.5 rounded-lg font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${
                           memberLookupMode === 'phone' ? 'bg-[#1A1A18] text-white shadow-sm' : 'text-gray-500 hover:text-black'
                         }`}
                       >
-                        <Phone size={13} />
-                        {locale === 'en' ? 'Phone' : 'กรอกเบอร์โทร'}
+                        <Phone size={12} /> {locale === 'en' ? 'Phone' : 'กรอกเบอร์'}
                       </button>
                       <button
                         type="button"
                         onClick={() => setMemberLookupMode('qr')}
-                        className={`flex-1 py-2 rounded-lg font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${
-                          memberLookupMode === 'qr' ? 'bg-[#1A1A18] text-white shadow-lg' : 'text-gray-500 hover:text-black'
+                        className={`flex-1 py-1.5 rounded-lg font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${
+                          memberLookupMode === 'qr' ? 'bg-[#1A1A18] text-white shadow-sm' : 'text-gray-500 hover:text-black'
                         }`}
                       >
-                        <QrCode size={13} />
-                        {locale === 'en' ? 'QR Code' : 'แสดง QR Code'}
+                        <QrCode size={12} /> {locale === 'en' ? 'QR Code' : 'ให้สแกน QR'}
                       </button>
                     </div>
 
                     {memberLookupMode === 'phone' ? (
                       <div>
                         <div className="relative mb-3">
-                          <div className="w-full bg-[#F8F8F6] border border-gray-200 rounded-xl py-3 px-4 text-lg font-black text-center tracking-widest bg-white">
-                            {memberSearchQuery || <span className="text-gray-300">0XX-XXX-XXXX</span>}
-                          </div>
+                          <input
+                            type="tel"
+                            value={memberSearchQuery}
+                            onChange={(e) => setMemberSearchQuery(e.target.value.replace(/[^0-9]/g, ''))}
+                            placeholder="0XX-XXX-XXXX"
+                            className="w-full bg-white border-2 border-gray-200 rounded-xl h-12 px-4 text-center text-sm font-black tracking-[0.2em] text-[#1A1A18] focus:border-black focus:ring-0 outline-none transition-all placeholder:text-gray-300"
+                          />
                           {memberSearchResults.length > 0 && (
-                            <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-30 max-h-[180px] overflow-y-auto">
+                            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.2)] border border-gray-100 overflow-hidden z-30 max-h-[160px] overflow-y-auto">
                               {memberSearchResults.map((m) => (
                                 <button
                                   key={m.id}
@@ -6160,7 +6363,6 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                                     setSelectedCustomer(m);
                                     setMemberSearchResults([]);
                                     setMemberSearchQuery('');
-                                    // Update order in DB with customer_id and award points
                                     if (paymentSuccessData?.orderId && paymentSuccessData.orderId !== 'NEW') {
                                       const earnThb = Number(shopSettings?.opening_hours?.loyalty_points_per_thb) || 25;
                                       const earnedPts = Math.floor((paymentSuccessData.total || 0) / earnThb);
@@ -6174,10 +6376,10 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                                   className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center justify-between border-b border-gray-50 transition-colors"
                                 >
                                   <div>
-                                    <div className="font-black text-gray-800 text-sm">{m.full_name || m.display_name || 'No Name'}</div>
-                                    <div className="text-[10px] text-gray-400 font-bold">{m.phone}</div>
+                                    <div className="font-black text-gray-800 text-[11px] uppercase tracking-wider">{m.full_name || m.display_name || 'No Name'}</div>
+                                    <div className="text-[10px] text-gray-400 font-bold tracking-widest">{m.phone}</div>
                                   </div>
-                                  <div className="text-[#1A1A18] font-black text-xs bg-gray-100 px-3 py-1 rounded-lg">
+                                  <div className="text-[#1A1A18] font-black text-[10px] bg-gray-100 px-3 py-1 rounded-full uppercase tracking-widest">
                                     {m.points || 0} PTS
                                   </div>
                                 </button>
@@ -6186,86 +6388,54 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                           )}
                         </div>
 
-                        <div className="grid grid-cols-3 gap-2 mb-3">
-                          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
-                            <button
-                              key={num}
-                              onClick={() => setMemberSearchQuery((prev) => prev + num)}
-                              className="h-10 bg-gray-50 hover:bg-gray-100 text-[#1A1A18] font-black text-base rounded-xl transition-all"
-                            >
-                              {num}
-                            </button>
-                          ))}
-                          <button
-                            onClick={() => setMemberSearchQuery('')}
-                            className="h-10 bg-red-50 hover:bg-red-100 text-red-500 font-black text-xs uppercase tracking-widest rounded-xl transition-all"
-                          >
-                            CLR
-                          </button>
-                          <button
-                            onClick={() => setMemberSearchQuery((prev) => prev + '0')}
-                            className="h-10 bg-gray-50 hover:bg-gray-100 text-[#1A1A18] font-black text-base rounded-xl transition-all"
-                          >
-                            0
-                          </button>
-                          <button
-                            onClick={() => setMemberSearchQuery((prev) => prev.slice(0, -1))}
-                            className="h-10 bg-gray-100 hover:bg-gray-200 text-[#1A1A18] flex items-center justify-center rounded-xl transition-all"
-                          >
-                            <Delete size={16} />
-                          </button>
-                        </div>
-
                         <button
                           onClick={handleSearchMemberFlow}
                           disabled={!memberSearchQuery.trim() || isSearchingMember}
-                          className="w-full py-3 bg-[#1A1A18] hover:bg-black text-white font-black rounded-xl transition-all uppercase tracking-widest text-[10px] flex items-center justify-center disabled:opacity-50"
+                          className="w-full h-12 bg-[#1A1A18] hover:bg-black text-white font-black rounded-xl transition-all uppercase tracking-[0.2em] text-[10px] flex items-center justify-center disabled:opacity-50 shadow-md"
                         >
-                          {isSearchingMember ? <Loader2 className="animate-spin" size={16} /> : (locale === 'en' ? 'Search Member' : 'ค้นหาสมาชิกสะสมแต้ม')}
+                          {isSearchingMember ? <Loader2 className="animate-spin" size={16} /> : (locale === 'en' ? 'Search Member' : 'ค้นหาสมาชิก')}
                         </button>
                       </div>
                     ) : (
-                      <div className="flex flex-col items-center justify-center py-2 space-y-3">
-                        <div className="p-4 bg-white border border-gray-100 rounded-2xl shadow-md flex items-center justify-center">
+                      <div className="flex flex-col items-center justify-center space-y-2">
+                        <div className="p-2 bg-white border border-gray-100 rounded-xl shadow-sm flex items-center justify-center">
                           <QRCodeSVG
                             value={`https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}/?path=${encodeURIComponent('/liff/member')}`}
-                            size={160}
-                            level="H"
+                            size={110}
+                            level="M"
                             includeMargin={true}
                           />
                         </div>
-                        <p className="text-[11px] font-bold text-gray-400 text-center uppercase tracking-wider">
-                          {locale === 'en' ? 'Scan to register / collect points' : 'สแกนเพื่อสมัครสมาชิก หรือสแกนจากใบเสร็จ'}
+                        <p className="text-[9px] font-bold text-gray-400 text-center uppercase tracking-wider">
+                          {locale === 'en' ? 'Scan to collect points' : 'สแกนเพื่อสะสมแต้ม หรือรับจากใบเสร็จ'}
                         </p>
                       </div>
                     )}
                   </div>
-                )}
-              </div>
+                </details>
+              )}
 
-              <div className="flex flex-col gap-4 w-full">
-                <div className="flex gap-4">
-                  <button
-                    onClick={() => handlePrintKitchen()}
-                    className="flex-1 h-16 bg-white border-2 border-gray-100 rounded-2xl text-gray-600 font-black tracking-widest hover:border-[#1A1A18] hover:text-[#1A1A18] hover:bg-gray-50 hover:shadow-md transition-all flex flex-col items-center justify-center gap-1 active:scale-95"
-                  >
-                    <Printer size={20} />
-                    <span className="text-[10px] uppercase">{locale === 'en' ? 'Kitchen' : locale === 'zh' ? '厨房' : 'ครัว (Kitchen)'}</span>
-                  </button>
-                  <button
-                    onClick={() => handlePrintReceipt()}
-                    className="flex-1 h-16 bg-[#1A1A18] border-2 border-[#1A1A18] rounded-2xl text-white font-black tracking-widest hover:bg-black hover:shadow-lg hover:shadow-black/20 transition-all flex flex-col items-center justify-center gap-1 active:scale-95"
-                  >
-                    <Printer size={20} />
-                    <span className="text-[10px] uppercase">{locale === 'en' ? 'Receipt' : locale === 'zh' ? '收据' : 'ใบเสร็จ (Receipt)'}</span>
-                  </button>
-                </div>
-                <button
-                  onClick={() => setPaymentSuccessData(null)}
-                  className="w-full h-16 bg-gray-100 border-2 border-transparent rounded-2xl text-gray-500 font-black tracking-[0.2em] uppercase hover:bg-gray-200 hover:text-[#1A1A18] transition-all mt-2 active:scale-95"
-                >
-                  {locale === 'en' ? 'Next Order' : locale === 'zh' ? '下一个订单' : 'ออเดอร์ถัดไป (Next Order)'}
-                </button>
+              <div className="mt-2">
+                <details className="relative group w-full">
+                  <summary className="w-full h-12 bg-white border border-gray-200 rounded-xl flex items-center justify-center gap-2 text-[#1A1A18] hover:bg-gray-50 transition-all cursor-pointer list-none [&::-webkit-details-marker]:hidden shadow-sm active:scale-95">
+                    <Printer size={16} />
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em]">{locale === 'en' ? 'Print Options' : 'ตัวเลือกการพิมพ์'}</span>
+                  </summary>
+                  <div className="absolute bottom-full left-0 right-0 mb-3 bg-white rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.2)] overflow-hidden z-50 border border-gray-100 animate-in slide-in-from-bottom-2 fade-in">
+                    <button 
+                      onClick={() => { handlePrintReceipt(); document.querySelector('details[open]')?.removeAttribute('open') }} 
+                      className="w-full px-5 py-4 text-[11px] font-black tracking-widest text-[#1A1A18] text-center hover:bg-gray-50 border-b border-gray-100 uppercase transition-colors"
+                    >
+                      {locale === 'en' ? 'Print Receipt' : 'พิมพ์ใบเสร็จ'}
+                    </button>
+                    <button 
+                      onClick={() => { handlePrintKitchen(); document.querySelector('details[open]')?.removeAttribute('open') }} 
+                      className="w-full px-5 py-4 text-[11px] font-black tracking-widest text-gray-500 text-center hover:bg-gray-50 hover:text-black uppercase transition-colors"
+                    >
+                      {locale === 'en' ? 'Print Kitchen' : 'พิมพ์ใบครัว'}
+                    </button>
+                  </div>
+                </details>
               </div>
             </div>
           </div>

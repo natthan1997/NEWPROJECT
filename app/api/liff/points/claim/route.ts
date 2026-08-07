@@ -81,8 +81,29 @@ export async function POST(req: NextRequest) {
             }
         }
         
-        if (!member || !member.phone || !member.first_name || !member.last_name || !member.pdpa_consent) {
-            if (!phone || !firstName || !lastName || pdpaConsent === undefined) {
+        if (!member || !member.phone || !member.pdpa_consent) {
+            if (!phone || pdpaConsent === undefined) {
+                if (tokenInfo.order_id && (member || lineUserId)) {
+                    try {
+                        await supabase
+                            .from('pos_member_checkins')
+                            .update({ status: 'cancelled' })
+                            .eq('line_user_id', lineUserId)
+                            .eq('status', 'pending');
+
+                        await supabase.from('pos_member_checkins').insert({
+                            line_user_id: lineUserId,
+                            member_id: member?.id || lineUserId,
+                            customer_name: member?.full_name || member?.first_name || member?.display_name || displayName || 'สมาชิกใหม่',
+                            customer_image: member?.avatar_url || avatarUrl || null,
+                            status: 'linked',
+                            order_id: tokenInfo.order_id
+                        });
+                    } catch(e) {
+                        console.error('Insert pending checkin error:', e);
+                    }
+                }
+
                 return NextResponse.json({ 
                     success: false, 
                     requirePhone: true, 
@@ -172,12 +193,12 @@ export async function POST(req: NextRequest) {
         if (tokenInfo.order_id) {
             const { data: order } = await supabase
                 .from('pos_orders')
-                .select('id, status, payment_status, total_amount, points_earned')
+                .select('id, status, paid_at, total_amount, points_earned')
                 .eq('id', tokenInfo.order_id)
                 .maybeSingle();
 
             const isOrderPaid = order && (
-                order.payment_status === 'paid' || 
+                order.paid_at !== null ||
                 order.status === 'completed' || 
                 order.status === 'paid'
             );
@@ -200,7 +221,7 @@ export async function POST(req: NextRequest) {
                             member_id: member.id,
                             customer_name: memberName,
                             customer_image: member.avatar_url || avatarUrl || null,
-                            status: 'pending',
+                            status: 'linked',
                             order_id: tokenInfo.order_id
                         });
                     } catch(e) {
@@ -248,7 +269,7 @@ export async function POST(req: NextRequest) {
                 let orderItems: any[] = [];
                 const { data: items } = await supabase
                     .from('pos_order_items')
-                    .select('quantity, item:pos_menu_items!item_id(name), unit_price, subtotal, status')
+                    .select('quantity, item:pos_menu_items!pos_order_items_item_id_fkey(name), unit_price, subtotal, status')
                     .eq('order_id', tokenInfo.order_id);
 
                 if (items) {
@@ -286,33 +307,47 @@ export async function POST(req: NextRequest) {
         }
 
         // 3.5 Update pos_orders with customer info & points earned if linked to an order
+        // Only if it hasn't been awarded by the POS already
+        let shouldAwardPoints = true;
         if (tokenInfo.order_id) {
-            const memberName = member?.full_name || member?.first_name || member?.display_name || 'สมาชิก';
-            await supabase
+            const { data: existingOrderInfo } = await supabase
                 .from('pos_orders')
-                .update({
-                    customer_id: member?.id || undefined,
-                    customer_name: memberName,
-                    points_earned: tokenInfo.points,
-                    updated_at: new Date().toISOString()
-                })
-                .eq('id', tokenInfo.order_id);
+                .select('points_earned, customer_id')
+                .eq('id', tokenInfo.order_id)
+                .maybeSingle();
+                
+            if (existingOrderInfo && existingOrderInfo.points_earned > 0 && existingOrderInfo.customer_id) {
+                shouldAwardPoints = false; // Points were already awarded during POS checkout
+            } else {
+                const memberName = member?.full_name || member?.first_name || member?.display_name || 'สมาชิก';
+                await supabase
+                    .from('pos_orders')
+                    .update({
+                        customer_id: member?.id || undefined,
+                        customer_name: memberName,
+                        points_earned: tokenInfo.points,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', tokenInfo.order_id);
+            }
         }
 
-        // 4. Increment member points
-        const { error: pointError } = await supabase.rpc('increment_member_points', { 
-            user_id: lineUserId, 
-            points_to_add: tokenInfo.points 
-        })
+        // 4. Increment member points (Only if not already awarded by POS checkout)
+        if (shouldAwardPoints) {
+            const { error: pointError } = await supabase.rpc('increment_member_points', { 
+                user_id: lineUserId, 
+                points_to_add: tokenInfo.points 
+            })
 
-        if (pointError) {
-            // Fallback if RPC fails
-            await supabase.from('pos_members')
-                .update({ 
-                    points: (member?.points || 0) + tokenInfo.points,
-                    updated_at: new Date().toISOString()
-                })
-                .eq('line_user_id', lineUserId)
+            if (pointError) {
+                // Fallback if RPC fails
+                await supabase.from('pos_members')
+                    .update({ 
+                        points: (member?.points || 0) + tokenInfo.points,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('line_user_id', lineUserId)
+            }
         }
 
         // 5. Record in history (Safely attempt to include description)
@@ -342,7 +377,7 @@ export async function POST(req: NextRequest) {
         if (tokenInfo.order_id) {
             const { data: items, error: itemsError } = await supabase
                 .from('pos_order_items')
-                .select('quantity, item:pos_menu_items!item_id(name), unit_price, subtotal, status')
+                .select('quantity, item:pos_menu_items!pos_order_items_item_id_fkey(name), unit_price, subtotal, status')
                 .eq('order_id', tokenInfo.order_id);
             
             if (itemsError) {
