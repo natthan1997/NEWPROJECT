@@ -459,7 +459,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   const [isCartBumping, setIsCartBumping] = useState(false)
   const [platformOrderId, setPlatformOrderId] = useState('')
   const [isDeliveryPlatformModalOpen, setIsDeliveryPlatformModalOpen] = useState(false)
-  const [memberLookupMode, setMemberLookupMode] = useState<'phone' | 'qr'>('phone')
+  const [memberLookupMode, setMemberLookupMode] = useState<'phone' | 'qr'>('qr')
   const [draftDeliveryPlatform, setDraftDeliveryPlatform] = useState('')
   const [draftPlatformOrderId, setDraftPlatformOrderId] = useState('')
   const [heldCartFingerprint, setHeldCartFingerprint] = useState<string | null>(null)
@@ -5874,18 +5874,12 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                        </div>
                        <div className="text-center space-y-1.5 px-4 mb-8">
                          {posQrPointsEarned > 0 ? (
-                           <div className="bg-emerald-50 text-emerald-600 px-4 py-3 rounded-2xl mb-4 font-black flex items-center justify-center gap-2">
+                           <div className="bg-emerald-50 text-emerald-600 px-4 py-3 rounded-2xl font-black flex items-center justify-center gap-2">
                              <span>ลูกค้าจะได้รับ</span>
                              <span className="text-2xl">{posQrPointsEarned}</span>
                              <span>คะแนน</span>
                            </div>
                          ) : null}
-                         <p className="text-sm font-black text-[#1A1A18] uppercase tracking-wider">
-                           {locale === 'en' ? 'Customers scan with LINE app' : 'ให้ลูกค้าเปิดแอป LINE แล้วสแกน QR Code นี้'}
-                         </p>
-                         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-                           {locale === 'en' ? 'To register or log in to loyalty account' : 'เพื่อสมัครสมาชิก หรือเข้าสู่ระบบสะสมแต้ม'}
-                         </p>
                        </div>
 
                        <button
