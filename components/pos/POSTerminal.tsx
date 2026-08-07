@@ -5873,7 +5873,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                           <div className="mt-4 pt-4 border-t-2 border-gray-200">
                              <div className="flex justify-between items-center mb-4">
                                <span className="font-black text-gray-500">{locale === 'en' ? 'Total' : 'ยอดรวมทั้งสิ้น'}</span>
-                               <span className="text-2xl font-black text-[#1A1A18]">฿{getTotal().toFixed(2)}</span>
+                               <span className="text-2xl font-black text-[#1A1A18]">฿{cartTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                              </div>
 
                              {posQrPointsEarned > 0 ? (
