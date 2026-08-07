@@ -2392,6 +2392,27 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         }
       };
       fetchCoupons();
+
+      // Realtime subscription for coupons
+      const channel = supabase.channel(`member_coupons_${selectedCustomer.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'pos_member_coupons',
+            filter: `member_id=eq.${selectedCustomer.id}`
+          },
+          () => {
+            // Re-fetch coupons when there's an insert or update
+            fetchCoupons();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     } else {
       setMemberAvailableCoupons([]);
       setActiveCouponCount(0);
