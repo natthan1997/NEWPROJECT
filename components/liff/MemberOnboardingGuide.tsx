@@ -10,21 +10,33 @@ interface MemberOnboardingGuideProps {
 const steps = [
   { 
     id: 'tour-profile', 
-    title: 'ระดับสมาชิก', 
-    text: 'ตรวจสอบคะแนนสะสมปัจจุบันของคุณ และเช็คระดับสมาชิกได้จากตรงนี้เลย',
+    title: 'ข้อมูลสมาชิกของคุณ', 
+    text: 'เช็คพอยท์สะสมปัจจุบัน และระดับสมาชิกของคุณได้ที่นี่ ทุกยอดใช้จ่ายจะถูกนำมาคำนวณเพื่อเลื่อนระดับและรับสิทธิพิเศษที่มากขึ้น',
+    position: 'bottom'
+  },
+  { 
+    id: 'tour-titles', 
+    title: 'ระบบฉายา (Titles)', 
+    text: 'เมื่อคุณสะสมพอยท์หรือทำภารกิจสำเร็จ คุณจะปลดล็อก "ฉายา" ใหม่ๆ ซึ่งแต่ละฉายาจะมีสิทธิพิเศษซ่อนอยู่ กดดูฉายาที่สะสมได้เลย',
     position: 'bottom'
   },
   { 
     id: 'tour-missions', 
-    title: 'ภารกิจพิเศษ', 
-    text: 'ร่วมสนุกกับภารกิจต่างๆ เพื่อรับคะแนนโบนัสและปลดล็อกฉายาสุดเท่',
+    title: 'ทำภารกิจ ลุ้นกาชา', 
+    text: 'ร่วมสนุกทำภารกิจต่างๆ ให้สำเร็จเพื่อรับคะแนนโบนัส หรือลุ้นรับ "ตั๋วสุ่มกาชา" เพื่อนำไปสุ่มของรางวัลสุดพิเศษ',
     position: 'top'
   },
   { 
     id: 'tour-rewards', 
-    title: 'แลกรางวัล & สุ่มกาชา', 
-    text: 'ใช้คะแนนสะสมเพื่อแลกรับส่วนลด หรือจะใช้สุ่มกาชาลุ้นรับของรางวัลใหญ่ก็ได้',
+    title: 'แลกคูปอง & สุ่มรางวัล', 
+    text: 'โซนนี้สำหรับใช้พอยท์แลก "คูปองส่วนลด" หรือใช้ตั๋วกาชาที่ได้จากภารกิจ มาสุ่มลุ้นรับรางวัลใหญ่!',
     position: 'top'
+  },
+  { 
+    id: 'tour-my-rewards', 
+    title: 'กระเป๋าของรางวัล', 
+    text: 'เมื่อคุณแลกคูปอง หรือสุ่มกาชาได้รางวัลสำเร็จ ของรางวัลทั้งหมดจะถูกเก็บไว้อย่างปลอดภัยที่ปุ่มกล่องของขวัญด้านบนนี้ อย่าลืมมากดใช้หน้าร้านนะ!',
+    position: 'bottom'
   }
 ];
 
@@ -42,7 +54,8 @@ export function MemberOnboardingGuide({ onClose }: MemberOnboardingGuideProps) {
       const rect = element.getBoundingClientRect();
       const viewportHeight = window.innerHeight;
       
-      if (rect.top < 100 || rect.bottom > viewportHeight - 100) {
+      // Allow some padding so the element is fully in view with its tooltip
+      if (rect.top < 120 || rect.bottom > viewportHeight - 120) {
         element.scrollIntoView({ behavior: 'smooth', block: 'center' });
         // Wait a bit for scroll to finish before measuring
         setTimeout(() => {
@@ -79,7 +92,7 @@ export function MemberOnboardingGuide({ onClose }: MemberOnboardingGuideProps) {
   useEffect(() => {
     // Initial measurement, wait for DOM to fully render
     setIsReady(false);
-    const timer = setTimeout(() => measureTarget(), 100);
+    const timer = setTimeout(() => measureTarget(), 200);
 
     // Re-measure on resize or scroll
     window.addEventListener('resize', measureTarget);
@@ -108,8 +121,11 @@ export function MemberOnboardingGuide({ onClose }: MemberOnboardingGuideProps) {
   if (targetRect) {
     if (currentData.position === 'bottom') {
       tooltipY = targetRect.y + targetRect.h + 16;
+      if (tooltipY + 160 > window.innerHeight) { // Too close to bottom
+        tooltipY = targetRect.y - 150;
+      }
     } else {
-      tooltipY = targetRect.y - 140 - 16; // 140 is approx tooltip height
+      tooltipY = targetRect.y - 150; // 150 is approx tooltip height
       if (tooltipY < 20) { // If it goes off top screen, put it below instead
         tooltipY = targetRect.y + targetRect.h + 16;
       }
@@ -145,7 +161,7 @@ export function MemberOnboardingGuide({ onClose }: MemberOnboardingGuideProps) {
         <motion.rect 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          width="100%" height="100%" fill="rgba(0,0,0,0.7)" mask="url(#spotlight)" 
+          width="100%" height="100%" fill="rgba(0,0,0,0.75)" mask="url(#spotlight)" 
         />
       </svg>
 
@@ -153,7 +169,7 @@ export function MemberOnboardingGuide({ onClose }: MemberOnboardingGuideProps) {
       <AnimatePresence mode="wait">
         <motion.div
           key={currentStep}
-          initial={{ opacity: 0, y: currentData.position === 'bottom' ? -20 : 20 }}
+          initial={{ opacity: 0, y: currentData.position === 'bottom' ? -15 : 15 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95 }}
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
@@ -164,13 +180,13 @@ export function MemberOnboardingGuide({ onClose }: MemberOnboardingGuideProps) {
             right: tooltipX,
             zIndex: 30
           }}
-          className="bg-white rounded-[24px] p-5 shadow-2xl flex flex-col gap-3"
+          className="bg-white rounded-[24px] p-5 shadow-2xl flex flex-col gap-3 border border-gray-100"
         >
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-[10px] font-bold tracking-widest text-[#B48529] uppercase mb-1 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#B48529]"></span>
-                ขั้นตอนที่ {currentStep + 1}/{steps.length}
+              <p className="text-[10px] font-bold tracking-widest text-[#B48529] uppercase mb-1.5 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#B48529] animate-pulse"></span>
+                จุดที่ {currentStep + 1}/{steps.length}
               </p>
               <h3 className="text-[18px] font-bold text-gray-900 leading-tight">
                 {currentData.title}
@@ -188,7 +204,7 @@ export function MemberOnboardingGuide({ onClose }: MemberOnboardingGuideProps) {
             {currentData.text}
           </p>
 
-          <div className="flex justify-between items-center mt-2">
+          <div className="flex justify-between items-center mt-3">
             <button 
               onClick={onClose}
               className="text-[13px] font-bold text-gray-400 hover:text-gray-600 active:scale-95 transition-transform"
@@ -201,7 +217,7 @@ export function MemberOnboardingGuide({ onClose }: MemberOnboardingGuideProps) {
               className="h-10 px-5 bg-gradient-to-r from-[#1A1A18] to-[#2A2A28] text-white rounded-full font-bold text-[13px] flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-[0_4px_12px_rgba(0,0,0,0.15)]"
             >
               {isLast ? (
-                <>เริ่มต้นใช้งาน <Check size={16} strokeWidth={2.5} /></>
+                <>เสร็จสิ้น <Check size={16} strokeWidth={2.5} /></>
               ) : (
                 <>ถัดไป <ArrowRight size={16} strokeWidth={2.5} /></>
               )}

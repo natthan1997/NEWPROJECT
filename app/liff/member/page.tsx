@@ -886,7 +886,7 @@ function LiffMemberContent() {
           <Link href="/liff/point-history" className="w-10 h-10 flex items-center justify-center text-gray-400 active:scale-95 transition-transform relative">
             <History size={20} />
           </Link>
-          <Link href="/liff/my-rewards" className="w-10 h-10 flex items-center justify-center text-gray-400 active:scale-95 transition-transform relative">
+          <Link id="tour-my-rewards" href="/liff/my-rewards" className="w-10 h-10 flex items-center justify-center text-gray-400 active:scale-95 transition-transform relative">
             <Gift size={20} />
             {activeCouponCount > 0 && (
               <span className="absolute top-1.5 right-1.5 bg-red-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-sm">
@@ -938,7 +938,7 @@ function LiffMemberContent() {
                             <div className="w-full h-full bg-white/30"></div>
                         )}
                     </div>
-                    <div>
+                    <div id="tour-titles">
                         <div className="flex items-center gap-2 mb-1">
                             <div className="text-[15px] font-medium leading-tight">
                                 {memberInfo?.nickname || memberInfo?.name || lineProfile?.displayName || 'Member'}
