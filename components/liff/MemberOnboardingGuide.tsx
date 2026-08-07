@@ -115,19 +115,28 @@ export function MemberOnboardingGuide({ onClose }: MemberOnboardingGuideProps) {
   const currentData = steps[currentStep];
 
   // Calculate tooltip position
-  let tooltipY = 0;
   let tooltipX = 24; // margin from side
+  let tooltipStyle: React.CSSProperties = {
+    position: 'absolute',
+    left: tooltipX,
+    right: tooltipX,
+    zIndex: 30
+  };
 
   if (targetRect) {
     if (currentData.position === 'bottom') {
-      tooltipY = targetRect.y + targetRect.h + 16;
-      if (tooltipY + 160 > window.innerHeight) { // Too close to bottom
-        tooltipY = targetRect.y - 150;
+      const spaceBelow = window.innerHeight - (targetRect.y + targetRect.h);
+      if (spaceBelow < 220) { // Not enough space below, put it above
+        tooltipStyle.bottom = window.innerHeight - targetRect.y + 16;
+      } else {
+        tooltipStyle.top = targetRect.y + targetRect.h + 16;
       }
     } else {
-      tooltipY = targetRect.y - 150; // 150 is approx tooltip height
-      if (tooltipY < 20) { // If it goes off top screen, put it below instead
-        tooltipY = targetRect.y + targetRect.h + 16;
+      const spaceAbove = targetRect.y;
+      if (spaceAbove < 220) { // Not enough space above, put it below
+        tooltipStyle.top = targetRect.y + targetRect.h + 16;
+      } else {
+        tooltipStyle.bottom = window.innerHeight - targetRect.y + 16;
       }
     }
   }
@@ -173,13 +182,7 @@ export function MemberOnboardingGuide({ onClose }: MemberOnboardingGuideProps) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95 }}
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
-          style={{
-            position: 'absolute',
-            top: tooltipY,
-            left: tooltipX,
-            right: tooltipX,
-            zIndex: 30
-          }}
+          style={tooltipStyle}
           className="bg-white rounded-[20px] p-5 shadow-lg shadow-black/5 flex flex-col gap-3 border border-gray-100"
         >
           <div className="flex justify-between items-start">
