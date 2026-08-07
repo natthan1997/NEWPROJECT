@@ -5862,10 +5862,10 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                              {cart.map((item, idx) => (
                                <div key={idx} className="flex justify-between items-start gap-4 pb-3 border-b border-gray-200 last:border-0">
                                  <div>
-                                    <div className="font-bold text-[#1A1A18] text-sm">{item.quantity}x {item.name}</div>
-                                    {item.options?.map(opt => <div key={opt} className="text-xs text-gray-500">{opt}</div>)}
+                                    <div className="font-bold text-[#1A1A18] text-sm">{item.quantity}x {getPrimaryMenuName(item)}</div>
+                                    {item.selected_modifiers?.map((m: any, mIdx: number) => <div key={mIdx} className="text-xs text-gray-500">{m.name}</div>)}
                                  </div>
-                                 <div className="font-black text-[#1A1A18] text-sm">฿{(item.price * item.quantity).toFixed(2)}</div>
+                                 <div className="font-black text-[#1A1A18] text-sm">฿{((getEffectiveItemUnitPrice(item) + (item.selected_modifiers?.reduce((a: number, m: any) => a + ((m.price_adjustment || 0) * (m.qty || 1)), 0) || 0)) * item.quantity).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                                </div>
                              ))}
                           </div>
