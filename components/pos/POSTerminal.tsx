@@ -5748,40 +5748,48 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
               className="relative flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-3xl bg-white shadow-2xl"
             >
                {memberCheckoutStep === 'lookup' ? (
-                 <div className="p-8">
-                   <div className="w-16 h-16 bg-[#1A1A18] text-white rounded-2xl flex items-center justify-center mb-4 shadow-lg mx-auto">
-                     <QrCode size={32} />
+                 <div className="p-8 pt-10">
+                   <div className="text-center mb-8">
+                     <h2 className="text-2xl font-black text-[#1A1A18] tracking-tight">
+                       {locale === 'en' ? 'Member Check-in' : 'ตรวจสอบสมาชิก'}
+                     </h2>
+                     <p className="text-sm text-gray-400 font-medium mt-2">
+                       {locale === 'en' ? 'Identify customer for loyalty points' : 'สะสมแต้มหรือใช้สิทธิพิเศษสำหรับสมาชิก'}
+                     </p>
                    </div>
-                   <h2 className="text-3xl font-black mb-2 text-center text-[#1A1A18] tracking-tighter">
-                     {locale === 'en' ? 'MEMBER CHECK' : 'ตรวจสอบสมาชิก'}
-                   </h2>
 
-                   {/* Tab Switcher: Phone Keypad vs QR Code */}
-                   <div className="flex bg-[#F4F4F0] p-1.5 rounded-2xl my-5 font-bold">
+                   {/* Tab Switcher */}
+                   <div className="flex justify-center gap-8 mb-8 border-b border-gray-100">
                      <button
                        type="button"
                        onClick={() => setMemberLookupMode('phone')}
-                       className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
-                         memberLookupMode === 'phone' ? 'bg-[#1A1A18] text-white shadow-lg' : 'text-gray-500 hover:text-black'
+                       className={`pb-4 text-sm font-bold transition-all flex items-center gap-2 relative ${
+                         memberLookupMode === 'phone' ? 'text-[#1A1A18]' : 'text-gray-400 hover:text-gray-600'
                        }`}
                      >
-                       <Phone size={14} />
-                       {locale === 'en' ? 'Phone Number' : 'กรอกเบอร์โทร'}
+                       <Phone size={16} />
+                       {locale === 'en' ? 'Phone Number' : 'เบอร์โทรศัพท์'}
+                       {memberLookupMode === 'phone' && (
+                         <motion.div layoutId="memberTabCheckout" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#1A1A18]" />
+                       )}
                      </button>
                      <button
                        type="button"
                        onClick={() => setMemberLookupMode('qr')}
-                       className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
-                         memberLookupMode === 'qr' ? 'bg-[#1A1A18] text-white shadow-lg' : 'text-gray-500 hover:text-black'
+                       className={`pb-4 text-sm font-bold transition-all flex items-center gap-2 relative ${
+                         memberLookupMode === 'qr' ? 'text-[#1A1A18]' : 'text-gray-400 hover:text-gray-600'
                        }`}
                      >
-                       <QrCode size={14} />
-                       {locale === 'en' ? 'Scan QR Code' : 'แสดง QR Code'}
+                       <QrCode size={16} />
+                       {locale === 'en' ? 'Scan QR' : 'คิวอาร์โค้ด'}
+                       {memberLookupMode === 'qr' && (
+                         <motion.div layoutId="memberTabCheckout" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#1A1A18]" />
+                       )}
                      </button>
                    </div>
 
                    {memberLookupMode === 'phone' ? (
-                     <>
+                     <div className="animate-in fade-in duration-300">
                    
                    <div className="relative mb-6">
                      <input
@@ -5790,7 +5798,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                         inputMode="numeric"
                         value={memberSearchQuery}
                         onChange={(e) => setMemberSearchQuery(e.target.value.replace(/[^0-9]/g, ''))}
-                        placeholder="0XX-XXX-XXXX"
+                        placeholder="08X-XXX-XXXX"
                         className="w-full bg-[#f8f8f8] border-2 border-transparent focus:border-[#1A1A18] focus:bg-white rounded-2xl py-5 px-6 text-2xl font-black text-center tracking-[0.2em] transition-all outline-none placeholder:text-gray-300"
                         autoFocus
                      />
@@ -5819,73 +5827,78 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                      )}
                    </div>
                    
-                   <div className="flex gap-3">
+                   <div className="flex flex-col gap-3 mt-8">
+                     <button
+                       onClick={handleSearchMemberFlow}
+                       disabled={!memberSearchQuery.trim() || isSearchingMember}
+                       className="w-full py-4 bg-[#1A1A18] hover:bg-black text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-[0_8px_30px_rgb(0,0,0,0.12)]"
+                     >
+                       {isSearchingMember ? <Loader2 className="animate-spin" size={20} /> : (
+                         <>
+                           {locale === 'en' ? 'Search Member' : 'ค้นหาสมาชิก'}
+                           <ArrowRight size={18} />
+                         </>
+                       )}
+                     </button>
                      <button
                        onClick={() => {
                          setShowMemberCheckoutFlow(false);
                          setShowPaymentModal(true);
                        }}
-                       className="flex-1 py-5 bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-black font-black rounded-2xl transition-all uppercase tracking-widest text-[11px]"
+                       className="w-full py-4 text-gray-400 hover:text-black font-bold rounded-2xl transition-all text-sm"
                      >
-                       {locale === 'en' ? 'Skip' : 'ข้าม (ไม่เป็นสมาชิก)'}
-                     </button>
-                     <button
-                       onClick={handleSearchMemberFlow}
-                       disabled={!memberSearchQuery.trim() || isSearchingMember}
-                       className="flex-[2] py-5 bg-[#1A1A18] hover:bg-black text-white font-black rounded-2xl transition-all uppercase tracking-widest text-[11px] flex items-center justify-center disabled:opacity-50"
-                     >
-                       {isSearchingMember ? <Loader2 className="animate-spin" size={18} /> : (locale === 'en' ? 'Search & Proceed' : 'ค้นหา')}
+                       {locale === 'en' ? 'Skip, checkout without member' : 'ข้าม (ลูกค้าทั่วไป)'}
                      </button>
                    </div>
-                      </>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center py-4 space-y-6 animate-in fade-in duration-300">
-                        <div className="p-6 bg-white border-2 border-gray-100 rounded-3xl shadow-xl flex items-center justify-center min-w-[260px] min-h-[260px]">
-                          {posQrLoyaltyToken ? (
-                            <QRCodeSVG
-                              value={
-                                posQrLoyaltyToken !== 'general_member_checkin'
-                                  ? `https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}?claimToken=${posQrLoyaltyToken}&session=${qrSessionId}&path=${encodeURIComponent(`/liff/member?claimToken=${posQrLoyaltyToken}&session=${qrSessionId}`)}`
-                                  : `https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}/?path=${encodeURIComponent('/liff/member')}`
-                              }
-                              size={220}
-                              level="H"
-                              includeMargin={true}
-                            />
-                          ) : (
-                            <div className="flex flex-col items-center justify-center space-y-3 py-6 px-4">
-                              <Loader2 className="animate-spin text-[#1A1A18]" size={36} />
-                              <span className="text-xs font-bold text-gray-500">{locale === 'en' ? 'Generating QR Code...' : 'กำลังสร้าง QR Code...'}</span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="text-center space-y-1.5 px-4">
-                          {posQrPointsEarned > 0 ? (
-                            <div className="bg-emerald-50 text-emerald-600 px-4 py-3 rounded-2xl mb-4 font-black flex items-center justify-center gap-2">
-                              <span>ลูกค้าจะได้รับ</span>
-                              <span className="text-2xl">{posQrPointsEarned}</span>
-                              <span>คะแนน</span>
-                            </div>
-                          ) : null}
-                          <p className="text-sm font-black text-[#1A1A18] uppercase tracking-wider">
-                            {locale === 'en' ? 'Customers scan with LINE app' : 'ให้ลูกค้าเปิดแอป LINE แล้วสแกน QR Code นี้'}
-                          </p>
-                          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-                            {locale === 'en' ? 'To register or log in to loyalty account' : 'เพื่อสมัครสมาชิก หรือเข้าสู่ระบบสะสมแต้ม'}
-                          </p>
-                        </div>
+                     </div>
+                   ) : (
+                     <div className="flex flex-col items-center justify-center py-4 animate-in fade-in duration-300">
+                       <div className="p-6 bg-white border border-gray-100 rounded-3xl shadow-sm flex items-center justify-center min-w-[260px] min-h-[260px] mb-6">
+                         {posQrLoyaltyToken ? (
+                           <QRCodeSVG
+                             value={
+                               posQrLoyaltyToken !== 'general_member_checkin'
+                                 ? `https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}?claimToken=${posQrLoyaltyToken}&session=${qrSessionId}&path=${encodeURIComponent(`/liff/member?claimToken=${posQrLoyaltyToken}&session=${qrSessionId}`)}`
+                                 : `https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}/?path=${encodeURIComponent('/liff/member')}`
+                             }
+                             size={220}
+                             level="H"
+                             includeMargin={true}
+                           />
+                         ) : (
+                           <div className="flex flex-col items-center justify-center space-y-3 py-6 px-4">
+                             <Loader2 className="animate-spin text-[#1A1A18]" size={36} />
+                             <span className="text-xs font-bold text-gray-500">{locale === 'en' ? 'Generating QR Code...' : 'กำลังสร้าง QR Code...'}</span>
+                           </div>
+                         )}
+                       </div>
+                       <div className="text-center space-y-1.5 px-4 mb-8">
+                         {posQrPointsEarned > 0 ? (
+                           <div className="bg-emerald-50 text-emerald-600 px-4 py-3 rounded-2xl mb-4 font-black flex items-center justify-center gap-2">
+                             <span>ลูกค้าจะได้รับ</span>
+                             <span className="text-2xl">{posQrPointsEarned}</span>
+                             <span>คะแนน</span>
+                           </div>
+                         ) : null}
+                         <p className="text-sm font-black text-[#1A1A18] uppercase tracking-wider">
+                           {locale === 'en' ? 'Customers scan with LINE app' : 'ให้ลูกค้าเปิดแอป LINE แล้วสแกน QR Code นี้'}
+                         </p>
+                         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                           {locale === 'en' ? 'To register or log in to loyalty account' : 'เพื่อสมัครสมาชิก หรือเข้าสู่ระบบสะสมแต้ม'}
+                         </p>
+                       </div>
 
-                        <button
-                          onClick={() => {
-                            setShowMemberCheckoutFlow(false);
-                            setShowPaymentModal(true);
-                          }}
-                          className="w-full py-5 bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-black font-black rounded-2xl transition-all uppercase tracking-widest text-[11px]"
-                        >
-                          {locale === 'en' ? 'Skip to Payment' : 'ข้ามไปหน้าชำระเงิน (ไม่สะสมแต้ม)'}
-                        </button>
-                      </div>
-                    )}
+                       <button
+                         onClick={() => {
+                           setShowMemberCheckoutFlow(false);
+                           setShowPaymentModal(true);
+                         }}
+                         className="w-full py-4 text-gray-400 hover:text-black font-bold rounded-2xl transition-all text-sm"
+                       >
+                         {locale === 'en' ? 'Skip to Payment' : 'ข้ามไปหน้าชำระเงิน (ไม่สะสมแต้ม)'}
+                       </button>
+                     </div>
+                   )}
                  </div>
                ) : (
                  <div className="p-8">
