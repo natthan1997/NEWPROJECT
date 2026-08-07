@@ -5784,9 +5784,16 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                      <>
                    
                    <div className="relative mb-6">
-                     <div className="w-full bg-[#f8f8f8] border-2 border-transparent focus-within:border-[#1A1A18] rounded-2xl py-5 px-6 text-2xl font-black text-center tracking-[0.2em] transition-all bg-white min-h-[76px] flex items-center justify-center">
-                        {memberSearchQuery || <span className="text-gray-300">0XX-XXX-XXXX</span>}
-                     </div>
+                     <input
+                        type="tel"
+                        pattern="[0-9]*"
+                        inputMode="numeric"
+                        value={memberSearchQuery}
+                        onChange={(e) => setMemberSearchQuery(e.target.value.replace(/[^0-9]/g, ''))}
+                        placeholder="0XX-XXX-XXXX"
+                        className="w-full bg-[#f8f8f8] border-2 border-transparent focus:border-[#1A1A18] focus:bg-white rounded-2xl py-5 px-6 text-2xl font-black text-center tracking-[0.2em] transition-all outline-none placeholder:text-gray-300"
+                        autoFocus
+                     />
                      {memberSearchResults.length > 0 && (
                         <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] border border-gray-100 overflow-hidden z-20 max-h-[250px] overflow-y-auto">
                            {memberSearchResults.map((m) => (
@@ -5810,36 +5817,6 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                            ))}
                         </div>
                      )}
-                   </div>
-                   
-                   <div className="grid grid-cols-3 gap-3 mb-6">
-                     {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
-                       <button
-                         key={num}
-                         onClick={() => setMemberSearchQuery(prev => prev + num)}
-                         className="h-14 bg-gray-50 hover:bg-gray-100 text-[#1A1A18] font-black text-xl rounded-2xl transition-all"
-                       >
-                         {num}
-                       </button>
-                     ))}
-                     <button
-                       onClick={() => setMemberSearchQuery('')}
-                       className="h-14 bg-red-50 hover:bg-red-100 text-red-500 font-black text-sm uppercase tracking-widest rounded-2xl transition-all"
-                     >
-                       CLR
-                     </button>
-                     <button
-                       onClick={() => setMemberSearchQuery(prev => prev + '0')}
-                       className="h-14 bg-gray-50 hover:bg-gray-100 text-[#1A1A18] font-black text-xl rounded-2xl transition-all"
-                     >
-                       0
-                     </button>
-                     <button
-                       onClick={() => setMemberSearchQuery(prev => prev.slice(0, -1))}
-                       className="h-14 bg-gray-100 hover:bg-gray-200 text-[#1A1A18] flex items-center justify-center rounded-2xl transition-all"
-                     >
-                       <Delete size={20} />
-                     </button>
                    </div>
                    
                    <div className="flex gap-3">
