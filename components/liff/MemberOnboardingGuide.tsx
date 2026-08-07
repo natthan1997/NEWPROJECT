@@ -180,12 +180,12 @@ export function MemberOnboardingGuide({ onClose }: MemberOnboardingGuideProps) {
             right: tooltipX,
             zIndex: 30
           }}
-          className="bg-white rounded-[24px] p-5 shadow-2xl flex flex-col gap-3 border border-gray-100"
+          className="bg-white rounded-[20px] p-5 shadow-lg shadow-black/5 flex flex-col gap-3 border border-gray-100"
         >
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-[10px] font-bold tracking-widest text-[#B48529] uppercase mb-1.5 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#B48529] animate-pulse"></span>
+              <p className="text-[10px] font-bold tracking-widest text-gray-500 uppercase mb-1.5 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-black animate-pulse"></span>
                 จุดที่ {currentStep + 1}/{steps.length}
               </p>
               <h3 className="text-[18px] font-bold text-gray-900 leading-tight">
@@ -194,7 +194,7 @@ export function MemberOnboardingGuide({ onClose }: MemberOnboardingGuideProps) {
             </div>
             <button 
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-900 transition-colors p-1.5 -mr-2 -mt-2 bg-gray-50 rounded-full active:scale-95"
+              className="text-gray-300 hover:text-gray-900 transition-colors p-1.5 -mr-2 -mt-2 rounded-full active:scale-95"
             >
               <X size={16} strokeWidth={2.5} />
             </button>
@@ -214,7 +214,7 @@ export function MemberOnboardingGuide({ onClose }: MemberOnboardingGuideProps) {
             
             <button 
               onClick={nextStep}
-              className="h-10 px-5 bg-gradient-to-r from-[#1A1A18] to-[#2A2A28] text-white rounded-full font-bold text-[13px] flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-[0_4px_12px_rgba(0,0,0,0.15)]"
+              className="h-10 px-5 bg-black text-white rounded-[12px] font-bold text-[13px] flex items-center justify-center gap-2 active:scale-95 transition-transform"
             >
               {isLast ? (
                 <>เสร็จสิ้น <Check size={16} strokeWidth={2.5} /></>
