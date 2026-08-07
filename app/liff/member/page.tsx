@@ -901,6 +901,7 @@ function LiffMemberContent() {
         
         {/* 🟡 Hero Points Card */}
         <motion.section 
+          id="tour-profile"
           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
           className="w-full flex flex-col"
         >
@@ -1032,7 +1033,7 @@ function LiffMemberContent() {
             </div>
           </div>
         ) : (
-          <div className="-mx-5 mb-8">
+          <div id="tour-missions" className="-mx-5 mb-8">
             <div className="px-5 mb-4 flex justify-between items-baseline">
               <h3 className="text-[16px] font-semibold text-gray-900 tracking-tight">แคมเปญพิเศษ</h3>
               <button 
@@ -1164,6 +1165,7 @@ function LiffMemberContent() {
 
         {/* 📢 Campaigns/Titles */}
         <motion.section 
+          id="tour-rewards"
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
           className="-mx-5 mt-4"
         >

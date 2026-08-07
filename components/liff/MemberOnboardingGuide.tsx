@@ -1,140 +1,214 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, QrCode, Gift, Target, ArrowRight, Check } from 'lucide-react';
+import { ArrowRight, Check, X } from 'lucide-react';
 
 interface MemberOnboardingGuideProps {
   onClose: () => void;
 }
 
-const slides = [
-  {
-    id: 'points',
-    title: 'สะสมคะแนนง่ายๆ',
-    description: 'ทุกยอดการสั่งซื้อที่หน้าร้าน จะเปลี่ยนเป็นคะแนนสะสมโดยอัตโนมัติ เพื่อใช้อัปเกรดระดับสมาชิกของคุณ',
-    icon: <Trophy size={48} className="text-[#1A1A18]" />,
-    bg: 'bg-[#F2ECE4]',
-    iconBg: 'bg-white'
+const steps = [
+  { 
+    id: 'tour-profile', 
+    title: 'ระดับสมาชิก', 
+    text: 'ตรวจสอบคะแนนสะสมปัจจุบันของคุณ และเช็คระดับสมาชิกได้จากตรงนี้เลย',
+    position: 'bottom'
   },
-  {
-    id: 'qr',
-    title: 'แสดง QR รับแต้ม',
-    description: 'เพียงยื่น QR Code หน้านี้ให้พนักงาน หรือสแกน QR บิลด้วยตัวเอง แต้มจะเด้งเข้าบัญชีทันที',
-    icon: <QrCode size={48} className="text-white" />,
-    bg: 'bg-gray-100',
-    iconBg: 'bg-[#1A1A18]'
+  { 
+    id: 'tour-missions', 
+    title: 'ภารกิจพิเศษ', 
+    text: 'ร่วมสนุกกับภารกิจต่างๆ เพื่อรับคะแนนโบนัสและปลดล็อกฉายาสุดเท่',
+    position: 'top'
   },
-  {
-    id: 'rewards',
-    title: 'แลกของรางวัล & กาชา',
-    description: 'ใช้คะแนนของคุณเพื่อแลกส่วนลดพิเศษ หรือจะเสี่ยงดวงกับระบบกาชาเพื่อลุ้นรับรางวัลใหญ่ก็ได้เช่นกัน',
-    icon: <Gift size={48} className="text-[#E0A865]" />,
-    bg: 'bg-[#FDF8F3]',
-    iconBg: 'bg-white'
-  },
-  {
-    id: 'missions',
-    title: 'ทำภารกิจสุดท้าทาย',
-    description: 'เข้าร่วมแคมเปญและภารกิจพิเศษต่างๆ เพื่อปลดล็อกฉายาและรับคะแนนโบนัสมากมาย',
-    icon: <Target size={48} className="text-white" />,
-    bg: 'bg-slate-50',
-    iconBg: 'bg-slate-800'
+  { 
+    id: 'tour-rewards', 
+    title: 'แลกรางวัล & สุ่มกาชา', 
+    text: 'ใช้คะแนนสะสมเพื่อแลกรับส่วนลด หรือจะใช้สุ่มกาชาลุ้นรับของรางวัลใหญ่ก็ได้',
+    position: 'top'
   }
 ];
 
 export function MemberOnboardingGuide({ onClose }: MemberOnboardingGuideProps) {
-  const [currentSlide, setCurrentSlide] = useState(0);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [targetRect, setTargetRect] = useState<{ x: number, y: number, w: number, h: number } | null>(null);
+  const [isReady, setIsReady] = useState(false);
 
-  const nextSlide = () => {
-    if (currentSlide < slides.length - 1) {
-      setCurrentSlide(prev => prev + 1);
+  const measureTarget = useCallback(() => {
+    const targetId = steps[currentStep].id;
+    const element = document.getElementById(targetId);
+    
+    if (element) {
+      // Scroll into view if needed
+      const rect = element.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      
+      if (rect.top < 100 || rect.bottom > viewportHeight - 100) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Wait a bit for scroll to finish before measuring
+        setTimeout(() => {
+          const newRect = element.getBoundingClientRect();
+          setTargetRect({
+            x: newRect.left - 8,
+            y: newRect.top - 8,
+            w: newRect.width + 16,
+            h: newRect.height + 16
+          });
+          setIsReady(true);
+        }, 400);
+        return;
+      }
+
+      setTargetRect({
+        x: rect.left - 8,
+        y: rect.top - 8,
+        w: rect.width + 16,
+        h: rect.height + 16
+      });
+      setIsReady(true);
+    } else {
+      // If element is not found on screen, skip this step
+      console.warn(`Element with id ${targetId} not found for onboarding guide`);
+      if (currentStep < steps.length - 1) {
+        setCurrentStep(prev => prev + 1);
+      } else {
+        onClose();
+      }
+    }
+  }, [currentStep, onClose]);
+
+  useEffect(() => {
+    // Initial measurement, wait for DOM to fully render
+    setIsReady(false);
+    const timer = setTimeout(() => measureTarget(), 100);
+
+    // Re-measure on resize or scroll
+    window.addEventListener('resize', measureTarget);
+    
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', measureTarget);
+    };
+  }, [measureTarget]);
+
+  const nextStep = () => {
+    if (currentStep < steps.length - 1) {
+      setCurrentStep(prev => prev + 1);
     } else {
       onClose();
     }
   };
 
-  const isLast = currentSlide === slides.length - 1;
+  const isLast = currentStep === steps.length - 1;
+  const currentData = steps[currentStep];
+
+  // Calculate tooltip position
+  let tooltipY = 0;
+  let tooltipX = 24; // margin from side
+
+  if (targetRect) {
+    if (currentData.position === 'bottom') {
+      tooltipY = targetRect.y + targetRect.h + 16;
+    } else {
+      tooltipY = targetRect.y - 140 - 16; // 140 is approx tooltip height
+      if (tooltipY < 20) { // If it goes off top screen, put it below instead
+        tooltipY = targetRect.y + targetRect.h + 16;
+      }
+    }
+  }
+
+  if (!isReady || !targetRect) return null;
 
   return (
-    <div className="fixed inset-0 z-[2000] flex flex-col items-center justify-center bg-gray-900/60 backdrop-blur-sm p-6">
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.9, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        transition={{ type: "spring", damping: 25, stiffness: 300 }}
-        className="w-full max-w-sm bg-white rounded-[32px] overflow-hidden shadow-2xl relative"
-      >
-        <AnimatePresence mode="wait">
-          <motion.div 
-            key={currentSlide}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-            className={`w-full h-56 flex flex-col items-center justify-center relative overflow-hidden ${slides[currentSlide].bg}`}
-          >
-            {/* Background elements */}
-            <div className="absolute top-0 right-0 -mr-16 -mt-16 w-48 h-48 rounded-full bg-white/20 blur-2xl"></div>
-            <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-40 h-40 rounded-full bg-black/5 blur-2xl"></div>
-            
-            <motion.div 
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", delay: 0.1, bounce: 0.5 }}
-              className={`w-28 h-28 rounded-full flex items-center justify-center shadow-xl relative z-10 ${slides[currentSlide].iconBg}`}
-            >
-              {slides[currentSlide].icon}
-            </motion.div>
-          </motion.div>
-        </AnimatePresence>
+    <div className="fixed inset-0 z-[2000] overflow-hidden">
+      {/* Click blocker */}
+      <div className="absolute inset-0 z-10" />
 
-        <div className="p-8 text-center bg-white relative z-20">
-          <div className="flex justify-center gap-1.5 mb-6">
-            {slides.map((_, i) => (
-              <div 
-                key={i} 
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  i === currentSlide ? 'w-6 bg-[#1A1A18]' : 'w-1.5 bg-gray-200'
-                }`}
-              />
-            ))}
-          </div>
+      {/* SVG Mask for Spotlight */}
+      <svg className="absolute inset-0 z-20 pointer-events-none" width="100%" height="100%">
+        <defs>
+          <mask id="spotlight">
+            <rect width="100%" height="100%" fill="white" />
+            <motion.rect
+              initial={false}
+              animate={{
+                x: targetRect.x,
+                y: targetRect.y,
+                width: targetRect.w,
+                height: targetRect.h
+              }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              rx={16}
+              fill="black"
+            />
+          </mask>
+        </defs>
+        <motion.rect 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          width="100%" height="100%" fill="rgba(0,0,0,0.7)" mask="url(#spotlight)" 
+        />
+      </svg>
 
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentSlide}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-            >
-              <h2 className="text-[22px] font-black text-gray-900 mb-3 tracking-tight">
-                {slides[currentSlide].title}
-              </h2>
-              <p className="text-[14px] text-gray-500 font-medium leading-relaxed mb-8 px-2">
-                {slides[currentSlide].description}
+      {/* Tooltip Content */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={currentStep}
+          initial={{ opacity: 0, y: currentData.position === 'bottom' ? -20 : 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          style={{
+            position: 'absolute',
+            top: tooltipY,
+            left: tooltipX,
+            right: tooltipX,
+            zIndex: 30
+          }}
+          className="bg-white rounded-[24px] p-5 shadow-2xl flex flex-col gap-3"
+        >
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-[10px] font-bold tracking-widest text-[#B48529] uppercase mb-1 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#B48529]"></span>
+                ขั้นตอนที่ {currentStep + 1}/{steps.length}
               </p>
-            </motion.div>
-          </AnimatePresence>
+              <h3 className="text-[18px] font-bold text-gray-900 leading-tight">
+                {currentData.title}
+              </h3>
+            </div>
+            <button 
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-900 transition-colors p-1.5 -mr-2 -mt-2 bg-gray-50 rounded-full active:scale-95"
+            >
+              <X size={16} strokeWidth={2.5} />
+            </button>
+          </div>
+          
+          <p className="text-[13px] text-gray-600 leading-relaxed mb-1 font-medium">
+            {currentData.text}
+          </p>
 
-          <button 
-            onClick={nextSlide}
-            className="w-full h-14 bg-[#1A1A18] text-white rounded-full font-bold text-[15px] flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-lg shadow-black/10"
-          >
-            {isLast ? (
-              <>
-                เริ่มต้นใช้งาน
-                <Check size={18} />
-              </>
-            ) : (
-              <>
-                ถัดไป
-                <ArrowRight size={18} />
-              </>
-            )}
-          </button>
-        </div>
-      </motion.div>
+          <div className="flex justify-between items-center mt-2">
+            <button 
+              onClick={onClose}
+              className="text-[13px] font-bold text-gray-400 hover:text-gray-600 active:scale-95 transition-transform"
+            >
+              ข้าม (Skip)
+            </button>
+            
+            <button 
+              onClick={nextStep}
+              className="h-10 px-5 bg-gradient-to-r from-[#1A1A18] to-[#2A2A28] text-white rounded-full font-bold text-[13px] flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-[0_4px_12px_rgba(0,0,0,0.15)]"
+            >
+              {isLast ? (
+                <>เริ่มต้นใช้งาน <Check size={16} strokeWidth={2.5} /></>
+              ) : (
+                <>ถัดไป <ArrowRight size={16} strokeWidth={2.5} /></>
+              )}
+            </button>
+          </div>
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }
