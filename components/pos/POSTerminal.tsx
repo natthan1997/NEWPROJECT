@@ -5927,8 +5927,9 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                    )}
                  </div>
                ) : (
-                 <div className="p-8">
-                   <div className="flex items-center gap-4 mb-6 bg-gray-50 rounded-2xl p-4 border border-gray-100 relative">
+                 <div className="p-0">
+                   {/* Profile Header section - Premium clean look */}
+                   <div className="bg-white border-b border-gray-100 p-8 flex flex-col items-center relative">
                      <button 
                        onClick={() => {
                            if (linkedCheckInId) {
@@ -5939,56 +5940,45 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                            setMemberSearchQuery('')
                           setMemberCheckoutStep('lookup')
                        }}
-                       className="absolute top-4 right-4 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-[#1A1A18] bg-white hover:bg-gray-100 shadow-sm px-3 py-1.5 rounded-full transition-all"
+                       className="absolute top-6 right-6 text-xs font-bold text-gray-400 hover:text-[#1A1A18] transition-all underline underline-offset-4 decoration-gray-300 hover:decoration-[#1A1A18]"
                      >
-                       {locale === 'en' ? 'Change' : 'เปลี่ยนลูกค้า'}
+                       {locale === 'en' ? 'Change Customer' : 'เปลี่ยนลูกค้า'}
                      </button>
                      
-                     {selectedCustomer?.customer_image || selectedCustomer?.avatar_url ? (
-                       <img src={selectedCustomer?.customer_image || selectedCustomer?.avatar_url} alt="Profile" className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-sm" />
-                     ) : (
-                       <div className="w-16 h-16 rounded-full bg-gray-200 border-2 border-white shadow-sm flex items-center justify-center">
-                         <User size={24} className="text-gray-400" />
+                     <div className="mb-4 relative">
+                       {selectedCustomer?.customer_image || selectedCustomer?.avatar_url ? (
+                         <img src={selectedCustomer?.customer_image || selectedCustomer?.avatar_url} alt="Profile" className="w-20 h-20 rounded-full object-cover shadow-sm border border-gray-100" />
+                       ) : (
+                         <div className="w-20 h-20 rounded-full bg-gray-50 flex items-center justify-center border border-gray-100 shadow-sm">
+                           <User size={32} className="text-gray-300" />
+                         </div>
+                       )}
+                       <div className="absolute -bottom-2 -right-2 bg-yellow-400 text-[#1A1A18] rounded-full p-1.5 border-2 border-white shadow-sm" title="Member">
+                         <Award size={14} className="fill-[#1A1A18]" />
                        </div>
-                     )}
-                     <div>
-                       <h3 className="text-lg font-black text-[#1A1A18] mb-0.5">{selectedCustomer?.full_name || selectedCustomer?.display_name}</h3>
-                       <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mb-2">{selectedCustomer?.phone}</p>
-                       <div className="bg-[#1A1A18] px-3 py-1 rounded-full flex items-center gap-1.5 w-fit">
-                         <Award size={12} className="text-yellow-400" />
-                         <span className="text-white font-bold text-[10px] tracking-widest">{selectedCustomer?.points || 0} PTS</span>
-                       </div>
+                     </div>
+                     
+                     <h3 className="text-xl font-black text-[#1A1A18] mb-1">{selectedCustomer?.full_name || selectedCustomer?.display_name}</h3>
+                     <p className="text-sm font-bold text-gray-400 tracking-widest">{selectedCustomer?.phone}</p>
+                     
+                     <div className="mt-4 bg-[#1A1A18] px-5 py-2 rounded-full flex items-center gap-2 shadow-sm">
+                       <span className="text-yellow-400 font-black text-sm">{selectedCustomer?.points || 0}</span>
+                       <span className="text-white font-bold text-[10px] tracking-widest uppercase">PTS</span>
                      </div>
                    </div>
 
-                   <div className="mb-8">
-                     <div className="flex items-center justify-between mb-4">
-                       <label className="block text-xs font-black uppercase tracking-widest text-[#1A1A18]">
+                   <div className="p-8 bg-gray-50/50">
+                     <div className="flex items-center justify-between mb-5">
+                       <h4 className="text-sm font-black uppercase tracking-widest text-[#1A1A18]">
                          {locale === 'en' ? 'Available Coupons' : 'คูปองที่สามารถใช้ได้'}
-                       </label>
+                       </h4>
+                       <span className="text-xs font-bold text-gray-400 bg-gray-200/50 px-2 py-1 rounded-md">{memberAvailableCoupons.length}</span>
                      </div>
 
                      {memberAvailableCoupons.length > 0 ? (
-                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                       <div className="space-y-3 mb-8 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                          {memberAvailableCoupons.map((coupon, idx) => (
-                           <div key={idx} className="bg-white border-2 border-gray-100 rounded-2xl p-4 flex gap-4 items-center shadow-sm hover:shadow-md transition-all">
-                             {coupon.image_url ? (
-                               <img src={coupon.image_url} alt={coupon.coupon_name} className="w-16 h-16 object-cover rounded-xl" />
-                             ) : (
-                               <div className="w-16 h-16 bg-gray-100 rounded-xl flex items-center justify-center">
-                                 <Ticket size={24} className="text-gray-400" />
-                               </div>
-                             )}
-                             <div className="flex-1">
-                               <h4 className="font-bold text-sm text-[#1A1A18] line-clamp-1">{coupon.coupon_name}</h4>
-                               <p className="text-xs text-emerald-600 font-bold mt-1 uppercase tracking-widest">
-                                 {coupon.discount_type === 'free_item' ? (locale === 'en' ? 'Free Item' : 'รับฟรี 1 รายการ') : ''}
-                                 {coupon.discount_type === 'percent' ? `${coupon.discount_value}% OFF` : ''}
-                                 {coupon.discount_type === 'fixed' ? `${coupon.discount_value} THB OFF` : ''}
-                               </p>
-                             </div>
-                             <button
-                               onClick={() => {
+                           <div key={idx} className="bg-white border border-gray-200 hover:border-[#1A1A18] rounded-2xl p-4 flex gap-4 items-center shadow-sm transition-all group cursor-pointer" onClick={() => {
                                  const event = new CustomEvent('applyPOSCoupon', { detail: coupon });
                                  window.dispatchEvent(event);
                                  setShowMemberCheckoutFlow(false);
@@ -5996,31 +5986,46 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                                     alert(`นำคูปอง "${coupon.coupon_name || coupon.name}" ไปประยุกต์ใช้สำเร็จ!`);
                                     setShowPaymentModal(true);
                                  }
-                               }}
-                               className="px-4 py-2 bg-[#1A1A18] hover:bg-black text-white font-black text-[10px] uppercase tracking-widest rounded-xl transition-all"
-                             >
-                               {locale === 'en' ? 'Use' : 'เลือกใช้'}
-                             </button>
+                               }}>
+                             {coupon.image_url ? (
+                               <img src={coupon.image_url} alt={coupon.coupon_name} className="w-14 h-14 object-cover rounded-xl" />
+                             ) : (
+                               <div className="w-14 h-14 bg-gray-50 rounded-xl flex items-center justify-center group-hover:bg-gray-100 transition-colors">
+                                 <Ticket size={24} className="text-gray-400 group-hover:text-[#1A1A18] transition-colors" />
+                               </div>
+                             )}
+                             <div className="flex-1">
+                               <h4 className="font-bold text-sm text-[#1A1A18] line-clamp-1 group-hover:text-black transition-colors">{coupon.coupon_name}</h4>
+                               <p className="text-xs font-black mt-1 uppercase tracking-widest text-orange-500">
+                                 {coupon.discount_type === 'free_item' ? (locale === 'en' ? 'Free Item' : 'รับฟรี 1 รายการ') : ''}
+                                 {coupon.discount_type === 'percent' ? `${coupon.discount_value}% OFF` : ''}
+                                 {coupon.discount_type === 'fixed' ? `ลด ${coupon.discount_value} บาท` : ''}
+                               </p>
+                             </div>
+                             <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center group-hover:bg-[#1A1A18] transition-colors">
+                               <span className="text-gray-400 group-hover:text-white transition-colors">→</span>
+                             </div>
                            </div>
                          ))}
                        </div>
                      ) : (
-                       <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-3xl p-8 text-center">
-                          <Ticket className="w-8 h-8 mx-auto text-gray-300 mb-2" />
-                          <p className="text-gray-500 font-bold text-sm">{locale === 'en' ? 'No active coupons' : 'ยังไม่มีคูปองที่ใช้งานได้'}</p>
+                       <div className="mb-8 flex flex-col items-center justify-center py-12 text-center bg-white rounded-3xl border border-gray-100 shadow-sm">
+                          <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                            <Ticket className="w-8 h-8 text-gray-300" />
+                          </div>
+                          <p className="text-[#1A1A18] font-black text-sm">{locale === 'en' ? 'No active coupons' : 'ยังไม่มีคูปองที่ใช้งานได้'}</p>
+                          <p className="text-xs text-gray-400 font-bold mt-1 max-w-[200px]">{locale === 'en' ? 'You don\'t have any coupons available for this order.' : 'คุณยังไม่มีคูปองส่วนลดสำหรับรายการนี้'}</p>
                        </div>
                      )}
-                   </div>
-                   
-                   <div className="flex gap-3">
+                     
                      <button
                        onClick={() => {
                          setShowMemberCheckoutFlow(false);
                          setShowPaymentModal(true);
                        }}
-                       className="flex-1 py-5 bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-black font-black rounded-2xl transition-all uppercase tracking-widest text-[11px]"
+                       className="w-full py-4 bg-white border-2 border-gray-200 hover:border-[#1A1A18] text-[#1A1A18] font-black rounded-2xl transition-all uppercase tracking-widest text-[11px] shadow-sm flex items-center justify-center gap-2"
                      >
-                       {locale === 'en' ? 'Skip & Pay without Coupons' : 'ข้ามไปหน้าชำระเงิน (ไม่ใช้คูปอง)'}
+                       <span>{locale === 'en' ? 'Skip & Pay without Coupons' : 'ข้ามไปหน้าชำระเงิน (ไม่ใช้คูปอง)'}</span>
                      </button>
                    </div>
                  </div>
