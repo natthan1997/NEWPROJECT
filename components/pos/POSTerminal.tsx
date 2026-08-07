@@ -4385,14 +4385,6 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                         return
                       }
 
-                      if (cart.length > 0) {
-                        try {
-                          await handleHoldOrder({ suppressProcessingState: true, suppressAlert: true, keepComposer: true });
-                        } catch (err) {
-                          console.error("Failed to hold order before checkout", err);
-                        }
-                      }
-
                       if (selectedCustomer) {
                         setShowPaymentModal(true);
                       } else {
