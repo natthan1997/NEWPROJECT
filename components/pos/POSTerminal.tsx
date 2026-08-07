@@ -5745,7 +5745,9 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="relative flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-3xl bg-white shadow-2xl"
+              className={`relative flex max-h-[90vh] w-full flex-col overflow-hidden rounded-3xl bg-white shadow-2xl transition-all duration-300 ${
+                memberCheckoutStep === 'lookup' && memberLookupMode === 'qr' ? 'max-w-4xl' : 'max-w-lg'
+              }`}
             >
                {memberCheckoutStep === 'lookup' ? (
                  <div className="p-8 pt-10">
@@ -5852,45 +5854,75 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                    </div>
                      </div>
                    ) : (
-                     <div className="flex flex-col items-center justify-center py-4 animate-in fade-in duration-300">
-                       <div className="p-6 bg-white border border-gray-100 rounded-3xl shadow-sm flex items-center justify-center min-w-[260px] min-h-[260px] mb-6">
-                         {posQrLoyaltyToken ? (
-                           <QRCodeSVG
-                             value={
-                               posQrLoyaltyToken !== 'general_member_checkin'
-                                 ? `https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}?claimToken=${posQrLoyaltyToken}&session=${qrSessionId}&path=${encodeURIComponent(`/liff/member?claimToken=${posQrLoyaltyToken}&session=${qrSessionId}`)}`
-                                 : `https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}/?path=${encodeURIComponent('/liff/member')}`
-                             }
-                             size={220}
-                             level="H"
-                             includeMargin={true}
-                           />
-                         ) : (
-                           <div className="flex flex-col items-center justify-center space-y-3 py-6 px-4">
-                             <Loader2 className="animate-spin text-[#1A1A18]" size={36} />
-                             <span className="text-xs font-bold text-gray-500">{locale === 'en' ? 'Generating QR Code...' : 'กำลังสร้าง QR Code...'}</span>
-                           </div>
-                         )}
-                       </div>
-                       <div className="text-center space-y-1.5 px-4 mb-8">
-                         {posQrPointsEarned > 0 ? (
-                           <div className="bg-emerald-50 text-emerald-600 px-4 py-3 rounded-2xl font-black flex items-center justify-center gap-2">
-                             <span>ลูกค้าจะได้รับ</span>
-                             <span className="text-2xl">{posQrPointsEarned}</span>
-                             <span>คะแนน</span>
-                           </div>
-                         ) : null}
-                       </div>
+                     <div className="flex flex-col md:flex-row gap-8 py-4 animate-in fade-in duration-300 items-stretch">
+                       {/* Left side: Order Details */}
+                       <div className="flex-1 bg-[#F8F8F8] rounded-3xl p-6 flex flex-col max-h-[60vh] overflow-hidden">
+                          <h3 className="text-xl font-black mb-4">{locale === 'en' ? 'Order Details' : 'รายการสั่งซื้อ'}</h3>
+                          <div className="flex-1 overflow-y-auto pr-2 space-y-3">
+                             {cart.map((item, idx) => (
+                               <div key={idx} className="flex justify-between items-start gap-4 pb-3 border-b border-gray-200 last:border-0">
+                                 <div>
+                                    <div className="font-bold text-[#1A1A18] text-sm">{item.quantity}x {item.name}</div>
+                                    {item.options?.map(opt => <div key={opt} className="text-xs text-gray-500">{opt}</div>)}
+                                 </div>
+                                 <div className="font-black text-[#1A1A18] text-sm">฿{(item.price * item.quantity).toFixed(2)}</div>
+                               </div>
+                             ))}
+                          </div>
+                          
+                          <div className="mt-4 pt-4 border-t-2 border-gray-200">
+                             <div className="flex justify-between items-center mb-4">
+                               <span className="font-black text-gray-500">{locale === 'en' ? 'Total' : 'ยอดรวมทั้งสิ้น'}</span>
+                               <span className="text-2xl font-black text-[#1A1A18]">฿{getTotal().toFixed(2)}</span>
+                             </div>
 
-                       <button
-                         onClick={() => {
-                           setShowMemberCheckoutFlow(false);
-                           setShowPaymentModal(true);
-                         }}
-                         className="w-full py-4 text-gray-400 hover:text-black font-bold rounded-2xl transition-all text-sm"
-                       >
-                         {locale === 'en' ? 'Skip to Payment' : 'ข้ามไปหน้าชำระเงิน (ไม่สะสมแต้ม)'}
-                       </button>
+                             {posQrPointsEarned > 0 ? (
+                               <div className="bg-emerald-50 text-emerald-600 px-4 py-4 rounded-2xl font-black flex items-center justify-between">
+                                 <span>{locale === 'en' ? 'Points Earned' : 'คะแนนที่ได้รับ'}</span>
+                                 <div className="flex items-baseline gap-1">
+                                    <span className="text-3xl">{posQrPointsEarned}</span>
+                                    <span className="text-sm">pts</span>
+                                 </div>
+                               </div>
+                             ) : null}
+                          </div>
+                       </div>
+                       
+                       {/* Right side: QR Code */}
+                       <div className="flex-1 flex flex-col items-center justify-center">
+                         <div className="p-8 bg-white border-2 border-gray-100 rounded-[2rem] shadow-sm flex items-center justify-center min-w-[320px] min-h-[320px] mb-8 relative">
+                           {posQrLoyaltyToken ? (
+                             <QRCodeSVG
+                               value={
+                                 posQrLoyaltyToken !== 'general_member_checkin'
+                                   ? `https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}?claimToken=${posQrLoyaltyToken}&session=${qrSessionId}&path=${encodeURIComponent(`/liff/member?claimToken=${posQrLoyaltyToken}&session=${qrSessionId}`)}`
+                                   : `https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}/?path=${encodeURIComponent('/liff/member')}`
+                               }
+                               size={280}
+                               level="H"
+                               includeMargin={false}
+                             />
+                           ) : (
+                             <div className="flex flex-col items-center justify-center space-y-3">
+                               <Loader2 className="animate-spin text-[#1A1A18]" size={48} />
+                               <span className="text-sm font-bold text-gray-500">{locale === 'en' ? 'Generating QR Code...' : 'กำลังสร้าง QR Code...'}</span>
+                             </div>
+                           )}
+                           
+                           {/* Add a scan overlay frame for aesthetic */}
+                           <div className="absolute inset-0 pointer-events-none rounded-[2rem] border-[3px] border-[#1A1A18]/5"></div>
+                         </div>
+
+                         <button
+                           onClick={() => {
+                             setShowMemberCheckoutFlow(false);
+                             setShowPaymentModal(true);
+                           }}
+                           className="w-full max-w-sm py-4 text-gray-400 hover:text-black font-bold rounded-2xl transition-all text-sm border-2 border-transparent hover:border-gray-200"
+                         >
+                           {locale === 'en' ? 'Skip to Payment' : 'ข้ามไปหน้าชำระเงิน (ไม่สะสมแต้ม)'}
+                         </button>
+                       </div>
                      </div>
                    )}
                  </div>
