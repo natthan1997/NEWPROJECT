@@ -148,6 +148,7 @@ function RestaurantOSPageContent() {
   const [editingOrderNumber, setEditingOrderNumber] = useState<string | null>(null)
   const [orderType, setOrderType] = useState<'dine_in' | 'takeaway' | 'delivery'>('dine_in')
   const [deliveryPlatform, setDeliveryPlatform] = useState<string>('')
+  const [isAutoCreatingOrder, setIsAutoCreatingOrder] = useState<boolean>(false)
 
   const cartTotal = useMemo(
     () =>
@@ -658,6 +659,10 @@ function RestaurantOSPageContent() {
           } else {
             setClaimingCoupons(prev => prev.filter(c => c.id !== newRecord.id))
             setActiveCouponClaimRequest(prev => prev?.id === newRecord.id ? null : prev)
+            // Dispatch event to clear it in POSTerminal if it's applied
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('cancelPOSCoupon', { detail: { id: newRecord.id } }))
+            }
           }
         }
       )
@@ -1146,6 +1151,8 @@ function RestaurantOSPageContent() {
     setDiscountType,
     discountName,
     setDiscountName,
+    isAutoCreatingOrder,
+    setIsAutoCreatingOrder,
   }
 
   const renderView = () => {

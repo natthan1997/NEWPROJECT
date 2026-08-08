@@ -265,6 +265,8 @@ interface POSTerminalProps {
   setDiscountType: React.Dispatch<React.SetStateAction<'fixed' | 'percent'>>
   discountName: string
   setDiscountName: React.Dispatch<React.SetStateAction<string>>
+  isAutoCreatingOrder?: boolean
+  setIsAutoCreatingOrder?: React.Dispatch<React.SetStateAction<boolean>>
 }
 
 export default function POSTerminal({
@@ -334,6 +336,8 @@ export default function POSTerminal({
   setDiscountType,
   discountName,
   setDiscountName,
+  isAutoCreatingOrder: isAutoCreatingOrderProp,
+  setIsAutoCreatingOrder: setIsAutoCreatingOrderProp,
 }: POSTerminalProps) {
   // --- INTERNAL STATES ---
   const router = useRouter()
@@ -560,7 +564,10 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   const longPressTimer = useRef<NodeJS.Timeout | null>(null)
   const isLongPressTriggered = useRef(false)
   const touchStartPos = useRef<{ x: number, y: number } | null>(null)
-
+  const [localIsAutoCreatingOrder, setLocalIsAutoCreatingOrder] = useState(false)
+  const isAutoCreatingOrder = isAutoCreatingOrderProp !== undefined ? isAutoCreatingOrderProp : localIsAutoCreatingOrder
+  const setIsAutoCreatingOrder = setIsAutoCreatingOrderProp || setLocalIsAutoCreatingOrder
+  const isAutoCreatingOrderLock = useRef(false)
 
   const handlePressStart = (e: React.TouchEvent | React.MouseEvent, item: MenuItem) => {
     isLongPressTriggered.current = false
@@ -1594,6 +1601,47 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     }
   };
 
+  useEffect(() => {
+    let isMounted = true;
+    if (orderType === 'takeaway' && !editingOrderId && cart.length > 0 && !isAutoCreatingOrderLock.current) {
+      isAutoCreatingOrderLock.current = true;
+      setIsAutoCreatingOrder(true);
+      (async () => {
+        try {
+          const identity = await fetchOrderIdentity(null)
+          const payload: any = {
+            order_action: 'insert',
+            order: {
+              order_number: identity.orderNumber,
+              staff_id: profile?.id,
+              shift_id: activeShift?.id,
+              branch_id: shopSettings?.branch_id || activeShift?.branch_id || null,
+              status: 'pending',
+              total_amount: 0,
+              net_total: 0,
+              order_type: 'takeaway',
+              queue_number: identity.queueNumber,
+              order_source: 'pos',
+            }
+          }
+          const { data: rpcResult, error: rpcError } = await supabase.rpc('pos_checkout_order', { payload })
+          if (!rpcError && rpcResult?.order_id && isMounted) {
+            setEditingOrderId(rpcResult.order_id)
+            setEditingOrderNumber(identity.orderNumber)
+            setHeldCartFingerprint('')
+          }
+        } catch (err) {
+          console.error('Auto create takeaway order error:', err)
+        } finally {
+          if (isMounted) {
+            setIsAutoCreatingOrder(false);
+            isAutoCreatingOrderLock.current = false;
+          }
+        }
+      })();
+    }
+    return () => { isMounted = false; }
+  }, [orderType, cart.length, editingOrderId, profile?.id, activeShift?.id, shopSettings?.branch_id])
 
   const activePrintData = useMemo(() => {
     if (paymentSuccessData) return paymentSuccessData;
