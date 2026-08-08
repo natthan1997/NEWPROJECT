@@ -712,78 +712,114 @@ const handleSave = async () => {
 
                 <div className="flex-1 flex flex-col lg:flex-row min-h-0">
                 
-                {/* SIDEBAR TABS */}
-                <div className={`w-full lg:w-[320px] xl:w-[340px] h-full flex-shrink-0 bg-white border-r border-gray-200 overflow-y-auto custom-scrollbar ${!showMobileMenu ? 'hidden lg:block' : 'block'}`}>
-                    <div className="px-6 py-8 pb-6">
-                        <h1 className="text-3xl font-black tracking-tight">{locale === 'en' ? 'ตั้งค่าร้าน' : locale === 'zh' ? 'ตั้งค่าร้าน' : 'ตั้งค่าร้าน'}</h1>
-                        <p className="text-[13px] font-bold text-gray-500 mt-1">{locale === 'en' ? 'จัดการข้อมูลร้านค้า สาขา ' : 'จัดการข้อมูลร้านค้า สาขา '}{profile?.branch_code}</p>
-                    </div>
+                {/* SIDEBAR TABS (iOS Style) */}
+                <div className={`w-full lg:w-[320px] xl:w-[340px] h-full flex-shrink-0 bg-[#F2F2F7] border-r border-gray-300 overflow-y-auto custom-scrollbar ${!showMobileMenu ? 'hidden lg:block' : 'block'}`}>
+                    <div className="px-4 py-8 pb-4">
+                        <h1 className="text-[32px] font-bold tracking-tight text-black mb-4 px-2">{locale === 'en' ? 'Settings' : locale === 'zh' ? '设置' : 'การตั้งค่า'}</h1>
+                        
+                        {/* Fake Search Bar for iOS look */}
+                        <div className="bg-gray-200/80 rounded-[10px] flex items-center px-3 py-1.5 mb-6 mx-2">
+                            <span className="text-gray-500 font-normal text-[16px]">🔍 {locale === 'en' ? 'Search' : 'ค้นหา'}</span>
+                        </div>
 
-                    <div className="bg-gray-50 px-6 py-2.5 text-[12px] font-bold text-gray-500 border-y border-gray-200 uppercase tracking-wider">
-                        ตั้งค่าสาขา
-                    </div>
-                    {[
-                        { id: 'general', icon: Info, label: 'ทั่วไป' },
-                        { id: 'hardware', icon: Settings, label: 'เครื่องพิมพ์' },
-                        { id: 'receipt', icon: Printer, label: 'บิล' },
-                        { id: 'advanced', icon: Star, label: 'ตั้งค่าการชำระเงิน' },
-                        { id: 'delivery', icon: Truck, label: 'เดลิเวอรี่' },
-                        { id: 'kitchen', icon: MenuIcon, label: 'ห้องครัว' }
-                    ].map(tab => {
-                        const Icon = tab.icon;
-                        const isActive = activeTab === tab.id;
-                        return (
-                            <button 
-                                key={tab.id}
-                                onClick={() => {
-                                    setActiveTab(tab.id)
-                                    setShowMobileMenu(false)
-                                }}
-                                className={`w-full flex items-center gap-4 px-6 py-3.5 transition-all text-left border-b border-gray-100 ${isActive ? 'bg-[#E8F8FA] text-[#00BCD4] border-l-[4px] border-l-[#00BCD4]' : 'bg-white text-gray-700 hover:bg-gray-50 border-l-[4px] border-l-transparent'}`}
-                            >
-                                <Icon size={22} className={isActive ? 'text-[#00BCD4]' : 'text-gray-500'} strokeWidth={1.5} />
-                                <span className={`text-[15px] ${isActive ? 'font-bold' : 'font-medium'}`}>{tab.label}</span>
-                            </button>
-                        );
-                    })}
+                        {/* Profile Card */}
+                        <div className="bg-white rounded-[10px] p-3 flex items-center gap-3 mb-6 shadow-sm mx-2">
+                            <div className="w-14 h-14 rounded-full bg-gray-400 flex items-center justify-center text-white text-xl font-medium shrink-0">
+                                {profile?.branch_code?.[0]?.toUpperCase() || 'S'}
+                            </div>
+                            <div className="flex flex-col min-w-0">
+                                <span className="text-[17px] font-medium text-black truncate">{locale === 'en' ? 'Shop Settings' : 'ตั้งค่าร้านค้า'}</span>
+                                <span className="text-[13px] text-gray-500 truncate">สาขา {profile?.branch_code}</span>
+                            </div>
+                        </div>
 
-                    <div className="bg-gray-50 px-6 py-2.5 text-[12px] font-bold text-gray-500 border-y border-gray-200 uppercase tracking-wider">
-                        อื่นๆ
+                        {/* Settings Group 1 */}
+                        <div className="bg-white rounded-[10px] shadow-sm overflow-hidden mb-6 mx-2">
+                            {[
+                                { id: 'general', icon: Info, label: 'ทั่วไป', color: 'bg-gray-500' },
+                                { id: 'hardware', icon: Settings, label: 'เครื่องพิมพ์', color: 'bg-blue-500' },
+                                { id: 'receipt', icon: Printer, label: 'บิล', color: 'bg-orange-500' },
+                                { id: 'advanced', icon: Star, label: 'ตั้งค่าการชำระเงิน', color: 'bg-indigo-500' },
+                                { id: 'delivery', icon: Truck, label: 'เดลิเวอรี่', color: 'bg-green-500' },
+                                { id: 'kitchen', icon: MenuIcon, label: 'ห้องครัว', color: 'bg-red-500' }
+                            ].map((tab, index, arr) => {
+                                const Icon = tab.icon;
+                                const isActive = activeTab === tab.id;
+                                return (
+                                    <button 
+                                        key={tab.id}
+                                        onClick={() => {
+                                            setActiveTab(tab.id)
+                                            setShowMobileMenu(false)
+                                        }}
+                                        className={`w-full flex items-center gap-3 px-4 py-2.5 transition-all text-left ${isActive ? 'bg-[#007AFF]' : 'bg-white hover:bg-gray-50 active:bg-gray-100'} ${index !== arr.length - 1 ? (isActive ? '' : 'border-b border-gray-100/80') : ''}`}
+                                    >
+                                        <div className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${tab.color} text-white`}>
+                                            <Icon size={18} strokeWidth={2} />
+                                        </div>
+                                        <span className={`text-[16px] flex-1 ${isActive ? 'text-white font-medium' : 'text-black'}`}>{tab.label}</span>
+                                        {!isActive && <ChevronRight size={16} className="text-gray-300" />}
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        {/* Settings Group 2 */}
+                        <div className="bg-white rounded-[10px] shadow-sm overflow-hidden mx-2">
+                            {[
+                                { id: 'campaigns', icon: Flag, label: 'แคมเปญหน้าแอป', color: 'bg-purple-500' },
+                                { id: 'permissions', icon: ShieldCheck, label: 'สิทธิ์การใช้งาน', color: 'bg-teal-500' }
+                            ].map((tab, index, arr) => {
+                                const Icon = tab.icon;
+                                const isActive = activeTab === tab.id;
+                                return (
+                                    <button 
+                                        key={tab.id}
+                                        onClick={() => {
+                                            setActiveTab(tab.id)
+                                            setShowMobileMenu(false)
+                                        }}
+                                        className={`w-full flex items-center gap-3 px-4 py-2.5 transition-all text-left ${isActive ? 'bg-[#007AFF]' : 'bg-white hover:bg-gray-50 active:bg-gray-100'} ${index !== arr.length - 1 ? (isActive ? '' : 'border-b border-gray-100/80') : ''}`}
+                                    >
+                                        <div className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${tab.color} text-white`}>
+                                            <Icon size={18} strokeWidth={2} />
+                                        </div>
+                                        <span className={`text-[16px] flex-1 ${isActive ? 'text-white font-medium' : 'text-black'}`}>{tab.label}</span>
+                                        {!isActive && <ChevronRight size={16} className="text-gray-300" />}
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
-                    {[
-                        { id: 'campaigns', icon: Flag, label: 'แคมเปญหน้าแอป' },
-                        { id: 'permissions', icon: ShieldCheck, label: 'สิทธิ์การใช้งาน' }
-                    ].map(tab => {
-                        const Icon = tab.icon;
-                        const isActive = activeTab === tab.id;
-                        return (
-                            <button 
-                                key={tab.id}
-                                onClick={() => {
-                                    setActiveTab(tab.id)
-                                    setShowMobileMenu(false)
-                                }}
-                                className={`w-full flex items-center gap-4 px-6 py-3.5 transition-all text-left border-b border-gray-100 ${isActive ? 'bg-[#E8F8FA] text-[#00BCD4] border-l-[4px] border-l-[#00BCD4]' : 'bg-white text-gray-700 hover:bg-gray-50 border-l-[4px] border-l-transparent'}`}
-                            >
-                                <Icon size={22} className={isActive ? 'text-[#00BCD4]' : 'text-gray-500'} strokeWidth={1.5} />
-                                <span className={`text-[15px] ${isActive ? 'font-bold' : 'font-medium'}`}>{tab.label}</span>
-                            </button>
-                        );
-                    })}
                 </div>
 
                 {/* MAIN CONTENT AREA */}
                 <div className={`flex-1 h-full overflow-y-auto bg-[#F2F2F7] relative ${showMobileMenu ? 'hidden lg:block' : 'block'}`}>
                     <div className="max-w-5xl mx-auto py-8 sm:py-10 px-4 sm:px-8 pb-40 space-y-8">
-                        
-                        {/* MOBILE BACK BUTTON */}
-                        <div className="lg:hidden flex items-center justify-between mb-6">
-                            <button 
-                                onClick={() => setShowMobileMenu(true)}
-                                className="flex items-center gap-2 text-sm font-bold text-[#00BCD4] hover:text-[#0097a7] transition-colors"
-                            >
-                                <ChevronRight size={22} className="rotate-180" /> {locale === 'en' ? 'Settings' : locale === 'zh' ? '设置' : 'ตั้งค่า'}
-                            </button>
+                        {/* RIGHT PANE HEADER (iOS Style) */}
+                        <div className="sticky top-0 z-20 bg-[#F2F2F7]/90 backdrop-blur-xl py-4 -mx-4 px-4 sm:-mx-8 sm:px-8 mb-6 border-b border-gray-300 flex items-center justify-center relative">
+                            {/* MOBILE BACK BUTTON */}
+                            <div className="lg:hidden absolute left-4 sm:left-8">
+                                <button 
+                                    onClick={() => setShowMobileMenu(true)}
+                                    className="flex items-center gap-1 text-[17px] text-[#007AFF] hover:opacity-80 transition-opacity"
+                                >
+                                    <ChevronRight size={22} className="rotate-180" strokeWidth={2.5} />
+                                    <span>{locale === 'en' ? 'Settings' : 'การตั้งค่า'}</span>
+                                </button>
+                            </div>
+                            <h2 className="text-[17px] font-bold text-black text-center">
+                                {[
+                                    { id: 'general', label: 'ทั่วไป' },
+                                    { id: 'hardware', label: 'เครื่องพิมพ์' },
+                                    { id: 'receipt', label: 'บิล' },
+                                    { id: 'advanced', label: 'ตั้งค่าการชำระเงิน' },
+                                    { id: 'delivery', label: 'เดลิเวอรี่' },
+                                    { id: 'kitchen', label: 'ห้องครัว' },
+                                    { id: 'campaigns', label: 'แคมเปญหน้าแอป' },
+                                    { id: 'permissions', label: 'สิทธิ์การใช้งาน' }
+                                ].find(t => t.id === activeTab)?.label || 'การตั้งค่า'}
+                            </h2>
                         </div>
 
                         {/* STATUS TOGGLE HEADER */}
