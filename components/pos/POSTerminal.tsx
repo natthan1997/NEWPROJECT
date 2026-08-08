@@ -1680,12 +1680,10 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         } catch (err) {
           console.error('Auto create takeaway order error:', err);
         } finally {
-          if (isMounted) {
-            setIsAutoCreatingOrder(false);
-            setTimeout(() => {
-              isAutoCreatingOrderLock.current = false;
-            }, 1000);
-          }
+          setIsAutoCreatingOrder(false);
+          setTimeout(() => {
+            isAutoCreatingOrderLock.current = false;
+          }, 1000);
         }
       })();
     }
