@@ -1601,47 +1601,8 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     }
   };
 
-  useEffect(() => {
-    let isMounted = true;
-    if (orderType === 'takeaway' && !editingOrderId && cart.length > 0 && !isAutoCreatingOrderLock.current) {
-      isAutoCreatingOrderLock.current = true;
-      setIsAutoCreatingOrder(true);
-      (async () => {
-        try {
-          const identity = await fetchOrderIdentity(null)
-          const payload: any = {
-            order_action: 'insert',
-            order: {
-              order_number: identity.orderNumber,
-              staff_id: profile?.id,
-              shift_id: activeShift?.id,
-              branch_id: shopSettings?.branch_id || activeShift?.branch_id || null,
-              status: 'pending',
-              total_amount: 0,
-              net_total: 0,
-              order_type: 'takeaway',
-              queue_number: identity.queueNumber,
-              order_source: 'pos',
-            }
-          }
-          const { data: rpcResult, error: rpcError } = await supabase.rpc('pos_checkout_order', { payload })
-          if (!rpcError && rpcResult?.order_id && isMounted) {
-            setEditingOrderId(rpcResult.order_id)
-            setEditingOrderNumber(identity.orderNumber)
-            setHeldCartFingerprint('')
-          }
-        } catch (err) {
-          console.error('Auto create takeaway order error:', err)
-        } finally {
-          if (isMounted) {
-            setIsAutoCreatingOrder(false);
-            isAutoCreatingOrderLock.current = false;
-          }
-        }
-      })();
-    }
-    return () => { isMounted = false; }
-  }, [orderType, cart.length, editingOrderId, profile?.id, activeShift?.id, shopSettings?.branch_id])
+  // Disabled blocking auto-create order effect for takeaway to keep cart additions 100% instant and responsive.
+  // Takeaway orders are created cleanly upon holding the bill or checking out.
 
   const activePrintData = useMemo(() => {
     if (paymentSuccessData) return paymentSuccessData;
