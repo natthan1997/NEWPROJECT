@@ -728,6 +728,26 @@ const handleSave = async () => {
                             </div>
                         </div>
 
+                        {/* Shop Status Toggle */}
+                        <div className="bg-white rounded-[10px] p-4 flex items-center justify-between mb-6 shadow-sm mx-2">
+                            <div className="flex flex-col">
+                                <span className="text-[15px] font-semibold text-black">สถานะร้านค้า</span>
+                                <span className={`text-[12px] font-bold ${settings.status === 'open' ? 'text-emerald-500' : 'text-red-500'}`}>
+                                    {settings.status === 'open' ? '🟢 เปิดให้บริการ' : '🔴 ปิดให้บริการ'}
+                                </span>
+                            </div>
+                            <button 
+                                onClick={() => {
+                                    const newStatus = settings.status === 'open' ? 'closed' : 'open';
+                                    setSettings({ ...settings, status: newStatus, is_open: newStatus === 'open' });
+                                }}
+                                className={`relative w-[50px] h-[30px] rounded-full transition-colors duration-300 ${settings.status === 'open' ? 'bg-emerald-500' : 'bg-gray-300'}`}
+                            >
+                                <div className={`absolute top-[2px] w-[26px] h-[26px] rounded-full bg-white transition-all duration-300 shadow-sm flex items-center justify-center ${settings.status === 'open' ? 'left-[22px]' : 'left-[2px]'}`}>
+                                </div>
+                            </button>
+                        </div>
+
                         {/* Settings Group 1 */}
                         <div className="bg-white rounded-[10px] shadow-sm overflow-hidden mb-6 mx-2">
                             {[
@@ -839,26 +859,7 @@ const handleSave = async () => {
                             </div>
                         </div>
 
-                        {/* STATUS TOGGLE HEADER */}
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white rounded-[10px] p-5 sm:px-8 mb-8">
-                            <div className="space-y-1">
-                                <h4 className="text-[15px] font-black tracking-tight text-gray-900">สถานะร้าน (System Status)</h4>
-                                <p className={`text-[12px] font-bold tracking-widest ${settings.status === 'open' ? 'text-emerald-500' : 'text-red-500'}`}>
-                                    {settings.status === 'open' ? '🟢 ร้านเปิดให้บริการ' : '🔴 ร้านปิดให้บริการ'}
-                                </p>
-                            </div>
-                            <button 
-                                onClick={() => {
-                                    const newStatus = settings.status === 'open' ? 'closed' : 'open';
-                                    setSettings({ ...settings, status: newStatus, is_open: newStatus === 'open' });
-                                }}
-                                className={`relative w-20 h-10 rounded-full transition-colors duration-300 shadow-inner ${settings.status === 'open' ? 'bg-emerald-500' : 'bg-red-500'}`}
-                            >
-                                <div className={`absolute top-1 w-8 h-8 rounded-full bg-white transition-all duration-300 shadow-sm flex items-center justify-center ${settings.status === 'open' ? 'left-11' : 'left-1'}`}>
-                                    <div className={`w-2 h-2 rounded-full ${settings.status === 'open' ? 'bg-emerald-500' : 'bg-red-500'}`}></div>
-                                </div>
-                            </button>
-                        </div>
+
 
                         {/* TAB: GENERAL */}
                         {activeTab === 'general' && (
