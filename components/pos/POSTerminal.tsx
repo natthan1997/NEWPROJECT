@@ -523,6 +523,25 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   }
 
   const resetOrderComposer = () => {
+    if (editingOrderId) {
+      const targetId = editingOrderId;
+      void (async () => {
+        try {
+          const { data: ord } = await supabase
+            .from('pos_orders')
+            .select('id, status, total_amount, pos_order_items(id)')
+            .eq('id', targetId)
+            .maybeSingle();
+
+          if (ord && ord.status === 'pending' && Number(ord.total_amount || 0) === 0 && (!ord.pos_order_items || ord.pos_order_items.length === 0)) {
+            await supabase.from('pos_orders').delete().eq('id', targetId);
+          }
+        } catch (e) {
+          console.error('Error cleaning up draft order on reset:', e);
+        }
+      })();
+    }
+
     setCart([])
     setHeldCartFingerprint(null)
     setEditingOrderId(null)
@@ -1316,7 +1335,13 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     [pendingOrders]
   )
   const suspendedOrders = useMemo(
-    () => pendingOrders.filter((order: any) => !isLiffSourceOrder(order)),
+    () => pendingOrders.filter((order: any) => {
+      if (isLiffSourceOrder(order)) return false;
+      const hasItems = order.pos_order_items && order.pos_order_items.length > 0;
+      const total = Number(order.total_amount || 0);
+      const isGhost = (!hasItems || total === 0) && order.status === 'pending';
+      return !isGhost;
+    }),
     [pendingOrders]
   )
 

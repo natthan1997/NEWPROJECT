@@ -444,7 +444,7 @@ function RestaurantOSPageContent() {
   const fetchPendingOrders = async () => {
     let query = supabase
       .from('pos_orders')
-      .select('*, pos_order_payments(amount, status)')
+      .select('*, pos_order_items(*, item:pos_menu_items!item_id(name, image_url)), pos_order_payments(amount, status)')
       .in('status', ['open', 'pending', 'payment_pending', 'paid', 'preparing', 'accepted', 'shipping'])
       .order('created_at', { ascending: false })
 
@@ -453,7 +453,15 @@ function RestaurantOSPageContent() {
     }
 
     const { data } = await query
-    if (data) setPendingOrders(data)
+    if (data) {
+      const validOrders = data.filter((order: any) => {
+        const hasItems = order.pos_order_items && order.pos_order_items.length > 0;
+        const total = Number(order.total_amount || 0);
+        const isGhost = (!hasItems || total === 0) && order.status === 'pending';
+        return !isGhost;
+      });
+      setPendingOrders(validOrders);
+    }
   }
 
   const fetchClaimingCoupons = async () => {
