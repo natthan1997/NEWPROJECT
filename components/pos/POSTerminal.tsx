@@ -1572,11 +1572,20 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   }
 
   const lastAutoCreateAttemptRef = useRef<number>(0);
+  const autoCreatePromiseRef = useRef<Promise<void> | null>(null);
 
   const fetchOrderIdentity = async (currentOrderId?: string | null): Promise<{ queueNumber: number, orderNumber: string }> => {
+    // Instant local calculation for zero latency
+    const fallbackQueue = (pendingOrders?.length || 0) + 1;
+    const dateSuffix = Date.now().toString().slice(-6);
+    const localIdentity = {
+       queueNumber: fallbackQueue, 
+       orderNumber: editingOrderNumber || `TAK-${dateSuffix}` 
+    };
+
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 1200);
+      const timeoutId = setTimeout(() => controller.abort(), 600);
       const res = await fetch('/api/pos/order-identity', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1593,20 +1602,15 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       if (res.ok) {
         const data = await res.json();
         return { 
-          queueNumber: data.queueNumber, 
-          orderNumber: data.orderNumber 
+          queueNumber: data.queueNumber || localIdentity.queueNumber, 
+          orderNumber: data.orderNumber || localIdentity.orderNumber 
         };
       }
     } catch (e) {
-       console.warn("Fast fallback for order identity", e);
+       // Ignore timeout/error and use zero-latency local identity immediately
     }
     
-    const fallbackQueue = (pendingOrders?.length || 0) + 1;
-    const dateSuffix = Date.now().toString().slice(-6);
-    return {
-       queueNumber: fallbackQueue, 
-       orderNumber: editingOrderNumber || `TAK-${dateSuffix}` 
-    }
+    return localIdentity;
   };
 
   useEffect(() => {
@@ -1619,13 +1623,12 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       !editingOrderId &&
       isCartNonEmpty &&
       !isAutoCreatingOrderLock.current &&
-      now - lastAutoCreateAttemptRef.current > 3000
+      now - lastAutoCreateAttemptRef.current > 2000
     ) {
       isAutoCreatingOrderLock.current = true;
       lastAutoCreateAttemptRef.current = now;
-      setIsAutoCreatingOrder(true);
 
-      (async () => {
+      autoCreatePromiseRef.current = (async () => {
         try {
           const identity = await fetchOrderIdentity(null);
           if (!isMounted) return;
@@ -1653,13 +1656,13 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             setHeldCartFingerprint('');
           }
         } catch (err) {
-          console.error('Auto create takeaway order error:', err);
+          console.error('Silent auto create takeaway order error:', err);
         } finally {
           if (isMounted) {
-            setIsAutoCreatingOrder(false);
             setTimeout(() => {
               isAutoCreatingOrderLock.current = false;
-            }, 1000);
+              autoCreatePromiseRef.current = null;
+            }, 500);
           }
         }
       })();
@@ -2768,6 +2771,10 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   }
 
   const handleSendOrder = async () => {
+    if (autoCreatePromiseRef.current) {
+      try { await autoCreatePromiseRef.current } catch (e) {}
+    }
+
     logPOSPrintFlow('preflight:start', {
       cartItems: cart.length,
       online: typeof navigator === 'undefined' ? true : navigator.onLine,
