@@ -693,10 +693,10 @@ const handleSave = async () => {
             <div className="flex-1 flex flex-col w-full h-full overflow-hidden">
 
 
-                <div className="flex-1 flex flex-col lg:flex-row min-h-0">
+                <div className="flex-1 flex flex-col md:flex-row min-h-0">
                 
                 {/* SIDEBAR TABS (iOS Style) */}
-                <div className={`w-full lg:w-[320px] xl:w-[380px] h-full flex-shrink-0 bg-[#F2F2F7] border-r border-gray-300 overflow-y-auto custom-scrollbar ${!showMobileMenu ? 'hidden lg:block' : 'block'}`}>
+                <div className={`w-full md:w-[300px] lg:w-[320px] xl:w-[380px] h-full flex-shrink-0 bg-[#F2F2F7] border-r border-gray-300 overflow-y-auto custom-scrollbar ${!showMobileMenu ? 'hidden md:block' : 'block'}`}>
                     
                     {/* iOS Navigation Bar for Left Pane */}
                     <div className="pt-6 pb-2 px-4 flex items-center">
@@ -789,12 +789,12 @@ const handleSave = async () => {
                 </div>
 
                 {/* MAIN CONTENT AREA */}
-                <div className={`flex-1 h-full overflow-y-auto bg-[#F2F2F7] relative ${showMobileMenu ? 'hidden lg:block' : 'block'}`}>
+                <div className={`flex-1 h-full overflow-y-auto bg-[#F2F2F7] relative ${showMobileMenu ? 'hidden md:block' : 'block'}`}>
                     <div className="max-w-5xl mx-auto py-8 sm:py-10 px-4 sm:px-8 pb-40 space-y-8">
                         {/* RIGHT PANE HEADER (iOS Style) */}
                         <div className="sticky top-0 z-20 bg-[#F2F2F7]/90 backdrop-blur-xl py-4 -mx-4 px-4 sm:-mx-8 sm:px-8 mb-6 border-b border-gray-300 flex items-center justify-center relative">
                             {/* MOBILE BACK BUTTON */}
-                            <div className="lg:hidden absolute left-4 sm:left-8">
+                            <div className="md:hidden absolute left-4 sm:left-8">
                                 <button 
                                     onClick={() => setShowMobileMenu(true)}
                                     className="flex items-center gap-1 text-[17px] text-[#007AFF] hover:opacity-80 transition-opacity"
