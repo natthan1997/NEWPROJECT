@@ -684,27 +684,94 @@ const handleSave = async () => {
 
   return (
     <>
-      <main className="flex-1 overflow-y-auto bg-[#FAFAFA] border-none custom-scrollbar text-[#1A1A18]">
+      <main className="flex-1 flex overflow-hidden bg-white border-none text-[#1A1A18]">
           {loading ? (
-             <div className="h-full flex items-center justify-center opacity-10">
+             <div className="flex-1 flex items-center justify-center opacity-10">
                  <Loader2 className="animate-spin" size={64} />
              </div>
           ) : (
-            <div className="max-w-6xl mx-auto py-10 sm:py-16 px-4 sm:px-8 space-y-8 pb-40">
+            <div className="flex-1 flex flex-col lg:flex-row w-full h-full overflow-hidden">
                 
-                {/* 🧧 HEADER & CRITICAL STATUS */}
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-4">
-                    <div className="space-y-2">
-                        <h1 className="text-3xl sm:text-4xl font-black tracking-tight">{locale === 'en' ? 'ตั้งค่าร้าน ' : locale === 'zh' ? 'ตั้งค่าร้าน ' : 'ตั้งค่าร้าน '}<span className="text-gray-400 font-light">| Settings</span></h1>
-                        <p className="text-[13px] font-bold text-gray-500">{locale === 'en' ? 'จัดการข้อมูลร้านค้า ใบเสร็จ และอุปกรณ์สำหรับสาขา ' : locale === 'zh' ? 'จัดการข้อมูลร้านค้า ใบเสร็จ และอุปกรณ์สำหรับสาขา ' : 'จัดการข้อมูลร้านค้า ใบเสร็จ และอุปกรณ์สำหรับสาขา '}{profile?.branch_code}</p>
+                {/* SIDEBAR TABS */}
+                <div className={`w-full lg:w-[320px] xl:w-[340px] h-full flex-shrink-0 bg-white border-r border-gray-200 overflow-y-auto custom-scrollbar ${!showMobileMenu ? 'hidden lg:block' : 'block'}`}>
+                    <div className="px-6 py-8 pb-6">
+                        <h1 className="text-3xl font-black tracking-tight">{locale === 'en' ? 'ตั้งค่าร้าน' : locale === 'zh' ? 'ตั้งค่าร้าน' : 'ตั้งค่าร้าน'}</h1>
+                        <p className="text-[13px] font-bold text-gray-500 mt-1">{locale === 'en' ? 'จัดการข้อมูลร้านค้า สาขา ' : 'จัดการข้อมูลร้านค้า สาขา '}{profile?.branch_code}</p>
                     </div>
-                    
-                    <div className="flex flex-col items-start md:items-end gap-3 bg-white p-5 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
-                        <div className="flex items-center gap-4">
-                            <div className="text-right hidden sm:block">
-                                <h4 className="text-[12px] font-black uppercase tracking-tight">System Status</h4>
-                                <p className={`text-[10px] font-bold uppercase tracking-widest ${settings.status === 'open' ? 'text-emerald-500' : 'text-red-500'}`}>
-                                    {settings.status === 'open' ? 'ร้านเปิดให้บริการ' : 'ร้านปิดให้บริการ'}
+
+                    <div className="bg-gray-50 px-6 py-2.5 text-[12px] font-bold text-gray-500 border-y border-gray-200 uppercase tracking-wider">
+                        ตั้งค่าสาขา
+                    </div>
+                    {[
+                        { id: 'general', icon: Info, label: 'ทั่วไป' },
+                        { id: 'hardware', icon: Settings, label: 'เครื่องพิมพ์' },
+                        { id: 'receipt', icon: Printer, label: 'บิล' },
+                        { id: 'advanced', icon: Star, label: 'ตั้งค่าการชำระเงิน' },
+                        { id: 'delivery', icon: Truck, label: 'เดลิเวอรี่' },
+                        { id: 'kitchen', icon: MenuIcon, label: 'ห้องครัว' }
+                    ].map(tab => {
+                        const Icon = tab.icon;
+                        const isActive = activeTab === tab.id;
+                        return (
+                            <button 
+                                key={tab.id}
+                                onClick={() => {
+                                    setActiveTab(tab.id)
+                                    setShowMobileMenu(false)
+                                }}
+                                className={`w-full flex items-center gap-4 px-6 py-3.5 transition-all text-left border-b border-gray-100 ${isActive ? 'bg-[#E8F8FA] text-[#00BCD4] border-l-[4px] border-l-[#00BCD4]' : 'bg-white text-gray-700 hover:bg-gray-50 border-l-[4px] border-l-transparent'}`}
+                            >
+                                <Icon size={22} className={isActive ? 'text-[#00BCD4]' : 'text-gray-500'} strokeWidth={1.5} />
+                                <span className={`text-[15px] ${isActive ? 'font-bold' : 'font-medium'}`}>{tab.label}</span>
+                            </button>
+                        );
+                    })}
+
+                    <div className="bg-gray-50 px-6 py-2.5 text-[12px] font-bold text-gray-500 border-y border-gray-200 uppercase tracking-wider">
+                        อื่นๆ
+                    </div>
+                    {[
+                        { id: 'campaigns', icon: Flag, label: 'แคมเปญหน้าแอป' },
+                        { id: 'permissions', icon: ShieldCheck, label: 'สิทธิ์การใช้งาน' }
+                    ].map(tab => {
+                        const Icon = tab.icon;
+                        const isActive = activeTab === tab.id;
+                        return (
+                            <button 
+                                key={tab.id}
+                                onClick={() => {
+                                    setActiveTab(tab.id)
+                                    setShowMobileMenu(false)
+                                }}
+                                className={`w-full flex items-center gap-4 px-6 py-3.5 transition-all text-left border-b border-gray-100 ${isActive ? 'bg-[#E8F8FA] text-[#00BCD4] border-l-[4px] border-l-[#00BCD4]' : 'bg-white text-gray-700 hover:bg-gray-50 border-l-[4px] border-l-transparent'}`}
+                            >
+                                <Icon size={22} className={isActive ? 'text-[#00BCD4]' : 'text-gray-500'} strokeWidth={1.5} />
+                                <span className={`text-[15px] ${isActive ? 'font-bold' : 'font-medium'}`}>{tab.label}</span>
+                            </button>
+                        );
+                    })}
+                </div>
+
+                {/* MAIN CONTENT AREA */}
+                <div className={`flex-1 h-full overflow-y-auto bg-[#F2F2F7] relative ${showMobileMenu ? 'hidden lg:block' : 'block'}`}>
+                    <div className="max-w-5xl mx-auto py-8 sm:py-10 px-4 sm:px-8 pb-40 space-y-8">
+                        
+                        {/* MOBILE BACK BUTTON */}
+                        <div className="lg:hidden flex items-center justify-between mb-6">
+                            <button 
+                                onClick={() => setShowMobileMenu(true)}
+                                className="flex items-center gap-2 text-sm font-bold text-[#00BCD4] hover:text-[#0097a7] transition-colors"
+                            >
+                                <ChevronRight size={22} className="rotate-180" /> {locale === 'en' ? 'Settings' : locale === 'zh' ? '设置' : 'ตั้งค่า'}
+                            </button>
+                        </div>
+
+                        {/* STATUS TOGGLE HEADER */}
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 sm:px-8 rounded-2xl shadow-sm border border-gray-100 mb-8">
+                            <div className="space-y-1">
+                                <h4 className="text-[15px] font-black tracking-tight text-gray-900">สถานะร้าน (System Status)</h4>
+                                <p className={`text-[12px] font-bold tracking-widest ${settings.status === 'open' ? 'text-emerald-500' : 'text-red-500'}`}>
+                                    {settings.status === 'open' ? '🟢 ร้านเปิดให้บริการ' : '🔴 ร้านปิดให้บริการ'}
                                 </p>
                             </div>
                             <button 
@@ -714,80 +781,9 @@ const handleSave = async () => {
                                 }}
                                 className={`relative w-20 h-10 rounded-full transition-colors duration-300 shadow-inner ${settings.status === 'open' ? 'bg-emerald-500' : 'bg-red-500'}`}
                             >
-                                <div className={`absolute top-1 w-8 h-8 rounded-full bg-white transition-all duration-300 shadow-md flex items-center justify-center ${settings.status === 'open' ? 'left-11' : 'left-1'}`}>
+                                <div className={`absolute top-1 w-8 h-8 rounded-full bg-white transition-all duration-300 shadow-sm flex items-center justify-center ${settings.status === 'open' ? 'left-11' : 'left-1'}`}>
                                     <div className={`w-2 h-2 rounded-full ${settings.status === 'open' ? 'bg-emerald-500' : 'bg-red-500'}`}></div>
                                 </div>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="flex flex-col lg:flex-row gap-6 sm:gap-8">
-                    {/* SIDEBAR TABS */}
-                    <div className={`w-full lg:w-72 flex-shrink-0 bg-white rounded-xl border border-gray-200 overflow-hidden shadow-[0_2px_10px_rgb(0,0,0,0.02)] ${!showMobileMenu ? 'hidden lg:block' : 'block'}`}>
-                        <div className="bg-gray-50 px-5 py-3 text-[13px] font-bold text-gray-500 border-b border-gray-200">
-                            ตั้งค่าสาขา
-                        </div>
-                        {[
-                            { id: 'general', icon: Info, label: 'ทั่วไป' },
-                            { id: 'hardware', icon: Settings, label: 'เครื่องพิมพ์' },
-                            { id: 'receipt', icon: Printer, label: 'บิล' },
-                            { id: 'advanced', icon: Star, label: 'ตั้งค่าการชำระเงิน' },
-                            { id: 'delivery', icon: Truck, label: 'เดลิเวอรี่' },
-                            { id: 'kitchen', icon: MenuIcon, label: 'ห้องครัว' }
-                        ].map(tab => {
-                            const Icon = tab.icon;
-                            const isActive = activeTab === tab.id;
-                            return (
-                                <button 
-                                    key={tab.id}
-                                    onClick={() => {
-                                        setActiveTab(tab.id)
-                                        setShowMobileMenu(false)
-                                    }}
-                                    className={`w-full flex items-center gap-4 px-5 py-4 transition-all text-left border-b border-gray-100 ${isActive ? 'bg-[#E8F8FA] text-[#00BCD4] border-l-[4px] border-l-[#00BCD4]' : 'bg-white text-gray-700 hover:bg-gray-50 border-l-[4px] border-l-transparent'}`}
-                                >
-                                    <Icon size={22} className={isActive ? 'text-[#00BCD4]' : 'text-gray-500'} strokeWidth={1.5} />
-                                    <span className={`text-[15px] ${isActive ? 'font-bold' : 'font-medium'}`}>{tab.label}</span>
-                                </button>
-                            );
-                        })}
-
-                        <div className="bg-gray-50 px-5 py-3 text-[13px] font-bold text-gray-500 border-b border-gray-200 border-t border-gray-200">
-                            อื่นๆ
-                        </div>
-                        {[
-                            { id: 'campaigns', icon: Flag, label: 'แคมเปญหน้าแอป' },
-                            { id: 'permissions', icon: ShieldCheck, label: 'สิทธิ์การใช้งาน' }
-                        ].map(tab => {
-                            const Icon = tab.icon;
-                            const isActive = activeTab === tab.id;
-                            return (
-                                <button 
-                                    key={tab.id}
-                                    onClick={() => {
-                                        setActiveTab(tab.id)
-                                        setShowMobileMenu(false)
-                                    }}
-                                    className={`w-full flex items-center gap-4 px-5 py-4 transition-all text-left border-b border-gray-100 ${isActive ? 'bg-[#E8F8FA] text-[#00BCD4] border-l-[4px] border-l-[#00BCD4]' : 'bg-white text-gray-700 hover:bg-gray-50 border-l-[4px] border-l-transparent'}`}
-                                >
-                                    <Icon size={22} className={isActive ? 'text-[#00BCD4]' : 'text-gray-500'} strokeWidth={1.5} />
-                                    <span className={`text-[15px] ${isActive ? 'font-bold' : 'font-medium'}`}>{tab.label}</span>
-                                </button>
-                            );
-                        })}
-                    </div>
-
-                    {/* MAIN CONTENT AREA */}
-                    <div className={`flex-1 min-w-0 pb-20 ${showMobileMenu ? 'hidden lg:block' : 'block'}`}>
-                        
-                        {/* MOBILE BACK BUTTON */}
-                        <div className="lg:hidden mb-6">
-                            <button 
-                                onClick={() => setShowMobileMenu(true)}
-                                className="flex items-center gap-2 text-sm font-bold text-gray-600 hover:text-black transition-colors"
-                            >
-                                <ChevronRight size={18} className="rotate-180" /> {locale === 'en' ? 'Back' : locale === 'zh' ? '返回' : 'ย้อนกลับ'}
                             </button>
                         </div>
 
