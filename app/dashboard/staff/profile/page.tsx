@@ -104,7 +104,7 @@ const getLineStatusMessage = (status: LineStatus, locale: 'th' | 'en' | 'zh') =>
 type ActiveTab = 'menu' | 'personal' | 'work' | 'line' | 'language' | 'security' | 'verification' | 'payout' | 'attendance'
 
 export default function StaffProfile() {
-  const { profile, loading, refreshProfile, signOut } = useAuth()
+  const { user, profile, loading, refreshProfile, signOut } = useAuth()
   const { locale } = useI18n()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -586,9 +586,9 @@ export default function StaffProfile() {
         <div className="bg-white border border-gray-200/60 rounded-[28px] p-5 shadow-xs flex items-center justify-between gap-4">
           <div className="flex items-center gap-4 min-w-0">
             <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gray-100 text-[#1A1A18] rounded-full flex items-center justify-center text-xl sm:text-2xl font-light overflow-hidden border border-gray-200 relative shrink-0 shadow-xs">
-              {profile?.avatar_url || (profile as any)?.line_picture_url || (profile as any)?.picture_url || (profile as any)?.image_url ? (
+              {profile?.avatar_url || user?.user_metadata?.line_picture_url || user?.user_metadata?.picture_url || user?.user_metadata?.picture || user?.user_metadata?.avatar_url ? (
                 <img 
-                  src={profile?.avatar_url || (profile as any)?.line_picture_url || (profile as any)?.picture_url || (profile as any)?.image_url} 
+                  src={profile?.avatar_url || user?.user_metadata?.line_picture_url || user?.user_metadata?.picture_url || user?.user_metadata?.picture || user?.user_metadata?.avatar_url} 
                   alt={displayName} 
                   className="w-full h-full object-cover" 
                 />

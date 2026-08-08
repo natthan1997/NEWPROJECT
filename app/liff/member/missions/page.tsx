@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, Gift, Target, CheckCircle2, Ticket } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
 import { useLiff } from '@/components/liff/LiffProvider';
 import XYLLoader from '@/components/loaders/XYLLoader';
@@ -18,6 +18,8 @@ export default function MissionsPage() {
   const [loading, setLoading] = useState(true);
   const [claiming, setClaiming] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'daily' | 'weekly' | 'monthly' | 'special'>('daily');
+  const [showRewardMotion, setShowRewardMotion] = useState(false);
+  const [rewardAmount, setRewardAmount] = useState(0);
 
   useEffect(() => {
     if (isDataReady && memberInfo?.id) {
@@ -63,18 +65,15 @@ export default function MissionsPage() {
       });
       const data = await res.json();
       if (data.success) {
-        Swal.fire({
-          icon: 'success',
-          title: 'สำเร็จ!',
-          text: `คุณได้รับ ${data.reward_tickets} ตั๋วกาชา`,
-          confirmButtonColor: '#1A1A18'
-        });
+        setRewardAmount(data.reward_tickets || 1);
+        setShowRewardMotion(true);
         fetchMissions(); // refresh
       } else {
         Swal.fire({
           icon: 'error',
           title: 'ข้อผิดพลาด',
           text: data.error || 'ไม่สามารถรับรางวัลได้',
+          confirmButtonColor: '#1A1A18'
         });
       }
     } catch (e) {
@@ -239,6 +238,44 @@ export default function MissionsPage() {
         </div>
 
       </main>
+
+      {/* Ticket Reward Motion Overlay */}
+      <AnimatePresence>
+        {showRewardMotion && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.8, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.8, y: 20 }}
+              className="bg-white p-8 rounded-[32px] text-center max-w-[280px] w-full shadow-2xl border border-gray-100 flex flex-col items-center"
+            >
+              <motion.div
+                initial={{ scale: 0, rotate: -45 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", bounce: 0.5, delay: 0.2 }}
+                className="w-20 h-20 bg-[#FCF7E8] text-[#B48529] rounded-full flex items-center justify-center mb-4 shadow-inner"
+              >
+                <Ticket size={40} />
+              </motion.div>
+              <h2 className="text-[20px] font-bold text-[#1A1A18] mb-1">ยินดีด้วย!</h2>
+              <p className="text-[13px] text-gray-500 mb-6">คุณได้รับตั๋วกาชาเพิ่ม <span className="font-bold text-[#B48529]">+{rewardAmount} ใบ</span></p>
+              
+              <button 
+                onClick={() => setShowRewardMotion(false)}
+                className="w-full py-3 bg-[#1A1A18] text-white rounded-full text-[14px] font-bold active:scale-95 transition-transform"
+              >
+                ยอดเยี่ยม
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }

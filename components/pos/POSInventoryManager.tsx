@@ -803,48 +803,77 @@ export default function POSInventoryManager({
                   </div>
                 </div>
 
-                <div className="mb-6 hidden border border-[#F0F0E8] bg-white overflow-hidden sm:block">
-                    <div className="grid grid-cols-2 xl:grid-cols-4">
-                        <div className="p-4 sm:p-6 border-b xl:border-b-0 xl:border-r border-[#F0F0E8]">
-                            <div className="flex items-center gap-3 mb-3">
-                                <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center">
-                                    <Package size={18} className="text-slate-600" />
-                                </div>
-                                <span className="text-[9px] sm:text-[10px] font-black text-gray-400 uppercase tracking-widest">{locale === 'en' ? 'จำนวนรายการ' : locale === 'zh' ? 'จำนวนรายการ' : 'จำนวนรายการ'}</span>
-                            </div>
-                            <div className="text-2xl sm:text-3xl font-black text-[#1A1A18] tracking-tight">{inventory.length}<span className="ml-2 text-base sm:text-xl text-gray-300">SKUs</span></div>
+                <div className="mb-6 hidden sm:block">
+                  <div className="flex flex-col gap-4 rounded-[2rem] border border-[#ECE6DC] bg-white p-5 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] xl:flex-row xl:items-center xl:justify-between">
+                    {/* Left: Stats */}
+                    <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
+                      <div className="flex items-center gap-4 pr-6 sm:border-r sm:border-[#ECE6DC]">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-50 text-gray-400">
+                          <Package size={20} />
                         </div>
+                        <div>
+                          <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                            {locale === 'en' ? 'จำนวนรายการ' : locale === 'zh' ? 'จำนวนรายการ' : 'จำนวนรายการ'}
+                          </div>
+                          <div className="mt-0.5 flex items-baseline gap-1 text-2xl font-black text-[#1A1A18] tracking-tight">
+                            {inventory.length}
+                            <span className="text-xs font-bold text-gray-300">SKUs</span>
+                          </div>
+                        </div>
+                      </div>
 
-                        <div className="p-4 sm:p-6 border-l xl:border-l-0 border-b xl:border-b-0 xl:border-r border-[#F0F0E8]">
-                            <div className="flex items-center gap-3 mb-3">
-                                <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center">
-                                    <AlertTriangle size={18} className="text-red-500" />
-                                </div>
-                                <span className="text-[9px] sm:text-[10px] font-black text-red-400 uppercase tracking-widest">{locale === 'en' ? 'ต้องสั่งเพิ่ม' : locale === 'zh' ? 'ต้องสั่งเพิ่ม' : 'ต้องสั่งเพิ่ม'}</span>
-                            </div>
-                            <div className="text-2xl sm:text-3xl font-black text-red-600 tracking-tight">{lowStockCount}<span className="ml-2 text-base sm:text-xl text-red-300">{locale === 'en' ? 'รายการ' : locale === 'zh' ? 'รายการ' : 'รายการ'}</span></div>
-                            <button
-                              onClick={() => setIsShoppingListOpen(true)}
-                              className="mt-4 inline-flex h-10 items-center gap-2 border border-red-100 bg-red-50 px-4 text-[10px] font-black uppercase tracking-widest text-red-700 transition-colors hover:bg-red-100"
-                            >
-                              <ShoppingCart size={14} />
-                              {locale === 'en' ? 'View Buy List' : locale === 'zh' ? 'View Buy List' : 'ดูรายการซื้อ'}
-                            </button>
+                      <div className="flex items-center gap-4 pr-6 sm:border-r sm:border-[#ECE6DC]">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 text-red-500">
+                          <AlertTriangle size={20} />
                         </div>
-
-                        <div className="hidden xl:block p-6 border-r border-[#F0F0E8] bg-sage-50/20">
-                            <span className="text-[10px] font-black text-sage-600 uppercase tracking-widest block">{locale === 'en' ? 'มูลค่าสต็อกรวม' : locale === 'zh' ? 'มูลค่าสต็อกรวม' : 'มูลค่าสต็อกรวม'}</span>
-                            <div className="text-3xl font-black mt-2 text-sage-700 tracking-tight">฿{totalInventoryValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                        <div>
+                          <div className="text-[10px] font-black uppercase tracking-widest text-red-400">
+                            {locale === 'en' ? 'ต้องสั่งเพิ่ม' : locale === 'zh' ? 'ต้องสั่งเพิ่ม' : 'ต้องสั่งเพิ่ม'}
+                          </div>
+                          <div className="mt-0.5 flex items-baseline gap-1 text-2xl font-black text-red-600 tracking-tight">
+                            {lowStockCount}
+                            <span className="text-xs font-bold text-red-300">รายการ</span>
+                          </div>
                         </div>
-
-                        <div className="col-span-2 xl:col-span-1 p-4 sm:p-6 flex flex-col justify-center gap-2">
-                            <button onClick={exportToCSV} className="flex items-center gap-2 text-[9px] sm:text-[10px] font-black uppercase text-[#1A1A18] hover:text-sage-700 transition-colors"><FileText size={12} className="text-gray-300" /> {locale === 'en' ? 'Export CSV' : locale === 'zh' ? '导出 CSV' : 'ส่งออก CSV'}</button>
-                            <button onClick={() => window.print()} className="flex items-center gap-2 text-[9px] sm:text-[10px] font-black uppercase text-[#1A1A18] hover:text-sage-700 transition-colors"><Download size={12} className="text-gray-300" /> {locale === 'en' ? 'รายงาน PDF' : locale === 'zh' ? 'รายงาน PDF' : 'รายงาน PDF'}</button>
-                            <button onClick={() => setIsSummaryOpen(true)} className="flex items-center gap-2 text-[9px] sm:text-[10px] font-black uppercase text-indigo-600 hover:text-indigo-800 transition-colors"><ListChecks size={12} className="text-indigo-300" /> {locale === 'en' ? 'สรุปสต็อกด่วน' : locale === 'zh' ? 'สรุปสต็อกด่วน' : 'สรุปสต็อกด่วน'}</button>
-                            <button onClick={() => setIsShoppingListOpen(true)} className="flex items-center gap-2 text-[9px] sm:text-[10px] font-black uppercase text-amber-600 hover:text-amber-800 transition-colors"><ShoppingCart size={12} className="text-amber-400" /> {locale === 'en' ? 'รายการที่ต้องซื้อ' : locale === 'zh' ? 'รายการที่ต้องซื้อ' : 'รายการที่ต้องซื้อ'}</button>
-                            <button onClick={() => setIsCategoryManagerOpen(true)} className="flex items-center gap-2 text-[9px] sm:text-[10px] font-black uppercase text-teal-600 hover:text-teal-800 transition-colors"><Tag size={12} className="text-teal-400" /> {locale === 'en' ? 'จัดการหมวดหมู่' : 'จัดการหมวดหมู่'}</button>
+                      </div>
+                      
+                      <div className="hidden xl:flex items-center gap-4">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-500">
+                          <span className="font-bold text-emerald-500">฿</span>
                         </div>
+                        <div>
+                          <div className="text-[10px] font-black uppercase tracking-widest text-emerald-600">
+                            {locale === 'en' ? 'มูลค่าสต็อก' : locale === 'zh' ? 'มูลค่าสต็อก' : 'มูลค่าสต็อก'}
+                          </div>
+                          <div className="mt-0.5 flex items-baseline gap-1 text-2xl font-black text-emerald-700 tracking-tight">
+                            {totalInventoryValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                          </div>
+                        </div>
+                      </div>
                     </div>
+
+                    {/* Right: Actions */}
+                    <div className="flex flex-wrap items-center gap-2 xl:justify-end">
+                      <button onClick={() => setIsShoppingListOpen(true)} className="flex items-center gap-2 rounded-xl bg-amber-50 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-amber-700 transition-colors hover:bg-amber-100 hover:shadow-sm">
+                        <ShoppingCart size={14} />
+                        {locale === 'en' ? 'Buy List' : locale === 'zh' ? 'Buy List' : 'รายการที่ต้องซื้อ'}
+                      </button>
+                      <button onClick={() => setIsSummaryOpen(true)} className="flex items-center gap-2 rounded-xl bg-gray-50 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#1A1A18] transition-colors hover:bg-gray-100 hover:shadow-sm">
+                        <ListChecks size={14} className="text-indigo-500" />
+                        {locale === 'en' ? 'Summary' : locale === 'zh' ? 'Summary' : 'สรุปสต๊อกด่วน'}
+                      </button>
+                      <button onClick={() => setIsCategoryManagerOpen(true)} className="flex items-center gap-2 rounded-xl bg-gray-50 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-[#1A1A18] transition-colors hover:bg-gray-100 hover:shadow-sm">
+                        <Tag size={14} className="text-teal-500" />
+                        {locale === 'en' ? 'Categories' : 'จัดการหมวดหมู่'}
+                      </button>
+                      <button onClick={exportToCSV} className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-50 text-gray-500 transition-colors hover:bg-gray-100 hover:text-[#1A1A18] hover:shadow-sm">
+                        <FileText size={16} />
+                      </button>
+                      <button onClick={() => window.print()} className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-50 text-gray-500 transition-colors hover:bg-gray-100 hover:text-[#1A1A18] hover:shadow-sm">
+                        <Download size={16} />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </>
           )}
@@ -881,26 +910,6 @@ export default function POSInventoryManager({
                           ))}
                         </div>
                         <div className="sm:hidden" />
-                        <div className="hidden items-center border border-[#ECE6DC] bg-white sm:flex">
-                          <button
-                            onClick={() => setViewMode('grid')}
-                            className={`flex h-10 w-10 items-center justify-center transition-all ${viewMode === 'grid' ? 'bg-[#1A1A18] text-white' : 'text-gray-400 hover:bg-gray-50 hover:text-black'}`}
-                          >
-                            <LayoutGrid size={16} />
-                          </button>
-                          <button
-                            onClick={() => setViewMode('list')}
-                            className={`flex h-10 w-10 items-center justify-center border-l border-[#ECE6DC] transition-all ${viewMode === 'list' ? 'bg-[#1A1A18] text-white' : 'text-gray-400 hover:bg-gray-50 hover:text-black'}`}
-                          >
-                            <List size={16} />
-                          </button>
-                          <button
-                            onClick={() => setViewMode('table')}
-                            className={`flex h-10 w-10 items-center justify-center border-l border-[#ECE6DC] transition-all ${viewMode === 'table' ? 'bg-[#1A1A18] text-white' : 'text-gray-400 hover:bg-gray-50 hover:text-black'}`}
-                          >
-                            <Database size={16} />
-                          </button>
-                        </div>
                       </div>
                     </div>
                     <div className="flex items-center justify-between gap-3">

@@ -4,7 +4,8 @@ import {
   Users, Search, UserPlus, Phone, Mail, Award, History, 
   ChevronRight, ArrowLeft, Loader2, Save, X, Edit2, 
   TrendingUp, TrendingDown, Star, LayoutGrid, List,
-  Coffee, Sparkles, CheckCircle2, ShieldCheck, UserCheck, Settings, Gift, Tag, QrCode, Download, ShieldAlert, Ticket
+  Coffee, Sparkles, CheckCircle2, ShieldCheck, UserCheck, Settings, Gift, Tag, QrCode, Download, ShieldAlert, Ticket,
+  User, MoreVertical, Shield, BadgeCheck, Crown, Info, Calendar, Percent
 } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import { useI18n } from "@/lib/I18nContext";
@@ -337,116 +338,287 @@ export default function POSMemberManager({
     }
 
 
-    return (
-        <div className="flex-1 flex flex-col h-full overflow-hidden bg-gray-50/30">
-            {!selectedMember ? (
-                // Full Width Member List
-                <div className="flex-1 flex flex-col h-full overflow-hidden animate-in fade-in duration-200">
-                    <header className="px-6 py-8 border-b border-gray-200 bg-white shadow-sm z-10">
-                        <div className="max-w-7xl mx-auto w-full">
-                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-                                 <div>
-                                     <h2 className="text-2xl font-bold text-gray-900">{locale === 'en' ? 'Members Management' : 'จัดการสมาชิก'}</h2>
-                                     <p className="text-sm text-gray-500 mt-1">{locale === 'en' ? 'Manage your store members and loyalty' : 'จัดการข้อมูลสมาชิกร้านค้าและระบบสมาชิก'}</p>
-                                 </div>
-                                 <div className="flex flex-wrap gap-3 items-center">
-                                     <button onClick={() => setShowQR(true)} className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 rounded-xl transition-all shadow-sm">
-                                         <QrCode size={18} /> QR รับสมัคร
-                                     </button>
-                                     <button onClick={() => setShowCrmSettings(true)} className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-gray-900 hover:bg-black rounded-xl transition-all shadow-sm">
-                                         <Settings size={18} /> ตั้งค่า CRM
-                                     </button>
-                                 </div>
-                            </div>
+    const totalDisplay = customers.length;
+    const maleCount = customers.filter(c => c.gender === 'ชาย').length;
+    const femaleCount = customers.filter(c => c.gender === 'หญิง').length;
+    const unknownCount = totalDisplay - maleCount - femaleCount;
+    
+    const malePct = totalDisplay ? Math.round((maleCount / totalDisplay) * 100) : 0;
+    const femalePct = totalDisplay ? Math.round((femaleCount / totalDisplay) * 100) : 0;
+    const unknownPct = totalDisplay ? Math.round((unknownCount / totalDisplay) * 100) : 0;
+    
+    // SVG stroke-dasharray calculations
+    const mDash = `${malePct} ${100 - malePct}`;
+    const fDash = `${femalePct} ${100 - femalePct}`;
+    const uDash = `${unknownPct} ${100 - unknownPct}`;
+    
+    const mOffset = 25; // start at top
+    const fOffset = 25 - malePct;
+    const uOffset = fOffset - femalePct;
 
-                            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                                <div className="flex flex-wrap gap-4">
-                                    <div className="bg-gray-50 border border-gray-200 px-5 py-3 rounded-2xl flex items-center gap-4 min-w-[140px]">
-                                        <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-500"><Users size={18}/></div>
-                                        <div>
-                                            <div className="text-xs text-gray-500 font-semibold mb-0.5">ทั้งหมด</div>
-                                            <div className="text-xl font-bold text-gray-900 leading-none">{memberStats.total}</div>
-                                        </div>
-                                    </div>
-                                    <div className="bg-emerald-50 border border-emerald-100 px-5 py-3 rounded-2xl flex items-center gap-4 min-w-[140px]">
-                                        <div className="w-10 h-10 rounded-full bg-white border border-emerald-100 flex items-center justify-center text-emerald-600"><ShieldCheck size={18}/></div>
-                                        <div>
-                                            <div className="text-xs text-emerald-600 font-semibold mb-0.5">ลงทะเบียนแล้ว</div>
-                                            <div className="text-xl font-bold text-emerald-700 leading-none">{memberStats.registered}</div>
-                                        </div>
-                                    </div>
+    const sortedByDate = [...customers].sort((a, b) => {
+        const da = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const db = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return db - da;
+    });
+    
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    let newCustomers = sortedByDate.filter(c => c.created_at && new Date(c.created_at) >= today);
+    if (newCustomers.length === 0 && sortedByDate.length > 0) {
+        newCustomers = sortedByDate.slice(0, 2); 
+    }
+    const newCustomerIds = new Set(newCustomers.map(c => c.id));
+    const otherCustomers = sortedByDate.filter(c => !newCustomerIds.has(c.id));
+
+    return (
+        <div className="flex-1 flex flex-col h-full overflow-hidden bg-white font-noto">
+            {!selectedMember ? (
+                // Split View: Left Stats, Right List
+                <div className="flex-1 flex flex-col md:flex-row h-full overflow-hidden animate-in fade-in duration-300 w-full bg-white">
+                    
+                    {/* LEFT SIDEBAR: Ultra Clean Dashboard Stats - Reduced Width */}
+                    <div className="w-full md:w-[220px] lg:w-[280px] border-r border-gray-100 p-6 lg:p-10 flex flex-col gap-10 bg-white overflow-y-auto shrink-0 relative z-10">
+                        {/* Member Total */}
+                        <div>
+                            <div className="text-[11px] font-bold text-gray-400 tracking-[0.1em] mb-4">ภาพรวมสมาชิก</div>
+                            <div className="text-5xl lg:text-6xl font-light text-black tracking-tighter mb-2">{memberStats.total}</div>
+                            <div className="text-[13px] font-medium text-gray-500">สมาชิกทั้งหมด</div>
+                        </div>
+                        
+                        <div className="w-8 h-[1px] bg-gray-200"></div>
+                        
+                        {/* Registration Status - Minimalist */}
+                        <div className="flex flex-col gap-5">
+                            <div className="flex justify-between items-end">
+                                <span className="text-[13px] font-medium text-gray-500">ลงทะเบียนแล้ว</span>
+                                <span className="text-xl font-semibold text-black leading-none">{memberStats.registered}</span>
+                            </div>
+                            <div className="flex justify-between items-end">
+                                <span className="text-[13px] font-medium text-gray-500">ยังไม่ลงทะเบียน</span>
+                                <span className="text-xl font-semibold text-gray-400 leading-none">{memberStats.unregistered}</span>
+                            </div>
+                        </div>
+
+                        <div className="w-8 h-[1px] bg-gray-200"></div>
+
+                        {/* Gender Ratio - Clean Donut */}
+                        <div>
+                            <div className="text-[11px] font-bold text-gray-400 tracking-[0.1em] mb-6">สัดส่วนเพศ</div>
+                            <div className="flex flex-col items-center gap-6">
+                                {/* SVG Donut */}
+                                <div className="w-[100px] h-[100px] relative shrink-0">
+                                    <svg viewBox="0 0 36 36" className="w-full h-full transform -rotate-90">
+                                        <circle r="15.91549430918954" cx="18" cy="18" fill="transparent" stroke="#F9FAFB" strokeWidth="3"></circle>
+                                        {malePct > 0 && <circle r="15.91549430918954" cx="18" cy="18" fill="transparent" stroke="#111827" strokeWidth="3" strokeDasharray={mDash} strokeDashoffset={mOffset}></circle>}
+                                        {femalePct > 0 && <circle r="15.91549430918954" cx="18" cy="18" fill="transparent" stroke="#9CA3AF" strokeWidth="3" strokeDasharray={fDash} strokeDashoffset={fOffset}></circle>}
+                                        {unknownPct > 0 && <circle r="15.91549430918954" cx="18" cy="18" fill="transparent" stroke="#F3F4F6" strokeWidth="3" strokeDasharray={uDash} strokeDashoffset={uOffset}></circle>}
+                                    </svg>
                                 </div>
-                                
-                                <div className="relative group w-full lg:w-[480px]">
-                                   <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-gray-900 transition-colors" />
-                                   <input 
-                                       type="text"
-                                       placeholder={locale === 'en' ? 'ค้นหาชื่อหรือเบอร์โทร...' : 'ค้นหาชื่อหรือเบอร์โทร...'}
-                                       className="h-14 w-full bg-white border border-gray-200 rounded-2xl pl-12 pr-4 text-sm font-medium outline-none focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20 transition-all shadow-sm"
-                                       value={searchTerm}
-                                       onChange={e => setSearchTerm(e.target.value)}
-                                   />
+                                {/* Legend */}
+                                <div className="flex flex-col gap-3 w-full">
+                                    <div className="flex items-center justify-between text-[13px]">
+                                        <div className="flex items-center gap-2 text-gray-600 font-medium">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-gray-900"></div> ชาย
+                                        </div>
+                                        <span className="text-black font-semibold">{malePct}%</span>
+                                    </div>
+                                    <div className="flex items-center justify-between text-[13px]">
+                                        <div className="flex items-center gap-2 text-gray-600 font-medium">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-gray-400"></div> หญิง
+                                        </div>
+                                        <span className="text-black font-semibold">{femalePct}%</span>
+                                    </div>
+                                    <div className="flex items-center justify-between text-[13px]">
+                                        <div className="flex items-center gap-2 text-gray-600 font-medium">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-gray-100"></div> ไม่ระบุ
+                                        </div>
+                                        <span className="text-black font-semibold">{unknownPct}%</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </header>
-                    <div className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-8">
-                        <div className="max-w-7xl mx-auto w-full">
+                    </div>
+
+                    {/* RIGHT SIDE: Ultra Clean List */}
+                    <div className="flex-1 flex flex-col h-full overflow-hidden bg-white">
+                        {/* Clean Search Bar */}
+                        <div className="px-6 lg:px-10 pt-8 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 z-10">
+                            <div className="relative w-full max-w-lg">
+                                <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                                <input 
+                                    type="text"
+                                    placeholder="ค้นหาชื่อ หรือ เบอร์โทรศัพท์..."
+                                    className="h-12 w-full bg-gray-50/50 border border-gray-200 rounded-full pl-12 pr-6 text-[14px] outline-none focus:bg-white focus:border-black focus:ring-1 focus:ring-black transition-all text-black placeholder:text-gray-400"
+                                    value={searchTerm}
+                                    onChange={e => setSearchTerm(e.target.value)}
+                                />
+                            </div>
+                            <div className="flex gap-2">
+                                <button onClick={() => setShowQR(true)} className="flex items-center justify-center w-12 h-12 text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 rounded-full transition-all">
+                                    <QrCode size={20} />
+                                </button>
+                                <button onClick={() => setShowCrmSettings(true)} className="flex items-center justify-center w-12 h-12 text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 rounded-full transition-all">
+                                    <Settings size={20} />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* List Area */}
+                        <div className="flex-1 overflow-y-auto custom-scrollbar px-6 lg:px-10 pb-12">
                             {loading && customers.length === 0 ? (
-                                <div className="h-[400px] flex flex-col items-center justify-center opacity-40">
-                                    <Loader2 className="animate-spin text-gray-500 mb-4" size={40} />
+                                <div className="py-32 flex flex-col items-center justify-center opacity-40">
+                                    <Loader2 className="animate-spin text-black mb-4" size={40} />
                                     <p className="text-sm font-medium text-gray-500">กำลังโหลดข้อมูล...</p>
                                 </div>
                             ) : customers.length > 0 ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-                                    {customers.map(member => {
-                                        const isNew = (new Date().getTime() - new Date(member.created_at).getTime()) < 7 * 24 * 60 * 60 * 1000;
-                                        return (
-                                        <button
-                                            key={member.id}
-                                            onClick={() => handleSelectMember(member)}
-                                            className="bg-white border border-gray-200 rounded-3xl p-6 hover:shadow-lg hover:-translate-y-1 hover:border-gray-300 transition-all text-left flex flex-col gap-6 group"
-                                        >
-                                            <div className="flex items-start gap-4 w-full">
-                                                <div className="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold bg-gray-50 border border-gray-100 text-gray-400 shrink-0 overflow-hidden shadow-sm">
-                                                    {member.avatar_url ? (
-                                                        <img loading="lazy" src={member.avatar_url} alt={member.display_name || 'Member'} className="w-full h-full object-cover" />
-                                                    ) : (
-                                                        (member.display_name || member.full_name || 'M').slice(0, 1)
-                                                    )}
+                                <div className="mt-4">
+                                    {/* Minimalist Table Header */}
+                                    <div className="flex items-center gap-3 lg:gap-4 px-2 py-3 border-b border-gray-100 text-[11px] font-semibold text-gray-400 tracking-wider">
+                                        <div className="flex-1 min-w-0">ข้อมูลสมาชิก</div>
+                                        <div className="w-[90px] shrink-0 hidden lg:block text-center">วันที่สมัคร</div>
+                                        <div className="w-[60px] shrink-0 text-center">คะแนน</div>
+                                        <div className="w-[85px] shrink-0 text-right">สถานะ</div>
+                                    </div>
+
+                                    <div className="flex flex-col">
+                                        {/* New Customers Section */}
+                                        {newCustomers.length > 0 && (
+                                            <>
+                                                <div className="px-2 pt-8 pb-2 text-[12px] font-bold text-black flex items-center gap-2">
+                                                    สมัครใหม่วันนี้
                                                 </div>
-                                                <div className="flex-1 min-w-0 pt-1">
-                                                    <div className="flex items-start justify-between gap-2 mb-1">
-                                                        <h3 className="text-base font-bold text-gray-900 truncate pr-2 leading-tight">
-                                                            {member.full_name || member.display_name || 'สมาชิก'}
-                                                        </h3>
-                                                        {getTierBadge(member.tier)}
-                                                    </div>
-                                                    <div className="text-sm text-gray-500 flex items-center gap-1.5 truncate">
-                                                        <Phone size={14}/> {member.phone || 'ไม่ระบุ'}
-                                                    </div>
-                                                    {isNew && <span className="inline-block mt-2 bg-emerald-100 text-emerald-700 text-[10px] px-2 py-0.5 rounded-full font-bold tracking-wide">NEW MEMBER</span>}
+                                                {newCustomers.map(member => (
+                                                    <button 
+                                                        key={member.id} 
+                                                        onClick={() => handleSelectMember(member)} 
+                                                        className="w-full flex items-center gap-3 lg:gap-4 py-4 px-2 hover:bg-gray-50 rounded-2xl transition-colors text-left group"
+                                                    >
+                                                        <div className="flex-1 flex items-center gap-3 min-w-0">
+                                                            <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-gray-100 flex items-center justify-center text-gray-900 overflow-hidden shrink-0 font-medium border border-gray-200">
+                                                                {member.avatar_url ? (
+                                                                    <img loading="lazy" src={member.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                                                                ) : (
+                                                                    (member.display_name || member.full_name || 'M').slice(0, 1)
+                                                                )}
+                                                            </div>
+                                                            <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                                                <div className="flex flex-wrap items-center gap-1.5">
+                                                                    <div className="text-[14px] lg:text-[15px] font-semibold text-black break-words leading-tight whitespace-normal">
+                                                                        {member.full_name || member.display_name || 'สมาชิก'}
+                                                                    </div>
+                                                                    {member.title && (
+                                                                        <span className="shrink-0 text-[9px] lg:text-[10px] font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{member.title}</span>
+                                                                    )}
+                                                                </div>
+                                                                <div className="text-[12px] lg:text-[13px] text-gray-500 truncate mt-0.5">
+                                                                    {member.phone ? member.phone.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3') : '-'}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        {/* Date hidden on small and medium screens to give name more space */}
+                                                        <div className="w-[90px] shrink-0 hidden lg:flex flex-col items-center justify-center text-[13px] text-gray-500">
+                                                            {member.created_at ? (
+                                                                <>
+                                                                    <span>{new Date(member.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })}</span>
+                                                                    <span className="text-[11px] text-gray-400">{new Date(member.created_at).getFullYear() + 543}</span>
+                                                                </>
+                                                            ) : '-'}
+                                                        </div>
+                                                        
+                                                        <div className="w-[60px] shrink-0 text-center">
+                                                            <span className="text-[14px] lg:text-[15px] font-medium text-black">{(member.points ?? 0).toLocaleString()}</span>
+                                                        </div>
+                                                        
+                                                        <div className="w-[85px] shrink-0 flex justify-end">
+                                                            {member.phone ? (
+                                                                <span className="text-[11px] lg:text-[12px] font-medium text-black bg-gray-100 px-2 lg:px-3 py-1 rounded-full shrink-0">
+                                                                    ลงทะเบียน
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-[11px] lg:text-[12px] font-medium text-gray-400 bg-gray-50 px-2 lg:px-3 py-1 rounded-full shrink-0">
+                                                                    ไม่ลงทะเบียน
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                                <div className="my-2 border-b border-gray-100 mx-2"></div>
+                                            </>
+                                        )}
+
+                                        {/* All Other Customers Section */}
+                                        {otherCustomers.length > 0 && (
+                                            <>
+                                                <div className="px-2 pt-6 pb-2 text-[12px] font-medium text-gray-400">
+                                                    สมาชิกทั้งหมด
                                                 </div>
-                                            </div>
-                                            <div className="flex items-center justify-between pt-5 border-t border-gray-100 mt-auto">
-                                                <div className="flex flex-col">
-                                                    <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Points</span>
-                                                    <span className="text-xl font-black text-gray-900 leading-none">{(member.points ?? 0).toLocaleString()}</span>
-                                                </div>
-                                                {member.phone ? (
-                                                    <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full flex items-center gap-1.5"><ShieldCheck size={14}/> Registered</span>
-                                                ) : (
-                                                    <span className="text-[11px] font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full flex items-center gap-1.5"><ShieldAlert size={14}/> Unregistered</span>
-                                                )}
-                                            </div>
-                                        </button>
-                                    )})}
+                                                {otherCustomers.map(member => (
+                                                    <button 
+                                                        key={member.id} 
+                                                        onClick={() => handleSelectMember(member)} 
+                                                        className="w-full flex items-center gap-3 lg:gap-4 py-4 px-2 hover:bg-gray-50 rounded-2xl transition-colors text-left group"
+                                                    >
+                                                        <div className="flex-1 flex items-center gap-3 min-w-0">
+                                                            <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-gray-100 flex items-center justify-center text-gray-900 overflow-hidden shrink-0 font-medium border border-gray-200">
+                                                                {member.avatar_url ? (
+                                                                    <img loading="lazy" src={member.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                                                                ) : (
+                                                                    (member.display_name || member.full_name || 'M').slice(0, 1)
+                                                                )}
+                                                            </div>
+                                                            <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                                                <div className="flex flex-wrap items-center gap-1.5">
+                                                                    <div className="text-[14px] lg:text-[15px] font-semibold text-black break-words leading-tight whitespace-normal">
+                                                                        {member.full_name || member.display_name || 'สมาชิก'}
+                                                                    </div>
+                                                                    {member.title && (
+                                                                        <span className="shrink-0 text-[9px] lg:text-[10px] font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{member.title}</span>
+                                                                    )}
+                                                                </div>
+                                                                <div className="text-[12px] lg:text-[13px] text-gray-500 truncate mt-0.5">
+                                                                    {member.phone ? member.phone.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3') : '-'}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        {/* Date hidden on small and medium screens to give name more space */}
+                                                        <div className="w-[90px] shrink-0 hidden lg:flex flex-col items-center justify-center text-[13px] text-gray-500">
+                                                            {member.created_at ? (
+                                                                <>
+                                                                    <span>{new Date(member.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })}</span>
+                                                                    <span className="text-[11px] text-gray-400">{new Date(member.created_at).getFullYear() + 543}</span>
+                                                                </>
+                                                            ) : '-'}
+                                                        </div>
+                                                        
+                                                        <div className="w-[60px] shrink-0 text-center">
+                                                            <span className="text-[14px] lg:text-[15px] font-medium text-black">{(member.points ?? 0).toLocaleString()}</span>
+                                                        </div>
+                                                        
+                                                        <div className="w-[85px] shrink-0 flex justify-end">
+                                                            {member.phone ? (
+                                                                <span className="text-[11px] lg:text-[12px] font-medium text-black bg-gray-100 px-2 lg:px-3 py-1 rounded-full shrink-0">
+                                                                    ลงทะเบียน
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-[11px] lg:text-[12px] font-medium text-gray-400 bg-gray-50 px-2 lg:px-3 py-1 rounded-full shrink-0">
+                                                                    ไม่ลงทะเบียน
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                            </>
+                                        )}
+                                    </div>
                                 </div>
                             ) : (
-                                <div className="h-[400px] flex flex-col items-center justify-center opacity-50 text-center">
-                                    <Users size={64} className="mb-6 text-gray-300" />
-                                    <h3 className="text-lg font-bold text-gray-900 mb-2">{locale === 'en' ? 'No members found' : 'ไม่พบรายชื่อสมาชิก'}</h3>
-                                    <p className="text-sm font-medium text-gray-500">ลองค้นหาด้วยคำอื่น หรือกด QR รับสมัครเพื่อเพิ่มสมาชิกใหม่</p>
+                                <div className="py-32 flex flex-col items-center justify-center opacity-30 text-center">
+                                    <Users size={48} className="mb-4 text-black" />
+                                    <h3 className="text-[15px] font-semibold text-black mb-1">ไม่พบรายชื่อสมาชิก</h3>
+                                    <p className="text-[13px] text-gray-500">ลองค้นหาด้วยคำอื่น หรือเพิ่มสมาชิกใหม่</p>
                                 </div>
                             )}
                         </div>
@@ -455,247 +627,226 @@ export default function POSMemberManager({
             ) : (
                 // Full Width Profile View
                 <div className="flex-1 flex flex-col h-full bg-white overflow-hidden animate-in slide-in-from-right-4 duration-300 relative z-20">
-                    <header className="px-6 py-4 border-b border-gray-100 bg-white sticky top-0 z-30 flex items-center gap-6 shadow-sm">
+                    <header className="px-6 py-4 border-b border-gray-100 bg-white sticky top-0 z-30 flex items-center gap-6">
                         <button 
                             onClick={() => setSelectedMember(null)}
-                            className="flex items-center justify-center w-10 h-10 rounded-full text-gray-500 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 transition-colors border border-gray-200"
+                            className="flex items-center justify-center w-10 h-10 rounded-full text-black hover:bg-gray-100 transition-colors"
                         >
                             <ArrowLeft size={20} />
                         </button>
                         <div>
-                            <h2 className="text-lg font-bold text-gray-900">{locale === 'en' ? 'Member Profile' : 'โปรไฟล์สมาชิก'}</h2>
-                            <p className="text-[11px] text-gray-500 font-medium">ID: {selectedMember.id.split('-')[0]}</p>
+                            <h2 className="text-[16px] font-semibold text-black">{locale === 'en' ? 'Member Profile' : 'โปรไฟล์สมาชิก'}</h2>
                         </div>
                     </header>
                     <div className="flex-1 overflow-y-auto custom-scrollbar">
-                        <div className="max-w-5xl mx-auto w-full p-6 md:p-10">
-                            {/* Profile Header */}
-                            <div className="flex flex-col md:flex-row items-center md:items-start gap-8 md:gap-10 mb-10">
-                                <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-gray-50 flex items-center justify-center text-4xl font-bold text-gray-400 overflow-hidden shrink-0 shadow-md border-4 border-white ring-1 ring-gray-100">
+                        <div className="max-w-4xl mx-auto w-full p-6 md:p-10 lg:p-12">
+                            
+                            {/* NEW COMPACT PROFILE HEADER */}
+                            <div className="flex flex-col md:flex-row items-center md:items-start gap-6 mb-8">
+                                <div className="w-24 h-24 md:w-28 md:h-28 rounded-full bg-gray-50 flex items-center justify-center text-3xl font-light text-gray-300 overflow-hidden shrink-0 border border-gray-200">
                                     {selectedMember.avatar_url ? (
                                         <img loading="lazy" src={selectedMember.avatar_url} alt={selectedMember.display_name || 'Member'} className="w-full h-full object-cover" />
                                     ) : (
                                         (selectedMember.display_name || selectedMember.full_name || 'M').slice(0, 1)
                                     )}
                                 </div>
-                                <div className="flex-1 text-center md:text-left space-y-4">
-                                    <div className="flex flex-col md:flex-row items-center gap-4">
-                                        <h2 className="text-3xl md:text-4xl font-bold text-gray-900 leading-none">
+                                <div className="flex-1 text-center md:text-left space-y-3">
+                                    <div className="flex flex-wrap justify-center md:justify-start items-center gap-3">
+                                        <h2 className="text-2xl md:text-3xl font-semibold text-black tracking-tight break-words whitespace-normal leading-tight">
                                             {selectedMember.full_name ? `${selectedMember.full_name} ${selectedMember.display_name && selectedMember.display_name !== selectedMember.full_name ? `(${selectedMember.display_name})` : ''}` : (selectedMember.display_name || 'สมาชิก')}
                                         </h2>
                                         {getTierBadge(selectedMember.tier)}
-                                        {selectedMember.title && <span className="px-3 py-1 bg-sage-50 text-sage-700 text-xs font-semibold rounded-lg border border-sage-100">👑 {selectedMember.title}</span>}
+                                        {selectedMember.title && <span className="shrink-0 px-2.5 py-0.5 bg-gray-100 text-black text-[10px] font-semibold rounded-full uppercase tracking-wider">{selectedMember.title}</span>}
                                     </div>
-                                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-6 text-sm font-medium text-gray-600 bg-gray-50 px-6 py-4 rounded-2xl border border-gray-100 inline-flex">
-                                         <div className="flex items-center gap-2"><Phone size={16} className="text-gray-400" /> {selectedMember.phone || 'ไม่ระบุเบอร์'}</div>
-                                         <div className="flex items-center gap-2"><Mail size={16} className="text-gray-400" /> {selectedMember.email || 'ไม่ระบุอีเมล'}</div>
-                                         <div className="flex items-center gap-2">
-                                            <Award size={16} className="text-gray-400" /> 
-                                            {locale === 'en' ? 'Joined ' : 'เข้าร่วมปี '}{selectedMember.created_at ? new Date(selectedMember.created_at).getFullYear() : '2026'}
+                                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-4 gap-y-2 text-[13px] text-gray-500">
+                                         <div className="flex items-center gap-1.5"><Phone size={14} className="text-gray-400" /> {selectedMember.phone || 'ไม่ระบุเบอร์'}</div>
+                                         <span className="text-gray-300 hidden md:inline">|</span>
+                                         <div className="flex items-center gap-1.5"><Mail size={14} className="text-gray-400" /> {selectedMember.email || 'ไม่ระบุอีเมล'}</div>
+                                         <span className="text-gray-300 hidden md:inline">|</span>
+                                         <div className="flex items-center gap-1.5">
+                                            <Calendar size={14} className="text-gray-400" /> {locale === 'en' ? 'Joined ' : 'เข้าร่วมปี '}{selectedMember.created_at ? new Date(selectedMember.created_at).getFullYear() + 543 : '2569'}
                                          </div>
-                                         {selectedMember.gender && (
-                                             <div className="flex items-center gap-2">
-                                                👤 {selectedMember.gender}
-                                             </div>
-                                         )}
                                     </div>
                                 </div>
                             </div>
+
+                            {/* COMPACT STATS GRID */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+                                <div className="bg-gray-50/80 p-5 rounded-2xl border border-gray-100">
+                                    <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest block mb-2">{locale === 'en' ? 'Points' : 'คะแนนสะสม'}</span>
+                                    <div className="text-2xl md:text-3xl font-semibold text-black">{(selectedMember.points ?? 0).toLocaleString()}</div>
+                                </div>
+                                <div onClick={() => alert("Gacha Feature Coming Soon!")} className="bg-gray-50/80 hover:bg-gray-100 cursor-pointer transition-colors p-5 rounded-2xl border border-gray-100">
+                                    <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest block mb-2">{locale === 'en' ? 'Gacha' : 'ตั๋วสุ่มกาชา'}</span>
+                                    <div className="text-2xl md:text-3xl font-semibold text-black">{(selectedMember.gacha_tickets ?? 0).toLocaleString()} <span className="text-sm font-normal text-gray-400 ml-0.5">ใบ</span></div>
+                                </div>
+                                <div className="bg-gray-50/80 p-5 rounded-2xl border border-gray-100">
+                                    <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest block mb-2">{locale === 'en' ? 'Tier' : 'ระดับชั้น'}</span>
+                                    <div className="text-xl md:text-2xl font-semibold text-black capitalize">{selectedMember.tier || 'General'}</div>
+                                </div>
+                                <div className="bg-gray-50/80 p-5 rounded-2xl border border-gray-100">
+                                    <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest block mb-2">{locale === 'en' ? 'Status' : 'สถานะ'}</span>
+                                    <div className="text-xl md:text-2xl font-semibold text-black">{selectedMember.phone ? (locale === 'en' ? 'Registered' : 'ลงทะเบียนแล้ว') : (locale === 'en' ? 'Guest' : 'ไม่ลงทะเบียน')}</div>
+                                </div>
+                            </div>
                             
-                            {/* Tab Navigation */}
-                            <div className="flex gap-2 mb-8 bg-gray-50/50 p-1.5 rounded-2xl border border-gray-100 overflow-x-auto no-scrollbar">
+                            {/* Tab Navigation Minimalist */}
+                            <div className="flex gap-8 mb-8 border-b border-gray-100 overflow-x-auto no-scrollbar">
                                 <button 
                                     onClick={() => setProfileTab('wallet')} 
-                                    className={`flex-1 min-w-[140px] flex items-center justify-center gap-2 py-3 px-4 text-sm font-semibold rounded-xl transition-all ${profileTab === 'wallet' ? 'bg-white text-gray-900 shadow-sm border border-gray-200/50' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100/50'}`}
+                                    className={`pb-4 text-[13px] font-medium whitespace-nowrap transition-colors ${profileTab === 'wallet' ? 'text-black border-b-2 border-black' : 'text-gray-400 hover:text-gray-600'}`}
                                 >
-                                    <LayoutGrid size={18}/> Wallet & Assets
+                                    คูปองของฉัน (Coupons)
                                 </button>
                                 <button 
                                     onClick={() => setProfileTab('history')} 
-                                    className={`flex-1 min-w-[140px] flex items-center justify-center gap-2 py-3 px-4 text-sm font-semibold rounded-xl transition-all ${profileTab === 'history' ? 'bg-white text-gray-900 shadow-sm border border-gray-200/50' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100/50'}`}
+                                    className={`pb-4 text-[13px] font-medium whitespace-nowrap transition-colors ${profileTab === 'history' ? 'text-black border-b-2 border-black' : 'text-gray-400 hover:text-gray-600'}`}
                                 >
-                                    <History size={18}/> Points History
+                                    ประวัติคะแนน (History)
                                 </button>
                                 <button 
                                     onClick={() => {
                                         setProfileTab('edit')
                                         setEditData(selectedMember)
                                     }} 
-                                    className={`flex-1 min-w-[140px] flex items-center justify-center gap-2 py-3 px-4 text-sm font-semibold rounded-xl transition-all ${profileTab === 'edit' ? 'bg-white text-gray-900 shadow-sm border border-gray-200/50' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100/50'}`}
+                                    className={`pb-4 text-[13px] font-medium whitespace-nowrap transition-colors ${profileTab === 'edit' ? 'text-black border-b-2 border-black' : 'text-gray-400 hover:text-gray-600'}`}
                                 >
-                                    <Edit2 size={18}/> Edit Profile
+                                    แก้ไขข้อมูล (Edit)
                                 </button>
                             </div>
 
                             {/* Tab Content */}
-                            <div className="min-h-[400px]">
+                            <div className="min-h-[300px]">
                                 {profileTab === 'wallet' && (
-                                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                            <div className="bg-gradient-to-br from-gray-900 to-gray-800 text-white p-8 rounded-3xl shadow-xl flex flex-col justify-between aspect-[2/1] relative overflow-hidden group hover:shadow-2xl transition-all">
-                                                <div className="absolute top-0 right-0 p-6 opacity-20 group-hover:scale-110 transition-transform"><Award size={80} /></div>
-                                                <div className="relative z-10">
-                                                    <span className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400 mb-2 block">{locale === 'en' ? 'Available Points' : 'คะแนนสะสมคงเหลือ'}</span>
-                                                    <div className="text-5xl font-black mb-1">{(selectedMember.points ?? 0).toLocaleString()}</div>
-                                                    <span className="text-sm font-medium text-gray-400">PTS</span>
-                                                </div>
+                                    <div className="animate-in fade-in duration-300">
+                                        <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                                            <h3 className="text-[16px] font-semibold text-black">{locale === 'en' ? 'Coupons' : 'คูปองของฉัน'} <span className="text-gray-400 text-[13px] font-normal ml-2">({memberCoupons.length})</span></h3>
+                                            <div className="flex gap-4 bg-gray-50 p-1 rounded-full border border-gray-100">
+                                                <button
+                                                    onClick={() => setCouponTab('active')}
+                                                    className={`text-[12px] px-4 py-1.5 rounded-full transition-colors ${couponTab === 'active' ? 'bg-white text-black font-semibold shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                                >
+                                                    {locale === 'en' ? 'Unused' : 'ยังไม่ได้ใช้'}
+                                                </button>
+                                                <button
+                                                    onClick={() => setCouponTab('used')}
+                                                    className={`text-[12px] px-4 py-1.5 rounded-full transition-colors ${couponTab === 'used' ? 'bg-white text-black font-semibold shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                                >
+                                                    {locale === 'en' ? 'Used' : 'ใช้งานแล้ว'}
+                                                </button>
                                             </div>
-                                            
-                                            <div onClick={() => alert("Gacha Feature Coming Soon!")} className="bg-emerald-50 border border-emerald-100 p-8 rounded-3xl shadow-sm flex flex-col justify-between aspect-[2/1] relative overflow-hidden group cursor-pointer hover:shadow-md hover:-translate-y-1 transition-all">
-                                                <div className="absolute top-0 right-0 p-6 opacity-40 group-hover:scale-110 transition-transform"><Ticket size={80} className="text-emerald-200" /></div>
-                                                <div className="relative z-10">
-                                                    <span className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600 mb-2 block">{locale === 'en' ? 'Gacha Tickets' : 'ตั๋วสุ่มกาชา'}</span>
-                                                    <div className="text-5xl font-black text-emerald-700 mb-1">{(selectedMember.gacha_tickets ?? 0).toLocaleString()}</div>
-                                                    <span className="text-sm font-medium text-emerald-600">Tickets</span>
+                                        </header>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {memberCoupons.filter(c => c.status === couponTab).length === 0 ? (
+                                                <div className="col-span-full py-16 flex flex-col items-center justify-center opacity-40">
+                                                    <Ticket size={32} className="mb-4 text-gray-400" />
+                                                    <p className="text-[13px] text-gray-500">{locale === 'en' ? 'No coupons in this category' : 'ไม่มีคูปองในหมวดหมู่นี้'}</p>
                                                 </div>
-                                                <div className="absolute bottom-6 right-6 text-emerald-700 font-bold text-sm bg-white/60 backdrop-blur px-3 py-1.5 rounded-full flex items-center gap-1 shadow-sm">
-                                                    สุ่มกาชา <ChevronRight size={14} />
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="bg-white border border-gray-100 rounded-3xl shadow-sm overflow-hidden">
-                                            <header className="p-6 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gray-50/50">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 bg-sage-100 text-sage-600 flex items-center justify-center rounded-xl shadow-inner">
-                                                        <Gift size={20} />
-                                                    </div>
-                                                    <div>
-                                                        <h3 className="text-sm font-bold text-gray-900">{locale === 'en' ? 'Coupons' : 'คูปองของฉัน'}</h3>
-                                                        <p className="text-xs font-medium text-gray-500">{memberCoupons.length} {locale === 'en' ? 'Total Coupons' : 'รายการทั้งหมด'}</p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-2 bg-gray-200/50 p-1 rounded-xl">
-                                                   <button
-                                                      onClick={() => setCouponTab('active')}
-                                                      className={`px-4 py-2 text-xs font-bold transition-all rounded-lg ${couponTab === 'active' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                                                   >
-                                                      {locale === 'en' ? 'Unused' : 'ยังไม่ได้ใช้'} ({memberCoupons.filter(c => c.status === 'active').length})
-                                                   </button>
-                                                   <button
-                                                      onClick={() => setCouponTab('used')}
-                                                      className={`px-4 py-2 text-xs font-bold transition-all rounded-lg ${couponTab === 'used' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                                                   >
-                                                      {locale === 'en' ? 'Used' : 'ใช้งานแล้ว'} ({memberCoupons.filter(c => c.status === 'used').length})
-                                                   </button>
-                                                </div>
-                                            </header>
-                                            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                {memberCoupons.filter(c => c.status === couponTab).length === 0 ? (
-                                                    <div className="col-span-full py-12 flex flex-col items-center justify-center opacity-40">
-                                                        <Ticket size={48} className="mb-4 text-gray-400" />
-                                                        <p className="text-sm font-medium text-gray-500">{locale === 'en' ? 'No coupons in this category' : 'ไม่มีคูปองในหมวดหมู่นี้'}</p>
-                                                    </div>
-                                                ) : (
-                                                    memberCoupons.filter(c => c.status === couponTab).map(coupon => (
-                                                        <div key={coupon.id} className={`border rounded-2xl p-5 flex gap-4 ${coupon.status === 'active' ? 'border-sage-200 bg-sage-50/30 hover:border-sage-300' : 'border-gray-200 bg-gray-50 opacity-70'} transition-all`}>
-                                                            <div className={`w-16 h-16 rounded-xl flex items-center justify-center shrink-0 shadow-inner ${coupon.status === 'active' ? 'bg-sage-100 text-sage-600' : 'bg-gray-200 text-gray-500'}`}>
-                                                                <Tag size={24} />
+                                            ) : (
+                                                memberCoupons.filter(c => c.status === couponTab).map(coupon => (
+                                                    <div key={coupon.id} className={`border border-gray-100 rounded-2xl p-5 flex items-center justify-between gap-4 ${coupon.status === 'active' ? 'bg-white hover:border-gray-300 transition-colors' : 'bg-gray-50 opacity-60'}`}>
+                                                        <div className="flex gap-4 items-center">
+                                                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${coupon.status === 'active' ? 'bg-black text-white' : 'bg-gray-200 text-gray-500'}`}>
+                                                                {coupon.discount_type === 'percent' ? <Percent size={20} /> : <Tag size={20} />}
                                                             </div>
-                                                            <div className="flex-1 flex flex-col justify-center">
-                                                                <div className="flex items-start justify-between gap-2 mb-1">
-                                                                    <h4 className="text-sm font-bold text-gray-900 line-clamp-2 leading-tight">{coupon.reward_name}</h4>
-                                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md whitespace-nowrap ${coupon.status === 'active' ? 'bg-sage-100 text-sage-700' : 'bg-gray-200 text-gray-600'}`}>
-                                                                        {coupon.status === 'active' ? 'พร้อมใช้งาน' : 'ใช้แล้ว'}
-                                                                    </span>
-                                                                </div>
-                                                                <p className="text-xs font-medium text-gray-500 mt-1">Code: {coupon.code}</p>
-                                                                {coupon.used_at && (
-                                                                    <p className="text-[10px] font-medium text-gray-400 mt-2">
-                                                                        ใช้เมื่อ: {new Date(coupon.used_at).toLocaleDateString('th-TH')}
-                                                                    </p>
-                                                                )}
+                                                            <div className="flex flex-col justify-center">
+                                                                <h4 className="text-[15px] font-semibold text-black mb-0.5">{coupon.coupon_name || 'คูปองปริศนา'}</h4>
+                                                                <p className="text-[12px] text-gray-500">
+                                                                    ส่วนลด: <span className="font-semibold text-black">{coupon.discount_value} {coupon.discount_type === 'percent' ? '%' : '฿'}</span>
+                                                                </p>
                                                             </div>
                                                         </div>
-                                                    ))
-                                                )}
-                                            </div>
+                                                        {coupon.status === 'active' && (
+                                                            <button 
+                                                                onClick={() => handleUseCoupon(coupon)} 
+                                                                className="shrink-0 px-4 py-2 bg-gray-50 border border-gray-200 hover:bg-gray-100 text-black text-[12px] font-semibold rounded-full transition-colors"
+                                                            >
+                                                                ใช้งาน
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                ))
+                                            )}
                                         </div>
                                     </div>
                                 )}
 
                                 {profileTab === 'history' && (
-                                    <div className="bg-white border border-gray-100 rounded-3xl shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
-                                        <div className="p-6 md:p-8 space-y-6">
+                                    <div className="animate-in fade-in duration-300">
+                                        <div className="space-y-4">
                                             {pointsHistory.length === 0 ? (
-                                                <div className="py-12 flex flex-col items-center justify-center opacity-40">
-                                                    <History size={48} className="mb-4 text-gray-400" />
-                                                    <p className="text-sm font-medium text-gray-500">ไม่มีประวัติแต้ม</p>
+                                                <div className="py-16 flex flex-col items-center justify-center opacity-40">
+                                                    <History size={32} className="mb-4 text-gray-400" />
+                                                    <p className="text-[13px] text-gray-500">ไม่มีประวัติแต้ม</p>
                                                 </div>
                                             ) : (
-                                                <div className="relative border-l-2 border-gray-100 ml-4 space-y-8">
-                                                    {pointsHistory.map((history, idx) => (
-                                                        <div key={idx} className="relative pl-8 group">
-                                                            <div className={`absolute -left-[9px] top-1 w-4 h-4 rounded-full border-2 border-white shadow-sm transition-transform group-hover:scale-125 ${history.points_change > 0 ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
-                                                            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
-                                                                <div>
-                                                                    <p className="text-sm font-bold text-gray-900 leading-tight mb-1">{translateHistoryDescription(history.description, locale)}</p>
-                                                                    <p className="text-xs font-medium text-gray-500 flex items-center gap-2">
-                                                                        {new Date(history.created_at).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })}
-                                                                    </p>
-                                                                </div>
-                                                                <div className={`flex items-center gap-1 font-black text-lg ${history.points_change > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                                                    {history.points_change > 0 ? '+' : ''}{history.points_change} 
-                                                                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 pt-1">PTS</span>
-                                                                </div>
-                                                            </div>
+                                                pointsHistory.map((history, idx) => (
+                                                    <div key={idx} className="flex items-center justify-between gap-4 p-4 rounded-xl border border-gray-100 bg-white">
+                                                        <div>
+                                                            <p className="text-[14px] font-medium text-black mb-1">{translateHistoryDescription(history.description, locale)}</p>
+                                                            <p className="text-[12px] text-gray-400">
+                                                                {new Date(history.created_at).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })}
+                                                            </p>
                                                         </div>
-                                                    ))}
-                                                </div>
+                                                        <div className={`text-lg font-semibold ${history.points_change > 0 ? 'text-emerald-600' : 'text-gray-400'}`}>
+                                                            {history.points_change > 0 ? '+' : ''}{history.points_change} 
+                                                        </div>
+                                                    </div>
+                                                ))
                                             )}
                                         </div>
                                     </div>
                                 )}
 
                                 {profileTab === 'edit' && (
-                                    <div className="bg-white border border-gray-100 rounded-3xl shadow-sm p-6 md:p-10 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                                    <div className="space-y-8 animate-in fade-in duration-300 bg-gray-50/50 p-6 md:p-8 rounded-3xl border border-gray-100">
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                                            <div className="space-y-2">
-                                                <label className="text-xs font-bold text-gray-600 ml-1">{locale === 'en' ? 'Display Name' : 'ชื่อที่แสดงผล'}</label>
+                                            <div className="space-y-1.5">
+                                                <label className="text-[12px] font-medium text-gray-500 pl-1">{locale === 'en' ? 'Display Name' : 'ชื่อที่แสดงผล'}</label>
                                                 <input 
-                                                    className="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl px-4 text-sm font-semibold outline-none focus:bg-white focus:ring-2 focus:ring-gray-900/20 focus:border-gray-900 transition-all"
+                                                    className="w-full h-12 border border-gray-200 bg-white rounded-xl px-4 text-[14px] outline-none focus:border-black transition-colors text-black"
                                                     value={editData.display_name || ''}
                                                     onChange={e => setEditData({...editData, display_name: e.target.value})}
                                                 />
                                             </div>
-                                            <div className="space-y-2">
-                                                <label className="text-xs font-bold text-gray-600 ml-1">ฉายา / Title</label>
+                                            <div className="space-y-1.5">
+                                                <label className="text-[12px] font-medium text-gray-500 pl-1">ฉายา / Title</label>
                                                 <input 
-                                                    className="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl px-4 text-sm font-semibold outline-none focus:bg-white focus:ring-2 focus:ring-gray-900/20 focus:border-gray-900 transition-all text-sage-700"
+                                                    className="w-full h-12 border border-gray-200 bg-white rounded-xl px-4 text-[14px] outline-none focus:border-black transition-colors text-black"
                                                     value={editData.title || ''}
                                                     placeholder="เช่น ผู้พิทักษ์ป่า"
                                                     onChange={e => setEditData({...editData, title: e.target.value})}
                                                 />
                                             </div>
-                                            <div className="space-y-2">
-                                                <label className="text-xs font-bold text-gray-600 ml-1">{locale === 'en' ? 'Full Name' : 'ชื่อจริง-นามสกุล'}</label>
+                                            <div className="space-y-1.5">
+                                                <label className="text-[12px] font-medium text-gray-500 pl-1">{locale === 'en' ? 'Full Name' : 'ชื่อจริง-นามสกุล'}</label>
                                                 <input 
-                                                    className="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl px-4 text-sm font-semibold outline-none focus:bg-white focus:ring-2 focus:ring-gray-900/20 focus:border-gray-900 transition-all"
+                                                    className="w-full h-12 border border-gray-200 bg-white rounded-xl px-4 text-[14px] outline-none focus:border-black transition-colors text-black"
                                                     value={editData.full_name || ''}
                                                     onChange={e => setEditData({...editData, full_name: e.target.value})}
                                                 />
                                             </div>
-                                            <div className="space-y-2">
-                                                <label className="text-xs font-bold text-gray-600 ml-1">{locale === 'en' ? 'Phone Number' : 'เบอร์โทรศัพท์ติดต่อ'}</label>
+                                            <div className="space-y-1.5">
+                                                <label className="text-[12px] font-medium text-gray-500 pl-1">{locale === 'en' ? 'Phone Number' : 'เบอร์โทรศัพท์ติดต่อ'}</label>
                                                 <input 
-                                                    className="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl px-4 text-sm font-semibold outline-none focus:bg-white focus:ring-2 focus:ring-gray-900/20 focus:border-gray-900 transition-all"
+                                                    className="w-full h-12 border border-gray-200 bg-white rounded-xl px-4 text-[14px] outline-none focus:border-black transition-colors text-black"
                                                     value={editData.phone || ''}
                                                     onChange={e => setEditData({...editData, phone: e.target.value})}
                                                 />
                                             </div>
-                                            <div className="space-y-2">
-                                                <label className="text-xs font-bold text-gray-600 ml-1">วันเกิด</label>
+                                            <div className="space-y-1.5">
+                                                <label className="text-[12px] font-medium text-gray-500 pl-1">วันเกิด</label>
                                                 <input 
                                                     type="date"
-                                                    className="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl px-4 text-sm font-semibold outline-none focus:bg-white focus:ring-2 focus:ring-gray-900/20 focus:border-gray-900 transition-all"
+                                                    className="w-full h-12 border border-gray-200 bg-white rounded-xl px-4 text-[14px] outline-none focus:border-black transition-colors text-black"
                                                     value={editData.date_of_birth || ''}
                                                     onChange={e => setEditData({...editData, date_of_birth: e.target.value})}
                                                 />
                                             </div>
-                                            <div className="space-y-2">
-                                                <label className="text-xs font-bold text-gray-600 ml-1">เพศ</label>
+                                            <div className="space-y-1.5">
+                                                <label className="text-[12px] font-medium text-gray-500 pl-1">เพศ</label>
                                                 <select 
-                                                    className="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl px-4 text-sm font-semibold outline-none focus:bg-white focus:ring-2 focus:ring-gray-900/20 focus:border-gray-900 transition-all"
+                                                    className="w-full h-12 border border-gray-200 bg-white rounded-xl px-4 text-[14px] outline-none focus:border-black transition-colors text-black"
                                                     value={editData.gender || ''}
                                                     onChange={e => setEditData({...editData, gender: e.target.value})}
                                                 >
@@ -704,10 +855,10 @@ export default function POSMemberManager({
                                                     <option value="หญิง">หญิง</option>
                                                 </select>
                                             </div>
-                                            <div className="space-y-2">
-                                                <label className="text-xs font-bold text-gray-600 ml-1">{locale === 'en' ? 'Member Tier' : 'ระดับสิทธิ์สมาชิก'}</label>
+                                            <div className="space-y-1.5">
+                                                <label className="text-[12px] font-medium text-gray-500 pl-1">{locale === 'en' ? 'Member Tier' : 'ระดับสิทธิ์สมาชิก'}</label>
                                                 <select 
-                                                    className="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl px-4 text-sm font-semibold outline-none focus:bg-white focus:ring-2 focus:ring-gray-900/20 focus:border-gray-900 transition-all"
+                                                    className="w-full h-12 border border-gray-200 bg-white rounded-xl px-4 text-[14px] outline-none focus:border-black transition-colors text-black"
                                                     value={editData.tier}
                                                     onChange={e => setEditData({...editData, tier: e.target.value})}
                                                 >
@@ -717,11 +868,11 @@ export default function POSMemberManager({
                                                     <option value="platinum">Platinum</option>
                                                 </select>
                                             </div>
-                                            <div className="space-y-2">
-                                                <label className="text-xs font-bold text-gray-600 ml-1">{locale === 'en' ? 'Points Balance' : 'คะแนนสะสมคงเหลือ'}</label>
+                                            <div className="space-y-1.5">
+                                                <label className="text-[12px] font-medium text-gray-500 pl-1">{locale === 'en' ? 'Points Balance' : 'คะแนนสะสมคงเหลือ'}</label>
                                                 <input 
                                                     type="number"
-                                                    className="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl px-4 text-sm font-bold outline-none focus:bg-white focus:ring-2 focus:ring-gray-900/20 focus:border-gray-900 transition-all"
+                                                    className="w-full h-12 border border-gray-200 bg-white rounded-xl px-4 text-[14px] font-semibold outline-none focus:border-black transition-colors text-black"
                                                     value={editData.points ?? 0}
                                                     onChange={e => setEditData({...editData, points: parseInt(e.target.value) || 0})}
                                                 />
@@ -729,39 +880,32 @@ export default function POSMemberManager({
                                         </div>
 
                                         {(editData.points ?? 0) !== (selectedMember.points ?? 0) && (
-                                            <div className="bg-amber-50/80 border border-amber-200 p-6 rounded-2xl animate-in fade-in zoom-in-95 duration-300">
-                                                <div className="flex items-center justify-between gap-4 mb-4">
-                                                    <label className="text-xs font-bold text-amber-900 flex items-center gap-2">
-                                                        <ShieldAlert size={16} className="text-amber-600" />
-                                                        เหตุผลในการปรับปรุงแต้ม <span className="text-red-500 font-bold">*จำเป็น</span>
+                                            <div className="bg-white border border-gray-200 p-6 rounded-2xl animate-in fade-in duration-300 mt-6 shadow-sm">
+                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                                                    <label className="text-[13px] font-medium text-black">
+                                                        เหตุผลในการปรับปรุงแต้ม <span className="text-red-500">*จำเป็น</span>
                                                     </label>
-                                                    <span className="text-xs font-bold text-amber-700 bg-amber-100/50 px-3 py-1 rounded-lg">
-                                                        แต้มเดิม: {(selectedMember.points ?? 0).toLocaleString()} ➔ ใหม่: {(editData.points ?? 0).toLocaleString()}
+                                                    <span className="text-[12px] text-gray-500 bg-gray-50 px-3 py-1 rounded-full border border-gray-200">
+                                                        {(selectedMember.points ?? 0).toLocaleString()} ➔ {(editData.points ?? 0).toLocaleString()}
                                                     </span>
                                                 </div>
                                                 <input 
                                                     type="text"
-                                                    placeholder="เช่น คืนแต้มให้ลูกค้าจากบิลตกหล่น, ปรับแก้แต้มผิดพลาด ฯลฯ"
-                                                    className="w-full h-12 bg-white border border-amber-300 rounded-xl px-4 text-sm font-medium outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-amber-950 placeholder:text-amber-400/80 shadow-sm"
+                                                    placeholder="เช่น คืนแต้มให้ลูกค้าจากบิลตกหล่น"
+                                                    className="w-full h-12 bg-white border border-gray-200 rounded-xl px-4 text-[14px] outline-none focus:border-black text-black"
                                                     value={pointsReason}
                                                     onChange={e => setPointsReason(e.target.value)}
                                                 />
-                                                <div className="text-xs font-semibold text-amber-800 flex items-center justify-between gap-4 mt-3 pl-1">
-                                                    <span>จะบันทึกประวัติการปรับปรุงแต้มนี้ลงในประวัติของสมาชิก</span>
-                                                    <span className={(editData.points ?? 0) >= (selectedMember.points ?? 0) ? 'text-emerald-700 font-bold' : 'text-rose-700 font-bold'}>
-                                                        ผลต่าง: {(editData.points ?? 0) - (selectedMember.points ?? 0) > 0 ? '+' : ''}{(editData.points ?? 0) - (selectedMember.points ?? 0)} แต้ม
-                                                    </span>
-                                                </div>
                                             </div>
                                         )}
                                         
-                                        <div className="pt-4 flex justify-end">
+                                        <div className="pt-4">
                                             <button 
                                                 disabled={isSaving}
                                                 onClick={handleSave}
-                                                className="h-12 px-8 bg-gray-900 text-white text-sm font-bold rounded-xl shadow-md hover:bg-black hover:shadow-lg transition-all flex items-center justify-center gap-3 w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                                                className="h-12 px-8 bg-black text-white text-[14px] font-semibold rounded-full hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 w-full sm:w-auto disabled:opacity-50"
                                             >
-                                                {isSaving ? <Loader2 className="animate-spin" size={18} /> : <><Save size={18} /> {locale === 'en' ? 'Save Changes' : 'บันทึกการเปลี่ยนแปลง'}</>}
+                                                {isSaving ? <Loader2 className="animate-spin" size={18} /> : <>{locale === 'en' ? 'Save Changes' : 'บันทึกข้อมูล'}</>}
                                             </button>
                                         </div>
                                     </div>
@@ -772,41 +916,40 @@ export default function POSMemberManager({
                 </div>
             )}
             
-            {/* QR Code Modal */}
+            {/* Ultra Clean QR Code Modal */}
             {showQR && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm animate-in fade-in">
-                    <div className="bg-white rounded-[2rem] shadow-2xl w-[90%] max-w-sm p-8 flex flex-col items-center relative animate-in zoom-in-95 duration-300">
-                        <button onClick={() => setShowQR(false)} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-900 bg-gray-50 rounded-full transition-colors hover:bg-gray-100"><X size={18}/></button>
-                        <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-4 text-gray-900"><QrCode size={24}/></div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">QR Code สมัครสมาชิก</h3>
-                        <p className="text-sm font-medium text-gray-500 text-center mb-8">ให้ลูกค้าสแกนเพื่อสมัครสมาชิกด้วยตัวเองผ่าน LINE</p>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in">
+                    <div className="bg-white rounded-3xl w-[90%] max-w-sm p-10 flex flex-col items-center relative animate-in zoom-in-95 duration-200">
+                        <button onClick={() => setShowQR(false)} className="absolute top-6 right-6 p-2 text-gray-400 hover:text-black transition-colors"><X size={20}/></button>
+                        <h3 className="text-xl font-semibold text-black mb-2">QR Code สมัครสมาชิก</h3>
+                        <p className="text-[13px] text-gray-500 text-center mb-8">สแกนเพื่อสมัครสมาชิกผ่าน LINE</p>
                         
-                        <div className="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 mb-8">
+                        <div className="mb-10">
                             <QRCodeCanvas
                                 id="member-qr-canvas-manager"
                                 value={`https://line.me/R/ti/p/@xylstudio?text=${encodeURIComponent('สมัครสมาชิก')}`}
                                 size={220}
                                 bgColor={"#ffffff"}
-                                fgColor={"#111827"}
+                                fgColor={"#000000"}
                                 level={"Q"}
                             />
                         </div>
 
                         <button 
                             onClick={handleDownloadQR}
-                            className="w-full h-14 bg-gray-900 text-white rounded-2xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-black transition-colors shadow-md hover:shadow-lg"
+                            className="w-full h-12 bg-black text-white rounded-full text-[14px] font-semibold flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors"
                         >
-                            <Download size={18} /> บันทึกภาพ QR Code
+                            <Download size={18} /> บันทึกภาพ
                         </button>
                     </div>
                 </div>
             )}
 
-            {/* CRM Settings Modal */}
+            {/* Ultra Clean CRM Settings Modal */}
             {showCrmSettings && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4 sm:p-8 animate-in fade-in">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl h-full max-h-[90vh] flex flex-col relative overflow-hidden animate-in zoom-in-95 duration-300">
-                        <button onClick={() => setShowCrmSettings(false)} className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-full z-10 transition-colors shadow-sm"><X size={18}/></button>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 sm:p-8 animate-in fade-in">
+                    <div className="bg-white rounded-3xl w-full max-w-5xl h-full max-h-[90vh] flex flex-col relative overflow-hidden animate-in zoom-in-95 duration-200">
+                        <button onClick={() => setShowCrmSettings(false)} className="absolute top-6 right-6 p-2 text-gray-400 hover:text-black bg-gray-50 hover:bg-gray-100 rounded-full z-10 transition-colors"><X size={20}/></button>
                         <div className="flex-1 overflow-y-auto">
                             <CrmSettingsPage />
                         </div>
@@ -815,14 +958,15 @@ export default function POSMemberManager({
             )}
 
             <style jsx global>{`
-                @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Noto+Sans+Thai:wght@300;400;500;600;700;800&display=swap');
-                .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+                @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap');
+                .font-noto { font-family: 'Noto Sans Thai', sans-serif; }
+                .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
                 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
                 .custom-scrollbar::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 10px; }
                 .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #D1D5DB; }
                 .no-scrollbar::-webkit-scrollbar { display: none; }
                 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-                body { font-family: 'Noto Sans Thai', 'Outfit', sans-serif; }
+                body { font-family: 'Noto Sans Thai', sans-serif; }
             `}</style>
         </div>
     )

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { supabase } from '@/lib/supabaseClient';
 import Link from 'next/link';
-import { ChevronLeftIcon, CalendarDaysIcon } from '@heroicons/react/24/outline';
+import { ChevronLeftIcon, ChevronRightIcon, CalendarDaysIcon } from '@heroicons/react/24/outline';
 import { Loader2 } from 'lucide-react';
 
 interface StaffLeave {
@@ -20,6 +20,17 @@ export default function LeavesHistoryPage() {
   const [leaves, setLeaves] = useState<StaffLeave[]>([]);
   const [approvedHolidaysCount, setApprovedHolidaysCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  const nextMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+  };
+
+  const prevMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+  };
+
+  const monthLabel = currentDate.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' });
 
   useEffect(() => {
     if (!profile?.id) return;
@@ -27,10 +38,15 @@ export default function LeavesHistoryPage() {
     const fetchLeaves = async () => {
       setLoading(true);
       try {
+        const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).toISOString();
+        const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
+
         const { data, error } = await supabase
           .from('staff_leaves')
           .select('*')
           .eq('profile_id', profile.id)
+          .gte('leave_date', firstDay)
+          .lte('leave_date', lastDay)
           .order('leave_date', { ascending: false });
 
         
@@ -55,7 +71,7 @@ export default function LeavesHistoryPage() {
     };
 
     fetchLeaves();
-  }, [profile?.id]);
+  }, [profile?.id, currentDate]);
 
   const leaveTypeLabel = (type: string) => {
     switch (type) {
@@ -86,11 +102,30 @@ export default function LeavesHistoryPage() {
           <ChevronLeftIcon className="w-5 h-5" />
         </Link>
         <div>
-          <h1 className="text-xl font-bold text-gray-900 leading-tight">ประวัติการลางาน</h1>
+          <h1 className="text-xl font-bold text-gray-900 leading-tight">ประวัติการลาหยุด</h1>
           <p className="text-[11px] text-gray-500 font-medium mt-0.5">
-            รายการวันลาหยุดที่คุณใช้ไปแล้วทั้งหมด
+            รายละเอียดการใช้วันลา และวันหยุดต่างๆ
           </p>
         </div>
+      </div>
+
+      {/* Month Selector */}
+      <div className="flex items-center justify-between bg-white rounded-full p-1 border border-gray-200/60 shadow-xs mb-6 w-fit mx-auto">
+        <button 
+          onClick={prevMonth}
+          className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-50 active:scale-95 transition-all text-gray-500"
+        >
+          <ChevronLeftIcon className="w-5 h-5" />
+        </button>
+        <span className="px-6 text-sm font-bold text-gray-900 min-w-[140px] text-center">
+          {monthLabel}
+        </span>
+        <button 
+          onClick={nextMonth}
+          className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-50 active:scale-95 transition-all text-gray-500"
+        >
+          <ChevronRightIcon className="w-5 h-5" />
+        </button>
       </div>
 
       

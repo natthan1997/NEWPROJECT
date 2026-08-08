@@ -200,6 +200,7 @@ export default function POSShopSettings({
     ],
     printers: [],
     receipt_story_mode: false,
+    show_story_selection_at_checkout: false,
     receipt_stories: [
       { id: '1', title: 'บทที่ 1: การพบเจอ', content: 'วันนี้อากาศดีเหมือนทุกวัน แต่สายตาของผมกลับหยุดอยู่ที่โต๊ะริมหน้าต่าง... รอยยิ้มของเธอทำให้กาแฟแก้วนี้หวานขึ้นอย่างประหลาด' },
       { id: '2', title: 'บทที่ 2: แก้วที่สอง', content: '"รับเหมือนเดิมนะคะ" เธอพูดพร้อมส่งยิ้มบางๆ ผมพยักหน้า ทั้งที่ใจจริงอยากจะตอบไปว่ารับคุณด้วยได้ไหม' }
@@ -283,6 +284,7 @@ export default function POSShopSettings({
                 printers: data.printers || [],
                 receipt_header: data.opening_hours?.receipt_header || '',
                 receipt_story_mode: data.opening_hours?.receipt_story_mode || false,
+                show_story_selection_at_checkout: data.opening_hours?.show_story_selection_at_checkout ?? false,
                 receipt_stories: data.opening_hours?.receipt_stories || [],
                 receipt_show_logo: data.opening_hours?.receipt_show_logo ?? true,
                 receipt_font_size: data.opening_hours?.receipt_font_size || 'normal',
@@ -466,6 +468,7 @@ const handleSave = async () => {
         ...(settings.opening_hours || {}),
         receipt_header: settings.receipt_header,
         receipt_story_mode: settings.receipt_story_mode,
+        show_story_selection_at_checkout: settings.show_story_selection_at_checkout,
         receipt_stories: settings.receipt_stories,
         receipt_show_logo: settings.receipt_show_logo,
         receipt_font_size: settings.receipt_font_size,
@@ -497,6 +500,7 @@ const handleSave = async () => {
     delete payload.custom_roles;
     delete payload.receipt_header;
     delete payload.receipt_story_mode;
+    delete payload.show_story_selection_at_checkout;
     delete payload.receipt_stories;
     delete payload.receipt_show_logo;
     delete payload.receipt_font_size;
@@ -558,6 +562,7 @@ const handleSave = async () => {
                 printers: data.printers || [],
                 receipt_header: data.opening_hours?.receipt_header || '',
                 receipt_story_mode: data.opening_hours?.receipt_story_mode || false,
+                show_story_selection_at_checkout: data.opening_hours?.show_story_selection_at_checkout ?? false,
                 receipt_stories: data.opening_hours?.receipt_stories || [],
                 receipt_show_logo: data.opening_hours?.receipt_show_logo ?? true,
                 receipt_font_size: data.opening_hours?.receipt_font_size || 'normal',
@@ -1386,6 +1391,18 @@ const handleSave = async () => {
 
                                     {settings.receipt_story_mode && (
                                         <div className="space-y-4">
+                                            <div className="flex items-center justify-between bg-gray-50 p-5 rounded-xl border border-gray-100 mb-6">
+                                                <div>
+                                                    <label className="text-[13px] font-black text-gray-900 block mb-1">{locale === 'en' ? 'แสดงตัวเลือกตอนนิยายหลังชำระเงิน (Show Story Selection at Checkout)' : 'แสดงปุ่มเลือกตอนนิยายหลังชำระเงิน (Show Story Selection at Checkout)'}</label>
+                                                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">{locale === 'en' ? 'Allow cashier to manually select a story chapter during checkout success screen' : 'ให้พนักงานเลือกตอนนิยายได้เองในหน้าต่างชำระเงินสำเร็จ (หากปิดไว้จะสุ่มให้อัตโนมัติ)'}</p>
+                                                </div>
+                                                <button 
+                                                    onClick={() => setSettings({...settings, show_story_selection_at_checkout: !settings.show_story_selection_at_checkout})}
+                                                    className={`relative min-w-[56px] w-14 h-8 rounded-full transition-colors ${settings.show_story_selection_at_checkout ? 'bg-black' : 'bg-gray-300'}`}
+                                                >
+                                                    <div className={`absolute top-1 w-6 h-6 rounded-full bg-white transition-all ${settings.show_story_selection_at_checkout ? 'left-7' : 'left-1'}`} />
+                                                </button>
+                                            </div>
                                             <div className="flex items-center justify-between mb-4">
                                                 <label className="text-[11px] font-black uppercase tracking-widest text-gray-400">{locale === 'en' ? 'เนื้อเรื่องทั้งหมด (' : locale === 'zh' ? 'เนื้อเรื่องทั้งหมด (' : 'เนื้อเรื่องทั้งหมด ('}{(settings.receipt_stories || []).length} {locale === 'en' ? ' ตอน)' : locale === 'zh' ? ' ตอน)' : ' ตอน)'}</label>
                                                 <button 

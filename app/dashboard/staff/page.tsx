@@ -41,6 +41,8 @@ import PointGenerator from '@/components/pos/PointGenerator'
 import { StaffWorkCalendar } from '@/components/dashboard/StaffWorkCalendar'
 import Holidays from 'date-holidays';
 import { StaffGamification } from '@/components/dashboard/StaffGamification';
+import LiveClock from '@/components/dashboard/LiveClock';
+import NotificationBell from '@/components/NotificationBell';
 
 interface TaskStats {
   today: number;
@@ -100,6 +102,7 @@ export default function StaffDashboard() {
   const [attendanceSummary, setAttendanceSummary] = useState({
     daysWorked: 0,
     lateMinutes: 0,
+    lateCount: 0,
     otHours: 0,
     leaveDays: 0,
     holidaysUsed: 0,
@@ -109,6 +112,7 @@ export default function StaffDashboard() {
     otPay: 0,
     holidayPay: 0,
     netSalary: 0,
+    latestPendingLeave: null as any,
     isLoading: false
   });
   const [realTimeProfile, setRealTimeProfile] = useState<any>(null);
@@ -576,6 +580,16 @@ export default function StaffDashboard() {
         .gte('start_date', firstDay)
         .lte('start_date', lastDay)
 
+      // 2.5 Fetch latest pending leave
+      const { data: pendingLeaveData } = await supabase
+        .from('staff_leaves')
+        .select('*')
+        .eq('profile_id', profile.id)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+
       // 3. Fetch cash advances (deductions)
       const { data: advanceData } = await supabase
         .from('staff_cash_advances')
@@ -588,6 +602,7 @@ export default function StaffDashboard() {
 
       let daysWorked = 0
       let lateMinutes = 0
+      let lateCount = 0
       let otHours = 0
       let holidaysUsed = 0
       let holidaysPaid = 0
@@ -617,6 +632,7 @@ export default function StaffDashboard() {
             
             if (checkInMins > targetMins + gracePeriod) {
               lateMinutes += (checkInMins - targetMins)
+              lateCount++
             }
             
             // Count holidays
@@ -663,6 +679,7 @@ export default function StaffDashboard() {
       setAttendanceSummary({
         daysWorked,
         lateMinutes,
+        lateCount,
         otHours,
         leaveDays,
         holidaysUsed,
@@ -672,6 +689,7 @@ export default function StaffDashboard() {
         otPay,
         holidayPay,
         netSalary,
+        latestPendingLeave: pendingLeaveData || null,
         isLoading: false
       })
 
@@ -1071,123 +1089,82 @@ export default function StaffDashboard() {
     <>
       <div ref={containerRef} className={`transition-all duration-300 ${sidebarLocked ? "ml-64" : "ml-0"} bg-[#F5F5F7] text-[#1D1D1F] font-sans min-h-screen pb-24`}>
         {/* 📱 Organic Top Navigation Bar */}
-        <div className="pt-4 pb-2 px-4 max-w-[800px] mx-auto flex items-center justify-end relative text-[#1A1A18] gsap-reveal opacity-0">
-          {!isCafe && (
-            <Link href="/dashboard/staff/jobs" className="w-8 h-8 flex items-center justify-center text-[#1A1A18] hover:bg-gray-200/60 active:scale-95 transition-all bg-white rounded-full border border-gray-200 shadow-xs">
-              <BriefcaseIcon className="w-4 h-4" />
-            </Link>
-          )}
+        <div className="pt-6 pb-4 px-5 max-w-[800px] mx-auto flex items-center justify-between relative text-[#1A1A18] gsap-reveal opacity-0">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200 shrink-0 shadow-sm relative border border-gray-100">
+              <img 
+                src={profile?.avatar_url || user?.user_metadata?.line_picture_url || user?.user_metadata?.picture_url || user?.user_metadata?.picture || user?.user_metadata?.avatar_url || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'} 
+                alt="Profile" 
+                className="w-full h-full object-cover" 
+              />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[11px] font-medium text-gray-500 tracking-wide">สวัสดี</span>
+              <span className="text-[15px] font-bold text-[#1A1A18] leading-tight mt-0.5">{profile?.display_name || 'พนักงาน'}</span>
+              <span className="text-[11px] text-gray-500 font-medium mt-0.5">
+                {profile?.role === 'admin' ? 'ผู้ดูแลระบบ (Admin)' : profile?.staff_type === 'cafe' ? 'พนักงานคาเฟ่' : profile?.staff_type === 'kitchen' ? 'พนักงานห้องครัว' : 'พนักงาน'}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            {!isCafe && (
+              <Link href="/dashboard/staff/jobs" className="flex items-center justify-center text-gray-500 hover:text-gray-900 active:scale-95 transition-all">
+                <BriefcaseIcon className="w-5 h-5" />
+              </Link>
+            )}
+            <NotificationBell />
+          </div>
         </div>
 
-        {/* 🌿 Top Organic Greeting Section (No boxed card container) */}
-        <div className="px-4 pb-4 pt-6 max-w-[800px] mx-auto text-[#1D1D1F] gsap-reveal opacity-0">
-          {(() => {
-            const p = realTimeProfile || profile;
-            const t = (p?.staff_type || '').toLowerCase();
-            const d = (p?.department || '').toLowerCase();
-
-            let categoryLabel = 'พนักงานคาเฟ่';
-
-            if (t === 'cafe' || d.includes('cafe')) {
-              categoryLabel = 'พนักงานคาเฟ่ / หน้าร้าน';
-            } else if (t === 'kitchen' || d.includes('kitchen')) {
-              categoryLabel = 'พนักงานห้องครัว';
-            } else if (t === 'landscape' || t === 'garden' || d.includes('landscape') || d.includes('garden')) {
-              categoryLabel = 'พนักงานดูแลสวน';
-            } else if (p?.role === 'admin') {
-              categoryLabel = 'ผู้ดูแลระบบ (Admin)';
-            } else if (p?.department && !d.includes('landscape')) {
-              categoryLabel = p.department;
-            }
-
-            return (
-              <div className="flex flex-col gap-8">
-                <div className="flex flex-col items-center justify-center text-center py-2">
-                  <h2 className="text-[28px] font-semibold leading-tight truncate text-[#1D1D1F] tracking-tighter">
-                    สวัสดี, {p?.display_name || 'พนักงาน'}
-                  </h2>
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="text-[12px] font-medium text-gray-500 tracking-wide">
-                      {categoryLabel}
-                    </span>
-                    <span className="text-gray-300">•</span>
-                    <span className="text-[12px] text-gray-400 font-mono tracking-wider">
-                      {p?.staff_code || p?.id?.substring(0, 8).toUpperCase()}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Action Buttons Row (Dynamic Island Style) */}
-                <div className="flex items-center justify-between gap-2 mt-2 bg-white/70 backdrop-blur-2xl rounded-[32px] p-2.5 mx-auto w-full max-w-[320px] shadow-[0_8px_32px_rgba(0,0,0,0.04)] border border-white/60">
-                  {/* Hero Clock In / Out Action Button */}
-                  <div className="flex flex-col items-center gap-1.5 flex-1">
-                    <motion.button 
-                      whileTap={{ scale: 0.95 }}
-                      onClick={handleHeroClockClick}
-                      disabled={clockingIn || isCompletedToday}
-                      className={`w-[52px] h-[52px] rounded-full flex items-center justify-center transition-all disabled:opacity-50 text-white shadow-sm mx-auto ${
-                        isCompletedToday ? 'bg-gray-200 text-gray-500 shadow-none' :
-                        isCheckedIn ? 'bg-[#1D1D1F] hover:bg-black shadow-[0_4px_12px_rgba(0,0,0,0.15)]' :
-                        'bg-[#2E5E48] hover:bg-[#244A39] shadow-[0_4px_12px_rgba(46,94,72,0.3)]'
-                      }`}
-                    >
-                      {clockingIn ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                      ) : isCompletedToday ? (
-                        <CheckCircleIcon className="w-5 h-5 text-gray-500" />
-                      ) : isCheckedIn ? (
-                        <motion.div animate={{ rotate: [0, -15, 15, -15, 0] }} transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut", repeatDelay: 1 }}>
-                          <ClockIcon className="w-5 h-5" />
-                        </motion.div>
-                      ) : (
-                        <motion.div animate={{ rotate: [0, -15, 15, -15, 0] }} transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut", repeatDelay: 1 }}>
-                          <ClockIcon className="w-5 h-5" />
-                        </motion.div>
-                      )}
-                    </motion.button>
-                    {/* Animated Text */}
-                    <motion.span 
-                      animate={{ opacity: [0.6, 1, 0.6] }} 
-                      transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-                      className={`text-[9px] font-semibold tracking-wide ${isCompletedToday ? 'text-gray-400' : 'text-[#2E5E48]'}`}
-                    >
-                      {clockingIn ? 'กำลังบันทึก...' : isCompletedToday ? 'ลงเวลาแล้ว' : isCheckedIn ? 'ลงเวลาออก' : 'ลงเวลาเข้า'}
-                    </motion.span>
-                  </div>
-                  
-                  {/* Stock Count Button */}
-                  <div className="flex flex-col items-center gap-1.5 flex-1">
-                    <motion.button
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => {
-                          if (typeof window !== 'undefined') {
-                            localStorage.setItem('xyl_pos_active_view', 'inventory');
-                            window.location.href = '/dashboard/pos';
-                          }
-                      }}
-                      className="w-[52px] h-[52px] shrink-0 bg-white text-[#1D1D1F] rounded-full flex items-center justify-center hover:bg-gray-50 shadow-[0_2px_8px_rgba(0,0,0,0.04)] mx-auto transition-colors"
-                    >
-                      <Package className="w-5 h-5" />
-                    </motion.button>
-                    <span className="text-[9px] font-semibold text-gray-500 tracking-wide">นับสต็อก</span>
-                  </div>
-
-                  {/* POS Button */}
-                  <div className="flex flex-col items-center gap-1.5 flex-1">
-                    <Link href="/dashboard/pos">
-                      <motion.button
-                        whileTap={{ scale: 0.95 }}
-                        className="w-[52px] h-[52px] shrink-0 bg-white text-[#1D1D1F] rounded-full flex items-center justify-center hover:bg-gray-50 shadow-[0_2px_8px_rgba(0,0,0,0.04)] mx-auto transition-colors"
-                      >
-                        <Calculator className="w-5 h-5" />
-                      </motion.button>
-                    </Link>
-                    <span className="text-[9px] font-semibold text-gray-500 tracking-wide">เข้า POS</span>
-                  </div>
-                </div>
+        {/* 🌿 Hero Attendance Card (Minimal) */}
+        <div className="px-5 pb-2 pt-2 max-w-[800px] mx-auto text-[#1D1D1F] gsap-reveal opacity-0">
+          <div className="rounded-[32px] p-6 shadow-sm border border-gray-100 bg-white relative overflow-hidden transition-all duration-500">
+            <div className="flex items-center justify-between relative z-10">
+              <div className="flex flex-col text-[#1A1A18]">
+                <span className="text-[12px] font-semibold text-gray-400 tracking-wide">เวลาปัจจุบัน</span>
+                <span className="text-[44px] font-medium leading-none tracking-tighter mt-1 mb-2 font-mono">
+                  <LiveClock />
+                </span>
+                <span className="text-[12px] font-semibold text-gray-400 tracking-wide">
+                  {new Date().toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })}
+                </span>
               </div>
-            );
-          })()}
+              
+              <motion.button 
+                whileTap={{ scale: 0.95 }}
+                onClick={handleHeroClockClick}
+                disabled={clockingIn || isCompletedToday}
+                className={`w-[80px] h-[80px] rounded-[24px] flex flex-col items-center justify-center gap-1.5 transition-all disabled:opacity-50 ${
+                  isCompletedToday ? 'bg-gray-100 text-gray-400 border border-gray-200' :
+                  isCheckedIn ? 'bg-[#1A1A18] text-white shadow-md' :
+                  'bg-white text-[#1A1A18] border border-gray-200 shadow-sm hover:bg-gray-50'
+                }`}
+              >
+                {clockingIn ? (
+                  <Loader2 className="w-6 h-6 animate-spin text-current" />
+                ) : isCompletedToday ? (
+                  <CheckCircleIcon className="w-6 h-6 text-current" />
+                ) : isCheckedIn ? (
+                  <div className="w-6 h-6 rounded-full border-[1.5px] border-white flex items-center justify-center">
+                    <div className="w-2 h-2 bg-white rounded-sm"></div>
+                  </div>
+                ) : (
+                  <MapPinIcon className="w-6 h-6 text-current" />
+                )}
+                <span className="text-[10px] font-bold text-center leading-tight tracking-wide">
+                  {clockingIn ? 'บันทึก...' : isCompletedToday ? 'ลงเวลาแล้ว' : isCheckedIn ? 'ลงเวลาออก' : 'ลงเวลาเข้า'}
+                </span>
+              </motion.button>
+            </div>
+            
+            {/* Minimal Background decoration indicator */}
+            {isCheckedIn && !isCompletedToday && (
+              <div className="absolute top-0 right-0 w-2 h-full bg-[#1A1A18]"></div>
+            )}
+            {isCompletedToday && (
+              <div className="absolute top-0 right-0 w-2 h-full bg-gray-200"></div>
+            )}
+          </div>
         </div>
 
         {/* 🤍 Main Content Container */}
@@ -1478,7 +1455,7 @@ export default function StaffDashboard() {
         <div className="w-full mt-2">
           {/* Cafe Staff Attendance & Salary Metrics */}
           <div className="w-full flex flex-col gap-5">
-            <div className="flex items-center justify-between px-2">
+            <div className="flex items-center justify-between px-2 hidden">
               <h3 className="text-base font-semibold text-[#1D1D1F] tracking-tight">ค่าแรงและการเข้างานประจำเดือน</h3>
             </div>
 
@@ -1488,132 +1465,128 @@ export default function StaffDashboard() {
               </div>
             ) : (
               <div className="flex flex-col gap-4">
-                {/* Metrics Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                {/* Minimal 5 Cards Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-4">
                     {/* Card 1: วันมาทำงาน */}
-                    <Link href="/dashboard/staff/schedule" className="block outline-none">
-                      <motion.div 
-                          whileTap={{ scale: 0.97 }}
-                          className="p-5 bg-white rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.04)] cursor-pointer hover:shadow-[0_8px_32px_rgba(0,0,0,0.08)] transition-all group h-full flex flex-col justify-between border border-white"
-                      >
-                        <div>
-                          <div className="flex items-center justify-between mb-1">
-                              <span className="text-[10px] font-bold text-gray-400 tracking-wide">วันมาทำงาน</span>
-                              <CalendarDaysIcon className="w-3.5 h-3.5 text-gray-400 group-hover:text-black transition-colors" />
-                          </div>
-                          <div className="text-[22px] font-bold text-[#1D1D1F] flex items-baseline gap-1 tracking-tight">
-                              {attendanceSummary.daysWorked} <span className="text-[11px] font-medium text-gray-400">วัน</span>
-                          </div>
+                    <Link href="/dashboard/staff/schedule" className="px-4 py-5 bg-white rounded-[24px] shadow-xs border border-gray-100 min-h-[100px] active:scale-95 transition-all flex flex-col justify-between group hover:border-gray-300">
+                        <div className="flex items-center justify-between w-full mb-2">
+                          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">วันมาทำงาน</span>
+                          <CalendarDaysIcon className="w-3.5 h-3.5 text-gray-300 group-hover:text-[#1A1A18] transition-colors" />
                         </div>
-                        <span className="text-[10px] text-[#2E5E48] font-semibold mt-3 block">ดูปฏิทิน ➔</span>
-                      </motion.div>
+                        <div className="text-[20px] font-semibold text-[#1A1A18] tracking-tight">
+                            {attendanceSummary.daysWorked} <span className="text-[10px] font-medium text-gray-400">วัน</span>
+                        </div>
                     </Link>
 
                     {/* Card 2: มาสายรวม */}
-                    <Link href="/dashboard/staff/lateness" className="block outline-none">
-                      <motion.div 
-                          whileTap={{ scale: 0.97 }}
-                          className="p-5 bg-white rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.04)] cursor-pointer hover:shadow-[0_8px_32px_rgba(0,0,0,0.08)] transition-all group h-full flex flex-col justify-between border border-white"
-                      >
-                        <div>
-                          <div className="flex items-center justify-between mb-1">
-                              <span className="text-[10px] font-bold text-amber-500 tracking-wide">มาสายรวม</span>
-                              <CalendarDaysIcon className="w-3.5 h-3.5 text-amber-400 group-hover:text-amber-500 transition-colors" />
-                          </div>
-                          <div className="text-[22px] font-bold text-amber-500 flex items-baseline gap-1 tracking-tight">
-                              {attendanceSummary.lateMinutes} <span className="text-[11px] font-medium text-amber-500/70">นาที</span>
-                          </div>
+                    <Link href="/dashboard/staff/lateness" className="px-4 py-5 bg-white rounded-[24px] shadow-xs border border-gray-100 min-h-[100px] active:scale-95 transition-all flex flex-col justify-between group hover:border-gray-300">
+                        <div className="flex items-center justify-between w-full mb-2">
+                          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">มาสายรวม</span>
+                          <ClockIcon className="w-3.5 h-3.5 text-gray-300 group-hover:text-[#1A1A18] transition-colors" />
                         </div>
-                        <span className="text-[10px] text-amber-600 font-semibold mt-3 block">ประวัติลงเวลา ➔</span>
-                      </motion.div>
+                        <div className="text-[20px] font-semibold text-[#1A1A18] tracking-tight">
+                            {attendanceSummary.lateMinutes} <span className="text-[10px] font-medium text-gray-400">นาที</span>
+                        </div>
                     </Link>
 
                     {/* Card 3: โอทีรวม */}
-                    <Link href="/dashboard/staff/ot" className="block outline-none">
-                      <motion.div 
-                          whileTap={{ scale: 0.97 }}
-                          className="p-4 bg-white border border-gray-200/60 rounded-[24px] shadow-[0_2px_15px_rgba(0,0,0,0.02)] cursor-pointer hover:border-gray-300 transition-all group h-full flex flex-col justify-between"
-                      >
-                        <div>
-                          <div className="flex items-center justify-between mb-1">
-                              <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">โอทีรวม (OT)</span>
-                              <CalendarDaysIcon className="w-3.5 h-3.5 text-emerald-400 group-hover:text-emerald-700 transition-colors" />
-                          </div>
-                          <div className="text-xl font-bold text-emerald-700 flex items-baseline gap-1">
-                              {attendanceSummary.otHours.toFixed(1)} <span className="text-xs font-normal text-emerald-600/70">ชม.</span>
-                          </div>
+                    <Link href="/dashboard/staff/ot" className="px-4 py-5 bg-white rounded-[24px] shadow-xs border border-gray-100 min-h-[100px] active:scale-95 transition-all flex flex-col justify-between group hover:border-gray-300">
+                        <div className="flex items-center justify-between w-full mb-2">
+                          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">โอที (OT)</span>
+                          <ClockIcon className="w-3.5 h-3.5 text-gray-300 group-hover:text-[#1A1A18] transition-colors" />
                         </div>
-                        <span className="text-[9px] text-emerald-600 font-bold mt-2 block">ดูรายละเอียด ➔</span>
-                      </motion.div>
+                        <div className="text-[20px] font-semibold text-[#1A1A18] tracking-tight">
+                            {attendanceSummary.otHours.toFixed(1)} <span className="text-[10px] font-medium text-gray-400">ชม.</span>
+                        </div>
                     </Link>
 
                     {/* Card 4: ลาหยุดใช้แล้ว */}
-                    <Link href="/dashboard/staff/leaves" className="block outline-none">
-                      <motion.div 
-                          whileTap={{ scale: 0.97 }}
-                          className="p-4 bg-white border border-gray-200/60 rounded-[24px] shadow-[0_2px_15px_rgba(0,0,0,0.02)] cursor-pointer hover:border-gray-300 transition-all group h-full flex flex-col justify-between"
-                      >
-                        <div>
-                          <div className="flex items-center justify-between mb-1">
-                              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">ลาหยุดใช้แล้ว</span>
-                              <CalendarDaysIcon className="w-3.5 h-3.5 text-gray-400 group-hover:text-gray-700 transition-colors" />
-                          </div>
-                          <div className="text-xl font-bold text-gray-800 flex items-baseline gap-1">
-                              {attendanceSummary.leaveDays} <span className="text-xs font-normal text-gray-400">วัน</span>
-                          </div>
+                    <Link href="/dashboard/staff/leaves" className="px-4 py-5 bg-white rounded-[24px] shadow-xs border border-gray-100 min-h-[100px] active:scale-95 transition-all flex flex-col justify-between group hover:border-gray-300">
+                        <div className="flex items-center justify-between w-full mb-2">
+                          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">ลาใช้แล้ว</span>
+                          <CalendarDaysIcon className="w-3.5 h-3.5 text-gray-300 group-hover:text-[#1A1A18] transition-colors" />
                         </div>
-                        <span className="text-[9px] text-gray-500 font-bold mt-2 block">ดูประวัติลางาน ➔</span>
-                      </motion.div>
+                        <div className="text-[20px] font-semibold text-[#1A1A18] tracking-tight">
+                            {attendanceSummary.leaveDays} <span className="text-[10px] font-medium text-gray-400">วัน</span>
+                        </div>
                     </Link>
 
-                    {/* Card 5: รายงานปิดกะล่าสุด (Gated by Permission) */}
+                    {/* Card 5: รายงานปิดกะ */}
                     {canViewShiftSummary && (
-                      <Link href={latestClosedShiftId ? `/share/shift-summary/${latestClosedShiftId}` : "#"} className={`block outline-none ${!latestClosedShiftId ? 'opacity-50 pointer-events-none' : ''}`}>
-                        <motion.div 
-                            whileTap={{ scale: 0.97 }}
-                            className="p-4 bg-neutral-900 border border-neutral-800 rounded-[24px] shadow-[0_2px_15px_rgba(0,0,0,0.1)] cursor-pointer hover:bg-black transition-all group h-full flex flex-col justify-between"
-                        >
-                          <div>
-                            <div className="flex items-center justify-between mb-1">
-                                <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">รายงานปิดกะล่าสุด</span>
-                                <DocumentTextIcon className="w-3.5 h-3.5 text-neutral-400 group-hover:text-white transition-colors" />
-                            </div>
-                            <div className="text-[15px] leading-tight font-black text-white mt-2">
-                                {latestClosedShiftId ? 'ดูสรุป Z-Report' : 'ไม่มีกะที่ปิดแล้ว'}
-                            </div>
+                      <Link href={latestClosedShiftId ? `/share/shift-summary/${latestClosedShiftId}` : "#"} className={`px-4 py-5 bg-[#1A1A18] rounded-[24px] shadow-xs border border-[#1A1A18] min-h-[100px] active:scale-95 transition-all flex flex-col justify-between group hover:bg-black ${!latestClosedShiftId ? 'opacity-50 pointer-events-none' : ''}`}>
+                          <div className="flex items-center justify-between w-full mb-2">
+                            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">รายงานกะ</span>
+                            <DocumentTextIcon className="w-3.5 h-3.5 text-gray-500 group-hover:text-white transition-colors" />
                           </div>
-                          <span className="text-[9px] text-neutral-400 font-bold mt-2 block group-hover:text-white transition-colors">เปิดรายงาน ➔</span>
-                        </motion.div>
+                          <div className="text-[12px] font-semibold text-white leading-tight">
+                              {latestClosedShiftId ? 'ดู Z-Report' : 'ไม่มีกะ'}
+                          </div>
                       </Link>
                     )}
                 </div>
 
-                {/* Salary Calculation Section */}
-                    <div className="bg-white border border-gray-200/50 rounded-[28px] p-5 shadow-[0_2px_15px_rgba(0,0,0,0.02)]">
-                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">ประมาณการเงินเดือนสุทธิ</h4>
+                {/* Request Status Section (Minimal) */}
+                <div className="mb-4">
+                  <div className="flex items-center justify-between px-1 mb-2.5">
+                    <h3 className="text-[12px] font-bold text-[#1A1A18] uppercase tracking-wide">สถานะการส่งคำขอ</h3>
+                    <Link href="/dashboard/staff/leaves" className="text-[10px] font-bold text-gray-400 hover:text-[#1A1A18] transition-colors">ดูทั้งหมด</Link>
+                  </div>
+                  {attendanceSummary.latestPendingLeave ? (
+                    <div className="bg-white rounded-[20px] p-3.5 flex items-center gap-3 border border-gray-100 shadow-xs">
+                      <div className="w-8 h-8 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center shrink-0">
+                        <CalendarDaysIcon className="w-4 h-4 text-[#1A1A18]" />
+                      </div>
+                      <div className="flex flex-col flex-1">
+                        <span className="text-[12px] font-bold text-[#1A1A18]">
+                          {attendanceSummary.latestPendingLeave.leave_type === 'sick' ? 'ลาป่วย' :
+                           attendanceSummary.latestPendingLeave.leave_type === 'personal' ? 'ลากิจ' :
+                           attendanceSummary.latestPendingLeave.leave_type === 'vacation' ? 'ลาพักร้อน' : 'ลางาน'}
+                        </span>
+                        <span className="text-[10px] font-medium text-amber-600 mt-0.5">รออนุมัติจากแอดมิน</span>
+                      </div>
+                      <span className="text-[10px] font-bold text-gray-400">
+                        {new Date(attendanceSummary.latestPendingLeave.start_date || attendanceSummary.latestPendingLeave.leave_date || attendanceSummary.latestPendingLeave.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="bg-white rounded-[20px] p-3.5 flex items-center gap-3 border border-gray-100 shadow-xs">
+                      <div className="w-8 h-8 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center shrink-0">
+                        <CalendarDaysIcon className="w-4 h-4 text-gray-300" />
+                      </div>
+                      <div className="flex flex-col flex-1">
+                        <span className="text-[12px] font-bold text-gray-400">สถานะการลา</span>
+                        <span className="text-[10px] font-medium text-gray-300 mt-0.5">ไม่มีคำขอที่รออนุมัติ</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Salary Calculation Section (Minimal) */}
+                    <div className="bg-white border border-gray-100 rounded-[24px] p-5 shadow-xs mb-4">
+                        <h4 className="text-[12px] font-bold text-gray-400 uppercase tracking-wide mb-4">ประมาณการเงินเดือน</h4>
                         
                         <div className="space-y-3">
-                            <div className="flex justify-between items-center pb-2.5 border-b border-gray-100">
-                                <span className="text-xs text-gray-500 font-medium">ค่าแรงพื้นฐาน</span>
-                                <span className="text-sm font-semibold text-[#1A1A18]">{attendanceSummary.baseSalary.toLocaleString()} ฿</span>
+                            <div className="flex justify-between items-center pb-2 border-b border-gray-50">
+                                <span className="text-[12px] text-gray-500 font-medium">ค่าแรงพื้นฐาน</span>
+                                <span className="text-[13px] font-bold text-[#1A1A18]">{attendanceSummary.baseSalary.toLocaleString()} ฿</span>
                             </div>
-                            <div className="flex justify-between items-center pb-2.5 border-b border-gray-100">
-                                <span className="text-xs text-gray-500 font-medium">ล่วงเวลา (OT)</span>
-                                <span className="text-sm font-semibold text-emerald-600">+{attendanceSummary.otPay.toLocaleString()} ฿</span>
+                            <div className="flex justify-between items-center pb-2 border-b border-gray-50">
+                                <span className="text-[12px] text-gray-500 font-medium">ล่วงเวลา (OT)</span>
+                                <span className="text-[13px] font-semibold text-gray-600">+{attendanceSummary.otPay.toLocaleString()} ฿</span>
                             </div>
                             {(realTimeProfile?.holiday_compensation_type || profile?.holiday_compensation_type) !== 'dayoff' && (
-                              <div className="flex justify-between items-center pb-2.5 border-b border-gray-100">
-                                  <span className="text-xs text-gray-500 font-medium">ชดเชยวันหยุด</span>
-                                  <span className="text-sm font-semibold text-emerald-600">+{attendanceSummary.holidayPay.toLocaleString()} ฿</span>
+                              <div className="flex justify-between items-center pb-2 border-b border-gray-50">
+                                  <span className="text-[12px] text-gray-500 font-medium">ชดเชยวันหยุด</span>
+                                  <span className="text-[13px] font-semibold text-gray-600">+{attendanceSummary.holidayPay.toLocaleString()} ฿</span>
                               </div>
                             )}
-                            <div className="flex justify-between items-center pb-2.5 border-b border-gray-100">
-                                <span className="text-xs text-gray-500 font-medium">หักเงิน / เบิกล่วงหน้า</span>
-                                <span className="text-sm font-semibold text-rose-500">-{attendanceSummary.deductions.toLocaleString()} ฿</span>
+                            <div className="flex justify-between items-center pb-2 border-b border-gray-50">
+                                <span className="text-[12px] text-gray-500 font-medium">หักเงิน / เบิก</span>
+                                <span className="text-[13px] font-semibold text-gray-400">-{attendanceSummary.deductions.toLocaleString()} ฿</span>
                             </div>
-                            <div className="flex justify-between items-center pt-3 mt-1 bg-gray-50/80 p-4 rounded-[20px] border border-gray-100">
-                                <span className="text-xs font-bold text-[#1A1A18] uppercase tracking-wider">รวมสุทธิ</span>
-                                <span className="text-2xl font-bold text-[#1A1A18] leading-none">{attendanceSummary.netSalary.toLocaleString()} <span className="text-xs text-gray-400 font-medium">฿</span></span>
+                            <div className="flex justify-between items-end pt-3 mt-1">
+                                <span className="text-[11px] font-bold text-[#1A1A18] uppercase tracking-wide">รวมสุทธิ</span>
+                                <span className="text-[24px] font-medium text-[#1A1A18] leading-none font-mono tracking-tight">{attendanceSummary.netSalary.toLocaleString()} <span className="text-[12px] text-gray-400 font-medium font-sans">฿</span></span>
                             </div>
                         </div>
                     </div>

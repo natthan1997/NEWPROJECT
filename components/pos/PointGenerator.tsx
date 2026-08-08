@@ -80,17 +80,7 @@ export default function PointGenerator({ onClose }: { onClose?: () => void }) {
   
   const pointsToGenerate = basePoints;
 
-  const handleNumpadPress = (num: string) => {
-    if (purchaseAmount.length < 6) setPurchaseAmount(prev => prev + num);
-  };
 
-  const handleNumpadClear = () => {
-    setPurchaseAmount('');
-  };
-
-  const handleNumpadDelete = () => {
-    setPurchaseAmount(prev => prev.slice(0, -1));
-  };
 
   const generateQR = async () => {
     if (pointsToGenerate <= 0) {
@@ -178,44 +168,20 @@ export default function PointGenerator({ onClose }: { onClose?: () => void }) {
                        </span>
                     </div>
                   )}
-                  <div
-                    className={`w-full border-2 rounded-2xl py-4 px-6 text-2xl font-black text-center tracking-widest transition-all min-h-[64px] flex items-center justify-between border-[#1A1A18] bg-white text-black shadow-sm`}
-                  >
-                     <span className="text-gray-300">฿</span>
-                     <span>{purchaseAmount || '0'}</span>
-                     <span className="text-emerald-500 text-sm bg-emerald-50 px-3 py-1.5 rounded-xl">+{pointsToGenerate} PTS</span>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={purchaseAmount}
+                    onChange={(e) => setPurchaseAmount(e.target.value.slice(0, 6))}
+                    placeholder="0"
+                    autoFocus
+                    className="w-full border-2 rounded-2xl py-4 px-6 text-2xl font-black text-center tracking-widest transition-all min-h-[64px] border-[#1A1A18] bg-white text-black shadow-sm outline-none focus:ring-4 focus:ring-emerald-500/20"
+                  />
+                  
+                  <div className="flex justify-center mt-3">
+                     <span className="text-emerald-500 text-sm font-black bg-emerald-50 px-4 py-2 rounded-xl">+{pointsToGenerate} PTS</span>
                   </div>
-                </div>
-
-                {/* Numpad */}
-                <div className="grid grid-cols-3 gap-2 mb-2 mt-6">
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
-                    <button
-                      key={num}
-                      onClick={() => handleNumpadPress(String(num))}
-                      className="h-14 bg-gray-50 hover:bg-gray-100 text-[#1A1A18] font-black text-xl rounded-2xl transition-all"
-                    >
-                      {num}
-                    </button>
-                  ))}
-                  <button
-                    onClick={handleNumpadClear}
-                    className="h-14 bg-red-50 hover:bg-red-100 text-red-500 font-black text-sm uppercase tracking-widest rounded-2xl transition-all"
-                  >
-                    CLR
-                  </button>
-                  <button
-                    onClick={() => handleNumpadPress('0')}
-                    className="h-14 bg-gray-50 hover:bg-gray-100 text-[#1A1A18] font-black text-xl rounded-2xl transition-all"
-                  >
-                    0
-                  </button>
-                  <button
-                    onClick={handleNumpadDelete}
-                    className="h-14 bg-gray-100 hover:bg-gray-200 text-[#1A1A18] flex items-center justify-center rounded-2xl transition-all"
-                  >
-                    <Delete size={20} />
-                  </button>
                 </div>
               </div>
 

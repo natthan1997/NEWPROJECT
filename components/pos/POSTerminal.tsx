@@ -1601,8 +1601,47 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     }
   };
 
-  // Disabled blocking auto-create order effect for takeaway to keep cart additions 100% instant and responsive.
-  // Takeaway orders are created cleanly upon holding the bill or checking out.
+  useEffect(() => {
+    let isMounted = true;
+    if (orderType === 'takeaway' && !editingOrderId && cart.length > 0 && !isAutoCreatingOrderLock.current) {
+      isAutoCreatingOrderLock.current = true;
+      setIsAutoCreatingOrder(true);
+      (async () => {
+        try {
+          const identity = await fetchOrderIdentity(null)
+          const payload: any = {
+            order_action: 'insert',
+            order: {
+              order_number: identity.orderNumber,
+              staff_id: profile?.id,
+              shift_id: activeShift?.id,
+              branch_id: shopSettings?.branch_id || activeShift?.branch_id || null,
+              status: 'pending',
+              total_amount: 0,
+              net_total: 0,
+              order_type: 'takeaway',
+              queue_number: identity.queueNumber,
+              order_source: 'pos',
+            }
+          }
+          const { data: rpcResult, error: rpcError } = await supabase.rpc('pos_checkout_order', { payload })
+          if (!rpcError && rpcResult?.order_id && isMounted) {
+            setEditingOrderId(rpcResult.order_id)
+            setEditingOrderNumber(identity.orderNumber)
+            setHeldCartFingerprint('')
+          }
+        } catch (err) {
+          console.error('Auto create takeaway order error:', err)
+        } finally {
+          if (isMounted) {
+            setIsAutoCreatingOrder(false);
+            isAutoCreatingOrderLock.current = false;
+          }
+        }
+      })();
+    }
+    return () => { isMounted = false; }
+  }, [orderType, cart.length, editingOrderId, profile?.id, activeShift?.id, shopSettings?.branch_id])
 
   const activePrintData = useMemo(() => {
     if (paymentSuccessData) return paymentSuccessData;
@@ -4321,22 +4360,20 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                 </div>
               </div>
 
-              <div className="flex gap-3 pt-2">
-                {(orderType === 'dine_in' || editingOrderId) && (
-                  <button
-                    onClick={handleSendOrder}
-                    disabled={isProcessing || isAutoCreatingOrder || cart.length === 0 || isHeldOrderBaselineLoading || (!!editingOrderId && !hasUnsavedOrderChanges)}
-                    className="flex h-16 px-4 items-center justify-center gap-2 border border-[#1A1A18] text-[10px] font-black uppercase tracking-[0.2em] transition-all hover:bg-black hover:text-white disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400 rounded-xl"
-                  >
-                    <Printer size={16} /> {isAutoCreatingOrder ? 'กำลังสร้างออเดอร์...' : isHeldOrderBaselineLoading ? 'กำลังเช็กบิลพัก' : !!editingOrderId && !hasUnsavedOrderChanges ? 'พักแล้ว เพิ่มรายการใหม่' : locale === 'en' ? 'Hold Bill' : locale === 'zh' ? 'Hold Bill' : 'พักบิล'}</button>
-                )}
+              <div className="flex gap-4 pt-2">
+                <button
+                  onClick={handleSendOrder}
+                  disabled={isProcessing || isAutoCreatingOrder || cart.length === 0 || isHeldOrderBaselineLoading || (!!editingOrderId && !hasUnsavedOrderChanges)}
+                  className="flex h-16 flex-1 items-center justify-center gap-3 border border-[#1A1A18] text-[10px] font-black uppercase tracking-[0.3em] transition-all hover:bg-black hover:text-white disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400"
+                >
+                  <Printer size={16} /> {isAutoCreatingOrder ? 'กำลังสร้างออเดอร์...' : isHeldOrderBaselineLoading ? 'กำลังเช็กบิลพัก' : !!editingOrderId && !hasUnsavedOrderChanges ? 'พักแล้ว เพิ่มรายการใหม่' : locale === 'en' ? 'พักบิล' : locale === 'zh' ? 'พักบิล' : 'พักบิล'}</button>
                 {!!editingOrderId && cart.length === 0 ? (
                   <button
                     onClick={() => {
                       handleDeleteOrder(editingOrderId)
                       resetOrderComposer()
                     }}
-                    className="flex h-16 flex-1 items-center justify-center gap-4 text-[11px] font-black uppercase tracking-[0.4em] text-white shadow-xl transition-all bg-red-600 hover:bg-red-700 rounded-xl"
+                    className="flex h-16 flex-[2] items-center justify-center gap-4 text-[11px] font-black uppercase tracking-[0.4em] text-white shadow-xl transition-all bg-red-600 hover:bg-red-700"
                   >
                     <span>เคลียร์โต๊ะ (ยกเลิกบิล)</span>
                   </button>
@@ -4354,15 +4391,19 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                         return
                       }
 
-                      // Instant Direct Checkout: Open Payment Modal directly!
-                      setShowPaymentModal(true);
+                      if (selectedCustomer) {
+                        setShowPaymentModal(true);
+                      } else {
+                        setMemberCheckoutStep('lookup');
+                        setShowMemberCheckoutFlow(true);
+                      }
                     }}
                     disabled={isAutoCreatingOrder || cart.length === 0}
-                    className={`flex h-16 flex-1 items-center justify-center gap-4 text-[12px] font-black uppercase tracking-[0.3em] text-white shadow-xl transition-all rounded-xl ${
-                      (isAutoCreatingOrder || cart.length === 0) ? 'bg-gray-400 cursor-not-allowed' : orderType === 'delivery' ? 'bg-orange-500 hover:bg-orange-600' : 'bg-emerald-600 hover:bg-emerald-700'
+                    className={`flex h-16 flex-[2] items-center justify-center gap-4 text-[11px] font-black uppercase tracking-[0.4em] text-white shadow-xl transition-all ${
+                      (isAutoCreatingOrder || cart.length === 0) ? 'bg-gray-400 cursor-not-allowed' : orderType === 'delivery' ? 'bg-orange-500 hover:bg-orange-600' : 'bg-[#1A1A18] hover:bg-black'
                     }`}
                   >
-                    <span>{orderType === 'delivery' ? 'ยืนยันส่งออเดอร์' : locale === 'en' ? 'Pay Now' : locale === 'zh' ? 'Pay Now' : 'ชำระเงินทันที'}</span>
+                    <span>{orderType === 'delivery' ? 'ยืนยันส่งออเดอร์' : locale === 'en' ? 'Checkout' : locale === 'zh' ? '结账' : 'ชำระเงิน'}</span>
                     <ArrowRight size={18} />
                   </button>
                 )}

@@ -272,13 +272,10 @@ export default function NotificationBell({ variant = 'light' }: NotificationBell
 
   const buttonClass =
     variant === 'dark'
-      ? 'relative rounded-lg p-2 text-white/80 transition-colors hover:bg-white/10 hover:text-white'
-      : 'relative rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900'
+      ? 'relative text-white/70 hover:text-white transition-colors p-1'
+      : 'relative text-gray-400 hover:text-gray-900 transition-colors p-1'
 
-  const unreadBadgeClass =
-    variant === 'dark'
-      ? 'absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-medium text-white border border-[#1A1A1A]'
-      : 'absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-medium text-white'
+  const unreadBadgeClass = 'absolute top-1 right-1.5 w-1.5 h-1.5 rounded-full bg-[#FF3B30]'
 
   return (
     <div className="relative">
@@ -287,16 +284,10 @@ export default function NotificationBell({ variant = 'light' }: NotificationBell
         className={buttonClass}
         title={`แจ้งเตือน ${unreadCount > 0 ? `(${unreadCount} ข้อความใหม่)` : ''}`}
       >
-        {unreadCount > 0 ? (
-          <BellSolidIcon className="h-6 w-6 text-red-500" />
-        ) : (
-          <BellIcon className="h-6 w-6" />
-        )}
+        <BellIcon className="h-5 w-5 stroke-[1.5]" />
         
         {unreadCount > 0 && (
-          <span className={`${unreadBadgeClass} animate-pulse`}>
-            {unreadCount > 99 ? '99+' : unreadCount}
-          </span>
+          <span className={unreadBadgeClass} />
         )}
       </button>
 

@@ -188,6 +188,28 @@ export const LiffProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, []);
 
+  // --- Real-time member sync ---
+  useEffect(() => {
+    if (!memberInfo?.id) return;
+    
+    const channel = supabase.channel(`public:pos_members:id=eq.${memberInfo.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'pos_members', filter: `id=eq.${memberInfo.id}` },
+        (payload) => {
+          if (payload.new) {
+            setMemberInfo((prev: any) => ({ ...prev, ...payload.new }));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [memberInfo?.id]);
+
+
   const liffId = process.env.NEXT_PUBLIC_LIFF_ID?.replace(/[^a-zA-Z0-9-]/g, '');
 
   useEffect(() => {
@@ -250,7 +272,20 @@ export const LiffProvider = ({ children }: { children: React.ReactNode }) => {
             if (json?.member) setMemberInfo(json.member);
           }
         } else {
-          // Guest mode: fetch consolidated data in one fast server-side call
+          // Guest mode or not logged in yet
+          const hasClaimOrPath = typeof window !== 'undefined' && (
+            window.location.search.includes('claimToken=') || 
+            window.location.search.includes('path=')
+          );
+          if (liff.isInClient() || hasClaimOrPath) {
+            try {
+              liff.login({ redirectUri: window.location.href });
+              return;
+            } catch (loginErr) {
+              console.error('LIFF login error:', loginErr);
+            }
+          }
+
           if (!cachedUserId || loading) {
             const res = await fetch('/api/liff/member/init', {
               method: 'POST', headers: { 'Content-Type': 'application/json' },

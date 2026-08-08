@@ -4,17 +4,18 @@ import {
   Plus, Search, Edit3, Trash2, Filter, 
   MoreVertical, Check, X, Loader2, Image as ImageIcon,
   ChevronRight, RefreshCcw, Save, Trash, LayoutGrid,
-  Menu as MenuIcon, LogOut, Settings, List, Star, ToggleRight, CheckCircle2, XCircle, Upload, AlertCircle, Crop, ZoomIn, ZoomOut
+  Menu as MenuIcon, LogOut, Settings, List, Star, ToggleRight, CheckCircle2, XCircle, Upload, AlertCircle, Crop, ZoomIn, ZoomOut, Store, ShoppingBag
 } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
-import { motion, AnimatePresence, Reorder } from 'framer-motion'
+import { motion, AnimatePresence, Reorder, useDragControls } from 'framer-motion'
 import { useI18n } from "@/lib/I18nContext";
 import { getMenuSearchText, getPrimaryMenuName, getSecondaryMenuName } from '@/lib/posMenuLabels'
 import { sortMenuItemsByOrder, withMenuSortOrder } from '@/lib/posMenuOrder'
 import Cropper from 'react-easy-crop'
 import getCroppedImg from '@/lib/cropImage'
-
+import POSCategoryManager from './POSCategoryManager'
+import POSModifierManager from './POSModifierManager'
 interface POSMenuManagerProps {
   profile: any
   activeView: string
@@ -26,6 +27,179 @@ interface POSMenuManagerProps {
   shopSettings?: any
   forceViewMode?: "grid" | "table" | "stock"
   hideStockToggle?: boolean
+}
+
+const ReorderMenuItem = ({ item, locale }: { item: any, locale: string }) => {
+    const controls = useDragControls()
+    const itemRef = useRef<any>(null)
+
+    const state = useRef({
+      timer: null as NodeJS.Timeout | null,
+      isLongPressed: false,
+      isDragging: false,
+      startX: 0,
+      startY: 0,
+      startEvent: null as TouchEvent | null
+    })
+
+    useEffect(() => {
+        const el = itemRef.current
+        if (!el) return
+
+        const handleTouchStart = (e: TouchEvent) => {
+            state.current.isLongPressed = false
+            state.current.isDragging = false
+            state.current.startX = e.touches[0].clientX
+            state.current.startY = e.touches[0].clientY
+            state.current.startEvent = e
+
+            state.current.timer = setTimeout(() => {
+                state.current.isLongPressed = true
+                if (typeof window !== 'undefined' && navigator.vibrate) navigator.vibrate(50)
+                
+                // Pure DOM visual feedback to avoid React re-renders during FLIP!
+                el.classList.remove('shadow-[0_2px_12px_-4px_rgba(0,0,0,0.06)]', 'border-gray-100', 'z-10')
+                el.classList.add('shadow-2xl', 'border-black/20', 'z-50')
+            }, 300)
+        }
+
+        const handleTouchMove = (e: TouchEvent) => {
+            if (!state.current.isLongPressed) {
+                // If they haven't held for 300ms, and they moved more than 10px, it's a scroll! Cancel timer.
+                const dx = Math.abs(e.touches[0].clientX - state.current.startX)
+                const dy = Math.abs(e.touches[0].clientY - state.current.startY)
+                if (dx > 10 || dy > 10) {
+                    if (state.current.timer) clearTimeout(state.current.timer)
+                }
+                return
+            }
+
+            // If long pressed, we MUST prevent the browser from scrolling
+            if (e.cancelable) {
+                e.preventDefault()
+            }
+
+            if (!state.current.isDragging) {
+                state.current.isDragging = true
+                controls.start(state.current.startEvent as any || e as any)
+            }
+        }
+
+        const handleTouchEnd = () => {
+            if (state.current.timer) clearTimeout(state.current.timer)
+            state.current.isLongPressed = false
+            state.current.isDragging = false
+            
+            // Reset styles
+            el.classList.remove('shadow-2xl', 'border-black/20', 'z-50')
+            el.classList.add('shadow-[0_2px_12px_-4px_rgba(0,0,0,0.06)]', 'border-gray-100', 'z-10')
+        }
+
+        el.addEventListener('touchstart', handleTouchStart, { passive: false })
+        el.addEventListener('touchmove', handleTouchMove, { passive: false })
+        el.addEventListener('touchend', handleTouchEnd)
+        el.addEventListener('touchcancel', handleTouchEnd)
+
+        return () => {
+            el.removeEventListener('touchstart', handleTouchStart)
+            el.removeEventListener('touchmove', handleTouchMove)
+            el.removeEventListener('touchend', handleTouchEnd)
+            el.removeEventListener('touchcancel', handleTouchEnd)
+        }
+    }, [controls])
+
+    return (
+        <Reorder.Item
+            ref={itemRef}
+            value={item.id}
+            dragListener={false}
+            dragControls={controls}
+            onMouseDown={(e) => controls.start(e)}
+            className="bg-white mb-3.5 p-3.5 rounded-[16px] flex gap-4 items-center relative transition-shadow duration-200 border shadow-[0_2px_12px_-4px_rgba(0,0,0,0.06)] border-gray-100 z-10 cursor-grab hover:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.1)] active:cursor-grabbing"
+            style={{ WebkitUserSelect: 'none', userSelect: 'none', WebkitTouchCallout: 'none', touchAction: 'pan-y' }}
+        >
+            <div className="w-[72px] h-[72px] rounded-[12px] bg-gray-100 overflow-hidden shrink-0">
+                {item.image_url ? (
+                    <img src={item.image_url} alt={getPrimaryMenuName(item, locale) || ''} className="w-full h-full object-cover pointer-events-none" />
+                ) : (
+                    <div className="w-full h-full flex items-center justify-center"><ImageIcon className="text-gray-400" size={24} /></div>
+                )}
+            </div>
+            <div className="flex-1 min-w-0">
+                <h4 className="text-[15px] font-bold text-gray-800 mb-1 leading-tight">{getPrimaryMenuName(item, locale)}</h4>
+                <div className="flex flex-wrap items-center gap-2 text-[13px] font-medium text-gray-500 mb-1">
+                    <div className="flex items-center gap-1"><span className="text-black"><Store size={14}/></span> ฿{item.sale_price}</div>
+                    {item.platform_prices && Object.entries(item.platform_prices).filter(([_,v]) => v).map(([platform, price]) => (
+                        <div key={platform} className="flex items-center gap-1">
+                            <span className={platform === 'lineman' ? 'text-green-500' : platform === 'grab' ? 'text-[#00B14F]' : 'text-purple-500'}><ShoppingBag size={14}/></span> ฿{price}
+                        </div>
+                    ))}
+                </div>
+                {item.platform_prices && Object.keys(item.platform_prices).length > 0 && (
+                    <p className="text-[12px] text-gray-400">(+ อื่นๆ {Object.keys(item.platform_prices).length} ช่องทาง)</p>
+                )}
+            </div>
+            <div className="shrink-0 flex flex-col items-end justify-center pr-2">
+                <span className={"text-[12px] font-medium mb-2 " + (item.is_out_of_stock ? 'text-gray-400' : 'text-black')}>
+                    {item.is_out_of_stock ? 'งดขายชั่วคราว' : 'มีจำหน่าย'}
+                </span>
+            </div>
+        </Reorder.Item>
+    )
+}
+
+const MenuReorderList = ({ 
+    initialItems, 
+    itemMap, 
+    locale,
+    onSave,
+    onCancel,
+    isSaving
+}: { 
+    initialItems: string[], 
+    itemMap: Map<string, any>, 
+    locale: string,
+    onSave: (newOrder: string[]) => void,
+    onCancel: () => void,
+    isSaving: boolean
+}) => {
+    const [items, setItems] = useState(initialItems)
+
+    return (
+        <div className="flex flex-col h-full bg-white animate-in slide-in-from-right-8 duration-300 relative z-40">
+             <div className="sticky top-0 z-30 bg-white border-b border-gray-100 p-4 flex items-center justify-between">
+                <button onClick={onCancel} className="p-2 -ml-2 text-gray-600 hover:text-black flex items-center gap-1 font-medium transition-colors rounded-full hover:bg-gray-50">
+                   <ChevronRight size={22} className="rotate-180" />
+                </button>
+                <h2 className="text-[17px] font-bold text-black">แก้ไขลำดับเมนู</h2>
+                <div className="w-10"></div>
+             </div>
+             
+             <div className="p-5 text-center">
+                 <span className="text-[13px] font-medium text-gray-500">
+                   กดค้างเพื่อลากสลับตำแหน่ง
+                 </span>
+             </div>
+             
+             <motion.div layoutScroll className="flex-1 overflow-y-auto px-4 sm:px-6 max-w-3xl mx-auto w-full pb-32 custom-scrollbar">
+                 <Reorder.Group axis="y" values={items} onReorder={setItems} className="flex flex-col">
+                     {items.map(itemId => {
+                         const item = itemMap.get(itemId)
+                         if (!item) return null
+                         return <ReorderMenuItem key={item.id} item={item} locale={locale} />
+                     })}
+                 </Reorder.Group>
+             </motion.div>
+
+             <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 z-50 shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.05)]">
+                 <div className="max-w-3xl mx-auto">
+                     <button onClick={() => onSave(items)} disabled={isSaving} className="w-full bg-black hover:bg-gray-800 text-white py-4 rounded-[12px] font-bold text-[16px] transition-colors shadow-sm disabled:opacity-70 flex items-center justify-center gap-2">
+                         {isSaving ? <Loader2 className="animate-spin" size={20} /> : 'บันทึก'}
+                     </button>
+                 </div>
+             </div>
+        </div>
+    )
 }
 
 export default function POSMenuManager({ 
@@ -176,78 +350,9 @@ export default function POSMenuManager({
   }, [dirtyCategoryKeys, reorderDraft])
 
   useEffect(() => {
-    setViewExtraHeader(
-      <div className="flex flex-wrap items-center justify-between w-full gap-3 py-1">
-          {/* View Modes */}
-          <div className="flex items-center gap-2">
-              {forceViewMode !== 'stock' && (
-              <div className="flex items-center p-1 bg-gray-100/80 rounded-full border border-gray-200/50">
-                   <button 
-                       onClick={() => setViewMode('grid')} 
-                       className={`w-10 h-8 rounded-full flex items-center justify-center transition-all ${viewMode === 'grid' ? 'bg-white text-[#1A1A18] shadow-sm font-bold' : 'text-gray-500 hover:text-black'}`}
-                       title="Grid View"
-                   >
-                       <LayoutGrid size={16} />
-                   </button>
-                   <button 
-                       onClick={() => setViewMode('table')} 
-                       className={`w-10 h-8 rounded-full flex items-center justify-center transition-all ${viewMode === 'table' ? 'bg-white text-[#1A1A18] shadow-sm font-bold' : 'text-gray-500 hover:text-black'}`}
-                       title="List View"
-                   >
-                       <List size={16} />
-                   </button>
-               </div>
-              )}
-          </div>
-          
-          {/* Actions */}
-          <div className="flex items-center gap-3 ml-auto">
-              {!hideStockToggle && forceViewMode !== 'stock' && (
-                  <button 
-                      onClick={() => setViewMode(viewMode === 'stock' ? 'grid' : 'stock')} 
-                      className={`h-10 px-5 rounded-full flex items-center justify-center gap-2 transition-all font-black uppercase tracking-widest text-[10px] ${viewMode === 'stock' ? 'bg-amber-500 text-white shadow-md' : 'bg-amber-50 text-amber-600 hover:bg-amber-100'}`}
-                  >
-                      <ToggleRight size={16} />
-                      <span className="hidden sm:inline">{viewMode === 'stock' ? 'ปิดโหมดสต็อก' : 'อัปเดตสต็อก'}</span>
-                  </button>
-              )}
-              
-              <button
-                  onClick={reorderMode ? handleCancelReorder : handleStartReorder}
-                  className={`h-10 px-5 rounded-full flex items-center justify-center gap-2 transition-all font-black uppercase tracking-widest text-[10px] border ${
-                      reorderMode
-                        ? 'bg-rose-50 border-rose-100 text-rose-600 hover:bg-rose-100'
-                        : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300'
-                  }`}
-              >
-                  {reorderMode ? <X size={14} /> : <MenuIcon size={14} />}
-                  <span className="hidden sm:inline">{reorderMode ? 'ยกเลิก' : 'จัดลำดับ'}</span>
-              </button>
-
-              {reorderMode && dirtyCategoryKeys.length > 0 && (
-                <button
-                    onClick={handleSaveReorder}
-                    className="h-10 px-6 rounded-full bg-emerald-500 text-white flex items-center justify-center gap-2 shadow-md shadow-emerald-500/20 font-black uppercase tracking-widest text-[10px] hover:bg-emerald-600 transition-all active:scale-95"
-                >
-                    {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                    <span className="hidden sm:inline">บันทึกลำดับ</span>
-                </button>
-              )}
-              
-              {canEditMenu && (
-                <button 
-                    onClick={() => { setEditingItem({ name: '', name_en: '', name_zh: '', sale_price: 0, status: 'active', category_id: categories[0]?.id }); setIsEditorOpen(true); }} 
-                    className="h-10 px-6 rounded-full bg-[#1A1A18] text-white flex items-center justify-center gap-2 shadow-md shadow-black/10 font-black uppercase tracking-widest text-[10px] hover:bg-black transition-all active:scale-95"
-                >
-                    <Plus size={16} /> 
-                    <span className="hidden sm:inline">{locale === 'en' ? 'Add Menu' : locale === 'zh' ? 'เพิ่มรายการเมนู' : 'เพิ่มเมนู'}</span>
-                </button>
-              )}
-          </div>
-      </div>
-    );
+    setViewExtraHeader(null);
     return () => setViewExtraHeader(null);
-  }, [setViewExtraHeader, viewMode, categories, reorderMode, dirtyCategoryKeys.length, isSaving, handleCancelReorder, handleStartReorder, handleSaveReorder]);
+  }, [setViewExtraHeader]);
   const fetchData = async () => {
     setLoading(true)
     const branchId = shopSettings?.branch_id
@@ -566,514 +671,203 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
       setDirtyCategoryKeys(prev => (prev.includes(categoryKey) ? prev : [...prev, categoryKey]))
   }
 
+
+
+  const [mainTab, setMainTab] = useState('items')
+  const [expandedCategory, setExpandedCategory] = useState(null)
+  const [reorderCategory, setReorderCategory] = useState(null)
+
+  useEffect(() => {
+    if (mainTab === 'items' && categorySections.length > 0 && !expandedCategory) {
+       setExpandedCategory(categorySections[0].id)
+    }
+  }, [categorySections, mainTab])
+
   return (
     <>
-      <div className="p-4 sm:p-10 font-bold overflow-y-auto no-scrollbar">
-          
-          {/* 1. SEARCH BAR */}
-          <div className="mb-6">
-              <div className="relative group w-full">
-                  <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-[#1A1A18]" />
-                  <input 
-                      type="text" 
-                      placeholder={locale === 'en' ? 'ค้นหาชื่อเมนู หรือ ข้อมูลอาหาร...' : locale === 'zh' ? 'ค้นหาชื่อเมนู หรือ ข้อมูลอาหาร...' : 'ค้นหาชื่อเมนู หรือ ข้อมูลอาหาร...'} 
-                      className="w-full bg-white border border-[#F0F0E8] py-4 pl-12 pr-4 text-[14px] outline-none focus:border-[#1A1A18] transition-all font-bold placeholder:text-gray-200 text-black shadow-sm"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-              </div>
-          </div>
+      <div className="flex-1 flex flex-col h-full bg-white relative font-noto">
+        {!reorderCategory ? (
+          <>
+            <div className="sticky top-0 z-30 bg-white border-b border-gray-100 px-2 sm:px-4 flex gap-4 sm:gap-6 overflow-x-auto no-scrollbar">
+                <button 
+                    onClick={() => setMainTab('categories')}
+                    className={"pb-3 pt-4 text-[14px] sm:text-[15px] font-semibold whitespace-nowrap transition-colors border-b-[3px] px-2 " + (mainTab === 'categories' ? 'text-black border-black' : 'text-gray-400 border-transparent hover:text-gray-600')}
+                >
+                    กลุ่มและหมวดหมู่
+                </button>
+                <button 
+                    onClick={() => setMainTab('items')}
+                    className={"pb-3 pt-4 text-[14px] sm:text-[15px] font-semibold whitespace-nowrap transition-colors border-b-[3px] px-2 " + (mainTab === 'items' ? 'text-black border-black' : 'text-gray-400 border-transparent hover:text-gray-600')}
+                >
+                    เมนูอาหาร
+                </button>
+                <button 
+                    onClick={() => setMainTab('options')}
+                    className={"pb-3 pt-4 text-[14px] sm:text-[15px] font-semibold whitespace-nowrap transition-colors border-b-[3px] px-2 " + (mainTab === 'options' ? 'text-black border-black' : 'text-gray-400 border-transparent hover:text-gray-600')}
+                >
+                    กลุ่มตัวเลือก
+                </button>
+            </div>
 
-          {/* 2. CATEGORIES BAR */}
-          <div className="bg-white border-b border-[#F0F0E8] mb-10">
-              <div className="flex items-center overflow-x-auto no-scrollbar pb-4 gap-2">
-                    <button onClick={() => setActiveCategory(null)} className={`whitespace-nowrap px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all ${!activeCategory ? 'bg-[#1A1A18] text-white' : 'bg-gray-100 text-gray-400 hover:text-[#1A1A18]'}`}>{locale === 'en' ? 'ทั้งหมด' : locale === 'zh' ? 'ทั้งหมด' : 'ทั้งหมด'}</button>
-                    {categories.map(cat => (
-                        <button key={cat.id} onClick={() => setActiveCategory(cat.id)} className={`whitespace-nowrap px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all ${activeCategory === cat.id ? 'bg-[#1A1A18] text-white' : 'bg-gray-100 text-gray-400 hover:text-[#1A1A18]'}`}>{cat.name}</button>
-                    ))}
-              </div>
-          </div>
+            <motion.div layoutScroll className="flex-1 overflow-y-auto custom-scrollbar bg-white">
+                <div className="max-w-4xl mx-auto w-full pb-24">
+                  {mainTab === 'categories' && (
+                      <div className="animate-in fade-in duration-300">
+                          <POSCategoryManager shopSettings={shopSettings} onCategoriesChange={() => fetchData()} />
+                      </div>
+                  )}
 
-          {/* 3. MAIN LIST */}
-          <div className="flex-1">
-          {loading ? (
-               <div className="h-full flex items-center justify-center opacity-20 font-bold border-none">
-                   <Loader2 className="animate-spin font-bold border-none font-bold font-bold" size={48} />
-               </div>
-           ) : viewMode === 'stock' ? (
-               <div className="relative h-full pb-20">
-                 <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6">
-                     {filteredItems.map(item => {
-                         const currentStatus = stockDraft[item.id] !== undefined ? stockDraft[item.id] : (item.in_stock !== false);
-                         return (
-                         <div key={item.id} className={`group bg-white border flex flex-col transition-all overflow-hidden rounded-2xl ${!currentStatus ? 'border-red-200 bg-red-50/30 opacity-80' : 'border-[#E5E5DF] hover:shadow-2xl hover:-translate-y-1'}`}>
-                             <div className="aspect-[4/3] bg-gray-50 overflow-hidden relative">
-                                 {item.image_url ? <img loading="lazy" crossOrigin="anonymous"  src={item.image_url || ''} className={`w-full h-full object-cover transition-transform duration-700 ${!currentStatus ? 'grayscale' : 'group-hover:scale-105'}`} /> : <div className="w-full h-full flex items-center justify-center"><ImageIcon size={32} className="text-gray-200" /></div>}
-                                 {!currentStatus && (
-                                     <div className="absolute inset-0 bg-red-900/20 flex items-center justify-center backdrop-blur-[2px]">
-                                         <div className="bg-red-600 text-white px-5 py-2 font-black tracking-[0.2em] uppercase text-sm -rotate-12 shadow-2xl border-2 border-red-400/50">SOLD OUT</div>
-                                     </div>
-                                 )}
-                             </div>
-                             <div className="p-4 sm:p-5 flex flex-col flex-1">
-                                 <div className="text-[9px] font-black uppercase tracking-widest text-sage-600 mb-1">{item.category?.name || 'GENERIC'}</div>
-                                 <h4 className="text-[13px] sm:text-[15px] font-black tracking-tight leading-tight line-clamp-2 min-h-10 text-black mb-4">{getPrimaryMenuName(item)}</h4>
-                                 
-                                 <div className="mt-auto">
-                                     <button 
-                                         onClick={() => handleStockDraftToggle(item.id, currentStatus)}
-                                         className={`w-full h-12 sm:h-14 flex items-center justify-center gap-2 rounded-xl transition-all font-black text-[11px] sm:text-[13px] tracking-widest uppercase active:scale-95 ${currentStatus ? 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg shadow-emerald-500/20' : 'bg-red-50 text-red-600 border-2 border-red-200 hover:bg-red-100 hover:border-red-300 shadow-inner'}`}
-                                     >
-                                         {currentStatus ? (
-                                             <><CheckCircle2 size={18} /> มีของ (IN STOCK)</>
-                                         ) : (
-                                             <><XCircle size={18} /> หมด (SOLD OUT)</>
-                                         )}
-                                     </button>
-                                 </div>
-                             </div>
-                         </div>
-                     )})}
-                 </div>
-                 
-                 <AnimatePresence>
-                     {Object.keys(stockDraft).length > 0 && (
-                         <motion.div 
-                             initial={{ y: 100, opacity: 0 }}
-                             animate={{ y: 0, opacity: 1 }}
-                             exit={{ y: 100, opacity: 0 }}
-                             className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 bg-white p-4 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-gray-100"
-                         >
-                             <div className="text-sm font-bold text-gray-600 whitespace-nowrap hidden sm:block">
-                                 มีการเปลี่ยนแปลง <span className="text-amber-500 font-black">{Object.keys(stockDraft).length}</span> รายการ
-                             </div>
-                             <button
-                                 onClick={() => setStockDraft({})}
-                                 className="px-6 h-12 font-bold text-gray-500 hover:bg-gray-100 rounded-xl transition-all"
-                             >
-                                 ยกเลิก
-                             </button>
-                             <button
-                                 onClick={handleSaveStockDraft}
-                                 disabled={isSaving}
-                                 className="px-8 h-12 bg-black text-white font-black rounded-xl hover:bg-gray-800 hover:-translate-y-1 transition-all shadow-xl flex items-center gap-2"
-                             >
-                                 {isSaving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-                                 บันทึกการเปลี่ยนแปลง
-                             </button>
-                         </motion.div>
-                     )}
-                 </AnimatePresence>
-               </div>
-           ) : viewMode === 'grid' ? (
-               
-               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6 pb-20">
-                   {/* Add Menu Ghost Card */}
-                   {canEditMenu && (
-                     <button
-                         onClick={() => { setEditingItem({ name: '', name_en: '', name_zh: '', sale_price: 0, status: 'active', category_id: categories[0]?.id }); setIsEditorOpen(true); }}
-                         className="group relative flex flex-col items-center justify-center border-2 border-dashed border-gray-200 bg-gray-50/50 rounded-3xl min-h-[220px] transition-all hover:bg-white hover:border-black hover:shadow-lg"
-                     >
-                         <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center border border-gray-100 shadow-sm text-gray-400 group-hover:bg-[#1A1A18] group-hover:text-white group-hover:border-black transition-all duration-300">
-                             <Plus size={20} />
-                         </div>
-                         <span className="mt-4 text-[13px] font-black tracking-widest text-gray-400 group-hover:text-black uppercase">
-                             {locale === 'en' ? 'Add Menu' : 'เพิ่มเมนูใหม่'}
-                         </span>
-                     </button>
-                   )}
-                   
-                   {filteredItems.map(item => (
-                       <div key={item.id} className="group relative flex flex-col bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer" onClick={() => { if (canEditMenu) { setEditingItem(item); fetchItemLinks(item.id); setIsEditorOpen(true); } }}>
-                           <div className="aspect-square relative overflow-hidden bg-gray-50">
-                               {item.image_url ? (
-                                   <img loading="lazy" crossOrigin="anonymous"  src={item.image_url || ''} alt={item.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                               ) : (
-                                   <div className="w-full h-full flex items-center justify-center text-gray-300 bg-gray-50/50 group-hover:bg-gray-100 transition-colors">
-                                       <ImageIcon size={32} />
-                                   </div>
-                               )}
-                               <div className="absolute top-3 left-3 flex flex-col gap-1">
-                                   {item.is_recommended && (
-                                       <span className="bg-amber-500 text-white px-3 py-1 rounded-full text-[9px] font-black tracking-widest shadow-md uppercase">Recommend</span>
-                                   )}
-                                   {item.out_of_stock && (
-                                       <span className="bg-red-500 text-white px-3 py-1 rounded-full text-[9px] font-black tracking-widest shadow-md uppercase">Out of Stock</span>
-                                   )}
-                               </div>
-                               <div className="absolute top-3 right-3 flex gap-1">
-                                    <div className="flex bg-white/90 backdrop-blur-sm rounded-full shadow-sm p-1">
-                                        <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${item.allow_takeaway ? 'text-[#1A1A18]' : 'text-gray-300'}`} title="Takeaway">
-                                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
-                                        </div>
-                                        <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${item.allow_delivery ? 'text-[#1A1A18]' : 'text-gray-300'}`} title="Delivery">
-                                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8n-11 4h-3m-13 5v2m0 0v2m0-2h2m-2 0H3m2 0V5a2 2 0 012-2h2a2 2 0 012 2v2" /></svg>
-                                        </div>
-                                    </div>
-                               </div>
-                           </div>
-                           <div className="p-4 sm:p-5 flex flex-col flex-1">
-                               <div className="flex-1">
-                                   <div className="text-[14px] font-black text-gray-900 leading-tight line-clamp-2">{getPrimaryMenuName(item)}</div>
-                                   {getSecondaryMenuName(item, locale === 'zh' ? 'zh' : 'en') && (
-                                       <div className="text-[11px] font-bold text-gray-400 mt-1 line-clamp-1">{getSecondaryMenuName(item, locale === 'zh' ? 'zh' : 'en')}</div>
-                                   )}
-                               </div>
-                               <div className="flex flex-col gap-3 mt-4">
-                                   <div className="flex items-end justify-between">
-                                        <div className="text-[16px] font-black text-gray-900">
-                                            <span className="text-[11px] text-gray-500 mr-1">฿</span>
-                                            {item.sale_price.toLocaleString()}
-                                        </div>
-                                        {canEditMenu && (
-                                            <div className="flex items-center gap-1">
-                                                <button onClick={(e) => { e.stopPropagation(); setEditingItem(item); fetchItemLinks(item.id); setIsEditorOpen(true); }} className="w-7 h-7 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center hover:bg-black hover:text-white transition-all"><Edit3 size={12} /></button>
-                                                <button onClick={(e) => { e.stopPropagation(); handleDeleteItem(item.id); }} className="w-7 h-7 rounded-full bg-red-50 text-red-400 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all"><Trash2 size={12} /></button>
-                                            </div>
-                                        )}
-                                   </div>
-                                   <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                                       <div className="flex flex-col">
-                                           <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">ต้นทุน</span>
-                                           <span className="text-[11px] font-bold text-gray-700">฿ {Number(item.cost_price || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-                                       </div>
-                                       <div className="flex flex-col items-end">
-                                           <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">กำไร</span>
-                                           <span className={`text-[11px] font-black ${item.sale_price > 0 && ((item.sale_price - (item.cost_price || 0)) / item.sale_price) > 0.5 ? 'text-emerald-500' : 'text-gray-500'}`}>
-                                               {item.sale_price > 0 ? Math.round(((item.sale_price - (item.cost_price || 0)) / item.sale_price) * 100) : 0}%
-                                           </span>
-                                       </div>
-                                   </div>
-                               </div>
-                           </div>
-                       </div>
-                   ))}
-               </div>
-           ) : reorderMode ? (
-            <div className="space-y-6">
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-semibold text-amber-900">
-                    ลากเมนูภายในแต่ละหมวดเพื่อกำหนดลำดับที่ลูกค้าและพนักงานจะเห็น แล้วกดปุ่ม "บันทึกลำดับ"
-                </div>
-                {categorySections.map(cat => {
-                    const itemIdsInCat = reorderDraft[cat.id] || []
-                    const itemsInCat = itemIdsInCat
-                      .map(itemId => itemMap.get(itemId))
-                      .filter(Boolean)
+                  {mainTab === 'items' && (
+                      <div className="animate-in fade-in duration-300">
+                          {categorySections.map(cat => {
+                              const catItems = items.filter(i => cat.id === 'uncategorized' ? (!i.category_id || !categories.find(c => c.id === i.category_id)) : i.category_id === cat.id)
+                              if (catItems.length === 0 && cat.id === 'uncategorized') return null
+                              const isExpanded = expandedCategory === cat.id
 
-                    if (itemsInCat.length === 0) return null
-
-                    return (
-                      <div key={cat.id} className="overflow-hidden rounded-2xl border border-[#F0F0E8] bg-white shadow-sm">
-                        <div className="flex items-center justify-between border-b border-[#F0F0E8] bg-[#1A1A18] px-5 py-4 text-white">
-                          <div>
-                            <h3 className="text-lg font-black uppercase tracking-widest">{cat.name}</h3>
-                            <p className="mt-1 text-[10px] font-black uppercase tracking-[0.22em] text-white/55">
-                              {itemsInCat.length} items
-                            </p>
-                          </div>
-                          {dirtyCategoryKeys.includes(cat.id) && (
-                            <span className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-amber-200">
-                              ยังไม่บันทึก
-                            </span>
-                          )}
-                        </div>
-
-                        <Reorder.Group
-                          axis="y"
-                          values={itemIdsInCat}
-                          onReorder={(nextOrder) => handleGroupedItemsReorder(cat.id, nextOrder)}
-                          className="divide-y divide-[#F0F0E8]"
-                        >
-                          {itemsInCat.map((item, idx) => (
-                            <Reorder.Item
-                              key={item.id}
-                              value={item.id}
-                              dragMomentum={false}
-                              dragElastic={0.02}
-                              whileDrag={{ scale: 1.008, boxShadow: '0 14px 32px rgba(15, 23, 42, 0.14)' }}
-                              transition={{ duration: 0.08 }}
-                              className="flex cursor-grab touch-none items-center gap-4 bg-white px-4 py-4 active:cursor-grabbing sm:px-5"
-                            >
-                              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-[#F0F0E8] bg-[#FAF9F6] text-gray-400">
-                                <MenuIcon size={14} />
-                              </div>
-                              <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border border-[#F0F0E8] bg-gray-50">
-                                {item.image_url ? <img loading="lazy" crossOrigin="anonymous"  src={item.image_url || ''} className="h-full w-full object-cover" /> : <ImageIcon size={16} className="text-gray-300" />}
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <div className="truncate text-sm font-black text-[#1A1A18]">{getPrimaryMenuName(item)}</div>
-                                {getSecondaryMenuName(item, locale === 'zh' ? 'zh' : 'en') && (
-                                  <div className="mt-1 truncate text-[11px] font-semibold text-gray-500">
-                                    {getSecondaryMenuName(item, locale === 'zh' ? 'zh' : 'en')}
+                              return (
+                                  <div key={cat.id} className="border-b border-gray-100">
+                                      <button 
+                                          onClick={() => setExpandedCategory(isExpanded ? null : cat.id)}
+                                          className="w-full p-4 flex items-center justify-between bg-white hover:bg-gray-50 transition-colors text-left"
+                                      >
+                                          <div className="flex items-center gap-2">
+                                              <span className="text-[15px] font-bold text-gray-800 uppercase tracking-wide">{cat.name}</span>
+                                              <span className="text-[14px] text-gray-400 font-medium">({catItems.length})</span>
+                                          </div>
+                                          <ChevronRight size={20} className={"text-gray-400 transition-transform duration-300 " + (isExpanded ? 'rotate-90' : '')} />
+                                      </button>
+                                      
+                                      {isExpanded && (
+                                          <div className="bg-white border-t border-gray-50 animate-in slide-in-from-top-2 duration-200">
+                                              <div className="px-4 py-3 bg-gray-50/50 flex justify-between items-center">
+                                                  <button 
+                                                      onClick={() => {
+                                                          handleStartReorder()
+                                                          setReorderCategory(cat.id)
+                                                      }} 
+                                                      className="text-black hover:text-gray-600 flex items-center gap-2 text-[14px] font-medium transition-colors"
+                                                  >
+                                                      <List size={16} /> จัดเรียงเมนู
+                                                  </button>
+                                                  <button 
+                                                      onClick={() => {
+                                                          setEditingItem({ category_id: cat.id === 'uncategorized' ? null : cat.id, is_active: true, is_online_available: true, is_delivery_available: true, platform_prices: {} })
+                                                          setIsEditorOpen(true)
+                                                      }}
+                                                      className="text-black hover:text-gray-600 flex items-center gap-1.5 text-[14px] font-medium transition-colors"
+                                                  >
+                                                      <Plus size={16} /> เพิ่ม
+                                                  </button>
+                                              </div>
+                                              
+                                              <div className="divide-y divide-gray-100">
+                                                  {catItems.map(item => (
+                                                      <div key={item.id} className="p-4 flex gap-4 bg-white hover:bg-gray-50 transition-colors">
+                                                          <div className="w-20 h-20 rounded-2xl bg-gray-100 overflow-hidden shrink-0 border border-gray-200 relative cursor-pointer" onClick={() => {
+                                                              setEditingItem(item)
+                                                              setIsEditorOpen(true)
+                                                          }}>
+                                                              {item.image_url ? (
+                                                                  <img loading="lazy" crossOrigin="anonymous" src={item.image_url} alt={getPrimaryMenuName(item, locale) || ''} className="w-full h-full object-cover" />
+                                                              ) : (
+                                                                  <div className="w-full h-full flex items-center justify-center"><ImageIcon className="text-gray-400" size={24} /></div>
+                                                              )}
+                                                              {item.is_recommended && <div className="absolute top-1 right-1 w-2.5 h-2.5 bg-amber-400 rounded-full border border-white"></div>}
+                                                          </div>
+                                                          <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                                              <div className="flex items-start justify-between gap-4">
+                                                                  <div className="cursor-pointer flex-1" onClick={() => {
+                                                                      setEditingItem(item)
+                                                                      setIsEditorOpen(true)
+                                                                  }}>
+                                                                      <h4 className="text-[15px] font-bold text-gray-900 leading-tight mb-1">{getPrimaryMenuName(item, locale)}</h4>
+                                                                      <div className="flex flex-wrap items-center gap-2 text-[13px] font-medium text-gray-500 mb-1">
+                                                                          <div className="flex items-center gap-1"><span className="text-black"><Store size={14}/></span> ฿{item.sale_price}</div>
+                                                                          {item.platform_prices && Object.entries(item.platform_prices).filter(([_,v]) => v).map(([platform, price]) => (
+                                                                              <div key={platform} className="flex items-center gap-1">
+                                                                                  <span className={platform === 'lineman' ? 'text-green-500' : platform === 'grab' ? 'text-[#00B14F]' : 'text-purple-500'}><ShoppingBag size={14}/></span> ฿{price}
+                                                                              </div>
+                                                                          ))}
+                                                                          {item.platform_prices && Object.keys(item.platform_prices).length > 0 && (
+                                                                              <span className="text-[11px] text-gray-400">(+ อื่นๆ {Object.keys(item.platform_prices).length} ช่องทาง)</span>
+                                                                          )}
+                                                                      </div>
+                                                                      {getSecondaryMenuName(item, locale) && (
+                                                                          <p className="text-[12px] text-gray-400 truncate">{getSecondaryMenuName(item, locale)}</p>
+                                                                      )}
+                                                                  </div>
+                                                                  <div className="flex flex-col items-end gap-1.5 shrink-0">
+                                                                      <span className={"text-[11px] font-medium " + (item.is_out_of_stock ? 'text-gray-400' : 'text-black')}>
+                                                                          {item.is_out_of_stock ? 'งดขายชั่วคราว' : 'มีจำหน่าย'}
+                                                                      </span>
+                                                                      <button 
+                                                                          onClick={async (e) => {
+                                                                              e.stopPropagation();
+                                                                              const newVal = !item.is_out_of_stock;
+                                                                              const newItems = items.map(i => i.id === item.id ? { ...i, is_out_of_stock: newVal } : i);
+                                                                              setItems(newItems);
+                                                                              await supabase.from('pos_menu_items').update({ is_out_of_stock: newVal }).eq('id', item.id);
+                                                                          }}
+                                                                          className={"relative w-12 h-6 rounded-full transition-colors duration-300 " + (!item.is_out_of_stock ? 'bg-black' : 'bg-gray-300')}
+                                                                      >
+                                                                          <div className={"absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform duration-300 shadow-sm " + (!item.is_out_of_stock ? 'translate-x-6' : 'translate-x-0')}></div>
+                                                                      </button>
+                                                                  </div>
+                                                              </div>
+                                                          </div>
+                                                      </div>
+                                                  ))}
+                                              </div>
+                                          </div>
+                                      )}
                                   </div>
-                                )}
-                              </div>
-                              <div className="text-right">
-                                <div className="text-[10px] font-black uppercase tracking-[0.18em] text-gray-400">ลำดับ</div>
-                                <div className="mt-1 text-sm font-black text-[#1A1A18]">#{idx + 1}</div>
-                              </div>
-                            </Reorder.Item>
-                          ))}
-                        </Reorder.Group>
+                              )
+                          })}
+                          
+                          <div className="p-4 mt-4">
+                              <button onClick={() => {
+                                  setEditingItem({ is_active: true, is_online_available: true, is_delivery_available: true, platform_prices: {} })
+                                  setIsEditorOpen(true)
+                              }} className="w-full bg-black hover:bg-gray-800 text-white py-3.5 rounded-[12px] font-semibold transition-colors flex items-center justify-center gap-2 text-[14px]">
+                                  เพิ่มเมนู
+                              </button>
+                          </div>
                       </div>
-                    )
-                })}
-            </div>
-           ) : (
-            <div className="bg-white border border-[#F0F0E8] overflow-x-auto relative min-h-[500px]">
-                <div className="absolute left-0 top-[-40px] z-20">
-                  <button 
-                      onClick={() => setShowColumnSelector(!showColumnSelector)}
-                      className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest bg-gray-50 px-4 py-2 border border-[#F0F0E8] hover:border-black transition-all"
-                  >
-                      <Settings size={12} /> {locale === 'en' ? 'Customize table' : locale === 'zh' ? '自定义表格' : 'ปรับแต่งตาราง'}</button>
-                  <AnimatePresence>
-                      {showColumnSelector && (
-                          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute left-0 top-12 w-64 bg-white border border-black shadow-2xl p-6 z-30 space-y-4">
-                              <div className="text-[10px] font-black uppercase tracking-widest border-b border-gray-50 pb-2 mb-4">{locale === 'en' ? 'แสดงคอลัมน์' : locale === 'zh' ? 'แสดงคอลัมน์' : 'แสดงคอลัมน์'}</div>
-                              {columns.map(col => (
-                                  <label key={col.id} className="flex items-center gap-3 cursor-pointer group">
-                                      <input 
-                                          type="checkbox" 
-                                          className="accent-black w-4 h-4" 
-                                          checked={visibleColumns.includes(col.id)}
-                                          onChange={() => setVisibleColumns(prev => prev.includes(col.id) ? prev.filter(p => p !== col.id) : [...prev, col.id])}
-                                      />
-                                      <span className="text-[11px] font-black uppercase text-gray-400 group-hover:text-black transition-colors">{col.label}</span>
-                                  </label>
-                              ))}
-                          </motion.div>
-                      )}
-                  </AnimatePresence>
-                </div>
+                  )}
 
-                <div className="space-y-8 pb-20">
-                    {categorySections.map(cat => {
-                        const itemsInCat = filteredItems.filter(item => 
-                            cat.id === 'uncategorized' 
-                            ? !item.category_id || !categories.find(c => c.id === item.category_id)
-                            : item.category_id === cat.id
-                        );
-                        
-                        if (itemsInCat.length === 0) return null;
-
-                        const activePlatforms = shopSettings?.opening_hours?.active_delivery_platforms || ['grab', 'lineman', 'shopee', 'foodpanda', 'robinhood'];
-
-                        return (
-                            <div key={cat.id} className="bg-white border border-gray-100/80 rounded-3xl overflow-hidden shadow-sm">
-                                <div className="bg-gray-50/50 backdrop-blur-sm px-6 py-4 flex items-center justify-between border-b border-gray-100">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-2 h-6 rounded-full bg-[#1A1A18]"></div>
-                                        <h3 className="text-[16px] sm:text-[18px] font-black text-gray-900 tracking-tight">{cat.name}</h3>
-                                    </div>
-                                    <span className="text-[11px] font-bold text-gray-500 bg-white shadow-sm px-3 py-1 rounded-full">{itemsInCat.length} Items</span>
-                                </div>
-                                <div className="overflow-x-auto no-scrollbar">
-                                    <table className="w-full text-left min-w-[900px] border-collapse">
-                                        <thead>
-                                            <tr className="border-b border-gray-100">
-                                                <th className="p-4 text-[10px] font-black uppercase tracking-widest text-gray-400 w-16 text-center">รูป</th>
-                                                <th className="p-4 text-[10px] font-black uppercase tracking-widest text-gray-400 min-w-[200px]">รายละเอียดเมนู</th>
-                                                <th className="p-4 text-[10px] font-black uppercase tracking-widest text-gray-400 w-32 text-center bg-gray-50/30">ต้นทุน (฿)</th>
-                                                <th className="p-4 text-[10px] font-black uppercase tracking-widest text-gray-400 w-32 text-center bg-gray-50/50">ราคาขาย (฿)</th>
-                                                
-                                                {activePlatforms.includes('grab') && <th className="p-4 text-[10px] font-black uppercase tracking-widest text-[#00B14F] w-28 text-center bg-[#00B14F]/5">Grab</th>}
-                                                {activePlatforms.includes('lineman') && <th className="p-4 text-[10px] font-black uppercase tracking-widest text-[#00B900] w-28 text-center bg-[#00B900]/5">Lineman</th>}
-                                                {activePlatforms.includes('shopee') && <th className="p-4 text-[10px] font-black uppercase tracking-widest text-[#EE4D2D] w-28 text-center bg-[#EE4D2D]/5">Shopee</th>}
-                                                {activePlatforms.includes('foodpanda') && <th className="p-4 text-[10px] font-black uppercase tracking-widest text-[#D70F64] w-28 text-center bg-[#D70F64]/5">Foodpanda</th>}
-                                                {activePlatforms.includes('robinhood') && <th className="p-4 text-[10px] font-black uppercase tracking-widest text-[#6023A2] w-28 text-center bg-[#6023A2]/5">Robinhood</th>}
-                                                
-                                                <th className="p-4 text-[10px] font-black uppercase tracking-widest text-gray-400 min-w-[100px] text-center">ตัวเลือก</th>
-                                                <th className="p-4 text-[10px] font-black uppercase tracking-widest text-gray-400 w-32 text-center">สถานะ</th>
-                                                <th className="p-4 text-[10px] font-black uppercase tracking-widest text-gray-400 w-16 text-center">จัดการ</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-50">
-                                            {itemsInCat.map((item, idx) => (
-                                                <tr key={item.id} className="group hover:bg-gray-50/40 transition-colors align-middle">
-                                                    {/* Image Column */}
-                                                    <td className="p-4 text-center">
-                                                        <div className="relative w-12 h-12 rounded-xl bg-gray-100 overflow-hidden mx-auto shadow-sm group-hover:shadow transition-all">
-                                                            {item.image_url ? (
-                                                                <img loading="lazy" crossOrigin="anonymous"  src={item.image_url || ''} className="w-full h-full object-cover" />
-                                                            ) : (
-                                                                <div className="w-full h-full flex items-center justify-center text-gray-300"><ImageIcon size={14} /></div>
-                                                            )}
-                                                            <label className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
-                                                                <input type="file" className="hidden" accept="image/*" onChange={(e) => handleInlineImageUpload(item.id, e.target.files?.[0])} />
-                                                                <span className="text-[9px] font-black text-white uppercase tracking-widest">เปลี่ยน</span>
-                                                            </label>
-                                                        </div>
-                                                    </td>
-
-                                                    {/* Details Column */}
-                                                    <td className="p-4">
-                                                        <div className="flex flex-col gap-1.5">
-                                                            <input 
-                                                                type="text" 
-                                                                defaultValue={item.name} 
-                                                                onBlur={(e) => handleBulkUpdate(item.id, 'name', e.target.value)}
-                                                                className="w-full bg-transparent outline-none focus:bg-white focus:ring-2 focus:ring-black/10 rounded-md px-2 py-1 -ml-2 text-[14px] font-black text-gray-900 transition-all"
-                                                            />
-                                                            <div className="flex gap-2">
-                                                                <input
-                                                                    type="text"
-                                                                    defaultValue={item.name_en || ''}
-                                                                    onBlur={(e) => handleBulkUpdate(item.id, 'name_en', e.target.value)}
-                                                                    placeholder="EN Name"
-                                                                    className="w-1/2 bg-transparent outline-none focus:bg-white focus:ring-2 focus:ring-black/10 rounded-md px-2 py-1 -ml-2 text-[11px] font-bold text-gray-400 transition-all placeholder:text-gray-300"
-                                                                />
-                                                                <input
-                                                                    type="text"
-                                                                    defaultValue={item.name_zh || ''}
-                                                                    onBlur={(e) => handleBulkUpdate(item.id, 'name_zh', e.target.value)}
-                                                                    placeholder="ZH Name"
-                                                                    className="w-1/2 bg-transparent outline-none focus:bg-white focus:ring-2 focus:ring-black/10 rounded-md px-2 py-1 text-[11px] font-bold text-gray-400 transition-all placeholder:text-gray-300"
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                    </td>
-
-                                                    {/* Cost Column */}
-                                                    <td className="p-4 bg-gray-50/30">
-                                                        <input
-                                                            type="number"
-                                                            step="0.01"
-                                                            defaultValue={item.cost_price ? Number(item.cost_price).toFixed(2) : ''}
-                                                            onBlur={(e) => handleBulkUpdate(item.id, 'cost_price', Number(e.target.value))}
-                                                            placeholder="0.00"
-                                                            className="w-full bg-transparent outline-none focus:bg-white focus:ring-2 focus:ring-black/10 rounded-md py-1.5 text-[14px] font-black text-gray-500 text-center transition-all"
-                                                        />
-                                                        {item.sale_price > 0 && (
-                                                            <div className="text-[9px] font-bold text-center mt-1 text-gray-400">
-                                                                กำไร: <span className={((item.sale_price - (item.cost_price || 0)) / item.sale_price) > 0.5 ? 'text-emerald-500' : 'text-gray-500'}>
-                                                                    {Math.round(((item.sale_price - (item.cost_price || 0)) / item.sale_price) * 100)}%
-                                                                </span>
-                                                            </div>
-                                                        )}
-                                                    </td>
-
-                                                    {/* Sale Price Column */}
-                                                    <td className="p-4 bg-gray-50/50">
-                                                        <input 
-                                                            type="number" 
-                                                            defaultValue={item.sale_price} 
-                                                            onBlur={(e) => handleBulkUpdate(item.id, 'sale_price', Number(e.target.value))}
-                                                            className="w-full bg-transparent outline-none focus:bg-white focus:ring-2 focus:ring-black/10 rounded-md py-1.5 text-[15px] font-black text-gray-900 text-center transition-all"
-                                                        />
-                                                    </td>
-                                                    
-                                                    {/* Platform Prices */}
-                                                    {activePlatforms.includes('grab') && (
-                                                        <td className="p-4 bg-[#00B14F]/5">
-                                                            <input type="number" defaultValue={item.platform_prices?.grab || ''} placeholder="Auto" onBlur={(e) => handleBulkUpdate(item.id, 'platform_prices', {...(item.platform_prices || {}), grab: Number(e.target.value) || null})} className="w-full bg-transparent outline-none focus:bg-white focus:ring-2 focus:ring-[#00B14F]/20 rounded-md py-1.5 text-[14px] font-black text-[#00B14F] text-center placeholder:text-[#00B14F]/30 transition-all" />
-                                                        </td>
-                                                    )}
-                                                    {activePlatforms.includes('lineman') && (
-                                                        <td className="p-4 bg-[#00B900]/5">
-                                                            <input type="number" defaultValue={item.platform_prices?.lineman || ''} placeholder="Auto" onBlur={(e) => handleBulkUpdate(item.id, 'platform_prices', {...(item.platform_prices || {}), lineman: Number(e.target.value) || null})} className="w-full bg-transparent outline-none focus:bg-white focus:ring-2 focus:ring-[#00B900]/20 rounded-md py-1.5 text-[14px] font-black text-[#00B900] text-center placeholder:text-[#00B900]/30 transition-all" />
-                                                        </td>
-                                                    )}
-                                                    {activePlatforms.includes('shopee') && (
-                                                        <td className="p-4 bg-[#EE4D2D]/5">
-                                                            <input type="number" defaultValue={item.platform_prices?.shopee || ''} placeholder="Auto" onBlur={(e) => handleBulkUpdate(item.id, 'platform_prices', {...(item.platform_prices || {}), shopee: Number(e.target.value) || null})} className="w-full bg-transparent outline-none focus:bg-white focus:ring-2 focus:ring-[#EE4D2D]/20 rounded-md py-1.5 text-[14px] font-black text-[#EE4D2D] text-center placeholder:text-[#EE4D2D]/30 transition-all" />
-                                                        </td>
-                                                    )}
-                                                    {activePlatforms.includes('foodpanda') && (
-                                                        <td className="p-4 bg-[#D70F64]/5">
-                                                            <input type="number" defaultValue={item.platform_prices?.foodpanda || ''} placeholder="Auto" onBlur={(e) => handleBulkUpdate(item.id, 'platform_prices', {...(item.platform_prices || {}), foodpanda: Number(e.target.value) || null})} className="w-full bg-transparent outline-none focus:bg-white focus:ring-2 focus:ring-[#D70F64]/20 rounded-md py-1.5 text-[14px] font-black text-[#D70F64] text-center placeholder:text-[#D70F64]/30 transition-all" />
-                                                        </td>
-                                                    )}
-                                                    {activePlatforms.includes('robinhood') && (
-                                                        <td className="p-4 bg-[#6023A2]/5">
-                                                            <input type="number" defaultValue={item.platform_prices?.robinhood || ''} placeholder="Auto" onBlur={(e) => handleBulkUpdate(item.id, 'platform_prices', {...(item.platform_prices || {}), robinhood: Number(e.target.value) || null})} className="w-full bg-transparent outline-none focus:bg-white focus:ring-2 focus:ring-[#6023A2]/20 rounded-md py-1.5 text-[14px] font-black text-[#6023A2] text-center placeholder:text-[#6023A2]/30 transition-all" />
-                                                        </td>
-                                                    )}
-
-                                                    {/* Options Column */}
-                                                    <td className="p-4 align-middle">
-                                                        <div className="flex flex-wrap gap-1 justify-center max-w-[160px] mx-auto">
-                                                            {allModifierGroups.map(group => {
-                                                                const active = (item.modifiers || []).some((modifier: any) => modifier.group_id === group.id)
-                                                                return (
-                                                                    <button
-                                                                        key={group.id}
-                                                                        type="button"
-                                                                        onClick={() => handleModifierGroupToggle(item.id, group.id)}
-                                                                        className={`px-2 py-1 text-[9px] font-bold tracking-wider rounded transition-all ${
-                                                                            active ? 'bg-black text-white' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
-                                                                        }`}
-                                                                    >
-                                                                        {group.name}
-                                                                    </button>
-                                                                )
-                                                            })}
-                                                        </div>
-                                                    </td>
-
-                                                    {/* Status Column */}
-                                                    <td className="p-4">
-                                                        <div className="flex flex-col gap-2 items-center">
-                                                            <button
-                                                                onClick={() => handleBulkUpdate(item.id, 'status', item.status === 'active' ? 'inactive' : 'active')}
-                                                                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${item.status === 'active' ? 'bg-[#1A1A18]' : 'bg-gray-200'}`}
-                                                            >
-                                                                <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${item.status === 'active' ? 'translate-x-5' : 'translate-x-1'}`} />
-                                                            </button>
-                                                            <div className="flex gap-1">
-                                                                <button
-                                                                    onClick={() => handleBulkUpdate(item.id, 'is_recommended', !item.is_recommended)}
-                                                                    className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${item.is_recommended ? 'bg-amber-100 text-amber-500' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
-                                                                    title="Recommend"
-                                                                >
-                                                                    <Star size={11} className={item.is_recommended ? "fill-amber-500" : ""} />
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => handleBulkUpdate(item.id, 'out_of_stock', !item.out_of_stock)}
-                                                                    className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${item.out_of_stock ? 'bg-red-100 text-red-500' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
-                                                                    title="Out of Stock"
-                                                                >
-                                                                    <AlertCircle size={11} />
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-
-                                                    {/* Actions Column */}
-                                                    <td className="p-4 text-center">
-                                                        <button 
-                                                            onClick={() => handleDeleteItem(item.id)} 
-                                                            className="w-8 h-8 rounded-full bg-red-50 text-red-400 flex items-center justify-center mx-auto hover:bg-red-500 hover:text-white transition-all shadow-sm"
-                                                        >
-                                                            <Trash2 size={12} />
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        );
-                    })}
-
-                    {filteredItems.length === 0 && (
-                      <div className="flex min-h-[280px] items-center justify-center border border-dashed border-[#E5E5DF] bg-[#FAF9F6] px-6 text-center">
-                        <div>
-                          <div className="text-[11px] font-black uppercase tracking-[0.28em] text-[#8C8A81]">ไม่พบเมนู</div>
-                          <p className="mt-3 text-sm font-semibold text-gray-500">
-                            ลองล้างคำค้นหา หรือเลือกหมวดหมู่อื่น
-                          </p>
-                        </div>
+                  {mainTab === 'options' && (
+                      <div className="animate-in fade-in duration-300">
+                          <POSModifierManager
+                              profile={profile}
+                              activeView={activeView}
+                              allowedNav={allowedNav}
+                              onSetView={onSetView}
+                              setViewExtraHeader={() => {}}
+                              shopSettings={shopSettings}
+                          />
                       </div>
-                    )}
+                  )}
                 </div>
-            </div>
-           )}
-           </div>
+            </motion.div>
+          </>
+        ) : (
+          <MenuReorderList 
+              initialItems={reorderDraft[reorderCategory] || []}
+              itemMap={itemMap}
+              locale={locale}
+              isSaving={isSaving}
+              onCancel={() => {
+                  setReorderCategory(null)
+              }}
+              onSave={(newOrder) => {
+                  handleSaveSpecificCategory(reorderCategory, newOrder)
+              }}
+          />
+        )}
       </div>
-      {/* EDITOR MODAL (Full width on mobile) */}
-      {isEditorOpen && (
+
+      {/* Editor Modal Here */}
+            {isEditorOpen && (
           <div className="fixed inset-0 z-[1200] flex items-center justify-end font-bold">
               <div className="absolute inset-0 bg-black/40 backdrop-blur-md animate-in fade-in duration-300 font-bold" onClick={() => setIsEditorOpen(false)}></div>
               <div className="relative w-full sm:max-w-xl bg-[#F5F4F0] h-full shadow-2xl flex flex-col py-10 sm:py-20 px-6 sm:px-16 animate-in slide-in-from-right duration-500 font-bold overflow-y-auto no-scrollbar">
@@ -1383,111 +1177,16 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
           </div>
       )}
 
-      {/* Image Cropper Modal */}
-      {isCropping && cropImageSrc && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-          <div className="bg-white max-w-2xl w-full flex flex-col h-[80vh] sm:h-auto sm:max-h-[85vh]">
-            <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-              <div>
-                <h3 className="text-[12px] font-black uppercase tracking-[0.2em] text-[#1A1A18]">Crop Image</h3>
-                <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-wider">Adjust your image to fit perfectly</p>
-              </div>
-              <button onClick={() => {
-                setIsCropping(false)
-                setCropImageSrc(null)
-              }} className="p-2 hover:bg-gray-100 transition-colors">
-                <X size={20} />
-              </button>
-            </div>
-            
-            <div className="flex-1 min-h-[400px] relative bg-gray-900">
-              <Cropper
-                image={cropImageSrc}
-                crop={crop}
-                zoom={zoom}
-                aspect={cropAspect}
-                onCropChange={setCrop}
-                onCropComplete={onCropComplete}
-                onZoomChange={setZoom}
-                onMediaLoaded={(mediaSize) => setMediaSize(mediaSize)}
-              />
-            </div>
-
-            <div className="p-6 border-t border-gray-100 bg-gray-50 flex flex-col gap-6">
-              <div className="flex items-center gap-4">
-                <ZoomOut size={16} className="text-gray-400" />
-                <input
-                  type="range"
-                  value={zoom}
-                  min={1}
-                  max={3}
-                  step={0.1}
-                  aria-labelledby="Zoom"
-                  onChange={(e) => setZoom(Number(e.target.value))}
-                  className="w-full accent-black h-1 bg-gray-200 appearance-none outline-none"
-                />
-                <ZoomIn size={16} className="text-gray-400" />
-              </div>
-              
-              <div className="flex justify-end gap-3">
-                <button
-                  onClick={() => {
-                    setIsCropping(false)
-                    setCropImageSrc(null)
-                  }}
-                  className="px-6 py-3 border border-gray-200 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                {mediaSize && (
-                  <button
-                    onClick={() => {
-                      setCropAspect(mediaSize.width / mediaSize.height)
-                      setZoom(1)
-                      setCrop({ x: 0, y: 0 })
-                    }}
-                    className="px-4 py-3 border border-gray-200 bg-white text-[#1A1A18] text-[10px] font-black uppercase tracking-[0.2em] hover:bg-gray-50 transition-colors"
-                  >
-                    Original Size
-                  </button>
-                )}
-                <button
-                  onClick={() => {
-                    setCropAspect(1)
-                    setZoom(1)
-                    setCrop({ x: 0, y: 0 })
-                  }}
-                  className="px-4 py-3 border border-gray-200 bg-white text-[#1A1A18] text-[10px] font-black uppercase tracking-[0.2em] hover:bg-gray-50 transition-colors"
-                >
-                  1:1 Square
-                </button>
-                <button
-                  onClick={() => {
-                    setCropAspect(4/3)
-                    setZoom(1)
-                    setCrop({ x: 0, y: 0 })
-                  }}
-                  className="px-4 py-3 border border-gray-200 bg-white text-[#1A1A18] text-[10px] font-black uppercase tracking-[0.2em] hover:bg-gray-50 transition-colors"
-                >
-                  4:3 Ratio
-                </button>
-                <button
-                  onClick={handleConfirmCrop}
-                  className="px-6 py-3 bg-[#1A1A18] text-white text-[10px] font-black uppercase tracking-[0.2em] hover:bg-black transition-colors"
-                >
-                  Confirm Crop
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       <style jsx global>{`
-          @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Outfit:wght@200;300;400;500;900&family=Prompt:wght@200;300;400&display=swap');
-          .font-serif-luxury { font-family: 'Cormorant Garamond', serif; }
+          @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap');
+          .font-noto { font-family: 'Noto Sans Thai', sans-serif; }
           .no-scrollbar::-webkit-scrollbar { display: none; }
           .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+          .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+          .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+          .custom-scrollbar::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 10px; }
+          .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #D1D5DB; }
       `}</style>
     </>
   )

@@ -30,7 +30,9 @@ import {
   Pencil,
   Check,
   Trash2,
-  ChevronLeft
+  ChevronLeft,
+  Ticket,
+  AlertCircle
 } from 'lucide-react';
 import XYLLoader from '@/components/loaders/XYLLoader';
 import { motion, AnimatePresence, type PanInfo } from 'framer-motion';
@@ -152,8 +154,24 @@ export default function LiffMenuPage() {
   const searchParams = useSearchParams();
 
   const redirectTo = searchParams.get('path');
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const path = params.get('path');
+    if (path && path.startsWith('/')) {
+      const claimToken = params.get('claimToken');
+      let target = path;
+      if (claimToken && !target.includes('claimToken=')) {
+        const sep = target.includes('?') ? '&' : '?';
+        target += `${sep}claimToken=${claimToken}`;
+      }
+      router.replace(target);
+    }
+  }, [searchParams, router]);
+
   if (redirectTo && redirectTo.startsWith('/')) {
-    return <div className="h-screen bg-[#fcfcf9]" />;
+    return <XYLLoader tagline="กำลังนำคุณไปยังหน้าสมาชิก..." />;
   }
   
   // 🛡️ Boutique Shared Context
@@ -200,7 +218,9 @@ export default function LiffMenuPage() {
   
   // 🎟️ Loyalty & Coupons
   const [couponCode, setCouponCode] = useState('');
-  const [usePoints, setUsePoints] = useState(false);
+  const [activeCoupon, setActiveCoupon] = useState<any | null>(null);
+  const [memberCoupons, setMemberCoupons] = useState<any[]>([]);
+  const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [pointsDiscount, setPointsDiscount] = useState(0);
   const [modifierGroups, setModifierGroups] = useState<any[]>([]);
@@ -623,6 +643,37 @@ export default function LiffMenuPage() {
     if (cart.length > 0) localStorage.setItem('xylem_cart', JSON.stringify(cart));
     else localStorage.removeItem('xylem_cart');
   }, [cart]);
+
+  useEffect(() => {
+    const memId = memberInfo?.id || ctxMemberInfo?.id;
+    if (memId) {
+      const fetchCoupons = async () => {
+        const { data, error } = await supabase
+          .from('pos_member_coupons')
+          .select('*, pos_loyalty_coupons(*)')
+          .eq('member_id', memId)
+          .in('status', ['active', 'claiming']);
+          
+        if (error) {
+          console.error('Error fetching member coupons:', error);
+        } else if (data) {
+          // Filter out coupons that are explicitly disabled for delivery
+          const deliveryCoupons = data
+            .filter((c: any) => c.pos_loyalty_coupons?.is_applicable_delivery !== false)
+            .map((c: any) => ({
+              ...c,
+              ...c.pos_loyalty_coupons, // Merge loyalty coupon details (e.g. discount_type, discount_value, name)
+              id: c.id, // Keep member coupon id
+              coupon_id: c.coupon_id // Keep original coupon reference
+            }));
+          setMemberCoupons(deliveryCoupons);
+        }
+      };
+      fetchCoupons();
+    } else {
+      setMemberCoupons([]);
+    }
+  }, [memberInfo?.id, ctxMemberInfo?.id, supabase]);
 
   useEffect(() => {
     const fetchCategories = async (branchId?: string) => {
@@ -1204,7 +1255,57 @@ export default function LiffMenuPage() {
     const modsPrice = item.selected_modifiers?.reduce((macc: number, m: any) => macc + ((m.price_adjustment || m.price || 0) * (m.qty || 1)), 0) || 0;
     return acc + ((item.sale_price + modsPrice) * item.quantity);
   }, 0), [cart]);
-  const totalDiscount = useMemo(() => pointsDiscount + couponDiscount, [pointsDiscount, couponDiscount]);
+
+  const couponDiscountCalc = useMemo(() => {
+    if (!activeCoupon) return 0;
+    
+    // Check minimum spend
+    if (activeCoupon.min_order_amount > 0 && cartTotal < activeCoupon.min_order_amount) {
+      return 0; // Does not meet minimum spend
+    }
+
+    // Filter valid items for discount based on inclusions/exclusions
+    const validItems = cart.filter(item => {
+      // Excluded checks take precedence
+      if (activeCoupon.excluded_items?.includes(item.id)) return false;
+      if (activeCoupon.excluded_categories?.includes(item.category_id)) return false;
+      
+      // If applicable arrays are not empty, item must be in them
+      if (activeCoupon.applicable_items?.length > 0 && !activeCoupon.applicable_items.includes(item.id)) return false;
+      if (activeCoupon.applicable_categories?.length > 0 && !activeCoupon.applicable_categories.includes(item.category_id)) return false;
+      
+      return true;
+    });
+
+    if (validItems.length === 0) return 0;
+
+    let discount = 0;
+    
+    if (activeCoupon.discount_type === 'percent') {
+      const validItemsTotal = validItems.reduce((acc, item) => {
+        const modsPrice = item.selected_modifiers?.reduce((macc: number, m: any) => macc + ((m.price_adjustment || m.price || 0) * (m.qty || 1)), 0) || 0;
+        return acc + ((item.sale_price + modsPrice) * item.quantity);
+      }, 0);
+      discount = validItemsTotal * (activeCoupon.discount_value / 100);
+    } else if (activeCoupon.discount_type === 'fixed_amount' || activeCoupon.discount_type === 'fixed') {
+      discount = activeCoupon.discount_value;
+    } else if (activeCoupon.discount_type === 'free_item') {
+      // Since it's free item, we'll discount the lowest priced item in cart among valid items
+      const minPricedItem = validItems.reduce((prev, curr) => prev.sale_price < curr.sale_price ? prev : curr);
+      discount = minPricedItem.sale_price;
+    }
+
+    // Cap at max discount if specified
+    if (activeCoupon.max_discount_amount && activeCoupon.max_discount_amount > 0) {
+      if (discount > activeCoupon.max_discount_amount) {
+        discount = activeCoupon.max_discount_amount;
+      }
+    }
+
+    return discount;
+  }, [activeCoupon, cartTotal, cart]);
+
+  const totalDiscount = useMemo(() => pointsDiscount + couponDiscountCalc, [pointsDiscount, couponDiscountCalc]);
 
   const isFreeDelivery = useMemo(() => {
     const config = activeBranch?.inhouse_delivery_config || activeBranch?.opening_hours?.inhouse_delivery_config || shopSettings?.inhouse_delivery_config || shopSettings?.opening_hours?.inhouse_delivery_config;
@@ -1860,7 +1961,9 @@ export default function LiffMenuPage() {
           paymentMethod,
           branchId: activeBranch?.branch_id || shopSettings?.branch_id,
           isPreorder: isPreorderMode,
-          preorderTime: isPreorderMode ? (orderType === 'takeaway' ? pickupTime : preorderTime) : ''
+          preorderTime: isPreorderMode ? (orderType === 'takeaway' ? pickupTime : preorderTime) : '',
+          couponId: activeCoupon?.id || null,
+          discountAmount: couponDiscountCalc || 0
         })
       });
       const responseData = await res.json();
@@ -2926,58 +3029,22 @@ export default function LiffMenuPage() {
                      )}
                      
                      {/* Coupon Row */}
-                     <div className="flex items-center justify-between px-6 py-4 border-b border-[#F5F5F5] active:bg-gray-50 cursor-pointer transition-colors" onClick={() => {
-                        const code = window.prompt(locale === 'en' ? 'Enter Promo Code (e.g. XYL10)' : 'กรอกรหัสคูปอง (เช่น XYL10)');
-                        if (code) {
-                           setCouponCode(code.toUpperCase());
-                           if (code.toUpperCase() === 'XYL10') {
-                             setCouponDiscount(cartTotal * 0.1);
-                           } else {
-                             setCouponDiscount(0);
-                             alert(locale === 'en' ? 'Invalid promo code' : 'รหัสคูปองไม่ถูกต้อง');
-                           }
-                        }
-                     }}>
-                        <span className="text-[14px] font-bold text-[#1A1A18]">{locale === 'en' ? 'Promo Code' : 'คูปอง'}</span>
+                     <div className="flex items-center justify-between px-6 py-4 border-b border-[#F5F5F5] active:bg-gray-50 cursor-pointer transition-colors" onClick={() => setIsCouponModalOpen(true)}>
+                        <span className="text-[14px] font-bold text-[#1A1A18]">{locale === 'en' ? 'My Coupons' : 'คูปองของฉัน'}</span>
                         <div className="flex items-center gap-2">
-                           {couponDiscount > 0 ? (
-                              <span className="text-[14px] font-bold text-emerald-500">-฿{couponDiscount.toLocaleString()}</span>
+                           {activeCoupon ? (
+                              <span className="text-[14px] font-bold text-emerald-500">
+                                {activeCoupon.discount_type === 'percent' ? `ลด ${activeCoupon.discount_value}%` : 
+                                 activeCoupon.discount_type === 'free_item' ? 'ฟรีสินค้า 1 รายการ' : 
+                                 `-฿${activeCoupon.discount_value}`}
+                              </span>
                            ) : (
-                              <span className="text-[14px] font-bold text-gray-400">{couponCode ? couponCode : (locale === 'en' ? 'Use code' : 'ใช้คูปอง')}</span>
+                              <span className="text-[14px] font-bold text-gray-400">{locale === 'en' ? 'Select coupon' : 'เลือกคูปอง'}</span>
                            )}
                            <ChevronRight size={18} className="text-gray-400" />
                         </div>
                      </div>
                      
-                     {/* Points Row */}
-                     {memberInfo && (memberInfo.points || 0) >= (shopSettings?.loyalty_points_per_thb || 10) && (
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-[#F5F5F5] active:bg-gray-50 cursor-pointer transition-colors" onClick={() => {
-                           const rate = shopSettings?.loyalty_points_per_thb || 10;
-                           if (!usePoints) {
-                             setUsePoints(true);
-                             const maxDiscountByPoints = Math.floor((memberInfo.points || 0) / rate);
-                             setPointsDiscount(Math.min(cartTotal, maxDiscountByPoints));
-                           } else {
-                             setUsePoints(false);
-                             setPointsDiscount(0);
-                           }
-                        }}>
-                           <span className="text-[14px] font-bold text-[#1A1A18]">
-                              {locale === 'en' ? 'Points' : 'แต้มสะสม'} 
-                              <span className="text-[12px] font-normal text-gray-500 ml-2">({memberInfo.points} pts)</span>
-                           </span>
-                           <div className="flex items-center gap-2">
-                              {usePoints ? (
-                                 <span className="text-[14px] font-bold text-emerald-500">-฿{Math.floor((memberInfo.points || 0) / (shopSettings?.loyalty_points_per_thb || 10))}</span>
-                              ) : (
-                                 <span className="text-[14px] font-bold text-gray-400">{locale === 'en' ? 'Redeem' : 'ใช้แต้ม'}</span>
-                              )}
-                              <div className={`w-10 h-6 rounded-full flex items-center p-1 transition-colors ${usePoints ? 'bg-black' : 'bg-gray-200'}`}>
-                                 <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-all ${usePoints ? 'translate-x-4' : 'translate-x-0'}`} />
-                              </div>
-                           </div>
-                        </div>
-                     )}
 
                      {/* Payment Method Row */}
                      <div className="flex items-center justify-between px-6 py-4 active:bg-gray-50 cursor-pointer transition-colors" onClick={() => setPaymentMethod('cod')}>
@@ -3862,6 +3929,93 @@ export default function LiffMenuPage() {
            </div>
         </div>
       )}
+      {/* Coupon Modal (Full Screen) */}
+      {isCouponModalOpen && (
+        <div className="fixed inset-0 z-[3000] bg-[#F5F5F5] flex flex-col animate-in slide-in-from-bottom duration-300">
+          <div className="px-6 pb-4 border-b border-gray-200 bg-white pt-12 shadow-sm flex items-center justify-between">
+            <div>
+              <h2 className="text-[20px] font-black text-[#1A1A18] tracking-tight">{locale === 'en' ? 'My Coupons' : 'คูปองของฉัน'}</h2>
+              <p className="text-[13px] text-gray-500 mt-1">{locale === 'en' ? 'Select a coupon to apply discount' : 'เลือกคูปองเพื่อใช้เป็นส่วนลด'}</p>
+            </div>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsCouponModalOpen(false);
+              }}
+              className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center active:scale-95 transition-transform"
+            >
+              <X className="w-5 h-5 text-gray-600" />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+               {memberCoupons.length === 0 ? (
+                 <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+                   <Ticket className="w-12 h-12 mb-3 opacity-20" />
+                   <p className="text-[14px] font-medium">{locale === 'en' ? 'No active coupons' : 'ไม่มีคูปองที่ใช้งานได้ในขณะนี้'}</p>
+                 </div>
+               ) : (
+                 <>
+                   {/* Remove Coupon Option */}
+                   {activeCoupon && (
+                     <div 
+                       onClick={() => {
+                         setActiveCoupon(null);
+                         setIsCouponModalOpen(false);
+                       }}
+                       className="bg-white rounded-2xl p-4 flex items-center justify-between border border-red-100 shadow-sm cursor-pointer active:scale-[0.98] transition-all"
+                     >
+                       <span className="text-[14px] font-bold text-red-500">{locale === 'en' ? 'Remove Coupon' : 'ยกเลิกการใช้คูปอง'}</span>
+                       <X className="w-5 h-5 text-red-500" />
+                     </div>
+                   )}
+
+                   {/* Coupon List */}
+                   {memberCoupons.map((coupon) => (
+                     <div 
+                       key={coupon.id} 
+                       onClick={() => {
+                         setActiveCoupon(coupon);
+                         setIsCouponModalOpen(false);
+                       }}
+                       className={`bg-white rounded-2xl overflow-hidden shadow-sm border cursor-pointer active:scale-[0.98] transition-all ${activeCoupon?.id === coupon.id ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-transparent'}`}
+                     >
+                       <div className="flex">
+                         <div className="w-24 h-24 bg-orange-50 flex-shrink-0 flex flex-col items-center justify-center border-r border-dashed border-gray-200 relative">
+                           {/* Semi-circles for ticket effect */}
+                           <div className="absolute -top-2 -right-2 w-4 h-4 bg-[#F5F5F5] rounded-full" />
+                           <div className="absolute -bottom-2 -right-2 w-4 h-4 bg-[#F5F5F5] rounded-full" />
+                           
+                           {coupon.pos_loyalty_coupons?.image_url ? (
+                             <img src={coupon.pos_loyalty_coupons.image_url} alt="" className="w-16 h-16 object-cover rounded-full shadow-sm" />
+                           ) : (
+                             <Ticket className="w-8 h-8 text-orange-400" />
+                           )}
+                         </div>
+                         <div className="p-4 flex-1 flex flex-col justify-center">
+                           <h3 className="text-[14px] font-bold text-[#1A1A18] leading-tight mb-1">{coupon.coupon_name || coupon.name}</h3>
+                           <div className="flex items-center gap-2">
+                             <span className="text-[12px] font-bold text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-full">
+                               {coupon.discount_type === 'percent' ? `ลด ${coupon.discount_value}%` : 
+                                coupon.discount_type === 'free_item' ? 'ฟรี 1 รายการ' : 
+                                `ลด ฿${coupon.discount_value}`}
+                             </span>
+                           </div>
+                         </div>
+                         <div className="p-4 flex items-center justify-center">
+                           <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${activeCoupon?.id === coupon.id ? 'border-emerald-500 bg-emerald-500' : 'border-gray-200'}`}>
+                             {activeCoupon?.id === coupon.id && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
+                           </div>
+                         </div>
+                       </div>
+                     </div>
+                   ))}
+                 </>
+               )}
+            </div>
+        </div>
+      )}
+
     </div>
   );
 }

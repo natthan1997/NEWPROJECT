@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { supabase } from '@/lib/supabaseClient';
 import Link from 'next/link';
-import { ChevronLeftIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { ChevronLeftIcon, ChevronRightIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { Loader2 } from 'lucide-react';
 
 interface LateLog {
@@ -18,6 +18,17 @@ export default function LatenessHistoryPage() {
   const { profile } = useAuth();
   const [lateLogs, setLateLogs] = useState<LateLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  const nextMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+  };
+
+  const prevMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+  };
+
+  const monthLabel = currentDate.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' });
 
   useEffect(() => {
     if (!profile?.id) return;
@@ -25,11 +36,16 @@ export default function LatenessHistoryPage() {
     const fetchLateLogs = async () => {
       setLoading(true);
       try {
+        const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).toISOString();
+        const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
+
         const { data, error } = await supabase
           .from('attendance_logs')
           .select('id, timestamp, profiles(shift_start)')
           .eq('profile_id', profile.id)
           .eq('type', 'check_in')
+          .gte('timestamp', firstDay)
+          .lte('timestamp', lastDay)
           .order('timestamp', { ascending: false });
 
         if (!error && data) {
@@ -64,7 +80,7 @@ export default function LatenessHistoryPage() {
     };
 
     fetchLateLogs();
-  }, [profile?.id]);
+  }, [profile?.id, currentDate]);
 
   return (
     <div className="p-4 md:p-6 max-w-[800px] mx-auto min-h-screen pb-20">
@@ -82,6 +98,25 @@ export default function LatenessHistoryPage() {
             รายการวันที่คุณลงเวลาเข้างานล่าช้ากว่ากำหนด
           </p>
         </div>
+      </div>
+
+      {/* Month Selector */}
+      <div className="flex items-center justify-between bg-white rounded-full p-1 border border-gray-200/60 shadow-xs mb-6 w-fit mx-auto">
+        <button 
+          onClick={prevMonth}
+          className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-50 active:scale-95 transition-all text-gray-500"
+        >
+          <ChevronLeftIcon className="w-5 h-5" />
+        </button>
+        <span className="px-6 text-sm font-bold text-gray-900 min-w-[140px] text-center">
+          {monthLabel}
+        </span>
+        <button 
+          onClick={nextMonth}
+          className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-50 active:scale-95 transition-all text-gray-500"
+        >
+          <ChevronRightIcon className="w-5 h-5" />
+        </button>
       </div>
 
       <div className="bg-white rounded-[24px] border border-gray-200/60 shadow-[0_2px_15px_rgba(0,0,0,0.02)] overflow-hidden">

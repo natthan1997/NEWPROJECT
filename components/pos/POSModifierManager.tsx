@@ -19,12 +19,90 @@ import {
   AlertTriangle,
   Star,
   GripVertical,
+  SlidersHorizontal,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import { motion, AnimatePresence, Reorder, useDragControls } from 'framer-motion'
-import { useI18n } from "@/lib/I18nContext";
+import { useI18n } from '@/lib/I18nContext'
 
-interface POSModifierManagerProps {
+function useLongPressReorder(isReordering: boolean) {
+    const controls = useDragControls()
+    const itemRef = React.useRef<any>(null)
+
+    const state = React.useRef({
+        timer: null as NodeJS.Timeout | null,
+        isLongPressed: false,
+        isDragging: false,
+        startX: 0,
+        startY: 0,
+        startEvent: null as TouchEvent | null
+    })
+
+    React.useEffect(() => {
+        if (!isReordering) return
+        const el = itemRef.current
+        if (!el) return
+
+        const handleTouchStart = (e: TouchEvent) => {
+            e.stopPropagation() // Prevent parent from receiving the touch
+            state.current.isLongPressed = false
+            state.current.isDragging = false
+            state.current.startX = e.touches[0].clientX
+            state.current.startY = e.touches[0].clientY
+            state.current.startEvent = e
+
+            state.current.timer = setTimeout(() => {
+                state.current.isLongPressed = true
+                if (typeof window !== 'undefined' && navigator.vibrate) navigator.vibrate(50)
+                
+                el.classList.remove('shadow-sm')
+                el.classList.add('shadow-2xl', 'border-black/20', 'z-50')
+            }, 300)
+        }
+
+        const handleTouchMove = (e: TouchEvent) => {
+            if (!state.current.isLongPressed) {
+                const dx = Math.abs(e.touches[0].clientX - state.current.startX)
+                const dy = Math.abs(e.touches[0].clientY - state.current.startY)
+                if (dx > 10 || dy > 10) {
+                    if (state.current.timer) clearTimeout(state.current.timer)
+                }
+                return
+            }
+            e.stopPropagation() // Prevent parent from receiving the move
+            if (e.cancelable) e.preventDefault()
+            if (!state.current.isDragging) {
+                state.current.isDragging = true
+                controls.start(state.current.startEvent as any || e as any)
+            }
+        }
+
+        const handleTouchEnd = (e: TouchEvent) => {
+            e.stopPropagation()
+            if (state.current.timer) clearTimeout(state.current.timer)
+            state.current.isLongPressed = false
+            state.current.isDragging = false
+            el.classList.remove('shadow-2xl', 'border-black/20', 'z-50')
+            el.classList.add('shadow-sm')
+        }
+
+        el.addEventListener('touchstart', handleTouchStart, { passive: false })
+        el.addEventListener('touchmove', handleTouchMove, { passive: false })
+        el.addEventListener('touchend', handleTouchEnd)
+        el.addEventListener('touchcancel', handleTouchEnd)
+
+        return () => {
+            el.removeEventListener('touchstart', handleTouchStart)
+            el.removeEventListener('touchmove', handleTouchMove)
+            el.removeEventListener('touchend', handleTouchEnd)
+            el.removeEventListener('touchcancel', handleTouchEnd)
+        }
+    }, [controls, isReordering])
+
+    return { controls, itemRef }
+}
+
+interface ModifierOption {
   profile: any
   activeView: string
   allowedNav: any[]
@@ -35,63 +113,149 @@ interface POSModifierManagerProps {
   shopSettings?: any
 }
 
+const ModifierOptionItem = ({ opt, onEditOption, isReordering }: any) => {
+  const { controls, itemRef } = useLongPressReorder(isReordering)
+
+  if (isReordering) {
+    return (
+      <Reorder.Item 
+          ref={itemRef}
+          value={opt} 
+          dragListener={false}
+          dragControls={controls}
+          onMouseDown={(e) => {
+             e.stopPropagation()
+             controls.start(e)
+          }}
+          className="flex flex-col bg-white border border-gray-100 rounded-[12px] shadow-sm mb-2 relative z-10 cursor-grab active:cursor-grabbing transition-shadow"
+          style={{ WebkitUserSelect: 'none', userSelect: 'none', WebkitTouchCallout: 'none', touchAction: 'pan-y' }}
+      >
+        <div className="p-3 flex items-center justify-between min-w-0">
+          <div className="flex items-center gap-2 truncate">
+              <GripVertical size={16} className="text-gray-300 shrink-0" />
+              <span className="text-[14px] font-bold text-gray-800 truncate">{opt.name}</span>
+          </div>
+          {opt.price_adjustment > 0 && (
+              <span className="text-[12px] font-black text-emerald-600 px-2 shrink-0">+ ฿{opt.price_adjustment}</span>
+          )}
+        </div>
+      </Reorder.Item>
+    )
+  }
+
+  return (
+    <div className="group/item flex items-center gap-3 bg-white p-3 border-b border-gray-50 last:border-b-0 hover:bg-gray-50 transition-colors">
+      <div className="w-5" />
+      <span className="text-[13px] font-bold text-gray-700 flex-1">{opt.name}</span>
+      {opt.price_adjustment > 0 && (
+        <span className="text-[11px] font-black text-emerald-600 px-2">+ ฿{opt.price_adjustment}</span>
+      )}
+      <button onClick={() => onEditOption(opt)} className="text-gray-400 hover:text-black p-1 transition-colors">
+         <Edit3 size={14} />
+      </button>
+    </div>
+  )
+}
+
 const ModifierGroupItem = ({
   group,
   onReorderOptions,
-}: {
-  group: any
-  onReorderOptions: (newOptions: any[]) => void
-}) => {
-  const controls = useDragControls()
-  const { locale } = useI18n();
+  onEditGroup,
+  onEditOption,
+  expandedGroup,
+  setExpandedGroup,
+  isReordering
+}: any) => {
+  const isExpanded = expandedGroup === group.id
+  const { locale } = useI18n()
+  const { controls, itemRef } = useLongPressReorder(isReordering)
+
+  if (isReordering) {
+    return (
+      <Reorder.Item 
+          ref={itemRef}
+          value={group} 
+          dragListener={false}
+          dragControls={controls}
+          onMouseDown={(e) => {
+             e.stopPropagation()
+             controls.start(e)
+          }}
+          className="bg-white border border-gray-100 rounded-[12px] shadow-sm mb-3 relative z-10 cursor-grab active:cursor-grabbing transition-shadow"
+          style={{ WebkitUserSelect: 'none', userSelect: 'none', WebkitTouchCallout: 'none', touchAction: 'pan-y' }}
+      >
+        <div className="p-4 flex items-center gap-2">
+            <GripVertical size={20} className="text-gray-400" />
+            <span className="text-[15px] font-bold text-gray-800">{group.name}</span>
+            <span className="text-[14px] text-gray-400 font-medium">({group.options?.length || 0})</span>
+        </div>
+        
+        {isExpanded && group.options && group.options.length > 0 && (
+          <div className="bg-gray-50/50 p-4 border-t border-gray-100 rounded-b-[12px]">
+             <Reorder.Group axis="y" values={group.options} onReorder={onReorderOptions} className="flex flex-col">
+                {group.options.map((opt: any) => (
+                  <ModifierOptionItem key={opt.id} opt={opt} onEditOption={onEditOption} isReordering={true} />
+                ))}
+             </Reorder.Group>
+          </div>
+        )}
+      </Reorder.Item>
+    )
+  }
 
   return (
-    <Reorder.Item
-      value={group}
-      dragListener={false}
-      dragControls={controls}
-      className="flex flex-col border-2 border-[#1A1A18] bg-white shadow-sm"
-    >
-      <div className="flex items-center gap-4 border-b border-gray-100 bg-gray-50 p-4">
-        <div
-          onPointerDown={e => controls.start(e)}
-          className="cursor-grab p-1 active:cursor-grabbing"
-          style={{ touchAction: 'none' }}
-        >
-          <GripVertical size={20} className="text-gray-400" />
+    <div className="bg-white border-b border-gray-100 last:border-b-0">
+      <div 
+        onClick={() => setExpandedGroup(isExpanded ? null : group.id)}
+        className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer"
+      >
+        <div className="flex items-center gap-2">
+            <span className="text-[15px] font-bold text-gray-800">{group.name}</span>
+            <span className="text-[14px] text-gray-400 font-medium">({group.options?.length || 0})</span>
         </div>
-        <h3 className="font-black uppercase tracking-tighter text-black">{group.name}</h3>
+        <div className="flex items-center gap-3">
+            <button 
+                onClick={(e) => { e.stopPropagation(); onEditGroup(); }} 
+                className="text-[13px] text-black font-medium flex items-center gap-1 hover:underline"
+            >
+                <Edit3 size={14} /> แก้ไข
+            </button>
+            <ChevronRight size={20} className={"text-gray-300 transition-transform " + (isExpanded ? "rotate-90" : "")} />
+        </div>
       </div>
-      {group.options && group.options.length > 0 && (
-        <div className="bg-white p-4">
-          <Reorder.Group
-            axis="y"
-            values={group.options}
-            onReorder={onReorderOptions}
-            className="space-y-2"
-          >
-            {group.options.map((opt: any) => (
-              <Reorder.Item
-                key={opt.id}
-                value={opt}
-                className="group/item flex cursor-grab items-center gap-3 border border-gray-100 bg-white p-3 transition-all hover:border-[#1A1A18]/20 hover:shadow-sm active:cursor-grabbing"
-                style={{ touchAction: 'none' }}
-              >
-                <Menu size={14} className="text-gray-300 group-hover/item:text-black" />
-                <span className="text-[12px] font-bold uppercase text-gray-600 transition-colors group-hover/item:text-black">
-                  {opt.name}
-                </span>
-                {opt.price_adjustment > 0 && (
-                  <span className="ml-auto text-[10px] font-black text-emerald-600">
-                    {locale === 'en' ? '                     + ฿' : locale === 'zh' ? '                     + ฿' : '                     + ฿'}{opt.price_adjustment}
-                  </span>
-                )}
-              </Reorder.Item>
-            ))}
-          </Reorder.Group>
-        </div>
+
+      <AnimatePresence>
+      {isExpanded && (
+        <motion.div 
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+        >
+          <div className="bg-gray-50/50 p-4 border-t border-gray-50 border-b border-gray-100">
+            {group.options && group.options.length > 0 && (
+                <Reorder.Group
+                  axis="y"
+                  values={group.options}
+                  onReorder={onReorderOptions}
+                  className="space-y-2 mb-4"
+                >
+                  {group.options.map((opt: any) => (
+                    <ModifierOptionItem key={opt.id} opt={opt} onEditOption={onEditOption} isReordering={false} />
+                  ))}
+                </Reorder.Group>
+            )}
+            <button
+                onClick={(e) => { e.stopPropagation(); onEditOption(); }}
+                className="w-full py-3 border-2 border-dashed border-gray-200 rounded-2xl text-[12px] font-bold text-gray-500 hover:border-gray-400 hover:text-gray-900 hover:bg-gray-50 transition-all flex items-center justify-center gap-2"
+            >
+                <Plus size={14} /> เพิ่มตัวเลือกย่อย
+            </button>
+          </div>
+        </motion.div>
       )}
-    </Reorder.Item>
+      </AnimatePresence>
+    </div>
   )
 }
 
@@ -114,6 +278,7 @@ export default function POSModifierManager({
 
   const [allMenuItems, setAllMenuItems] = useState<any[]>([])
   const [groupLinks, setGroupLinks] = useState<string[]>([])
+  const [expandedGroup, setExpandedGroup] = useState<string | null>(null)
 
   // --- Bulk Edit / Table View ---
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid')
@@ -390,199 +555,59 @@ export default function POSModifierManager({
       o.group_name.toLowerCase().includes(searchTerm.toLowerCase())
   )
   return (
-    <div className="no-scrollbar relative min-h-full overflow-y-auto p-4 sm:p-8 max-w-7xl mx-auto pb-32">
-      
-      {/* HEADER & SEARCH BAR */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div>
-          <h2 className="text-2xl font-black tracking-tight text-gray-900">ตัวเลือกเสริม</h2>
-          <p className="text-sm font-medium text-gray-500 mt-1">จัดการกลุ่มตัวเลือกและรายละเอียด (Modifiers)</p>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          {!isSortMode && (
-            <div className="relative group w-full md:w-80">
-                <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#1A1A18] transition-colors" />
-                <input 
-                    type="text" 
-                    placeholder={locale === 'en' ? 'ค้นหาชื่อตัวเลือกเสริม...' : 'ค้นหาชื่อตัวเลือกเสริม...'} 
-                    className="w-full bg-white border border-gray-200 rounded-full py-2.5 pl-11 pr-4 text-[13px] font-bold outline-none focus:border-black focus:ring-4 focus:ring-black/5 transition-all placeholder:text-gray-400 text-gray-900 shadow-sm"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
-            </div>
-          )}
-          <button
-            onClick={() => openGroupEditor()}
-            className="h-10 px-6 rounded-full bg-[#1A1A18] text-white flex items-center justify-center gap-2 shadow-md shadow-black/10 font-black uppercase tracking-widest text-[11px] hover:bg-black transition-all active:scale-95 shrink-0"
-          >
-            <Plus size={16} />
-            <span className="hidden sm:inline">เพิ่มกลุ่มตัวเลือก</span>
-          </button>
-        </div>
-      </div>
+    <div className="w-full pb-10">
+      {isSavingOrder && (
+          <div className="p-4 bg-gray-50 flex items-center justify-between sticky top-0 z-20 border-b border-gray-200">
+              <span className="text-[13px] font-medium text-gray-600">กำลังบันทึกลำดับ...</span>
+              <Loader2 size={16} className="animate-spin text-gray-400" />
+          </div>
+      )}
 
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 text-gray-400">
           <Loader2 size={32} className="animate-spin mb-4" />
-          <p className="text-sm font-bold">กำลังโหลดข้อมูล...</p>
         </div>
-      ) : isSortMode ? (
-        <div className="mx-auto w-full max-w-3xl pb-32">
-          <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between border border-amber-200 rounded-2xl bg-amber-50/50 p-4 sm:p-5 text-amber-800 shadow-sm">
-            <div className="flex items-center gap-4 mb-4 sm:mb-0">
-              <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-                <AlertTriangle size={20} className="text-amber-600" />
-              </div>
-              <div className="text-[12px] font-black uppercase tracking-widest">
-                Sorting Mode: ลากเพื่อจัดเรียงลำดับใหม่
-              </div>
-            </div>
-            {isSavingOrder && (
-              <div className="flex items-center gap-3 bg-white/50 px-4 py-2 rounded-full border border-amber-100">
-                <Loader2 size={16} className="animate-spin text-amber-500" />
-                <span className="text-[10px] font-black uppercase tracking-widest text-amber-700">กำลังบันทึก...</span>
-              </div>
-            )}
+      ) : groups.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center px-4">
+          <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center text-gray-300 mb-4">
+            <SlidersHorizontal size={28} />
           </div>
+          <p className="text-sm text-gray-500 font-medium">ยังไม่มีกลุ่มตัวเลือก</p>
+        </div>
+      ) : (
+        <div className="divide-y divide-gray-100 border-b border-gray-100">
+          {isSortMode && (
+            <div className="p-4 mb-2 text-center bg-gray-50 border-b border-gray-100">
+              <span className="text-[13px] font-medium text-gray-500">กดค้างเพื่อลากสลับตำแหน่ง</span>
+            </div>
+          )}
           <Reorder.Group
             axis="y"
             values={groups}
             onReorder={handleReorderGroups}
-            className="space-y-4"
+            className="flex flex-col w-full"
           >
             {groups.map((group: any) => (
               <ModifierGroupItem
                 key={group.id}
                 group={group}
                 onReorderOptions={newOptions => handleReorderOptions(group.id, newOptions)}
+                onEditGroup={() => openGroupEditor(group)}
+                onEditOption={(opt: any) => opt ? openOptionEditor(group, opt) : openOptionEditor(group)}
+                expandedGroup={expandedGroup}
+                setExpandedGroup={setExpandedGroup}
+                isReordering={isSortMode}
               />
             ))}
           </Reorder.Group>
         </div>
-      ) : viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
-          {filteredGroups.map(group => (
-            <div
-              key={group.id}
-              className="group flex flex-col bg-white rounded-[24px] border border-gray-100 transition-all hover:shadow-xl hover:shadow-gray-200/50 hover:border-gray-200 overflow-hidden"
-            >
-              <header className="flex items-start justify-between bg-gray-50/50 p-6 pb-4 border-b border-gray-100">
-                <div className="flex-1 pr-4">
-                  <h3 className="text-[15px] font-black uppercase tracking-tight text-gray-900 leading-tight">
-                    {group.name}
-                  </h3>
-                  <div className="mt-2 flex items-center gap-2">
-                    <span className="px-2 py-1 bg-white border border-gray-200 rounded-full text-[9px] font-black uppercase tracking-widest text-gray-500 shadow-sm">
-                      {group.min_select === 0 ? 'ระบุหรือไม่ก็ได้' : `ต้องเลือกอย่างน้อย ${group.min_select}`}
-                    </span>
-                    <span className="text-[11px] font-bold text-gray-400">
-                      สูงสุด {group.max_select}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0">
-                  <button
-                    onClick={() => openGroupEditor(group)}
-                    className="w-8 h-8 rounded-full flex items-center justify-center bg-white border border-gray-200 text-gray-400 transition-all hover:border-black hover:text-black hover:shadow-sm"
-                  >
-                    <Edit3 size={14} />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteGroup(group.id)}
-                    className="w-8 h-8 rounded-full flex items-center justify-center bg-white border border-gray-200 text-red-300 transition-all hover:border-red-500 hover:text-red-500 hover:shadow-sm"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </header>
-              
-              <div className="flex-1 p-2">
-                <div className="space-y-1">
-                  {group.options?.map((opt: any) => (
-                    <div
-                      key={opt.id}
-                      className="flex items-center justify-between p-3 px-4 rounded-2xl transition-colors hover:bg-gray-50 group/opt"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className={`w-2 h-2 rounded-full shrink-0 ${opt.is_active ? 'bg-emerald-500' : 'bg-gray-300'}`} />
-                        <span className="text-[13px] font-black text-gray-700 truncate">
-                          {opt.name}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-4 shrink-0 pl-4">
-                        {opt.price_adjustment > 0 && (
-                          <span className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-[10px] font-black border border-emerald-100/50">
-                            + ฿{opt.price_adjustment}
-                          </span>
-                        )}
-                        <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover/opt:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => openOptionEditor(group, opt)}
-                            className="w-7 h-7 rounded-full flex items-center justify-center text-gray-400 hover:bg-white hover:text-gray-900 hover:shadow-sm transition-all"
-                          >
-                            <Edit3 size={12} />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteOption(opt.id)}
-                            className="w-7 h-7 rounded-full flex items-center justify-center text-red-300 hover:bg-red-50 hover:text-red-500 transition-all"
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  
-                  <button
-                    onClick={() => openOptionEditor(group)}
-                    className="w-full mt-2 py-3 border-2 border-dashed border-gray-200 rounded-2xl text-[11px] font-black uppercase tracking-widest text-gray-400 hover:border-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-all flex items-center justify-center gap-2"
-                  >
-                    <Plus size={14} /> เพิ่มตัวเลือกย่อย
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-x-auto">
-          {/* Table view remains mostly identical but needs some rounding adjustments. For brevity we leave as is or update minimally */}
-          <table className="w-full text-left font-bold text-black border-collapse">
-            <thead>
-              <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-500">Option Name</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-500">Group Name</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-500">Price Adj.</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-500">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {filteredOptions.map((opt) => (
-                 <tr key={opt.id} className="hover:bg-gray-50 transition-colors group">
-                    <td className="px-6 py-4 text-[13px] font-black">{opt.name}</td>
-                    <td className="px-6 py-4">
-                      <span className="px-3 py-1 bg-gray-100 rounded-full text-[10px] font-black text-gray-600">{opt.group_name}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      {opt.price_adjustment > 0 ? (
-                        <span className="text-emerald-600 text-[12px] font-black">+ ฿{opt.price_adjustment}</span>
-                      ) : (
-                        <span className="text-gray-300">-</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                       <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                         <button className="p-2 bg-white border border-gray-200 rounded-full text-gray-500 hover:text-black hover:border-black"><Edit3 size={14} /></button>
-                         <button className="p-2 bg-white border border-red-100 rounded-full text-red-400 hover:text-white hover:bg-red-500 hover:border-red-500"><Trash2 size={14} /></button>
-                       </div>
-                    </td>
-                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
       )}
+
+      <div className="p-4 mt-2">
+          <button onClick={() => openGroupEditor()} className="w-full bg-black hover:bg-gray-800 text-white py-3.5 rounded-[12px] font-semibold transition-colors flex items-center justify-center gap-2 text-[15px]">
+              <Plus size={18} /> เพิ่มกลุ่มตัวเลือก
+          </button>
+      </div>
 
       {/* MODALS */}
       {/* GROUP EDITOR */}

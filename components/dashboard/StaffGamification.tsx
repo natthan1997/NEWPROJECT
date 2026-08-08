@@ -25,6 +25,7 @@ export const StaffGamification = ({ profileId, branchCode }: { profileId: string
     const cacheKey = `staff-gamification-${profileId}`;
     const [stats, setStats] = useState<KPIStats | null>(null);
     const [loading, setLoading] = useState(true);
+    const [isExpanded, setIsExpanded] = useState(false);
 
     // Initialize from cache on mount
     useEffect(() => {
@@ -145,25 +146,33 @@ export const StaffGamification = ({ profileId, branchCode }: { profileId: string
 
     return (
         <div className="w-full mb-6" ref={containerRef}>
-            <div className="flex items-center justify-between mb-4 px-2">
-                <h2 className="text-base font-semibold text-[#1D1D1F] tracking-tight">สิทธิประโยชน์เดือนนี้</h2>
-                <div className="text-[11px] font-medium text-gray-500 bg-white/50 backdrop-blur-sm px-3 py-1.5 rounded-full tracking-wide">
-                    {new Date().toLocaleString('th-TH', { month: 'short', year: 'numeric' })}
+            <div 
+                className="flex items-center justify-between py-2 cursor-pointer group active:opacity-60 transition-opacity"
+                onClick={() => setIsExpanded(!isExpanded)}
+            >
+                <div className="flex items-center gap-2">
+                    <Gift className="w-4 h-4 text-gray-900 stroke-[1.5]" />
+                    <h2 className="text-[12px] font-bold text-gray-900 uppercase tracking-wider">สิทธิประโยชน์เดือนนี้</h2>
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-medium text-gray-400">3 รายการ</span>
+                    <ChevronRight className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`} strokeWidth={1.5} />
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {isExpanded && (
+                <motion.div 
+                    initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                    animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
+                    className="grid grid-cols-1 md:grid-cols-3 gap-3"
+                >
                 {kpis.map((kpi, index) => (
-                    <div key={index} className={`kpi-card bg-white rounded-[24px] p-4 relative overflow-hidden transition-all shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100/50 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] ${kpi.lost ? 'bg-red-50/30 border-red-100' : ''}`}>
+                    <div key={index} className={`bg-white rounded-[16px] p-4 relative overflow-hidden transition-all border ${kpi.lost ? 'border-red-100' : 'border-gray-100'}`}>
                         <div className="flex justify-between items-start mb-4 relative z-10">
                             <div className="flex items-center gap-3">
-                                <div className={`w-8 h-8 rounded-full shadow-[0_2px_10px_rgba(0,0,0,0.06)] flex items-center justify-center ${kpi.lost ? 'bg-red-50 text-red-500' : 'bg-[#F5F5F7]'}`}>
-                                    {kpi.lost ? <X className="w-4 h-4 text-red-500" /> : kpi.icon}
-                                </div>
                                 <div>
-                                    <h3 className={`text-[12px] font-semibold tracking-tight ${kpi.lost ? 'text-red-500' : 'text-[#1D1D1F]'}`}>{kpi.title}</h3>
+                                    <h3 className={`text-[12px] font-bold tracking-tight ${kpi.lost ? 'text-red-500' : 'text-gray-900'}`}>{kpi.title}</h3>
                                     <p className={`text-[10px] mt-0.5 flex items-center gap-1 font-medium ${kpi.lost ? 'text-red-400' : 'text-gray-500'}`}>
-                                        {!kpi.lost && <Gift className="w-3 h-3 text-gray-400" />}
                                         {kpi.reward}
                                     </p>
                                 </div>
@@ -191,7 +200,8 @@ export const StaffGamification = ({ profileId, branchCode }: { profileId: string
                         </div>
                     </div>
                 ))}
-            </div>
+                </motion.div>
+            )}
         </div>
     );
 };

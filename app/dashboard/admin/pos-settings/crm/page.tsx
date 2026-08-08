@@ -104,9 +104,9 @@ export default function LoyaltySettingsPage() {
     const { id, ...data } = coupon;
     let res;
     if (id.startsWith('new-')) {
-      res = await supabase.from('pos_loyalty_coupons').insert([{ ...data, is_gacha_only: data.is_gacha_only || false }]);
+      res = await supabase.from('pos_loyalty_coupons').insert([{ ...data, is_gacha_only: data.is_gacha_only || false, is_applicable_delivery: data.is_applicable_delivery ?? true }]);
     } else {
-      res = await supabase.from('pos_loyalty_coupons').update({ ...data, is_gacha_only: data.is_gacha_only || false }).eq('id', id);
+      res = await supabase.from('pos_loyalty_coupons').update({ ...data, is_gacha_only: data.is_gacha_only || false, is_applicable_delivery: data.is_applicable_delivery ?? true }).eq('id', id);
     }
     
     if (res.error) {
@@ -465,6 +465,14 @@ export default function LoyaltySettingsPage() {
                   className="rounded text-purple-600" 
                 /> เฉพาะกาชา
               </label>
+              <label className="flex items-center gap-2 text-sm text-gray-700 ml-2">
+                <input 
+                  type="checkbox" 
+                  checked={coupon.is_applicable_delivery ?? true} 
+                  onChange={e => setCoupons(coupons.map(c => c.id === coupon.id ? { ...c, is_applicable_delivery: e.target.checked } : c))}
+                  className="rounded text-blue-600" 
+                /> ใช้กับเดลิเวอรี่ได้
+              </label>
               <button onClick={() => handleSaveCoupon(coupon)} className="p-2 text-green-600 hover:bg-green-50 rounded-lg">
                 <Save className="w-5 h-5" />
               </button>
@@ -475,38 +483,139 @@ export default function LoyaltySettingsPage() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="md:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">ใช้แต้มแลก (Points required)</label>
-                <input 
-                  type="number" 
-                  value={coupon.cost_points} 
-                  onChange={e => setCoupons(coupons.map(c => c.id === coupon.id ? { ...c, cost_points: parseInt(e.target.value) } : c))}
-                  className="w-full border-gray-300 rounded-md text-sm"
-                />
+            <div className="md:col-span-3 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">ใช้แต้มแลก (Points required)</label>
+                  <input 
+                    type="number" 
+                    value={coupon.cost_points} 
+                    onChange={e => setCoupons(coupons.map(c => c.id === coupon.id ? { ...c, cost_points: parseInt(e.target.value) } : c))}
+                    className="w-full border-gray-300 rounded-md text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">ประเภทส่วนลด</label>
+                  <select 
+                    value={coupon.discount_type} 
+                    onChange={e => setCoupons(coupons.map(c => c.id === coupon.id ? { ...c, discount_type: e.target.value } : c))}
+                    className="w-full border-gray-300 rounded-md text-sm"
+                  >
+                    <option value="free_item">ฟรี 1 รายการ</option>
+                    <option value="percent">ส่วนลด %</option>
+                    <option value="fixed">ส่วนลดบาท</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">
+                    {coupon.discount_type === 'free_item' ? 'ไม่ใช้งาน (เว้นว่าง)' : 'มูลค่า (Value)'}
+                  </label>
+                  <input 
+                    type="number" 
+                    value={coupon.discount_value || 0} 
+                    onChange={e => setCoupons(coupons.map(c => c.id === coupon.id ? { ...c, discount_value: parseFloat(e.target.value) } : c))}
+                    className="w-full border-gray-300 rounded-md text-sm"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">ประเภทส่วนลด</label>
-                <select 
-                  value={coupon.discount_type} 
-                  onChange={e => setCoupons(coupons.map(c => c.id === coupon.id ? { ...c, discount_type: e.target.value } : c))}
-                  className="w-full border-gray-300 rounded-md text-sm"
-                >
-                  <option value="free_item">ฟรี 1 รายการ (ระบุมูลค่าสูงสุดได้)</option>
-                  <option value="percent">ส่วนลด %</option>
-                  <option value="fixed">ส่วนลดบาท</option>
-                </select>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">ยอดสั่งซื้อขั้นต่ำ (Min Order Amount)</label>
+                  <input 
+                    type="number" 
+                    value={coupon.min_order_amount || 0} 
+                    onChange={e => setCoupons(coupons.map(c => c.id === coupon.id ? { ...c, min_order_amount: parseFloat(e.target.value) } : c))}
+                    className="w-full border-gray-300 rounded-md text-sm"
+                    placeholder="0 = ไม่มีขั้นต่ำ"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">ลดสูงสุด / ฟรีสูงสุด (Max Discount)</label>
+                  <input 
+                    type="number" 
+                    value={coupon.max_discount_amount || ''} 
+                    onChange={e => setCoupons(coupons.map(c => c.id === coupon.id ? { ...c, max_discount_amount: e.target.value ? parseFloat(e.target.value) : null } : c))}
+                    className="w-full border-gray-300 rounded-md text-sm"
+                    placeholder="เว้นว่าง = ไม่จำกัด"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">
-                  {coupon.discount_type === 'free_item' ? 'มูลค่าสูงสุดที่แลกได้ (0 = ไม่จำกัด)' : 'มูลค่า (Value)'}
-                </label>
-                <input 
-                  type="number" 
-                  value={coupon.discount_value || 0} 
-                  onChange={e => setCoupons(coupons.map(c => c.id === coupon.id ? { ...c, discount_value: parseFloat(e.target.value) } : c))}
-                  className="w-full border-gray-300 rounded-md text-sm"
-                />
+
+              {/* Inclusions and Exclusions */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-3 bg-gray-50 rounded-lg border border-gray-100">
+                <div>
+                  <label className="block text-xs text-gray-700 font-medium mb-2">หมวดหมู่ที่ใช้ได้ (Applicable Categories)</label>
+                  <div className="h-32 overflow-y-auto border border-gray-200 rounded-md bg-white p-2">
+                    {categories.map(cat => (
+                      <label key={cat.id} className="flex items-center gap-2 text-xs py-1">
+                        <input 
+                          type="checkbox" 
+                          checked={(coupon.applicable_categories || []).includes(cat.id)}
+                          onChange={e => {
+                            const current = coupon.applicable_categories || [];
+                            const updated = e.target.checked ? [...current, cat.id] : current.filter((id: string) => id !== cat.id);
+                            setCoupons(coupons.map(c => c.id === coupon.id ? { ...c, applicable_categories: updated } : c));
+                          }}
+                        /> {cat.name}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-700 font-medium mb-2">หมวดหมู่ที่ยกเว้น (Excluded Categories)</label>
+                  <div className="h-32 overflow-y-auto border border-gray-200 rounded-md bg-white p-2">
+                    {categories.map(cat => (
+                      <label key={cat.id} className="flex items-center gap-2 text-xs py-1">
+                        <input 
+                          type="checkbox" 
+                          checked={(coupon.excluded_categories || []).includes(cat.id)}
+                          onChange={e => {
+                            const current = coupon.excluded_categories || [];
+                            const updated = e.target.checked ? [...current, cat.id] : current.filter((id: string) => id !== cat.id);
+                            setCoupons(coupons.map(c => c.id === coupon.id ? { ...c, excluded_categories: updated } : c));
+                          }}
+                        /> {cat.name}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-700 font-medium mb-2">เมนูที่ใช้ได้ (Applicable Items)</label>
+                  <div className="h-32 overflow-y-auto border border-gray-200 rounded-md bg-white p-2">
+                    {menuItems.map(item => (
+                      <label key={item.id} className="flex items-center gap-2 text-xs py-1">
+                        <input 
+                          type="checkbox" 
+                          checked={(coupon.applicable_items || []).includes(item.id)}
+                          onChange={e => {
+                            const current = coupon.applicable_items || [];
+                            const updated = e.target.checked ? [...current, item.id] : current.filter((id: string) => id !== item.id);
+                            setCoupons(coupons.map(c => c.id === coupon.id ? { ...c, applicable_items: updated } : c));
+                          }}
+                        /> {item.name}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-700 font-medium mb-2">เมนูที่ยกเว้น (Excluded Items)</label>
+                  <div className="h-32 overflow-y-auto border border-gray-200 rounded-md bg-white p-2">
+                    {menuItems.map(item => (
+                      <label key={item.id} className="flex items-center gap-2 text-xs py-1">
+                        <input 
+                          type="checkbox" 
+                          checked={(coupon.excluded_items || []).includes(item.id)}
+                          onChange={e => {
+                            const current = coupon.excluded_items || [];
+                            const updated = e.target.checked ? [...current, item.id] : current.filter((id: string) => id !== item.id);
+                            setCoupons(coupons.map(c => c.id === coupon.id ? { ...c, excluded_items: updated } : c));
+                          }}
+                        /> {item.name}
+                      </label>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
             

@@ -36,30 +36,11 @@ export default function POSMenuAppConfig({
     { id: 'modifiers', label: 'ตัวเลือก', icon: SlidersHorizontal },
   ]
 
-  // Render tabs in the parent header to save space
+  // Render nothing in the extra header to keep it clean
   useEffect(() => {
-    setViewExtraHeader(
-      <div className="flex bg-gray-100 p-1 rounded-lg">
-        {tabs.map((tab) => {
-          const isActive = activeTab === tab.id
-          const Icon = tab.icon
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as MenuAppTab)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[13px] font-bold transition-all ${
-                isActive ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <Icon size={14} />
-              <span className="hidden sm:inline">{tab.label}</span>
-            </button>
-          )
-        })}
-      </div>
-    )
+    setViewExtraHeader(null)
     return () => setViewExtraHeader(null)
-  }, [activeTab, setViewExtraHeader])
+  }, [setViewExtraHeader])
 
   return (
     <div className="flex h-full flex-col bg-white">

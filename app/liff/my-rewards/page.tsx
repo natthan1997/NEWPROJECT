@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Ticket, ChevronLeft, CheckCircle2, Clock } from 'lucide-react';
+import { Ticket, ChevronLeft, ChevronRight, CheckCircle2, Clock, Gift } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
 import { useLiff } from '@/components/liff/LiffProvider';
@@ -294,7 +294,36 @@ export default function MyRewardsPage() {
         <div className="w-6"></div>
       </header>
 
-      <main className="px-5 pt-6 relative z-10 max-w-lg mx-auto flex flex-col gap-4">
+      <main className="px-5 pt-6 relative z-10 max-w-lg mx-auto flex flex-col gap-6">
+        {/* Ultra Minimal Summary */}
+        <div className="bg-white rounded-[24px] border border-gray-100 py-5 flex items-center justify-between shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-2">
+          
+          <div className="flex-1 flex flex-col items-center justify-center border-r border-gray-100">
+            <p className="text-[10px] font-bold text-gray-400 mb-1.5 uppercase tracking-widest">คูปองที่ใช้ได้</p>
+            <div className="text-[32px] font-bold text-[#1A1A18] leading-none tracking-tighter flex items-baseline gap-1">
+              {vouchers.filter(v => ['active', 'claiming'].includes(v.status)).length}
+              <span className="text-[11px] text-gray-300 font-medium tracking-normal">ใบ</span>
+            </div>
+          </div>
+          
+          <div 
+            onClick={() => router.push('/liff/member/gacha')}
+            className="flex-1 flex flex-col items-center justify-center cursor-pointer active:bg-gray-50/50 transition-colors py-2 rounded-r-[24px]"
+          >
+            <p className="text-[10px] font-bold text-amber-500 mb-1.5 uppercase tracking-widest flex items-center gap-1">
+              ตั๋วกาชา <Gift size={10} />
+            </p>
+            <div className="flex items-center gap-2">
+              <div className="text-[32px] font-bold text-[#1A1A18] leading-none tracking-tighter flex items-baseline gap-1">
+                {memberInfo?.gacha_tickets || 0}
+                <span className="text-[11px] text-gray-300 font-medium tracking-normal">ใบ</span>
+              </div>
+              <ChevronRight size={16} className="text-gray-300 -mr-2" strokeWidth={3} />
+            </div>
+          </div>
+          
+        </div>
+
         {/* Tabs and Filter */}
         <div className="flex items-center justify-between border-b border-gray-200 mb-2">
           <div className="flex items-center gap-6">

@@ -17,8 +17,17 @@ function LiffPathRedirector() {
   
   useEffect(() => {
     const path = searchParams.get('path');
-    if (path && path.startsWith('/') && pathname !== path) {
-      router.replace(path);
+    const claimToken = searchParams.get('claimToken');
+    if (path && path.startsWith('/')) {
+      let target = path;
+      if (claimToken && !target.includes('claimToken=')) {
+        const sep = target.includes('?') ? '&' : '?';
+        target += `${sep}claimToken=${claimToken}`;
+      }
+      const targetPath = target.split('?')[0];
+      if (pathname !== targetPath) {
+        router.replace(target);
+      }
     }
   }, [searchParams, router, pathname]);
 

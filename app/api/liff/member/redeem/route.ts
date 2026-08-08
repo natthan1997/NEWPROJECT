@@ -64,6 +64,11 @@ export async function POST(req: Request) {
          discount_type: coupon.discount_type,
          discount_value: coupon.discount_value,
          applicable_categories: coupon.applicable_categories,
+         applicable_items: coupon.applicable_items,
+         excluded_categories: coupon.excluded_categories,
+         excluded_items: coupon.excluded_items,
+         min_order_amount: coupon.min_order_amount,
+         max_discount_amount: coupon.max_discount_amount,
          image_url: coupon.image_url,
          status: 'active'
        }]);

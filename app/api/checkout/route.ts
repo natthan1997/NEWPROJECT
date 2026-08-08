@@ -63,6 +63,8 @@ export async function POST(req: Request) {
       isPreorder,
       preorderTime,
       deliveryDistance,
+      couponId,
+      discountAmount,
     } = await req.json()
 
     const deliveryLatitude = typeof latitude === 'number' ? latitude : null
@@ -180,7 +182,8 @@ export async function POST(req: Request) {
       const modsPrice = item.selected_modifiers?.reduce((macc: number, m: any) => macc + (m.price_adjustment || m.price || 0), 0) || 0;
       return acc + ((item.sale_price + modsPrice) * item.quantity);
     }, 0);
-    const totalAmount = subtotal + deliveryFee;
+    const totalDiscountAmount = Number(discountAmount || 0);
+    const totalAmount = Math.max(0, subtotal + deliveryFee - totalDiscountAmount);
 
     // LIFF delivery/takeaway is temporarily COD-only so the order can
     // enter the POS queue immediately without waiting on online payments.
@@ -269,6 +272,7 @@ export async function POST(req: Request) {
       order_source: 'liff',
       total_amount: totalAmount,
       net_total: totalAmount,
+      discount_amount: totalDiscountAmount,
       payment_method: paymentMethod,
       reference_name: phoneNumber,
       comment: combinedComment,
@@ -327,6 +331,13 @@ export async function POST(req: Request) {
 
     const { error: itemsError } = await supabase.from('pos_order_items').insert(orderItems)
     if (itemsError) throw itemsError
+
+    if (couponId) {
+      await supabase
+        .from('pos_member_coupons')
+        .update({ status: 'used', used_at: new Date().toISOString(), order_id: order.id })
+        .eq('id', couponId)
+    }
 
     return NextResponse.json({ 
       ...paymentResponse,

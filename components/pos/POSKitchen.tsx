@@ -57,7 +57,14 @@ export default function POSKitchen({
       .select('*, items:pos_order_items(*, item:pos_menu_items!item_id(name))')
       .in('status', ['pending', 'paid', 'preparing', 'accepted'])
       .order('created_at', { ascending: true })
-    if (data) setOrders(data)
+    if (data) {
+      const validOrders = data.filter((order: any) => {
+        const hasItems = order.items && order.items.length > 0;
+        const isGhost = !hasItems && order.total_amount === 0;
+        return !isGhost;
+      });
+      setOrders(validOrders)
+    }
     if (showLoading) setLoading(false)
   }
 
