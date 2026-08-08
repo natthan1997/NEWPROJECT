@@ -1773,6 +1773,10 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
           await supabase.from('pos_tables').update({ parent_table_id: null }).eq('parent_table_id', orderToCancel.table_id)
         }
         
+        if (id === editingOrderId) {
+          resetOrderComposer();
+        }
+        
         refreshPendingOrders()
       } catch (e: any) {
         alert('ไม่สามารถยกเลิกบิลได้: ' + e.message)
