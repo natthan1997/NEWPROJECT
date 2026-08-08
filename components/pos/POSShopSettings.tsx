@@ -189,6 +189,8 @@ export default function POSShopSettings({
     loyalty_earn_rate: 100,
     latitude: 13.7563,
     longitude: 100.5018,
+    check_in_radius: 50,
+    coupon_radius_meters: 500,
     address: '',
     role_permissions: {
       manager: ['terminal', 'pos:access', 'pos:checkout', 'pos:void', 'pos:discount', 'pos:drawer', 'reports', 'reports:view', 'reports:sales', 'reports:profit', 'reports:export', 'menu-management', 'menu-stock-toggle', 'menu-edit-price', 'inventory', 'inventory:view', 'inventory:edit', 'inventory:audit', 'kitchen', 'kitchen:view', 'tables', 'members', 'drawer', 'delivery', 'history', 'modifiers', 'recipes', 'settings', 'settings:view', 'settings:manage', 'staff', 'staff:view', 'staff:manage', 'management'],
@@ -1101,6 +1103,26 @@ const handleSave = async () => {
                       <span className="text-sm font-medium text-[#666666]">{locale === 'en' ? 'เมตร (Meters)' : locale === 'zh' ? 'เมตร (Meters)' : 'เมตร (Meters)'}</span>
                     </div>
                     <p className="text-[10px] text-[#A3A3A3] mt-2 italic font-light">{locale === 'en' ? '* ค่าแนะนำ: 50 - 100 เมตร เพื่อความเสถียรของสัญญาณ GPS' : locale === 'zh' ? '* ค่าแนะนำ: 50 - 100 เมตร เพื่อความเสถียรของสัญญาณ GPS' : '* ค่าแนะนำ: 50 - 100 เมตร เพื่อความเสถียรของสัญญาณ GPS'}</p>
+                  </div>
+
+                  <div className="space-y-2 pt-4 border-t border-[#E5E5E5]">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-[#666666]">
+                      รัศมีอนุญาตใช้งานคูปองของลูกค้า (Coupon Geofencing Radius in meters)
+                    </label>
+                    <div className="flex items-center gap-4">
+                      <input
+                        type="number"
+                        value={settings.coupon_radius_meters ?? 500}
+                        onChange={(e) => setSettings({ ...settings, coupon_radius_meters: Number(e.target.value) })}
+                        className="w-32 p-4 border border-[#E5E5E5] bg-white focus:border-[#111111] outline-none text-xl font-light font-mono"
+                        min={50}
+                        max={5000}
+                      />
+                      <span className="text-sm font-medium text-[#666666]">เมตร (Meters)</span>
+                    </div>
+                    <p className="text-[10px] text-[#A3A3A3] mt-2 italic font-light">
+                      * ลูกค้าจะกดใช้คูปองจากโทรศัพท์ได้ ต่อเมื่อพิกัด GPS อยู่ในรัศมีที่กำหนดรอบสาขานี้เท่านั้น (ค่าเริ่มต้น 500 เมตร)
+                    </p>
                   </div>
                 </div>
               </div>

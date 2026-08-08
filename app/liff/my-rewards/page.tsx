@@ -8,6 +8,7 @@ import { createClient } from '@/utils/supabase/client';
 import { useLiff } from '@/components/liff/LiffProvider';
 import XYLLoader from '@/components/loaders/XYLLoader';
 import Link from 'next/link';
+import { getUserCurrentLocation, verifyUserIsAtShopLocation } from '@/lib/shopLocation';
 
 interface VoucherItemProps {
   voucher: any;
@@ -243,8 +244,29 @@ export default function MyRewardsPage() {
     setConfirmingVoucher(voucher);
   };
 
+  const [isCheckingLocation, setIsCheckingLocation] = useState(false);
+
   const proceedUseCoupon = async (voucher: any) => {
     try {
+      setIsCheckingLocation(true);
+
+      // 1. Get user GPS Location
+      let coords;
+      try {
+        coords = await getUserCurrentLocation();
+      } catch (locErr: any) {
+        alert(locErr.message || 'ไม่สามารถระบุพิกัด GPS ได้ กรุณาเปิดบริการตำแหน่งที่ตั้ง (GPS) บนมือถือเพื่อยืนยันพิกัด ณ ร้านค้าในการใช้คูปอง');
+        return false;
+      }
+
+      // 2. Verify user distance to shop location
+      const locationCheck = await verifyUserIsAtShopLocation(coords.latitude, coords.longitude);
+      if (!locationCheck.isAllowed) {
+        alert(locationCheck.errorMessage || 'คุณอยู่นอกพิกัดร้าน! การกดใช้คูปองนี้จำเป็นต้องกด ณ ตำแหน่งร้านเท่านั้น');
+        return false;
+      }
+
+      // 3. Update status to claiming
       const { error } = await supabase
         .from('pos_member_coupons')
         .update({ status: 'claiming' })
@@ -255,8 +277,12 @@ export default function MyRewardsPage() {
       setVouchers((prev) =>
         prev.map((v) => (v.id === voucher.id ? { ...v, status: 'claiming' } : v))
       );
+      return true;
     } catch (err: any) {
       alert('เกิดข้อผิดพลาด: ' + err.message);
+      return false;
+    } finally {
+      setIsCheckingLocation(false);
     }
   };
 
@@ -434,20 +460,31 @@ export default function MyRewardsPage() {
               </p>
               <div className="flex gap-3">
                 <button
+                  disabled={isCheckingLocation}
                   onClick={() => setConfirmingVoucher(null)}
-                  className="flex-1 py-3 border border-gray-200 hover:bg-gray-50 active:scale-95 transition-all text-gray-500 font-semibold text-[13px] rounded-xl"
+                  className="flex-1 py-3 border border-gray-200 hover:bg-gray-50 active:scale-95 transition-all text-gray-500 font-semibold text-[13px] rounded-xl disabled:opacity-50"
                 >
                   ย้อนกลับ
                 </button>
                 <button
+                  disabled={isCheckingLocation}
                   onClick={async () => {
                     const v = confirmingVoucher;
-                    setConfirmingVoucher(null);
-                    await proceedUseCoupon(v);
+                    const success = await proceedUseCoupon(v);
+                    if (success) {
+                      setConfirmingVoucher(null);
+                    }
                   }}
-                  className="flex-1 py-3 bg-[#1A1A18] hover:bg-neutral-800 active:scale-95 transition-all text-white font-semibold text-[13px] rounded-xl shadow-md"
+                  className="flex-1 py-3 bg-[#1A1A18] hover:bg-neutral-800 active:scale-95 transition-all text-white font-semibold text-[13px] rounded-xl shadow-md flex items-center justify-center gap-2 disabled:opacity-75"
                 >
-                  ยืนยันใช้งาน
+                  {isCheckingLocation ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                      <span>กำลังเช็ค GPS ร้าน...</span>
+                    </>
+                  ) : (
+                    'ยืนยันใช้งาน'
+                  )}
                 </button>
               </div>
             </motion.div>

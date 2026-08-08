@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { PromoBannerSlider } from '@/components/pos/PromoBannerSlider';
+import { getUserCurrentLocation, verifyUserIsAtShopLocation } from '@/lib/shopLocation';
 import {
   ShoppingBag,
   ChevronRight,
@@ -1879,6 +1880,24 @@ export default function LiffMenuPage() {
       })),
     })),
   })
+
+  const handleSelectCouponWithCheck = async (coupon: any) => {
+    if (orderType === 'takeaway' || orderType === 'dine_in') {
+      try {
+        const coords = await getUserCurrentLocation();
+        const locationCheck = await verifyUserIsAtShopLocation(coords.latitude, coords.longitude, activeBranch?.branch_id || shopSettings?.branch_id);
+        if (!locationCheck.isAllowed) {
+          alert(locationCheck.errorMessage || 'คุณอยู่นอกพิกัดร้าน! การใช้คูปองสำหรับสั่งที่ร้านจำเป็นต้องกด ณ ตำแหน่งร้านเท่านั้น');
+          return;
+        }
+      } catch (locErr: any) {
+        alert(locErr.message || 'ไม่สามารถระบุพิกัด GPS ได้ กรุณาเปิดบริการตำแหน่งที่ตั้ง (GPS) บนมือถือเพื่อยืนยันพิกัด ณ ร้านค้าในการใช้คูปอง');
+        return;
+      }
+    }
+    setActiveCoupon(coupon);
+    setIsCouponModalOpen(false);
+  };
 
   const handleCheckout = async () => {
     if (checkoutLockRef.current || isProcessing) return;
@@ -3974,10 +3993,7 @@ export default function LiffMenuPage() {
                    {memberCoupons.map((coupon) => (
                      <div 
                        key={coupon.id} 
-                       onClick={() => {
-                         setActiveCoupon(coupon);
-                         setIsCouponModalOpen(false);
-                       }}
+                       onClick={() => handleSelectCouponWithCheck(coupon)}
                        className={`bg-white rounded-2xl overflow-hidden shadow-sm border cursor-pointer active:scale-[0.98] transition-all ${activeCoupon?.id === coupon.id ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-transparent'}`}
                      >
                        <div className="flex">
