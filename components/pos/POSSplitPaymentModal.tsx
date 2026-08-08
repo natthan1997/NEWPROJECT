@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react'
 import { 
   X, Divide, CheckSquare, Square, Banknote, QrCode, CreditCard, 
-  Sparkles, Plus, Minus, CheckCircle2, DollarSign, Receipt, ArrowRight,
-  RefreshCw, Check, AlertCircle, ShieldCheck
+  Sparkles, Plus, Minus, CheckCircle2, Receipt, RefreshCw, Check, 
+  Layers, ArrowRight, Wallet, User
 } from 'lucide-react'
 import { useI18n } from "@/lib/I18nContext";
 
@@ -213,42 +213,42 @@ export default function POSSplitPaymentModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[3000] flex items-center justify-center p-3 sm:p-6">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-slate-950/75 backdrop-blur-md" onClick={onClose}></div>
+    <div className="fixed inset-0 z-[3000] flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200">
+      {/* Dark Blur Backdrop */}
+      <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md" onClick={onClose}></div>
       
-      {/* Modal Container */}
-      <div className="relative flex w-full max-w-3xl flex-col bg-[#F8F9FA] font-sans shadow-2xl animate-in zoom-in-95 duration-200 h-[90vh] rounded-[2.5rem] overflow-hidden border border-white/20">
+      {/* Premium Glass Container */}
+      <div className="relative flex w-full max-w-3xl flex-col bg-[#FAFAFC] font-sans shadow-2xl h-[92vh] rounded-[2.5rem] overflow-hidden border border-slate-200/60">
         
-        {/* TOP STATUS HEADER */}
-        <header className="bg-slate-900 text-white px-6 py-4 flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 shrink-0">
+        {/* HEADER BAR */}
+        <header className="bg-slate-900 text-white px-6 py-4 flex flex-wrap items-center justify-between gap-4 shrink-0 shadow-md">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-black">
+            <div className="h-10 w-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-black border border-amber-500/30">
               <Sparkles size={20} />
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-black uppercase tracking-tight text-white flex items-center gap-2">
-                ระบบแยกจ่ายชำระ (SPLIT BILL)
+                ระบบแยกชำระบิล (SPLIT BILL)
               </h2>
               <p className="text-[11px] text-slate-400 font-medium">
-                ชำระต่อเนื่องในหน้าเดียว เรียลไทม์ไม่ต้องสลับป๊อบอัพ
+                เลือกหารเท่ากัน หรือเลือกชำระแยกทีละรายการพร้อมตัวเลือก
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-4">
-            {/* Badges */}
-            <div className="flex items-center gap-2 text-xs font-bold bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700">
-              <span className="text-slate-400">ยอดบิล:</span>
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Live Progress Badges */}
+            <div className="flex items-center gap-1.5 text-xs font-bold bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700">
+              <span className="text-slate-400">บิลรวม:</span>
               <span className="text-white font-black">฿{cartTotal.toLocaleString()}</span>
             </div>
 
-            <div className="flex items-center gap-2 text-xs font-bold bg-emerald-950/60 text-emerald-400 px-3 py-1.5 rounded-xl border border-emerald-800/50">
-              <span>ชำระแล้ว:</span>
+            <div className="flex items-center gap-1.5 text-xs font-bold bg-emerald-950/80 text-emerald-400 px-3 py-1.5 rounded-xl border border-emerald-700/50">
+              <span>จ่ายแล้ว:</span>
               <span className="font-black">฿{totalPaidInSplits.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
             </div>
 
-            <div className="flex items-center gap-2 text-xs font-bold bg-amber-950/60 text-amber-400 px-3 py-1.5 rounded-xl border border-amber-800/50">
+            <div className="flex items-center gap-1.5 text-xs font-bold bg-amber-950/80 text-amber-400 px-3 py-1.5 rounded-xl border border-amber-700/50">
               <span>คงเหลือ:</span>
               <span className="font-black">฿{liveRemainingTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
             </div>
@@ -262,40 +262,41 @@ export default function POSSplitPaymentModal({
           </div>
         </header>
 
-        {/* IF FULLY COMPLETED: SHOW CELEBRATION SUMMARY */}
+        {/* FULLY COMPLETED VIEW */}
         {isFullyCompleted ? (
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-6 animate-in zoom-in-95 duration-300 bg-white">
-            <div className="h-24 w-24 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-100/50 animate-bounce">
+            <div className="h-24 w-24 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shadow-xl shadow-emerald-100 animate-bounce">
               <CheckCircle2 size={56} />
             </div>
 
             <div className="space-y-2">
-              <h3 className="text-2xl font-black text-slate-900 tracking-tight">
+              <h3 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
                 🎉 ชำระเงินครบถ้วนเรียบร้อยแล้ว!
               </h3>
               <p className="text-sm font-medium text-slate-500 max-w-md mx-auto">
-                ยอดเงินรวม ฿{cartTotal.toLocaleString()} ถูกชำระครบถ้วนผ่านระบบแยกจ่าย
+                ยอดบิลรวม ฿{cartTotal.toLocaleString()} ได้รับการชำระครบเต็มจำนวนแล้ว
               </p>
             </div>
 
-            {/* Split History List */}
-            <div className="w-full max-w-lg bg-slate-50 rounded-2xl p-4 border border-slate-200 space-y-2 text-left">
-              <div className="text-xs font-black uppercase text-slate-400 tracking-wider mb-2">
-                ประวัติการชำระแต่ละงวด ({completedSplits.length} รายการ):
+            {/* Split Breakdown Table */}
+            <div className="w-full max-w-lg bg-slate-50 rounded-2xl p-5 border border-slate-200 space-y-3 text-left">
+              <div className="text-xs font-black uppercase text-slate-400 tracking-wider flex items-center justify-between">
+                <span>สรุปการชำระแยกตามงวด ({completedSplits.length} งวด):</span>
+                <span className="text-slate-900 font-bold">รวม ฿{totalPaidInSplits.toLocaleString()}</span>
               </div>
               {completedSplits.map((split, idx) => (
-                <div key={split.id} className="flex items-center justify-between bg-white p-3 rounded-xl border border-slate-100 text-xs font-bold">
-                  <div className="flex items-center gap-2">
-                    <span className="h-6 w-6 rounded-full bg-slate-900 text-white flex items-center justify-center text-[10px] font-black">
+                <div key={split.id} className="flex items-center justify-between bg-white p-3.5 rounded-xl border border-slate-200/80 text-xs font-bold shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <span className="h-6 w-6 rounded-full bg-slate-900 text-white flex items-center justify-center text-[11px] font-black shrink-0">
                       {idx + 1}
                     </span>
-                    <span className="uppercase font-black text-slate-800">
+                    <span className="uppercase font-black text-slate-900">
                       {split.method === 'cash' ? '💵 เงินสด' : split.method === 'promptpay' ? '📲 สแกน QR' : '💳 บัตรเครดิต'}
                     </span>
                     <span className="text-slate-400 font-medium">({split.timestamp})</span>
                   </div>
                   <div className="text-right">
-                    <span className="font-black text-emerald-600 text-sm">
+                    <span className="font-black text-emerald-600 text-base">
                       ฿{split.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                     </span>
                     {split.change && split.change > 0 ? (
@@ -308,7 +309,7 @@ export default function POSSplitPaymentModal({
               ))}
             </div>
 
-            {/* Completion Action Buttons */}
+            {/* Final CTAs */}
             <div className="flex flex-wrap items-center justify-center gap-4 pt-4 w-full max-w-md">
               <button
                 onClick={() => {
@@ -317,23 +318,23 @@ export default function POSSplitPaymentModal({
                 className="flex-1 h-14 rounded-2xl border-2 border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white font-black text-sm transition-all flex items-center justify-center gap-2 active:scale-95"
               >
                 <Receipt size={18} />
-                พิมพ์ใบเสร็จ (Print)
+                พิมพ์ใบเสร็จ
               </button>
 
               <button
                 onClick={onFinishOrder}
                 className="flex-1 h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 active:scale-95"
               >
-                <ShieldCheck size={18} />
+                <Check size={18} />
                 เสร็จสิ้นเปิดบิลใหม่
               </button>
             </div>
           </div>
         ) : (
-          /* ACTIVE SPLIT PAYMENT WORKFLOW */
+          /* ACTIVE CONTINUOUS SPLIT WORKFLOW */
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
             
-            {/* TAB SELECTOR */}
+            {/* SEGMENTED TAB SWITCHER */}
             <div className="px-6 pt-5 pb-3 bg-white border-b border-slate-200/80 shrink-0">
               <div className="flex bg-slate-100 p-1.5 rounded-2xl font-bold gap-1">
                 <button
@@ -349,7 +350,7 @@ export default function POSSplitPaymentModal({
                   }`}
                 >
                   <Divide size={16} />
-                  {locale === 'en' ? 'Equal Split' : 'หารเท่ากัน (Equal)'}
+                  {locale === 'en' ? 'Equal Split' : '👥 หารเท่ากัน (Equal Split)'}
                 </button>
 
                 <button
@@ -365,20 +366,20 @@ export default function POSSplitPaymentModal({
                   }`}
                 >
                   <CheckSquare size={16} />
-                  {locale === 'en' ? 'By Item & Options' : 'เลือกตามรายการสินค้า & ตัวเลือก'}
+                  {locale === 'en' ? 'By Item & Options' : '🛍️ เลือกตามรายการสินค้า'}
                 </button>
               </div>
             </div>
 
-            {/* MAIN CONTENT AREA */}
-            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6 custom-scrollbar bg-slate-50">
+            {/* SCROLLABLE MAIN CONTENT */}
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6 custom-scrollbar bg-[#FAFAFC]">
 
-              {/* EQUAL SPLIT MODE DISPLAY */}
+              {/* EQUAL SPLIT MODE */}
               {splitMode === 'equal' && (
                 <div className="space-y-4 animate-in fade-in duration-200">
-                  <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col items-center justify-center text-center">
+                  <div className="bg-white border border-slate-200/90 rounded-3xl p-6 shadow-sm flex flex-col items-center justify-center text-center">
                     <span className="text-xs font-black uppercase tracking-wider text-slate-400 mb-4">
-                      เลือกจำนวนคนหารจ่ายสำหรับยอดคงเหลือ
+                      จำนวนคนหารจ่ายสำหรับยอดคงเหลือ
                     </span>
 
                     <div className="flex items-center gap-8 my-2">
@@ -423,12 +424,12 @@ export default function POSSplitPaymentModal({
                 </div>
               )}
 
-              {/* BY ITEM SPLIT MODE DISPLAY */}
+              {/* BY ITEM SPLIT MODE */}
               {splitMode === 'item' && (
                 <div className="space-y-3 animate-in fade-in duration-200">
                   <div className="flex items-center justify-between px-1">
                     <span className="text-xs font-bold text-slate-500">
-                      รายการสินค้า ({unpaidUnits.length} รายการยังไม่ได้จ่าย):
+                      รายการสินค้าในบิล ({unpaidUnits.length} รายการยังไม่ได้ชำระ):
                     </span>
 
                     <button
@@ -519,15 +520,15 @@ export default function POSSplitPaymentModal({
                 </div>
               )}
 
-              {/* SPLIT HISTORY ACCORDION */}
+              {/* COMPLETED SPLITS HISTORY LIST */}
               {completedSplits.length > 0 && (
-                <div className="bg-emerald-50/60 border border-emerald-200 rounded-2xl p-4 text-xs font-bold space-y-2">
+                <div className="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-4 text-xs font-bold space-y-2">
                   <div className="text-emerald-800 font-black uppercase text-[11px] tracking-wider flex items-center justify-between">
-                    <span>รายการที่ชำระสำเร็จแล้ว ({completedSplits.length} งวด):</span>
+                    <span>งวดที่ชำระสำเร็จแล้ว ({completedSplits.length} รายการ):</span>
                     <span>รวม ฿{totalPaidInSplits.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
                   </div>
                   {completedSplits.map((split, i) => (
-                    <div key={split.id} className="flex items-center justify-between bg-white/80 p-2.5 rounded-xl text-slate-700 border border-emerald-100">
+                    <div key={split.id} className="flex items-center justify-between bg-white/90 p-2.5 rounded-xl text-slate-700 border border-emerald-100">
                       <span>งวดที่ {i + 1}: {split.method === 'cash' ? '💵 เงินสด' : split.method === 'promptpay' ? '📲 สแกน QR' : '💳 บัตรเครดิต'} ({split.timestamp})</span>
                       <span className="font-black text-emerald-700">฿{split.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
                     </div>
@@ -536,10 +537,10 @@ export default function POSSplitPaymentModal({
               )}
             </div>
 
-            {/* BOTTOM INLINE PAYMENT PANEL */}
+            {/* INLINE PAYMENT PANEL FOOTER */}
             <footer className="border-t border-slate-200 bg-white p-5 space-y-4 shrink-0 shadow-lg">
               
-              {/* Payment Summary Bar */}
+              {/* Payment Summary Header */}
               <div className="flex items-end justify-between">
                 <div>
                   <span className="text-[11px] font-black uppercase tracking-wider text-slate-400 block">
@@ -557,7 +558,7 @@ export default function POSSplitPaymentModal({
                 </div>
               </div>
 
-              {/* Payment Method Selector */}
+              {/* Payment Method Cards */}
               <div className="grid grid-cols-3 gap-2.5">
                 <button
                   disabled={targetPartialAmount <= 0}
@@ -599,7 +600,7 @@ export default function POSSplitPaymentModal({
                 </button>
               </div>
 
-              {/* INLINE CASH CALCULATOR (WHEN CASH METHOD IS SELECTED) */}
+              {/* INLINE CASH CALCULATOR (WHEN CASH IS SELECTED) */}
               {paymentMethod === 'cash' && (
                 <div className="bg-amber-50/80 border border-amber-200 rounded-2xl p-4 space-y-3 animate-in slide-in-from-bottom-2 duration-200">
                   <div className="flex items-center justify-between">
@@ -620,7 +621,7 @@ export default function POSSplitPaymentModal({
                       className="flex-1 h-12 bg-white border border-amber-300 rounded-xl px-4 text-lg font-black text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
                     />
 
-                    {/* Quick Banknote Buttons */}
+                    {/* Quick Banknotes Buttons */}
                     <button
                       onClick={() => setCashReceivedInput(String(Math.ceil(targetPartialAmount)))}
                       className="px-3 h-12 rounded-xl bg-white border border-amber-300 text-xs font-bold text-amber-900 hover:bg-amber-100 transition-all"

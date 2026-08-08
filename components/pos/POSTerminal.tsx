@@ -3687,38 +3687,44 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 	      const orderNumToPrint = finalOrderNumber || (finalOrderId ? (finalOrderId as string).slice(0, 8) : 'NEW');
 	      const queueNumToPrint = finalQueueNumber
 
-      setPaymentSuccessData({
-        received: receivedNum,
-        change: changeNum > 0 ? changeNum : 0,
-        orderId: finalOrderId || 'NEW',
-        orderNumber: orderNumToPrint,
-        queueNumber: String(queueNumToPrint),
-        deliveryPlatform: orderType === 'delivery' ? deliveryPlatform : '',
-        referenceName: orderType === 'delivery' ? platformOrderId.trim() : '',
-        tableNumber: selectedTable?.table_number,
-        customerName: selectedCustomer?.full_name || selectedCustomer?.name,
-        orderType,
-            items: cart.map(item => ({
+      if (newStatus === 'completed') {
+        setPaymentSuccessData({
+          received: receivedNum,
+          change: changeNum > 0 ? changeNum : 0,
+          orderId: finalOrderId || 'NEW',
+          orderNumber: orderNumToPrint,
+          queueNumber: String(queueNumToPrint),
+          deliveryPlatform: orderType === 'delivery' ? deliveryPlatform : '',
+          referenceName: orderType === 'delivery' ? platformOrderId.trim() : '',
+          tableNumber: selectedTable?.table_number,
+          customerName: selectedCustomer?.full_name || selectedCustomer?.name,
+          orderType,
+          items: cart.map(item => ({
             name: item.name,
             quantity: item.quantity,
             subtotal: getEffectiveItemUnitPrice(item) * item.quantity,
             modifiers: item.selected_modifiers?.map((m: any) => m.name) || [],
             selected_modifiers: item.selected_modifiers || [],
             category_id: item.category_id || 'uncategorized'
-        })),
-        subtotal: rawCartSubTotal,
-        discount: discountTotalValue + itemDiscountTotal,
-        tax: vatAmount,
-        serviceCharge: serviceChargeAmount,
-        total: cartTotal,
-        paymentMethod: method,
-        timestamp: new Date().toISOString()
-      });
+          })),
+          subtotal: rawCartSubTotal,
+          discount: discountTotalValue + itemDiscountTotal,
+          tax: vatAmount,
+          serviceCharge: serviceChargeAmount,
+          total: cartTotal,
+          paymentMethod: method,
+          timestamp: new Date().toISOString()
+        });
 
-      resetOrderComposer()
-      setShowPaymentModal(false)
-      setShowCashPaymentModal(false)
-      setShowSplitPaymentModal(false)
+        resetOrderComposer()
+        setShowPaymentModal(false)
+        setShowCashPaymentModal(false)
+        setShowSplitPaymentModal(false)
+      } else {
+        // Partial split payment: update totalPaid state so remainingTotal updates, do NOT close split modal or show full success popup
+        setTotalPaid(newTotalPaid);
+      }
+
       if (activeShift?.id) {
         refreshPendingOrders()
         fetchShiftStats(activeShift.id)
