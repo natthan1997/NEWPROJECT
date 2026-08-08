@@ -1571,11 +1571,16 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     return activeOrders.length + 1
   }
 
+  const lastAutoCreateAttemptRef = useRef<number>(0);
+
   const fetchOrderIdentity = async (currentOrderId?: string | null): Promise<{ queueNumber: number, orderNumber: string }> => {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1200);
       const res = await fetch('/api/pos/order-identity', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
           orderType,
           branchId: shopSettings?.branch_id || activeShift?.branch_id || null,
@@ -1584,6 +1589,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
           tableName: selectedTable?.table_number || null,
         })
       });
+      clearTimeout(timeoutId);
       if (res.ok) {
         const data = await res.json();
         return { 
@@ -1592,23 +1598,38 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         };
       }
     } catch (e) {
-       console.error("Failed to fetch order identity from API", e);
+       console.warn("Fast fallback for order identity", e);
     }
     
+    const fallbackQueue = (pendingOrders?.length || 0) + 1;
+    const dateSuffix = Date.now().toString().slice(-6);
     return {
-       queueNumber: 1, 
-       orderNumber: editingOrderNumber || `ORDER-${Date.now()}` 
+       queueNumber: fallbackQueue, 
+       orderNumber: editingOrderNumber || `TAK-${dateSuffix}` 
     }
   };
 
   useEffect(() => {
     let isMounted = true;
-    if (orderType === 'takeaway' && !editingOrderId && cart.length > 0 && !isAutoCreatingOrderLock.current) {
+    const now = Date.now();
+    const isCartNonEmpty = cart.length > 0;
+    
+    if (
+      orderType === 'takeaway' &&
+      !editingOrderId &&
+      isCartNonEmpty &&
+      !isAutoCreatingOrderLock.current &&
+      now - lastAutoCreateAttemptRef.current > 3000
+    ) {
       isAutoCreatingOrderLock.current = true;
+      lastAutoCreateAttemptRef.current = now;
       setIsAutoCreatingOrder(true);
+
       (async () => {
         try {
-          const identity = await fetchOrderIdentity(null)
+          const identity = await fetchOrderIdentity(null);
+          if (!isMounted) return;
+
           const payload: any = {
             order_action: 'insert',
             order: {
@@ -1623,25 +1644,28 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
               queue_number: identity.queueNumber,
               order_source: 'pos',
             }
-          }
-          const { data: rpcResult, error: rpcError } = await supabase.rpc('pos_checkout_order', { payload })
+          };
+
+          const { data: rpcResult, error: rpcError } = await supabase.rpc('pos_checkout_order', { payload });
           if (!rpcError && rpcResult?.order_id && isMounted) {
-            setEditingOrderId(rpcResult.order_id)
-            setEditingOrderNumber(identity.orderNumber)
-            setHeldCartFingerprint('')
+            setEditingOrderId(rpcResult.order_id);
+            setEditingOrderNumber(identity.orderNumber);
+            setHeldCartFingerprint('');
           }
         } catch (err) {
-          console.error('Auto create takeaway order error:', err)
+          console.error('Auto create takeaway order error:', err);
         } finally {
           if (isMounted) {
             setIsAutoCreatingOrder(false);
-            isAutoCreatingOrderLock.current = false;
+            setTimeout(() => {
+              isAutoCreatingOrderLock.current = false;
+            }, 1000);
           }
         }
       })();
     }
-    return () => { isMounted = false; }
-  }, [orderType, cart.length, editingOrderId, profile?.id, activeShift?.id, shopSettings?.branch_id])
+    return () => { isMounted = false; };
+  }, [orderType, cart.length > 0, editingOrderId, profile?.id, activeShift?.id, shopSettings?.branch_id]);
 
   const activePrintData = useMemo(() => {
     if (paymentSuccessData) return paymentSuccessData;
