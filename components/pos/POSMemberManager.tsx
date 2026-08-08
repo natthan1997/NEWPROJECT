@@ -120,6 +120,7 @@ export default function POSMemberManager({
         const { data: createdMember, error: createErr } = await supabase
           .from('pos_members')
           .insert([{
+            line_user_id: 'phone_' + formattedPhone.replace(/[^\d]/g, ''),
             display_name: nameStr,
             full_name: nameStr,
             phone: formattedPhone,

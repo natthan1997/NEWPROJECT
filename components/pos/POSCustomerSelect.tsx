@@ -99,6 +99,7 @@ export default function POSCustomerSelect({ onSelect, selectedCustomer, onClose,
         const { data, error } = await supabase
             .from('pos_members')
             .insert({
+                line_user_id: 'phone_' + (newCustomer.phone ? newCustomer.phone.replace(/[^\d]/g, '') : Date.now()),
                 display_name: newCustomer.name,
                 full_name: newCustomer.name,
                 phone: newCustomer.phone,
