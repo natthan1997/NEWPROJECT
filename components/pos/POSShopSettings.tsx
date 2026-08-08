@@ -722,18 +722,19 @@ const handleSave = async () => {
                     </div>
                 </div>
 
-                <div className="flex flex-col lg:flex-row gap-8">
+                <div className="flex flex-col lg:flex-row gap-6 sm:gap-8">
                     {/* SIDEBAR TABS */}
-                    <div className={`w-full lg:w-64 flex-shrink-0 space-y-3 ${!showMobileMenu ? 'hidden lg:block' : 'block'}`}>
+                    <div className={`w-full lg:w-72 flex-shrink-0 bg-white rounded-xl border border-gray-200 overflow-hidden shadow-[0_2px_10px_rgb(0,0,0,0.02)] ${!showMobileMenu ? 'hidden lg:block' : 'block'}`}>
+                        <div className="bg-gray-50 px-5 py-3 text-[13px] font-bold text-gray-500 border-b border-gray-200">
+                            ตั้งค่าสาขา
+                        </div>
                         {[
-                            { id: 'general', icon: Info, label: 'ข้อมูลร้านค้า', desc: 'ข้อมูลร้าน และ เวลาทำการ' },
-                            { id: 'delivery', icon: Truck, label: 'เดลิเวอรี่', desc: 'ค่าส่ง, หัก GP' },
-                            { id: 'receipt', icon: Printer, label: 'ตั้งค่าใบเสร็จ', desc: 'หัวบิล, โลโก้, ท้ายบิล' },
-                            { id: 'kitchen', icon: MenuIcon, label: 'ห้องครัว', desc: 'ฟอนต์, ออเดอร์' },
-                            { id: 'hardware', icon: Settings, label: 'เครื่องปริ้น', desc: 'จัดการอุปกรณ์เสริม' },
-                            { id: 'campaigns', icon: Flag, label: 'แคมเปญหน้าแอป', desc: 'กิจกรรมหน้าหลักลูกค้า' },
-                            { id: 'advanced', icon: Star, label: 'ระบบจ่ายเงิน & สมาชิก', desc: 'QR, พอยท์สะสม' },
-                            { id: 'permissions', icon: ShieldCheck, label: 'สิทธิ์การใช้งาน', desc: 'ผู้จัดการ, พนักงาน' }
+                            { id: 'general', icon: Info, label: 'ทั่วไป' },
+                            { id: 'hardware', icon: Settings, label: 'เครื่องพิมพ์' },
+                            { id: 'receipt', icon: Printer, label: 'บิล' },
+                            { id: 'advanced', icon: Star, label: 'ตั้งค่าการชำระเงิน' },
+                            { id: 'delivery', icon: Truck, label: 'เดลิเวอรี่' },
+                            { id: 'kitchen', icon: MenuIcon, label: 'ห้องครัว' }
                         ].map(tab => {
                             const Icon = tab.icon;
                             const isActive = activeTab === tab.id;
@@ -744,16 +745,34 @@ const handleSave = async () => {
                                         setActiveTab(tab.id)
                                         setShowMobileMenu(false)
                                     }}
-                                    className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all text-left ${isActive ? 'bg-black text-white shadow-xl shadow-black/10 scale-[1.02]' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-100 hover:border-gray-200'}`}
+                                    className={`w-full flex items-center gap-4 px-5 py-4 transition-all text-left border-b border-gray-100 ${isActive ? 'bg-[#E8F8FA] text-[#00BCD4] border-l-[4px] border-l-[#00BCD4]' : 'bg-white text-gray-700 hover:bg-gray-50 border-l-[4px] border-l-transparent'}`}
                                 >
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isActive ? 'bg-white/10' : 'bg-gray-100'}`}>
-                                        <Icon size={18} className={isActive ? 'text-white' : 'text-gray-500'} />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="font-black text-[13px] leading-tight truncate">{tab.label}</div>
-                                        <div className={`text-[10px] font-bold tracking-tight mt-0.5 truncate ${isActive ? 'text-white/60' : 'text-gray-400'}`}>{tab.desc}</div>
-                                    </div>
-                                    {isActive && <ChevronRight size={16} className="opacity-50 flex-shrink-0" />}
+                                    <Icon size={22} className={isActive ? 'text-[#00BCD4]' : 'text-gray-500'} strokeWidth={1.5} />
+                                    <span className={`text-[15px] ${isActive ? 'font-bold' : 'font-medium'}`}>{tab.label}</span>
+                                </button>
+                            );
+                        })}
+
+                        <div className="bg-gray-50 px-5 py-3 text-[13px] font-bold text-gray-500 border-b border-gray-200 border-t border-gray-200">
+                            อื่นๆ
+                        </div>
+                        {[
+                            { id: 'campaigns', icon: Flag, label: 'แคมเปญหน้าแอป' },
+                            { id: 'permissions', icon: ShieldCheck, label: 'สิทธิ์การใช้งาน' }
+                        ].map(tab => {
+                            const Icon = tab.icon;
+                            const isActive = activeTab === tab.id;
+                            return (
+                                <button 
+                                    key={tab.id}
+                                    onClick={() => {
+                                        setActiveTab(tab.id)
+                                        setShowMobileMenu(false)
+                                    }}
+                                    className={`w-full flex items-center gap-4 px-5 py-4 transition-all text-left border-b border-gray-100 ${isActive ? 'bg-[#E8F8FA] text-[#00BCD4] border-l-[4px] border-l-[#00BCD4]' : 'bg-white text-gray-700 hover:bg-gray-50 border-l-[4px] border-l-transparent'}`}
+                                >
+                                    <Icon size={22} className={isActive ? 'text-[#00BCD4]' : 'text-gray-500'} strokeWidth={1.5} />
+                                    <span className={`text-[15px] ${isActive ? 'font-bold' : 'font-medium'}`}>{tab.label}</span>
                                 </button>
                             );
                         })}
