@@ -58,10 +58,13 @@ export default function POSCustomerSelect({ onSelect, selectedCustomer, onClose,
         setLoading(true)
         const branchId = shopSettings?.shared_member_branch_id || shopSettings?.branch_id
 
+        const cleanDigits = searchTerm.trim().replace(/[^\d]/g, '')
+        const phoneSearch = cleanDigits.length >= 3 ? cleanDigits : searchTerm
+
         let query = supabase
             .from('pos_members')
             .select('*')
-            .or(`display_name.ilike.%${searchTerm}%,full_name.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%`)
+            .or(`display_name.ilike.%${searchTerm}%,full_name.ilike.%${searchTerm}%,phone.ilike.%${phoneSearch}%`)
 
         if (branchId) {
             query = query.or(`branch_id.eq.${branchId},branch_id.is.null`)

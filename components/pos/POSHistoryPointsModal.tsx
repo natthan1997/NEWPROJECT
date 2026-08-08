@@ -91,10 +91,13 @@ export default function POSHistoryPointsModal({ order, shopSettings, onClose, on
 
   const searchCustomers = async () => {
     const branchId = shopSettings?.shared_member_branch_id || shopSettings?.branch_id;
+    const cleanDigits = searchTerm.trim().replace(/[^\d]/g, '');
+    const phoneSearch = cleanDigits.length >= 3 ? cleanDigits : searchTerm;
+
     let query = supabase
       .from('pos_members')
       .select('*')
-      .or(`phone.ilike.%${searchTerm}%,display_name.ilike.%${searchTerm}%,full_name.ilike.%${searchTerm}%`);
+      .or(`phone.ilike.%${phoneSearch}%,display_name.ilike.%${searchTerm}%,full_name.ilike.%${searchTerm}%`);
       
     if (branchId) {
       query = query.or(`branch_id.eq.${branchId},branch_id.is.null`);

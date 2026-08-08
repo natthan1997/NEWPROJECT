@@ -230,7 +230,9 @@ export default function POSMemberManager({
             }
 
             if (searchTerm) {
-                query = query.or(`display_name.ilike.%${searchTerm}%,full_name.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%`)
+                const cleanDigits = searchTerm.trim().replace(/[^\d]/g, '')
+                const phoneSearch = cleanDigits.length >= 3 ? cleanDigits : searchTerm
+                query = query.or(`display_name.ilike.%${searchTerm}%,full_name.ilike.%${searchTerm}%,phone.ilike.%${phoneSearch}%`)
             } else {
                 query = query.order('points', { ascending: false }).limit(100)
             }

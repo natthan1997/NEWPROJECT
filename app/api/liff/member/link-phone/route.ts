@@ -12,6 +12,8 @@ const createSupabaseServiceClient = () => {
     return createClient(supabaseUrl, serviceRoleKey)
 }
 
+import { normalizePhone, getPhoneSearchOrFilter } from '@/lib/phoneUtils'
+
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json().catch(() => ({}))
@@ -20,6 +22,9 @@ export async function POST(req: NextRequest) {
         if (!lineUserId || !phone) {
             return NextResponse.json({ error: 'Missing lineUserId or phone' }, { status: 400 })
         }
+
+        const norm = normalizePhone(phone);
+        const cleanPhone = norm.international || phone;
 
         const supabase = createSupabaseServiceClient()
         
@@ -30,8 +35,12 @@ export async function POST(req: NextRequest) {
             .eq('line_user_id', lineUserId)
             .maybeSingle()
 
-        // 2. Get Phone member
-        let phoneQuery = supabase.from('pos_members').select('*').eq('phone', phone);
+        // 2. Get Phone member using fuzzy phone search (local, intl, last 9 digits)
+        let phoneQuery = supabase
+            .from('pos_members')
+            .select('*')
+            .or(getPhoneSearchOrFilter(phone));
+
         if (lineMember?.id) {
             phoneQuery = phoneQuery.not('id', 'eq', lineMember.id);
         }
@@ -42,6 +51,7 @@ export async function POST(req: NextRequest) {
                 // Link existing phone member to this line_user_id
                 await supabase.from('pos_members').update({
                     line_user_id: lineUserId,
+                    phone: cleanPhone,
                     full_name: fullName || phoneMember.full_name || undefined,
                     first_name: firstName || phoneMember.first_name || undefined,
                     last_name: lastName || phoneMember.last_name || undefined,
@@ -56,7 +66,7 @@ export async function POST(req: NextRequest) {
                     .from('pos_members')
                     .insert([{
                         line_user_id: lineUserId,
-                        phone: phone,
+                        phone: cleanPhone,
                         full_name: fullName || `${firstName || ''} ${lastName || ''}`.trim() || undefined,
                         first_name: firstName || undefined,
                         last_name: lastName || undefined,
@@ -84,7 +94,7 @@ export async function POST(req: NextRequest) {
 
             // Update LINE member with combined points, phone number, and all new fields
             await supabase.from('pos_members').update({
-                phone: phone,
+                phone: cleanPhone,
                 points: combinedPoints,
                 total_accumulated_points: combinedTotal,
                 full_name: fullName || phoneMember.full_name || undefined,
