@@ -172,6 +172,34 @@ export default function POSLayout({
         </>
     );
 
+    if (activeView === 'settings') {
+        return (
+            <div className="xyl-pos-scale h-screen h-[100dvh] flex overflow-hidden font-sans bg-[#F2F2F7] font-bold">
+                <main className="flex-1 flex flex-col overflow-hidden">
+                    {children}
+                </main>
+                <style jsx global>{`
+                    .no-scrollbar::-webkit-scrollbar { display: none; }
+                    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+                    
+                    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+                    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+                    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.05); border-radius: 0; }
+                    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.1); }
+    
+                    @media screen {
+                        html, body {
+                            overscroll-behavior-y: none;
+                            scroll-behavior: smooth;
+                            height: 100%;
+                            overflow: hidden;
+                        }
+                    }
+                `}</style>
+            </div>
+        );
+    }
+
     return (
         <div className={`print:block print:h-auto print:overflow-visible xyl-pos-scale h-screen h-[100dvh] flex overflow-hidden font-sans ${isDark ? 'bg-[#1A1A18] text-white' : 'bg-[#FDFDFB] text-[#1A1A18]'} selection:bg-sage-600/10 font-bold`}>
             
