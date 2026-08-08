@@ -193,11 +193,14 @@ export default function POSMemberManager({
     }
 
     const handleUseCoupon = async (coupon: any) => {
-        if (!confirm('ยืนยันการใช้คูปองนี้ใช่หรือไม่? คูปองจะถูกนำไปเป็นส่วนลดในบิลหน้าขายทันที (กดยืนยันแล้วให้กลับไปหน้าขาย)')) return;
+        if (!confirm('ยืนยันการใช้คูปองนี้ใช่หรือไม่? คูปองจะถูกนำไปเป็นส่วนลดในบิลหน้าขายทันที')) return;
         if (typeof window !== 'undefined') {
             window.dispatchEvent(new CustomEvent('applyPOSCoupon', { detail: coupon }));
         }
-        alert('นำคูปองไปประยุกต์ใช้เป็นส่วนลดสำเร็จ! กรุณากลับไปที่หน้า "Terminal" เพื่อดูส่วนลดในบิลปัจจุบัน');
+        alert('นำคูปองไปประยุกต์ใช้สำเร็จ! ระบบนำท่านไปยังหน้าเลือกสินค้าเรียบร้อยแล้ว');
+        if (onSetView) {
+            onSetView('terminal');
+        }
     }
 
     const fetchHistory = async (memberId: string) => {

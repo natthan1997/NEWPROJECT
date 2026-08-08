@@ -909,15 +909,17 @@ function RestaurantOSPageContent() {
     setAppliedCouponId(claim.id);
     setClaimingCoupons(prev => prev.filter(c => c.id !== claim.id));
     setActiveCouponClaimRequest(null);
+    setShowPendingModal(false);
+    setShowCustomerModal(false);
+
+    setActiveView('terminal');
+    localStorage.setItem('xyl_pos_active_view', 'terminal');
 
     if (claim.discount_type === 'free_item') {
       setActiveCoupon(claim);
       setDiscountValue(0);
       setDiscountRate(0);
       setDiscountType('fixed');
-
-      setActiveView('terminal');
-      localStorage.setItem('xyl_pos_active_view', 'terminal');
 
       if (claim.applicable_categories && claim.applicable_categories.length > 0) {
         setActiveCategoryId(claim.applicable_categories[0]);
@@ -931,10 +933,11 @@ function RestaurantOSPageContent() {
       setDiscountValue(Number(claim.discount_value) || 0);
       if (claim.discount_type === 'percent') setDiscountRate(Number(claim.discount_value) || 0);
 
-      setActiveView('terminal');
-      localStorage.setItem('xyl_pos_active_view', 'terminal');
+      if (claim.applicable_categories && claim.applicable_categories.length > 0) {
+        setActiveCategoryId(claim.applicable_categories[0]);
+      }
 
-      alert(`นำคูปอง "${claim.coupon_name}" ไปประยุกต์ใช้กับสมาชิก "${claim.member?.display_name || claim.member?.full_name}" สำเร็จ!`);
+      alert(`นำคูปอง "${claim.coupon_name}" ไปประยุกต์ใช้กับสมาชิก "${claim.member?.display_name || claim.member?.full_name}" สำเร็จ! ระบบนำไปยังหน้าเลือกสินค้าเรียบร้อยแล้ว`);
     }
   };
 

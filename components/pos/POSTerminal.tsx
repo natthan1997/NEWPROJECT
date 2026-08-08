@@ -1572,20 +1572,11 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   }
 
   const lastAutoCreateAttemptRef = useRef<number>(0);
-  const autoCreatePromiseRef = useRef<Promise<void> | null>(null);
 
   const fetchOrderIdentity = async (currentOrderId?: string | null): Promise<{ queueNumber: number, orderNumber: string }> => {
-    // Instant local calculation for zero latency
-    const fallbackQueue = (pendingOrders?.length || 0) + 1;
-    const dateSuffix = Date.now().toString().slice(-6);
-    const localIdentity = {
-       queueNumber: fallbackQueue, 
-       orderNumber: editingOrderNumber || `TAK-${dateSuffix}` 
-    };
-
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 600);
+      const timeoutId = setTimeout(() => controller.abort(), 1200);
       const res = await fetch('/api/pos/order-identity', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1602,15 +1593,20 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       if (res.ok) {
         const data = await res.json();
         return { 
-          queueNumber: data.queueNumber || localIdentity.queueNumber, 
-          orderNumber: data.orderNumber || localIdentity.orderNumber 
+          queueNumber: data.queueNumber, 
+          orderNumber: data.orderNumber 
         };
       }
     } catch (e) {
-       // Ignore timeout/error and use zero-latency local identity immediately
+       console.warn("Fast fallback for order identity", e);
     }
     
-    return localIdentity;
+    const fallbackQueue = (pendingOrders?.length || 0) + 1;
+    const dateSuffix = Date.now().toString().slice(-6);
+    return {
+       queueNumber: fallbackQueue, 
+       orderNumber: editingOrderNumber || `TAK-${dateSuffix}` 
+    }
   };
 
   useEffect(() => {
@@ -1623,12 +1619,13 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       !editingOrderId &&
       isCartNonEmpty &&
       !isAutoCreatingOrderLock.current &&
-      now - lastAutoCreateAttemptRef.current > 2000
+      now - lastAutoCreateAttemptRef.current > 3000
     ) {
       isAutoCreatingOrderLock.current = true;
       lastAutoCreateAttemptRef.current = now;
+      setIsAutoCreatingOrder(true);
 
-      autoCreatePromiseRef.current = (async () => {
+      (async () => {
         try {
           const identity = await fetchOrderIdentity(null);
           if (!isMounted) return;
@@ -1656,13 +1653,13 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             setHeldCartFingerprint('');
           }
         } catch (err) {
-          console.error('Silent auto create takeaway order error:', err);
+          console.error('Auto create takeaway order error:', err);
         } finally {
           if (isMounted) {
+            setIsAutoCreatingOrder(false);
             setTimeout(() => {
               isAutoCreatingOrderLock.current = false;
-              autoCreatePromiseRef.current = null;
-            }, 500);
+            }, 1000);
           }
         }
       })();
@@ -1958,6 +1955,15 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   useEffect(() => {
     const handleApplyCoupon = (e: any) => {
       const coupon = e.detail;
+
+      // Close all modals & sheets to take user directly to Product Selection grid
+      setShowPaymentModal(false);
+      setShowMemberCheckoutFlow(false);
+      setShowCustomerModal(false);
+      setShowPendingModal(false);
+      setShowPromotionsModal(false);
+      setShowBillDiscountModal(false);
+
       if (coupon.discount_type === 'free_item') {
         setActiveCoupon(coupon);
         setDiscountValue(0);
@@ -1978,6 +1984,11 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         if (coupon.discount_type === 'percent') setDiscountRate(coupon.discount_value || 0);
         setDiscountName(coupon.coupon_name || coupon.name);
         setAppliedCouponId(coupon.id);
+
+        if (coupon.applicable_categories && coupon.applicable_categories.length > 0) {
+          setActiveCategoryId(coupon.applicable_categories[0]);
+        }
+        alert(`นำคูปอง "${coupon.coupon_name || coupon.name}" ไปประยุกต์ใช้สำเร็จ! ระบบนำไปยังหน้าเลือกสินค้าเรียบร้อยแล้ว`);
       }
     };
 
@@ -2771,10 +2782,6 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   }
 
   const handleSendOrder = async () => {
-    if (autoCreatePromiseRef.current) {
-      try { await autoCreatePromiseRef.current } catch (e) {}
-    }
-
     logPOSPrintFlow('preflight:start', {
       cartItems: cart.length,
       online: typeof navigator === 'undefined' ? true : navigator.onLine,
@@ -5895,7 +5902,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                      <button
                        onClick={() => {
                          setShowMemberCheckoutFlow(false);
-                         setShowPaymentModal(true);
+                         setShowPaymentModal(false);
                        }}
                        className="w-full py-4 text-gray-400 hover:text-black font-bold rounded-2xl transition-all text-sm"
                      >
