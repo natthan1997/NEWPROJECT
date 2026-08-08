@@ -45,7 +45,7 @@ export function MemberOnboardingGuide({ onClose }: MemberOnboardingGuideProps) {
   const [targetRect, setTargetRect] = useState<{ x: number, y: number, w: number, h: number } | null>(null);
   const [isReady, setIsReady] = useState(false);
 
-  const measureTarget = useCallback(() => {
+  const measureTarget = useCallback((isResize = false) => {
     const targetId = steps[currentStep].id;
     const element = document.getElementById(targetId);
     
@@ -55,7 +55,7 @@ export function MemberOnboardingGuide({ onClose }: MemberOnboardingGuideProps) {
       const viewportHeight = window.innerHeight;
       
       // Allow some padding so the element is fully in view with its tooltip
-      if (rect.top < 120 || rect.bottom > viewportHeight - 120) {
+      if (!isResize && (rect.top < 120 || rect.bottom > viewportHeight - 120)) {
         element.scrollIntoView({ behavior: 'smooth', block: 'center' });
         // Wait a bit for scroll to finish before measuring
         setTimeout(() => {
@@ -92,14 +92,19 @@ export function MemberOnboardingGuide({ onClose }: MemberOnboardingGuideProps) {
   useEffect(() => {
     // Initial measurement, wait for DOM to fully render
     setIsReady(false);
-    const timer = setTimeout(() => measureTarget(), 200);
+    const timer = setTimeout(() => measureTarget(false), 200);
 
     // Re-measure on resize or scroll
-    window.addEventListener('resize', measureTarget);
+    const handleResize = () => measureTarget(true);
+    window.addEventListener('resize', handleResize);
+    
+    // Prevent background scrolling while onboarding is active
+    document.body.style.overflow = 'hidden';
     
     return () => {
       clearTimeout(timer);
-      window.removeEventListener('resize', measureTarget);
+      window.removeEventListener('resize', handleResize);
+      document.body.style.overflow = '';
     };
   }, [measureTarget]);
 
