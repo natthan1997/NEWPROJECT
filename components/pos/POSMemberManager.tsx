@@ -545,10 +545,10 @@ export default function POSMemberManager({
                             <div className="flex gap-2">
                                 <button
                                     onClick={() => setShowAddModal(true)}
-                                    className="flex items-center gap-2 px-5 h-12 bg-[#1A1A18] text-white hover:bg-black font-bold text-xs rounded-full transition-all shadow-sm active:scale-95 shrink-0"
+                                    className="flex items-center justify-center w-12 h-12 text-white bg-[#1A1A18] hover:bg-black rounded-full transition-all shadow-sm active:scale-95 shrink-0"
+                                    title="เพิ่มสมาชิกใหม่"
                                 >
-                                    <UserPlus size={18} />
-                                    <span>+ เพิ่มสมาชิกใหม่</span>
+                                    <UserPlus size={20} />
                                 </button>
                                 <button onClick={() => setShowQR(true)} className="flex items-center justify-center w-12 h-12 text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 rounded-full transition-all" title="QR Code ร้าน">
                                     <QrCode size={20} />
@@ -626,14 +626,14 @@ export default function POSMemberManager({
                                                             <span className="text-[14px] lg:text-[15px] font-medium text-black">{(member.points ?? 0).toLocaleString()}</span>
                                                         </div>
                                                         
-                                                        <div className="w-[85px] shrink-0 flex justify-end">
+                                                        <div className="w-[100px] shrink-0 flex justify-end">
                                                             {member.phone ? (
-                                                                <span className="text-[11px] lg:text-[12px] font-medium text-black bg-gray-100 px-2 lg:px-3 py-1 rounded-full shrink-0">
-                                                                    ลงทะเบียน
+                                                                <span className="text-[11px] lg:text-[12px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2.5 lg:px-3 py-1 rounded-full shrink-0">
+                                                                    ลงทะเบียนแล้ว
                                                                 </span>
                                                             ) : (
-                                                                <span className="text-[11px] lg:text-[12px] font-medium text-gray-400 bg-gray-50 px-2 lg:px-3 py-1 rounded-full shrink-0">
-                                                                    ไม่ลงทะเบียน
+                                                                <span className="text-[11px] lg:text-[12px] font-semibold text-amber-700 bg-amber-50 border border-amber-200/60 px-2.5 lg:px-3 py-1 rounded-full shrink-0">
+                                                                    ยังไม่ลงทะเบียน
                                                                 </span>
                                                             )}
                                                         </div>
@@ -692,14 +692,14 @@ export default function POSMemberManager({
                                                             <span className="text-[14px] lg:text-[15px] font-medium text-black">{(member.points ?? 0).toLocaleString()}</span>
                                                         </div>
                                                         
-                                                        <div className="w-[85px] shrink-0 flex justify-end">
+                                                        <div className="w-[100px] shrink-0 flex justify-end">
                                                             {member.phone ? (
-                                                                <span className="text-[11px] lg:text-[12px] font-medium text-black bg-gray-100 px-2 lg:px-3 py-1 rounded-full shrink-0">
-                                                                    ลงทะเบียน
+                                                                <span className="text-[11px] lg:text-[12px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2.5 lg:px-3 py-1 rounded-full shrink-0">
+                                                                    ลงทะเบียนแล้ว
                                                                 </span>
                                                             ) : (
-                                                                <span className="text-[11px] lg:text-[12px] font-medium text-gray-400 bg-gray-50 px-2 lg:px-3 py-1 rounded-full shrink-0">
-                                                                    ไม่ลงทะเบียน
+                                                                <span className="text-[11px] lg:text-[12px] font-semibold text-amber-700 bg-amber-50 border border-amber-200/60 px-2.5 lg:px-3 py-1 rounded-full shrink-0">
+                                                                    ยังไม่ลงทะเบียน
                                                                 </span>
                                                             )}
                                                         </div>
