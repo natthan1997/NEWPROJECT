@@ -3723,6 +3723,12 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       } else {
         // Partial split payment: update totalPaid state so remainingTotal updates, do NOT close split modal or show full success popup
         setTotalPaid(newTotalPaid);
+        if (finalOrderId) {
+          setEditingOrderId(finalOrderId);
+        }
+        if (rpcResult?.order_number) {
+          setEditingOrderNumber(rpcResult.order_number);
+        }
       }
 
       if (activeShift?.id) {
