@@ -136,7 +136,7 @@ export default function POSMemberManager({
 
         if (createdMember && pointsNum > 0) {
           const staffName = profile?.full_name || profile?.display_name || 'พนักงาน';
-          const historyObj = {
+          const historyObj: any = {
             member_id: createdMember.id,
             points: pointsNum,
             points_change: pointsNum,
@@ -145,7 +145,15 @@ export default function POSMemberManager({
             branch_id: shopSettings?.branch_id || null,
             created_at: new Date().toISOString()
           };
-          await supabase.from('pos_points_history').insert(historyObj).catch(() => {});
+          try {
+            const { error: histErr } = await supabase.from('pos_points_history').insert(historyObj);
+            if (histErr && histErr.message.includes('column "description" of relation "pos_points_history" does not exist')) {
+              delete historyObj.description;
+              await supabase.from('pos_points_history').insert(historyObj);
+            }
+          } catch (e) {
+            console.warn('History insert warning:', e);
+          }
         }
 
         alert(`สร้างสมาชิกใหม่สำเร็จ! ได้รับ ${pointsNum} แต้มเรียบร้อยแล้ว`);
