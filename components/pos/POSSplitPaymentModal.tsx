@@ -121,16 +121,13 @@ export default function POSSplitPaymentModal({
     return splitableUnits.filter(u => !paidUnitKeysSet.has(u.key));
   }, [splitableUnits, paidUnitKeysSet]);
 
-  // Amount already paid prior to opening modal session
-  const previouslyPaidAmount = Math.max(0, cartTotal - remainingTotal);
-
   // Live Calculations for Real-time Progress
   const totalPaidInCurrentSession = useMemo(() => {
     return completedSplits.reduce((sum, s) => sum + s.amount, 0);
   }, [completedSplits]);
 
-  const totalOverallPaid = previouslyPaidAmount + totalPaidInCurrentSession;
-  const liveRemainingTotal = Math.max(0, cartTotal - totalOverallPaid);
+  const totalOverallPaid = Math.max(0, cartTotal - remainingTotal);
+  const liveRemainingTotal = Math.max(0, remainingTotal);
 
   // Equal Split Amount for current turn
   const equalSplitAmount = splitCount > 0 ? liveRemainingTotal / Math.max(1, splitCount) : 0;
@@ -156,7 +153,7 @@ export default function POSSplitPaymentModal({
   const isCashValid = paymentMethod === 'cash' ? numCashReceived >= (targetPartialAmount - 0.01) : true;
 
   // Is Fully Completed Check
-  const isFullyCompleted = liveRemainingTotal <= 0.01 || (splitMode === 'item' && unpaidUnitsList.length === 0 && (completedSplits.length > 0 || previouslyPaidAmount > 0));
+  const isFullyCompleted = liveRemainingTotal <= 0.01 || (splitMode === 'item' && unpaidUnitsList.length === 0 && (completedSplits.length > 0 || totalOverallPaid > 0));
 
   // Toggle Item Unit Selection
   const toggleUnitKey = (key: string) => {
