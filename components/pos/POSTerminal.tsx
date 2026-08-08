@@ -5150,18 +5150,19 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
               </button>
             </header>
 
-            <div className="p-8 space-y-8 bg-white">
+            <div className="p-8 sm:p-10 space-y-10 bg-[#FAFAFA]">
               <div className="text-center">
-                <div className="text-sm font-medium text-gray-400 mb-1">
+                <div className="text-sm font-bold text-gray-400 mb-3 tracking-widest uppercase">
                   {locale === 'en' ? 'Total Amount Due' : 'ยอดชำระสุทธิ'}
                 </div>
-                <div className="text-5xl font-light text-black tracking-tighter">
-                  <span className="text-3xl font-normal text-gray-400 mr-2">฿</span>
+                <div className="text-7xl sm:text-8xl font-bold text-gray-900 tracking-tighter drop-shadow-sm">
+                  <span className="text-4xl sm:text-5xl font-medium text-gray-400 mr-2">฿</span>
                   {remainingTotal.toLocaleString()}
                 </div>
                 {totalPaid > 0 && (
-                  <div className="mt-3 text-sm font-medium text-green-600">
-                    {locale === 'en' ? 'Paid:' : 'ชำระแล้ว:'} ฿{totalPaid.toLocaleString()} / {locale === 'en' ? 'Total:' : 'รวมทั้งหมด:'} ฿{cartTotal.toLocaleString()}
+                  <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-green-50 px-4 py-2 text-xs font-bold tracking-widest text-green-600">
+                    <Check size={14} strokeWidth={3} />
+                    <span>{locale === 'en' ? 'PAID:' : 'ชำระแล้ว:'} ฿{totalPaid.toLocaleString()} / {locale === 'en' ? 'TOTAL:' : 'รวม:'} ฿{cartTotal.toLocaleString()}</span>
                   </div>
                 )}
               </div>
@@ -5181,13 +5182,13 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                     setShowPaymentModal(false)
                     setShowSplitPaymentModal(true)
                   }}
-                  className="w-full h-14 rounded-2xl bg-gray-50 text-gray-600 text-sm font-medium hover:bg-gray-100 transition-all flex items-center justify-center gap-2"
+                  className="w-full h-16 rounded-2xl bg-white border border-gray-200 shadow-sm text-gray-700 text-sm font-bold hover:bg-gray-50 hover:shadow transition-all flex items-center justify-center gap-2"
                 >
                   {locale === 'en' ? 'Split Bill / Partial Payment' : 'หารจ่าย / แยกจ่าย (Split Bill)'}
                 </button>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-4 sm:gap-5">
                 <button
                   disabled={isProcessing}
                   onClick={() => {
@@ -5198,14 +5199,14 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                     setCurrentPaymentAmount(remainingTotal);
                     setShowCashPaymentModal(true);
                   }}
-                  className={`h-24 rounded-2xl border transition-all flex flex-col items-center justify-center gap-2 ${processingMethod === 'cash' ? 'bg-black text-white border-black' : 'bg-white border-gray-200 text-gray-600 hover:border-black'} disabled:opacity-30`}
+                  className={`h-32 sm:h-36 rounded-3xl border-2 transition-all duration-300 flex flex-col items-center justify-center gap-3 shadow-sm hover:shadow-md hover:-translate-y-1 ${processingMethod === 'cash' ? 'bg-black text-white border-black shadow-lg hover:shadow-xl' : 'bg-white border-gray-100 text-gray-700 hover:border-gray-300'} disabled:opacity-40 disabled:hover:translate-y-0`}
                 >
                   {processingMethod === 'cash' ? (
-                     <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-400 border-t-white" />
+                     <div className="animate-spin rounded-full h-8 w-8 border-[3px] border-gray-600 border-t-white" />
                   ) : (
-                     <Banknote size={24} strokeWidth={1.5} />
+                     <Banknote size={36} strokeWidth={1.5} />
                   )}
-                  <span className="text-xs font-medium">{processingMethod === 'cash' ? (locale === 'en' ? 'Processing...' : 'กำลังบันทึก...') : (locale === 'en' ? 'Cash' : 'เงินสด')}</span>
+                  <span className="text-sm font-bold tracking-wide">{processingMethod === 'cash' ? (locale === 'en' ? 'Processing...' : 'กำลังบันทึก...') : (locale === 'en' ? 'Cash' : 'เงินสด')}</span>
                 </button>
 
                 <button
@@ -5214,14 +5215,14 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                     setCheckoutError(null);
                     handleProcessPayment('promptpay')
                   }}
-                  className={`h-24 rounded-2xl border transition-all flex flex-col items-center justify-center gap-2 ${processingMethod === 'promptpay' ? 'bg-black text-white border-black' : 'bg-white border-gray-200 text-gray-600 hover:border-black'} disabled:opacity-30`}
+                  className={`h-32 sm:h-36 rounded-3xl border-2 transition-all duration-300 flex flex-col items-center justify-center gap-3 shadow-sm hover:shadow-md hover:-translate-y-1 ${processingMethod === 'promptpay' ? 'bg-black text-white border-black shadow-lg hover:shadow-xl' : 'bg-white border-gray-100 text-gray-700 hover:border-gray-300'} disabled:opacity-40 disabled:hover:translate-y-0`}
                 >
                   {processingMethod === 'promptpay' ? (
-                     <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-400 border-t-white" />
+                     <div className="animate-spin rounded-full h-8 w-8 border-[3px] border-gray-600 border-t-white" />
                   ) : (
-                     <QrCode size={24} strokeWidth={1.5} />
+                     <QrCode size={36} strokeWidth={1.5} />
                   )}
-                  <span className="text-xs font-medium">{processingMethod === 'promptpay' ? (locale === 'en' ? 'Processing...' : 'กำลังบันทึก...') : (locale === 'en' ? 'QR Pay' : 'สแกน')}</span>
+                  <span className="text-sm font-bold tracking-wide">{processingMethod === 'promptpay' ? (locale === 'en' ? 'Processing...' : 'กำลังบันทึก...') : (locale === 'en' ? 'QR Pay' : 'สแกน')}</span>
                 </button>
 
                 <button
@@ -5230,14 +5231,14 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                     setCheckoutError(null);
                     handleProcessPayment('credit_card')
                   }}
-                  className={`h-24 rounded-2xl border transition-all flex flex-col items-center justify-center gap-2 ${processingMethod === 'credit_card' ? 'bg-black text-white border-black' : 'bg-white border-gray-200 text-gray-600 hover:border-black'} disabled:opacity-30`}
+                  className={`h-32 sm:h-36 rounded-3xl border-2 transition-all duration-300 flex flex-col items-center justify-center gap-3 shadow-sm hover:shadow-md hover:-translate-y-1 ${processingMethod === 'credit_card' ? 'bg-black text-white border-black shadow-lg hover:shadow-xl' : 'bg-white border-gray-100 text-gray-700 hover:border-gray-300'} disabled:opacity-40 disabled:hover:translate-y-0`}
                 >
                   {processingMethod === 'credit_card' ? (
-                     <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-400 border-t-white" />
+                     <div className="animate-spin rounded-full h-8 w-8 border-[3px] border-gray-600 border-t-white" />
                   ) : (
-                     <CreditCard size={24} strokeWidth={1.5} />
+                     <CreditCard size={36} strokeWidth={1.5} />
                   )}
-                  <span className="text-xs font-medium">{processingMethod === 'credit_card' ? (locale === 'en' ? 'Processing...' : 'กำลังบันทึก...') : (locale === 'en' ? 'Card' : 'บัตร')}</span>
+                  <span className="text-sm font-bold tracking-wide">{processingMethod === 'credit_card' ? (locale === 'en' ? 'Processing...' : 'กำลังบันทึก...') : (locale === 'en' ? 'Card' : 'บัตร')}</span>
                 </button>
               </div>
             </div>
