@@ -684,14 +684,13 @@ const handleSave = async () => {
 
   return (
     <>
-      <main className="flex-1 flex flex-col overflow-hidden bg-white border-none text-[#1A1A18]">
+      <main className="flex-1 flex overflow-hidden bg-white border-none text-[#1A1A18]">
           {loading ? (
              <div className="flex-1 flex items-center justify-center opacity-10">
                  <Loader2 className="animate-spin" size={64} />
              </div>
           ) : (
             <div className="flex-1 flex flex-col w-full h-full overflow-hidden">
-                
                 {/* TOP APP BAR (iOS Style) */}
                 <header className="h-[60px] sm:h-[70px] bg-[#00BCD4] text-white flex items-center justify-between px-4 sm:px-6 flex-shrink-0 z-10">
                     <div className="flex-1 flex items-center">
@@ -708,27 +707,19 @@ const handleSave = async () => {
                         {profile?.branch_code ? `XYL STUDIO & CAFE (${profile.branch_code})` : 'XYL STUDIO & CAFE'}
                     </div>
                     <div className="flex-1 flex items-center justify-end">
-                        {/* Status Toggle Header moved to top bar for compactness */}
-                        <div className="hidden sm:flex items-center gap-3 bg-white/10 px-3 py-1.5 rounded-full">
-                            <span className="text-[12px] font-bold opacity-80">{settings.status === 'open' ? 'เปิดร้านอยู่' : 'ปิดร้านอยู่'}</span>
-                            <button 
-                                onClick={() => {
-                                    const newStatus = settings.status === 'open' ? 'closed' : 'open';
-                                    setSettings({ ...settings, status: newStatus, is_open: newStatus === 'open' });
-                                }}
-                                className={`relative w-12 h-6 rounded-full transition-colors duration-300 shadow-inner ${settings.status === 'open' ? 'bg-emerald-400' : 'bg-red-400'}`}
-                            >
-                                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all duration-300 shadow-sm flex items-center justify-center ${settings.status === 'open' ? 'left-7' : 'left-1'}`}></div>
-                            </button>
-                        </div>
                     </div>
                 </header>
 
                 <div className="flex-1 flex flex-col lg:flex-row min-h-0">
-                    {/* SIDEBAR TABS */}
-                    <div className={`w-full lg:w-[320px] xl:w-[340px] h-full flex-shrink-0 bg-white border-r border-gray-200 overflow-y-auto custom-scrollbar ${!showMobileMenu ? 'hidden lg:block' : 'block'}`}>
-                        {/* No big title needed here anymore since it's in the top bar, but we can keep a small one or just start the menu */}
-                        <div className="bg-gray-50 px-6 py-3 text-[13px] font-bold text-gray-500 border-b border-gray-200">
+                
+                {/* SIDEBAR TABS */}
+                <div className={`w-full lg:w-[320px] xl:w-[340px] h-full flex-shrink-0 bg-white border-r border-gray-200 overflow-y-auto custom-scrollbar ${!showMobileMenu ? 'hidden lg:block' : 'block'}`}>
+                    <div className="px-6 py-8 pb-6">
+                        <h1 className="text-3xl font-black tracking-tight">{locale === 'en' ? 'ตั้งค่าร้าน' : locale === 'zh' ? 'ตั้งค่าร้าน' : 'ตั้งค่าร้าน'}</h1>
+                        <p className="text-[13px] font-bold text-gray-500 mt-1">{locale === 'en' ? 'จัดการข้อมูลร้านค้า สาขา ' : 'จัดการข้อมูลร้านค้า สาขา '}{profile?.branch_code}</p>
+                    </div>
+
+                    <div className="bg-gray-50 px-6 py-2.5 text-[12px] font-bold text-gray-500 border-y border-gray-200 uppercase tracking-wider">
                         ตั้งค่าสาขา
                     </div>
                     {[
@@ -792,6 +783,27 @@ const handleSave = async () => {
                                 className="flex items-center gap-2 text-sm font-bold text-[#00BCD4] hover:text-[#0097a7] transition-colors"
                             >
                                 <ChevronRight size={22} className="rotate-180" /> {locale === 'en' ? 'Settings' : locale === 'zh' ? '设置' : 'ตั้งค่า'}
+                            </button>
+                        </div>
+
+                        {/* STATUS TOGGLE HEADER */}
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 sm:px-8 rounded-2xl shadow-sm border border-gray-100 mb-8">
+                            <div className="space-y-1">
+                                <h4 className="text-[15px] font-black tracking-tight text-gray-900">สถานะร้าน (System Status)</h4>
+                                <p className={`text-[12px] font-bold tracking-widest ${settings.status === 'open' ? 'text-emerald-500' : 'text-red-500'}`}>
+                                    {settings.status === 'open' ? '🟢 ร้านเปิดให้บริการ' : '🔴 ร้านปิดให้บริการ'}
+                                </p>
+                            </div>
+                            <button 
+                                onClick={() => {
+                                    const newStatus = settings.status === 'open' ? 'closed' : 'open';
+                                    setSettings({ ...settings, status: newStatus, is_open: newStatus === 'open' });
+                                }}
+                                className={`relative w-20 h-10 rounded-full transition-colors duration-300 shadow-inner ${settings.status === 'open' ? 'bg-emerald-500' : 'bg-red-500'}`}
+                            >
+                                <div className={`absolute top-1 w-8 h-8 rounded-full bg-white transition-all duration-300 shadow-sm flex items-center justify-center ${settings.status === 'open' ? 'left-11' : 'left-1'}`}>
+                                    <div className={`w-2 h-2 rounded-full ${settings.status === 'open' ? 'bg-emerald-500' : 'bg-red-500'}`}></div>
+                                </div>
                             </button>
                         </div>
 
@@ -2522,6 +2534,7 @@ const handleSave = async () => {
                     </div>
                 )}
 
+                </div>
             </div>
           )}
       </main>
