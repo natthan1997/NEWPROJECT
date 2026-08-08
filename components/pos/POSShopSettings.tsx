@@ -691,31 +691,26 @@ const handleSave = async () => {
              </div>
           ) : (
             <div className="flex-1 flex flex-col w-full h-full overflow-hidden">
-                {/* TOP APP BAR (iOS Style) */}
-                <header className="h-[60px] sm:h-[70px] bg-[#00BCD4] text-white flex items-center justify-between px-4 sm:px-6 flex-shrink-0 z-10">
-                    <div className="flex-1 flex items-center">
-                        <button 
-                            onClick={() => onSetView('terminal')}
-                            className="flex items-center gap-2 bg-white/20 hover:bg-white/30 transition-colors px-4 py-2 rounded-full text-[14px] font-bold shadow-sm"
-                        >
-                            <ArrowLeft size={18} strokeWidth={2.5} />
-                            <Store size={16} strokeWidth={2.5} />
-                            <span>Counter</span>
-                        </button>
-                    </div>
-                    <div className="flex-[2] text-center font-bold tracking-wider text-[16px] sm:text-[18px] uppercase">
-                        {profile?.branch_code ? `XYL STUDIO & CAFE (${profile.branch_code})` : 'XYL STUDIO & CAFE'}
-                    </div>
-                    <div className="flex-1 flex items-center justify-end">
-                    </div>
-                </header>
+
 
                 <div className="flex-1 flex flex-col lg:flex-row min-h-0">
                 
                 {/* SIDEBAR TABS (iOS Style) */}
-                <div className={`w-full lg:w-[320px] xl:w-[340px] h-full flex-shrink-0 bg-[#F2F2F7] border-r border-gray-300 overflow-y-auto custom-scrollbar ${!showMobileMenu ? 'hidden lg:block' : 'block'}`}>
-                    <div className="px-4 py-8 pb-4">
-                        <h1 className="text-[32px] font-bold tracking-tight text-black mb-4 px-2">{locale === 'en' ? 'Settings' : locale === 'zh' ? '设置' : 'การตั้งค่า'}</h1>
+                <div className={`w-full lg:w-[320px] xl:w-[380px] h-full flex-shrink-0 bg-[#F2F2F7] border-r border-gray-300 overflow-y-auto custom-scrollbar ${!showMobileMenu ? 'hidden lg:block' : 'block'}`}>
+                    
+                    {/* iOS Navigation Bar for Left Pane */}
+                    <div className="pt-6 pb-2 px-4 flex items-center">
+                        <button 
+                            onClick={() => onSetView('terminal')}
+                            className="flex items-center gap-1 text-[#007AFF] text-[17px] hover:opacity-80 transition-opacity"
+                        >
+                            <ChevronRight size={24} className="rotate-180" strokeWidth={2.5} />
+                            <span>POS</span>
+                        </button>
+                    </div>
+
+                    <div className="px-4 pb-4">
+                        <h1 className="text-[34px] font-bold tracking-tight text-black mb-4 px-2">{locale === 'en' ? 'Settings' : locale === 'zh' ? '设置' : 'การตั้งค่า'}</h1>
                         
                         {/* Fake Search Bar for iOS look */}
                         <div className="bg-gray-200/80 rounded-[10px] flex items-center px-3 py-1.5 mb-6 mx-2">
@@ -823,7 +818,7 @@ const handleSave = async () => {
                         </div>
 
                         {/* STATUS TOGGLE HEADER */}
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 sm:px-8 rounded-2xl shadow-sm border border-gray-100 mb-8">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white rounded-[10px] p-5 sm:px-8 mb-8">
                             <div className="space-y-1">
                                 <h4 className="text-[15px] font-black tracking-tight text-gray-900">สถานะร้าน (System Status)</h4>
                                 <p className={`text-[12px] font-bold tracking-widest ${settings.status === 'open' ? 'text-emerald-500' : 'text-red-500'}`}>
@@ -846,7 +841,7 @@ const handleSave = async () => {
                         {/* TAB: GENERAL */}
                         {activeTab === 'general' && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                <div className="bg-white rounded-3xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
+                                <div className="bg-white rounded-[10px] overflow-hidden">
                                     {/* Cover Photo / Banners Slider */}
                                     <div className="relative h-48 sm:h-64 bg-gray-200">
                                         {banners && banners.length > 0 ? (
@@ -1036,7 +1031,7 @@ const handleSave = async () => {
                                     </div>
                                 </div>
 
-                                <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
+                                <div className="bg-white rounded-[10px] p-6 sm:p-8">
                                     <h3 className="text-xl font-black mb-2 flex items-center gap-3">
                                         <Bell className="text-orange-500" size={24} /> {locale === 'en' ? ' ประกาศและข้อความหน้าร้าน                                     ' : locale === 'zh' ? ' ประกาศและข้อความหน้าร้าน                                     ' : ' ประกาศและข้อความหน้าร้าน                                     '}</h3>
                                     <p className="text-[12px] text-gray-500 font-bold mb-6">{locale === 'en' ? 'ข้อความที่จะแสดงในหน้าระบบสั่งอาหาร LINE LIFF' : locale === 'zh' ? 'ข้อความที่จะแสดงในหน้าระบบสั่งอาหาร LINE LIFF' : 'ข้อความที่จะแสดงในหน้าระบบสั่งอาหาร LINE LIFF'}</p>
@@ -1048,7 +1043,7 @@ const handleSave = async () => {
                                 </div>
 
                                 {/* Section: Checkout Photo Zones */}
-                                <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
+                                <div className="bg-white rounded-[10px] p-6 sm:p-8">
                                     <h3 className="text-xl font-black mb-2 flex items-center gap-3">
                                         <Camera className="text-emerald-500" size={24} /> ตั้งค่าโซนถ่ายรูปก่อนออกงาน
                                     </h3>
@@ -1094,7 +1089,7 @@ const handleSave = async () => {
                                 </div>
 
                                 {/* Section: Opening Hours */}
-            <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
+            <div className="bg-white rounded-[10px] p-6 sm:p-8">
               <h3 className="text-xl font-black mb-8 flex items-center gap-3">
                 <Clock className="w-6 h-6 text-[#111111]" />
                 {locale === 'en' ? '                 เวลาเปิด-ปิดร้าน (Opening Hours)               ' : locale === 'zh' ? '                 เวลาเปิด-ปิดร้าน (Opening Hours)               ' : '                 เวลาเปิด-ปิดร้าน (Opening Hours)               '}</h3>
@@ -1147,7 +1142,7 @@ const handleSave = async () => {
 
             
                                 {/* Section: Attendance Rules */}
-            <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
+            <div className="bg-white rounded-[10px] p-6 sm:p-8">
               <h3 className="text-xl font-black mb-8 flex items-center gap-3">
                 <Navigation className="w-6 h-6 text-[#111111]" />
                 {locale === 'en' ? '                 พิกัดเช็คอินพนักงาน (Staff Geo-fencing)               ' : locale === 'zh' ? '                 พิกัดเช็คอินพนักงาน (Staff Geo-fencing)               ' : '                 พิกัดเช็คอินพนักงาน (Staff Geo-fencing)               '}</h3>
@@ -1206,7 +1201,7 @@ const handleSave = async () => {
                         {activeTab === 'delivery' && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
-                                <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
+                                <div className="bg-white rounded-[10px] p-6 sm:p-8">
                                     <h3 className="text-xl font-black mb-2 flex items-center gap-3">
                                         <Truck className="text-orange-500" size={24} /> {locale === 'en' ? 'ตั้งค่า GP เดลิเวอรี่' : locale === 'zh' ? '设置外卖GP' : 'ตั้งค่า GP เดลิเวอรี่'}
                                     </h3>
@@ -1256,7 +1251,7 @@ const handleSave = async () => {
                                 </div>
 
                                 {/* IN-HOUSE DELIVERY SETTINGS */}
-                                <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
+                                <div className="bg-white rounded-[10px] p-6 sm:p-8">
                                     <div className="flex items-center justify-between mb-8">
                                         <div>
                                             <h3 className="text-xl font-black mb-2 flex items-center gap-3">
@@ -1349,7 +1344,7 @@ const handleSave = async () => {
                         {/* TAB: RECEIPT */}
                         {activeTab === 'receipt' && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
+                                <div className="bg-white rounded-[10px] p-6 sm:p-8">
                                     <h3 className="text-xl font-black mb-2 flex items-center gap-3">
                                         <Printer className="text-purple-500" size={24} /> {locale === 'en' ? ' ตั้งค่ารูปแบบใบเสร็จ                                     ' : locale === 'zh' ? ' ตั้งค่ารูปแบบใบเสร็จ                                     ' : ' ตั้งค่ารูปแบบใบเสร็จ                                     '}</h3>
                                     <p className="text-[12px] text-gray-500 font-bold mb-8">{locale === 'en' ? 'ข้อความและรายละเอียดที่จะปรากฏบนใบเสร็จที่พิมพ์ให้ลูกค้า' : locale === 'zh' ? 'ข้อความและรายละเอียดที่จะปรากฏบนใบเสร็จที่พิมพ์ให้ลูกค้า' : 'ข้อความและรายละเอียดที่จะปรากฏบนใบเสร็จที่พิมพ์ให้ลูกค้า'}</p>
@@ -1395,7 +1390,7 @@ const handleSave = async () => {
                                             </div>
                                         </div>
 
-                                        <div className="md:col-span-2 space-y-4 bg-emerald-50/60 border border-emerald-100 rounded-2xl p-5">
+                                        <div className="md:col-span-2 space-y-4 bg-emerald-50/60 border border-emerald-100 rounded-[10px] p-5">
                                             <div className="flex items-start justify-between gap-4">
                                                 <div>
                                                     <label className="text-[13px] font-black text-gray-900 block mb-1 flex items-center gap-2">
@@ -1447,7 +1442,7 @@ const handleSave = async () => {
                                                     placeholder="วาง data URL หรือ image URL ของ QR ที่ต้องการพิมพ์ท้ายใบเสร็จ"
                                                 />
                                                 {settings.receipt_payment_qr_image && (
-                                                    <div className="bg-white rounded-2xl border border-gray-200 p-4 flex items-center gap-4">
+                                                    <div className="bg-white rounded-[10px] border border-gray-200 p-4 flex items-center gap-4">
                                                         <div className="w-20 h-20 rounded-xl border border-gray-200 bg-white overflow-hidden flex items-center justify-center shrink-0">
                                                             <img loading="lazy"  src={settings.receipt_payment_qr_image} alt="QR preview" className="max-w-full max-h-full object-contain" />
                                                         </div>
@@ -1464,7 +1459,7 @@ const handleSave = async () => {
                                     </div>
                                 </div>
 
-                                <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
+                                <div className="bg-white rounded-[10px] p-6 sm:p-8">
                                     <h3 className="text-xl font-black mb-2 flex items-center gap-3">
                                         <Star className="text-pink-500" size={24} /> {locale === 'en' ? ' นิยายท้ายบิล (Story on Receipt)                                     ' : locale === 'zh' ? ' นิยายท้ายบิล (Story on Receipt)                                     ' : ' นิยายท้ายบิล (Story on Receipt)                                     '}</h3>
                                     <p className="text-[12px] text-gray-500 font-bold mb-8">{locale === 'en' ? 'พิมพ์เรื่องราวสั้นๆ แบบสุ่มให้ลูกค้าอ่านท้ายใบเสร็จ เพื่อสร้างความประทับใจ' : locale === 'zh' ? 'พิมพ์เรื่องราวสั้นๆ แบบสุ่มให้ลูกค้าอ่านท้ายใบเสร็จ เพื่อสร้างความประทับใจ' : 'พิมพ์เรื่องราวสั้นๆ แบบสุ่มให้ลูกค้าอ่านท้ายใบเสร็จ เพื่อสร้างความประทับใจ'}</p>
@@ -1509,7 +1504,7 @@ const handleSave = async () => {
                                                     <Plus size={14} /> {locale === 'en' ? ' เพิ่มตอนใหม่                                                 ' : locale === 'zh' ? ' เพิ่มตอนใหม่                                                 ' : ' เพิ่มตอนใหม่                                                 '}</button>
                                             </div>
                                             {(settings.receipt_stories || []).map((story: any, idx: number) => (
-                                                <div key={story.id} className="p-5 bg-gray-50 border border-gray-200 rounded-2xl space-y-4 relative group">
+                                                <div key={story.id} className="p-5 bg-gray-50 border border-gray-200 rounded-[10px] space-y-4 relative group">
                                                     <button 
                                                         onClick={() => {
                                                             const stories = [...(settings.receipt_stories || [])].filter((_, i) => i !== idx);
@@ -1547,7 +1542,7 @@ const handleSave = async () => {
                                                 </div>
                                             ))}
                                             {(!settings.receipt_stories || settings.receipt_stories.length === 0) && (
-                                                <div className="py-8 text-center text-gray-400 text-[12px] font-bold border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50">
+                                                <div className="py-8 text-center text-gray-400 text-[12px] font-bold border-2 border-dashed border-gray-200 rounded-[10px] bg-gray-50">
                                                     {locale === 'en' ? '                                                     ยังไม่มีตอนนิยาย กรุณาเพิ่มตอนใหม่                                                 ' : locale === 'zh' ? '                                                     ยังไม่มีตอนนิยาย กรุณาเพิ่มตอนใหม่                                                 ' : '                                                     ยังไม่มีตอนนิยาย กรุณาเพิ่มตอนใหม่                                                 '}</div>
                                             )}
                                         </div>
@@ -1559,7 +1554,7 @@ const handleSave = async () => {
                         {/* TAB: KITCHEN */}
                         {activeTab === 'kitchen' && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
+                                <div className="bg-white rounded-[10px] p-6 sm:p-8">
                                     <h3 className="text-xl font-black mb-2 flex items-center gap-3">
                                         <MenuIcon className="text-orange-500" size={24} /> {locale === 'en' ? ' ตั้งค่าบิลส่งครัว                                     ' : locale === 'zh' ? ' ตั้งค่าบิลส่งครัว                                     ' : ' ตั้งค่าบิลส่งครัว                                     '}</h3>
                                     <p className="text-[12px] text-gray-500 font-bold mb-8">{locale === 'en' ? 'รูปแบบตัวอักษรและการแสดงผลสำหรับบิลที่พิมพ์เข้าห้องครัว' : locale === 'zh' ? 'รูปแบบตัวอักษรและการแสดงผลสำหรับบิลที่พิมพ์เข้าห้องครัว' : 'รูปแบบตัวอักษรและการแสดงผลสำหรับบิลที่พิมพ์เข้าห้องครัว'}</p>
@@ -1594,13 +1589,13 @@ const handleSave = async () => {
                         {/* TAB: ADVANCED */}
                         {activeTab === 'advanced' && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
+                                <div className="bg-white rounded-[10px] p-6 sm:p-8">
                                     <h3 className="text-xl font-black mb-2 flex items-center gap-3">
                                         <Star className="text-yellow-500" size={24} /> {locale === 'en' ? ' ระบบสมาชิก & สะสมแต้ม                                     ' : locale === 'zh' ? ' ระบบสมาชิก & สะสมแต้ม                                     ' : ' ระบบสมาชิก & สะสมแต้ม                                     '}</h3>
                                     <p className="text-[12px] text-gray-500 font-bold mb-8">{locale === 'en' ? 'ตั้งค่าอัตราส่วนการสะสมและแลกแต้มของสมาชิกร้าน' : locale === 'zh' ? 'ตั้งค่าอัตราส่วนการสะสมและแลกแต้มของสมาชิกร้าน' : 'ตั้งค่าอัตราส่วนการสะสมและแลกแต้มของสมาชิกร้าน'}</p>
                                     
                                     <div className="space-y-6">
-                                        <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 flex flex-col md:flex-row items-center gap-4">
+                                        <div className="bg-gray-50 p-6 rounded-[10px] border border-gray-200 flex flex-col md:flex-row items-center gap-4">
                                             <div className="flex-1">
                                                 <label className="text-[14px] font-black tracking-tight text-[#1A1A18] mb-1 block">
                                                     {locale === 'en' ? 'Earn Rate' : 'เงื่อนไขการได้รับแต้ม (Earn Rate)'}
@@ -1633,7 +1628,7 @@ const handleSave = async () => {
                                             </div>
                                         </div>
 
-                                        <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 flex flex-col md:flex-row items-center gap-4">
+                                        <div className="bg-gray-50 p-6 rounded-[10px] border border-gray-200 flex flex-col md:flex-row items-center gap-4">
                                             <div className="flex-1">
                                                 <label className="text-[14px] font-black tracking-tight text-[#1A1A18] mb-1 block">
                                                     {locale === 'en' ? 'Redemption Rate' : 'เงื่อนไขการแลกส่วนลด (Redemption)'}
@@ -1669,7 +1664,7 @@ const handleSave = async () => {
                                     </div>
                                     
                                     <div className="mt-6 pt-6 border-t border-gray-100 space-y-6">
-                                        <div className="flex items-center justify-between bg-gray-50 p-5 rounded-2xl border border-gray-100">
+                                        <div className="flex items-center justify-between bg-gray-50 p-5 rounded-[10px] border border-gray-200">
                                             <div>
                                                 <label className="text-[13px] font-black text-gray-900 block mb-1">แคมเปญวันพิเศษทวีคูณ (Special Day Multiplier)</label>
                                                 <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">คูณคะแนนสะสมให้อัตโนมัติเมื่อตรงกับวันที่กำหนด</p>
@@ -1736,7 +1731,7 @@ const handleSave = async () => {
                                     </div>
                                 </div>
 
-                                <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
+                                <div className="bg-white rounded-[10px] p-6 sm:p-8">
                                     <h3 className="text-xl font-black mb-2 flex items-center gap-3">
                                         <ShieldCheck className="text-blue-500" size={24} /> {locale === 'en' ? ' ระบบสั่งอาหารผ่าน QR (QR Payment)                                     ' : locale === 'zh' ? ' ระบบสั่งอาหารผ่าน QR (QR Payment)                                     ' : ' ระบบสั่งอาหารผ่าน QR (QR Payment)                                     '}</h3>
                                     
@@ -1762,13 +1757,13 @@ const handleSave = async () => {
                                 </div>
 
                                 {/* MYSTERY BOX SETTINGS */}
-                                <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
+                                <div className="bg-white rounded-[10px] p-6 sm:p-8">
                                     <h3 className="text-xl font-black mb-2 flex items-center gap-3">
                                         <Gift className="text-purple-500" size={24} /> กล่องสุ่มรางวัล (Mystery Box)
                                     </h3>
                                     <p className="text-[12px] text-gray-500 font-bold mb-8">ตั้งค่าคะแนนที่ใช้เล่น และโอกาสการได้รางวัลแต่ละระดับ</p>
                                     
-                                    <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 flex flex-col md:flex-row items-center gap-4 mb-6">
+                                    <div className="bg-gray-50 p-6 rounded-[10px] border border-gray-200 flex flex-col md:flex-row items-center gap-4 mb-6">
                                         <div className="flex-1">
                                             <label className="text-[14px] font-black tracking-tight text-[#1A1A18] mb-1 block">
                                                 คะแนนที่ต้องใช้เล่น
@@ -1892,7 +1887,7 @@ const handleSave = async () => {
                         {/* TAB: PERMISSIONS */}
                         {activeTab === 'permissions' && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
+                                <div className="bg-white rounded-[10px] p-6 sm:p-8">
                                     <h3 className="text-xl font-black mb-2 flex items-center gap-3">
                                         <ShieldCheck className="text-red-500" size={24} /> {locale === 'en' ? ' สิทธิ์การเข้าถึง (Role Permissions)' : locale === 'zh' ? ' สิทธิ์การเข้าถึง (Role Permissions)' : ' สิทธิ์การเข้าถึง (Role Permissions)'}</h3>
                                     <p className="text-[12px] text-gray-500 font-bold mb-8">{locale === 'en' ? 'อนุญาตให้พนักงานแต่ละระดับสามารถเข้าถึงหน้าต่างต่างๆ ในแอป POS ได้' : locale === 'zh' ? 'อนุญาตให้พนักงานแต่ละระดับสามารถเข้าถึงหน้าต่างต่างๆ ในแอป POS ได้' : 'อนุญาตให้พนักงานแต่ละระดับสามารถเข้าถึงหน้าต่างต่างๆ ในแอป POS ได้'}</p>
@@ -2031,7 +2026,7 @@ const handleSave = async () => {
                                 </div>
 
                                 {/* CHECKLIST SETTINGS */}
-                                <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 mt-6">
+                                <div className="bg-white rounded-[10px] p-6 sm:p-8 mt-6">
                                     <h3 className="text-xl font-black mb-2 flex items-center gap-3">
                                         <ShieldCheck className="text-blue-500" size={24} /> {locale === 'en' ? 'รายการตรวจสอบก่อนเลิกงาน (Checkout Checklist)' : locale === 'zh' ? 'รายการตรวจสอบก่อนเลิกงาน (Checkout Checklist)' : 'รายการตรวจสอบก่อนเลิกงาน (Checkout Checklist)'}
                                     </h3>
@@ -2087,7 +2082,7 @@ const handleSave = async () => {
                                 </div>
 
                                 {/* REQUIRED AUDIT CATEGORIES SETTINGS */}
-                                <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 mt-6">
+                                <div className="bg-white rounded-[10px] p-6 sm:p-8 mt-6">
                                     <h3 className="text-xl font-black mb-2 flex items-center gap-3">
                                         <ShieldCheck className="text-purple-500" size={24} /> {locale === 'en' ? 'บังคับนับสต็อกก่อนเลิกงาน (Required Daily Audits)' : locale === 'zh' ? 'บังคับนับสต็อกก่อนเลิกงาน (Required Daily Audits)' : 'บังคับนับสต็อกก่อนเลิกงาน (Required Daily Audits)'}
                                     </h3>
@@ -2133,12 +2128,12 @@ const handleSave = async () => {
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                                 
                                 {/* PRINT PREVIEWS (MOVED TOP) */}
-                                <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
+                                <div className="bg-white rounded-[10px] p-6 sm:p-8">
                                     <h3 className="text-xl font-black mb-2 flex items-center gap-3">
                                         <ImageIcon className="text-indigo-500" size={24} /> {locale === 'en' ? ' ตัวอย่างบิล (Print Preview)                                     ' : locale === 'zh' ? ' ตัวอย่างบิล (Print Preview)                                     ' : ' ตัวอย่างบิล (Print Preview)                                     '}</h3>
                                     <p className="text-[12px] text-gray-500 font-bold mb-8">{locale === 'en' ? 'คลิกปุ่มทดสอบพิมพ์ เพื่อลองปริ้นใบเสร็จจริงกับเครื่องปริ้นที่ตั้งค่าไว้' : locale === 'zh' ? 'คลิกปุ่มทดสอบพิมพ์ เพื่อลองปริ้นใบเสร็จจริงกับเครื่องปริ้นที่ตั้งค่าไว้' : 'คลิกปุ่มทดสอบพิมพ์ เพื่อลองปริ้นใบเสร็จจริงกับเครื่องปริ้นที่ตั้งค่าไว้'}</p>
                                     
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-gray-50 p-6 rounded-2xl border border-gray-200">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-gray-50 p-6 rounded-[10px] border border-gray-200">
                                         {/* Receipt Preview */}
                                         <div className="bg-[#111111] p-6 sm:p-8 flex flex-col items-center overflow-hidden rounded-xl shadow-xl relative group border border-black">
                                             <div className="text-[10px] font-black text-white/50 mb-6 uppercase tracking-[0.2em] flex items-center gap-2">
@@ -2261,7 +2256,7 @@ const handleSave = async () => {
                                     </div>
                                 </div>
 
-                                <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
+                                <div className="bg-white rounded-[10px] p-6 sm:p-8">
                                     <div className="flex items-center justify-between mb-8 pb-6 border-b border-gray-100">
                                         <div>
                                             <h3 className="text-xl font-black flex items-center gap-3">
@@ -2281,7 +2276,7 @@ const handleSave = async () => {
                                     </div>
 
                                     {(settings.printers || []).map((printer: any, index: number) => (
-                                        <div key={index} className="mb-8 p-6 sm:p-8 bg-gray-50 border border-gray-200 rounded-2xl relative overflow-hidden group">
+                                        <div key={index} className="mb-8 p-6 sm:p-8 bg-gray-50 border border-gray-200 rounded-[10px] relative overflow-hidden group">
                                             <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-black/5 to-transparent rounded-bl-full pointer-events-none"></div>
                                             
                                             <div className="flex flex-col sm:flex-row gap-6 sm:items-center justify-between mb-8 relative z-10">
@@ -2443,7 +2438,7 @@ const handleSave = async () => {
                                     ))}
                                     
                                     {(!settings.printers || settings.printers.length === 0) && (
-                                        <div className="py-12 border-2 border-dashed border-gray-200 rounded-3xl flex flex-col items-center justify-center text-gray-400 bg-gray-50/50">
+                                        <div className="py-12 border-2 border-dashed border-gray-200 rounded-[10px] flex flex-col items-center justify-center text-gray-400 bg-gray-50/50">
                                             <Printer size={48} className="mb-4 opacity-50" />
                                             <p className="font-bold text-sm">{locale === 'en' ? 'ยังไม่มีเครื่องปริ้นเตอร์' : locale === 'zh' ? 'ยังไม่มีเครื่องปริ้นเตอร์' : 'ยังไม่มีเครื่องปริ้นเตอร์'}</p>
                                             <p className="text-[11px] mt-1 font-medium">{locale === 'en' ? 'กดปุ่ม Add Printer ด้านบนเพื่อเพิ่มอุปกรณ์' : locale === 'zh' ? 'กดปุ่ม Add Printer ด้านบนเพื่อเพิ่มอุปกรณ์' : 'กดปุ่ม Add Printer ด้านบนเพื่อเพิ่มอุปกรณ์'}</p>
@@ -2477,7 +2472,7 @@ const handleSave = async () => {
                                 }
                             }
                         }}
-                        className="w-full sm:w-48 h-16 bg-gray-100 text-gray-800 hover:bg-gray-200 rounded-2xl flex items-center justify-center gap-3 font-black text-sm uppercase tracking-widest transition-all"
+                        className="w-full sm:w-48 h-16 bg-gray-100 text-gray-800 hover:bg-gray-200 rounded-[10px] flex items-center justify-center gap-3 font-black text-sm uppercase tracking-widest transition-all"
                     >
                         <RefreshCw size={20} />
                         Reload App
@@ -2485,7 +2480,7 @@ const handleSave = async () => {
                     <button 
                         onClick={handleSave} 
                         disabled={isSaving}
-                        className="w-full sm:w-64 h-16 bg-black text-white rounded-2xl flex items-center justify-center gap-3 font-black text-sm uppercase tracking-widest hover:bg-gray-900 transition-all shadow-[0_8px_30px_rgb(0,0,0,0.12)] disabled:opacity-50"
+                        className="w-full sm:w-64 h-16 bg-black text-white rounded-[10px] flex items-center justify-center gap-3 font-black text-sm uppercase tracking-widest hover:bg-gray-900 transition-all shadow-none disabled:opacity-50"
                     >
                         {isSaving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
                         {isSaving ? 'SAVING...' : 'SAVE SETTINGS'}
