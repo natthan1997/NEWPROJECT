@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabaseClient';
 import { useI18n } from "@/lib/I18nContext";
 import { QRCodeSVG } from 'qrcode.react';
+import { buildMemberSearchFilter } from '@/lib/phoneUtils';
 
 interface POSHistoryPointsModalProps {
   order: any;
@@ -91,13 +92,11 @@ export default function POSHistoryPointsModal({ order, shopSettings, onClose, on
 
   const searchCustomers = async () => {
     const branchId = shopSettings?.shared_member_branch_id || shopSettings?.branch_id;
-    const cleanDigits = searchTerm.trim().replace(/[^\d]/g, '');
-    const phoneSearch = cleanDigits.length >= 3 ? cleanDigits : searchTerm;
 
     let query = supabase
       .from('pos_members')
       .select('*')
-      .or(`phone.ilike.%${phoneSearch}%,display_name.ilike.%${searchTerm}%,full_name.ilike.%${searchTerm}%`);
+      .or(buildMemberSearchFilter(searchTerm));
       
     if (branchId) {
       query = query.or(`branch_id.eq.${branchId},branch_id.is.null`);

@@ -1,5 +1,5 @@
 /**
- * Utility for normalizing Thai phone numbers across the entire application.
+ * Utility for normalizing & searching Thai phone numbers across the entire application.
  * Accepts: "+66812345678", "66812345678", "0812345678", "812345678", "081-234-5678"
  */
 
@@ -45,6 +45,47 @@ export function normalizePhone(raw: string | null | undefined): NormalizedPhone 
     last9: digits,
     isValid: digits.length >= 8,
   };
+}
+
+/**
+ * Formats a phone number for friendly display to users/staff.
+ * Example: "+66840464216" -> "084-046-4216"
+ */
+export function formatPhoneDisplay(rawPhone: string | null | undefined): string {
+  if (!rawPhone) return '';
+  const norm = normalizePhone(rawPhone);
+  if (!norm.local || norm.local.length !== 10) return rawPhone;
+  return `${norm.local.slice(0, 3)}-${norm.local.slice(3, 6)}-${norm.local.slice(6)}`;
+}
+
+/**
+ * Builds a Supabase .or() query string that matches display_name, full_name, or phone.
+ * Seamlessly matches whether user types '084', '84', '+6684', or full 10 digits.
+ */
+export function buildMemberSearchFilter(searchTerm: string): string {
+  const trimmed = searchTerm.trim();
+  if (!trimmed) return '';
+
+  let digits = trimmed.replace(/[^\d]/g, '');
+  let coreDigits = digits;
+
+  if (digits.startsWith('0')) {
+    coreDigits = digits.slice(1);
+  } else if (digits.startsWith('66') && digits.length >= 4) {
+    coreDigits = digits.slice(2);
+  }
+
+  const filters = [
+    `display_name.ilike.%${trimmed}%`,
+    `full_name.ilike.%${trimmed}%`,
+    `phone.ilike.%${trimmed}%`
+  ];
+
+  if (coreDigits && coreDigits.length >= 2 && coreDigits !== digits) {
+    filters.push(`phone.ilike.%${coreDigits}%`);
+  }
+
+  return filters.join(',');
 }
 
 /**

@@ -4,6 +4,7 @@ import { Users, Search, QrCode, Phone, ChevronRight, UserPlus, Loader2, Star, Co
 import { supabase } from '@/lib/supabaseClient'
 import { useI18n } from "@/lib/I18nContext";
 import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
+import { buildMemberSearchFilter, formatPhoneDisplay } from '@/lib/phoneUtils';
 
 interface Customer {
     id: string
@@ -58,13 +59,10 @@ export default function POSCustomerSelect({ onSelect, selectedCustomer, onClose,
         setLoading(true)
         const branchId = shopSettings?.shared_member_branch_id || shopSettings?.branch_id
 
-        const cleanDigits = searchTerm.trim().replace(/[^\d]/g, '')
-        const phoneSearch = cleanDigits.length >= 3 ? cleanDigits : searchTerm
-
         let query = supabase
             .from('pos_members')
             .select('*')
-            .or(`display_name.ilike.%${searchTerm}%,full_name.ilike.%${searchTerm}%,phone.ilike.%${phoneSearch}%`)
+            .or(buildMemberSearchFilter(searchTerm))
 
         if (branchId) {
             query = query.or(`branch_id.eq.${branchId},branch_id.is.null`)

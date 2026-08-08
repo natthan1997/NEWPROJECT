@@ -9,8 +9,8 @@ import {
 } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import { useI18n } from "@/lib/I18nContext";
-import CrmSettingsPage from '@/app/dashboard/admin/pos-settings/crm/page';
 import { QRCodeCanvas } from 'qrcode.react';
+import { buildMemberSearchFilter, formatPhoneDisplay } from '@/lib/phoneUtils';
 
 interface Customer {
     id: string
@@ -230,9 +230,7 @@ export default function POSMemberManager({
             }
 
             if (searchTerm) {
-                const cleanDigits = searchTerm.trim().replace(/[^\d]/g, '')
-                const phoneSearch = cleanDigits.length >= 3 ? cleanDigits : searchTerm
-                query = query.or(`display_name.ilike.%${searchTerm}%,full_name.ilike.%${searchTerm}%,phone.ilike.%${phoneSearch}%`)
+                query = query.or(buildMemberSearchFilter(searchTerm))
             } else {
                 query = query.order('points', { ascending: false }).limit(100)
             }
