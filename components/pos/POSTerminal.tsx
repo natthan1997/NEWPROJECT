@@ -5252,17 +5252,15 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
           remainingTotal={remainingTotal}
           isProcessing={isProcessing}
           onClose={() => setShowSplitPaymentModal(false)}
-          handleProcessPayment={(method, amount) => {
-             setShowSplitPaymentModal(false);
-             if (method === 'cash') {
-                setCurrentPaymentAmount(amount);
-                setCashReceived('');
-                setPaymentSuccessData(null);
-                setShowCashPaymentModal(true);
-             } else {
-                handleProcessPayment(method, amount);
-             }
+          handleProcessPayment={async (method: string, amount: number) => {
+             return await handleProcessPayment(method, amount);
           }}
+          onFinishOrder={() => {
+             setShowSplitPaymentModal(false);
+             resetOrderComposer();
+          }}
+          activePrintData={activePrintData}
+          shopSettings={shopSettings}
         />
       )}
       

@@ -1,5 +1,9 @@
 import React, { useState, useMemo } from 'react'
-import { X, Divide, CheckSquare, Square, Banknote, QrCode, CreditCard, Sparkles, Plus, Minus } from 'lucide-react'
+import { 
+  X, Divide, CheckSquare, Square, Banknote, QrCode, CreditCard, 
+  Sparkles, Plus, Minus, CheckCircle2, DollarSign, Receipt, ArrowRight,
+  RefreshCw, Check, AlertCircle, ShieldCheck
+} from 'lucide-react'
 import { useI18n } from "@/lib/I18nContext";
 
 export default function POSSplitPaymentModal({
@@ -7,15 +11,35 @@ export default function POSSplitPaymentModal({
   cart = [],
   cartTotal = 0,
   remainingTotal = 0,
+  isProcessing: parentIsProcessing = false,
   handleProcessPayment,
-  isProcessing
+  onFinishOrder,
+  activePrintData,
+  shopSettings
 }: any) {
   const { locale } = useI18n();
+
+  // Mode Selection State
   const [splitMode, setSplitMode] = useState<'equal' | 'item'>('equal')
   const [splitCount, setSplitCount] = useState(2)
-  const [selectedUnitKeys, setSelectedUnitKeys] = useState<string[]>([])
 
-  // Calculate unit price for each item including selected modifiers/options and item-level discounts
+  // Real-time Trackers for In-Modal Continuous Payments
+  const [completedSplits, setCompletedSplits] = useState<Array<{
+    id: string;
+    method: string;
+    amount: number;
+    timestamp: string;
+    unitKeys: string[];
+    cashReceived?: number;
+    change?: number;
+  }>>([])
+
+  const [selectedUnitKeys, setSelectedUnitKeys] = useState<string[]>([])
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'promptpay' | 'credit_card' | null>(null)
+  const [cashReceivedInput, setCashReceivedInput] = useState<string>('')
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
+
+  // 1. Calculate unit price for each item including selected modifiers/options and item-level discounts
   const getItemUnitPrice = (item: any) => {
     const base = Number(item.sale_price ?? item.price ?? item.unit_price ?? 0);
     const modSum = (item.selected_modifiers || []).reduce(
@@ -26,7 +50,7 @@ export default function POSSplitPaymentModal({
     return Math.max(0, base + modSum - itemDiscount);
   };
 
-  // Format custom options/modifiers text to display under each item name
+  // 2. Format custom options/modifiers text to display under each item name
   const getModifiersDisplay = (item: any) => {
     const parts: string[] = [];
     const mods = item.selected_modifiers || [];
@@ -44,7 +68,7 @@ export default function POSSplitPaymentModal({
     return parts.join(' | ');
   };
 
-  // Unroll cart items into individual unit items so items with qty > 1 can be split unit by unit
+  // 3. Unroll cart items into individual unit items so items with qty > 1 can be split unit by unit
   const splitableUnits = useMemo(() => {
     const list: Array<{
       key: string;
@@ -81,29 +105,64 @@ export default function POSSplitPaymentModal({
     return list;
   }, [cart]);
 
-  // Equal Split Amount
-  const equalSplitAmount = splitCount > 0 ? remainingTotal / splitCount : 0
+  // Set of unit keys already paid in previous internal splits
+  const paidUnitKeysSet = useMemo(() => {
+    const keys = new Set<string>();
+    completedSplits.forEach(s => (s.unitKeys || []).forEach(k => keys.add(k)));
+    return keys;
+  }, [completedSplits]);
+
+  // List of remaining unpaid units
+  const unpaidUnits = useMemo(() => {
+    return splitableUnits.filter(u => !paidUnitKeysSet.has(u.key));
+  }, [splitableUnits, paidUnitKeysSet]);
+
+  // Live Calculations for Real-time Progress
+  const totalPaidInSplits = useMemo(() => {
+    return completedSplits.reduce((sum, s) => sum + s.amount, 0);
+  }, [completedSplits]);
+
+  // Current remaining amount to be paid
+  const liveRemainingTotal = Math.max(0, remainingTotal - totalPaidInSplits);
+
+  // Equal Split Amount for current turn
+  const equalSplitAmount = splitCount > 0 ? liveRemainingTotal / Math.max(1, splitCount) : 0;
 
   // Item Split Amount Calculation
   const selectedUnitsSubtotal = useMemo(() => {
     return splitableUnits
-      .filter(unit => selectedUnitKeys.includes(unit.key))
+      .filter(unit => selectedUnitKeys.includes(unit.key) && !paidUnitKeysSet.has(unit.key))
       .reduce((sum, unit) => sum + unit.unitPrice, 0);
-  }, [splitableUnits, selectedUnitKeys]);
+  }, [splitableUnits, selectedUnitKeys, paidUnitKeysSet]);
 
-  const allUnitsSubtotal = useMemo(() => {
-    return splitableUnits.reduce((sum, unit) => sum + unit.unitPrice, 0);
-  }, [splitableUnits]);
+  const unpaidUnitsSubtotal = useMemo(() => {
+    return unpaidUnits.reduce((sum, unit) => sum + unit.unitPrice, 0);
+  }, [unpaidUnits]);
 
   const calculateItemSplitTotal = () => {
-    if (remainingTotal === 0 || allUnitsSubtotal === 0) return 0;
-    // Calculate proportional amount of final remaining total
-    return (selectedUnitsSubtotal / allUnitsSubtotal) * remainingTotal;
+    if (liveRemainingTotal <= 0 || unpaidUnitsSubtotal <= 0) return 0;
+    // Proportional share of the remaining total
+    return (selectedUnitsSubtotal / unpaidUnitsSubtotal) * liveRemainingTotal;
   };
 
-  const finalSplitTotal = splitMode === 'equal' ? equalSplitAmount : calculateItemSplitTotal();
+  // Target Partial Amount for this payment turn
+  const targetPartialAmount = useMemo(() => {
+    if (liveRemainingTotal <= 0) return 0;
+    if (splitMode === 'equal') return Math.min(liveRemainingTotal, equalSplitAmount);
+    return Math.min(liveRemainingTotal, calculateItemSplitTotal());
+  }, [splitMode, equalSplitAmount, selectedUnitsSubtotal, unpaidUnitsSubtotal, liveRemainingTotal]);
 
+  // Cash Change Calculation
+  const numCashReceived = Number(cashReceivedInput) || 0;
+  const cashChange = Math.max(0, numCashReceived - targetPartialAmount);
+  const isCashValid = paymentMethod === 'cash' ? numCashReceived >= (targetPartialAmount - 0.01) : true;
+
+  // Is Fully Completed Check
+  const isFullyCompleted = liveRemainingTotal <= 0.01 || (splitMode === 'item' && unpaidUnits.length === 0 && completedSplits.length > 0);
+
+  // Toggle Selection
   const toggleUnitKey = (key: string) => {
+    if (paidUnitKeysSet.has(key)) return;
     if (selectedUnitKeys.includes(key)) {
       setSelectedUnitKeys(prev => prev.filter(k => k !== key));
     } else {
@@ -112,219 +171,502 @@ export default function POSSplitPaymentModal({
   };
 
   const toggleSelectAllUnits = () => {
-    if (selectedUnitKeys.length === splitableUnits.length) {
+    const selectable = unpaidUnits.map(u => u.key);
+    if (selectedUnitKeys.length === selectable.length) {
       setSelectedUnitKeys([]);
     } else {
-      setSelectedUnitKeys(splitableUnits.map(u => u.key));
+      setSelectedUnitKeys(selectable);
+    }
+  };
+
+  // Process Continuous Partial Payment Right Inside Modal
+  const handleConfirmCurrentSplit = async () => {
+    if (targetPartialAmount <= 0 || !paymentMethod || isSubmitting || !isCashValid) return;
+
+    setIsSubmitting(true);
+    try {
+      // Call parent handleProcessPayment
+      await handleProcessPayment(paymentMethod, targetPartialAmount);
+
+      // Record completed split internally
+      const newSplitRecord = {
+        id: `split_${Date.now()}`,
+        method: paymentMethod,
+        amount: targetPartialAmount,
+        timestamp: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+        unitKeys: [...selectedUnitKeys],
+        cashReceived: paymentMethod === 'cash' ? numCashReceived : undefined,
+        change: paymentMethod === 'cash' ? cashChange : undefined
+      };
+
+      setCompletedSplits(prev => [...prev, newSplitRecord]);
+      
+      // Reset current payment controls for next split turn
+      setSelectedUnitKeys([]);
+      setPaymentMethod(null);
+      setCashReceivedInput('');
+    } catch (e: any) {
+      alert('เกิดข้อผิดพลาดในการชำระเงิน: ' + (e?.message || e));
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose}></div>
-      <div className="relative flex w-full max-w-2xl flex-col bg-[#FDFDFB] font-bold shadow-2xl animate-in zoom-in-95 duration-200 h-[85vh] rounded-3xl overflow-hidden">
+    <div className="fixed inset-0 z-[3000] flex items-center justify-center p-3 sm:p-6">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-slate-950/75 backdrop-blur-md" onClick={onClose}></div>
+      
+      {/* Modal Container */}
+      <div className="relative flex w-full max-w-3xl flex-col bg-[#F8F9FA] font-sans shadow-2xl animate-in zoom-in-95 duration-200 h-[90vh] rounded-[2.5rem] overflow-hidden border border-white/20">
         
-        {/* Header */}
-        <header className="flex items-center justify-between border-b border-gray-100 bg-white px-6 py-5">
-          <div>
-            <h2 className="text-lg font-black uppercase tracking-tight text-black flex items-center gap-2">
-              <Sparkles size={18} className="text-amber-500" />
-              {locale === 'en' ? 'Split Bill' : 'ระบบหารจ่าย / แยกจ่ายชำระ'}
-            </h2>
-            <p className="text-xs text-gray-400 font-medium">
-              {locale === 'en' ? 'Choose equal division or select specific items with options' : 'เลือกหารเท่ากัน หรือเลือกรายการพร้อมตัวเลือกปรับแต่ง'}
-            </p>
+        {/* TOP STATUS HEADER */}
+        <header className="bg-slate-900 text-white px-6 py-4 flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-black">
+              <Sparkles size={20} />
+            </div>
+            <div>
+              <h2 className="text-base sm:text-lg font-black uppercase tracking-tight text-white flex items-center gap-2">
+                ระบบแยกจ่ายชำระ (SPLIT BILL)
+              </h2>
+              <p className="text-[11px] text-slate-400 font-medium">
+                ชำระต่อเนื่องในหน้าเดียว เรียลไทม์ไม่ต้องสลับป๊อบอัพ
+              </p>
+            </div>
           </div>
-          <button onClick={onClose} className="p-2 text-gray-400 hover:text-black transition-colors rounded-full hover:bg-gray-100">
-            <X size={20} />
-          </button>
+
+          <div className="flex items-center gap-2 sm:gap-4">
+            {/* Badges */}
+            <div className="flex items-center gap-2 text-xs font-bold bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700">
+              <span className="text-slate-400">ยอดบิล:</span>
+              <span className="text-white font-black">฿{cartTotal.toLocaleString()}</span>
+            </div>
+
+            <div className="flex items-center gap-2 text-xs font-bold bg-emerald-950/60 text-emerald-400 px-3 py-1.5 rounded-xl border border-emerald-800/50">
+              <span>ชำระแล้ว:</span>
+              <span className="font-black">฿{totalPaidInSplits.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+            </div>
+
+            <div className="flex items-center gap-2 text-xs font-bold bg-amber-950/60 text-amber-400 px-3 py-1.5 rounded-xl border border-amber-800/50">
+              <span>คงเหลือ:</span>
+              <span className="font-black">฿{liveRemainingTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+            </div>
+
+            <button 
+              onClick={onClose} 
+              className="p-2 text-slate-400 hover:text-white transition-colors rounded-full hover:bg-slate-800"
+            >
+              <X size={20} />
+            </button>
+          </div>
         </header>
 
-        {/* Tab Controls */}
-        <div className="p-6 bg-white border-b border-gray-100 pb-4">
-          <div className="flex bg-gray-100 p-1.5 rounded-2xl font-bold gap-1">
-            <button
-              onClick={() => setSplitMode('equal')}
-              className={`flex-1 h-12 rounded-xl flex items-center justify-center gap-2 text-xs font-black uppercase tracking-wider transition-all ${
-                splitMode === 'equal' ? 'bg-[#1A1A18] text-white shadow-md' : 'text-gray-500 hover:text-black'
-              }`}
-            >
-              <Divide size={16} />
-              {locale === 'en' ? 'Equal Split' : 'หารเท่ากัน'}
-            </button>
-            <button
-              onClick={() => setSplitMode('item')}
-              className={`flex-1 h-12 rounded-xl flex items-center justify-center gap-2 text-xs font-black uppercase tracking-wider transition-all ${
-                splitMode === 'item' ? 'bg-[#1A1A18] text-white shadow-md' : 'text-gray-500 hover:text-black'
-              }`}
-            >
-              <CheckSquare size={16} />
-              {locale === 'en' ? 'By Item & Options' : 'เลือกรายรายการ & ตัวเลือก'}
-            </button>
-          </div>
-        </div>
-        
-        {/* Body Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6 custom-scrollbar bg-gray-50/40">
-          
-          {/* EQUAL SPLIT MODE */}
-          {splitMode === 'equal' && (
-            <div className="space-y-6 animate-in slide-in-from-bottom-2 fade-in duration-300 py-4">
-              <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-3xl p-8 bg-white shadow-sm">
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">
-                  {locale === 'en' ? 'Number of People' : 'จำนวนคนหารจ่าย'}
-                </span>
-                <div className="flex items-center gap-8">
-                  <button 
-                    onClick={() => setSplitCount(Math.max(2, splitCount - 1))} 
-                    className="h-14 w-14 rounded-2xl border-2 border-black flex items-center justify-center text-2xl hover:bg-black hover:text-white active:scale-95 transition-all shadow-sm"
-                  >
-                    <Minus size={20} />
-                  </button>
-                  <div className="flex flex-col items-center">
-                    <span className="text-6xl font-black text-black leading-none">{splitCount}</span>
-                    <span className="text-xs text-gray-400 font-medium mt-1">คน</span>
-                  </div>
-                  <button 
-                    onClick={() => setSplitCount(splitCount + 1)} 
-                    className="h-14 w-14 rounded-2xl border-2 border-black flex items-center justify-center text-2xl hover:bg-black hover:text-white active:scale-95 transition-all shadow-sm"
-                  >
-                    <Plus size={20} />
-                  </button>
-                </div>
+        {/* IF FULLY COMPLETED: SHOW CELEBRATION SUMMARY */}
+        {isFullyCompleted ? (
+          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-6 animate-in zoom-in-95 duration-300 bg-white">
+            <div className="h-24 w-24 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-100/50 animate-bounce">
+              <CheckCircle2 size={56} />
+            </div>
 
-                <div className="mt-8 pt-6 border-t border-gray-100 w-full flex justify-around text-center">
-                  <div>
-                    <div className="text-[11px] font-bold text-gray-400">ยอดรวมทั้งหมด</div>
-                    <div className="text-lg font-black text-black">฿{remainingTotal.toLocaleString()}</div>
+            <div className="space-y-2">
+              <h3 className="text-2xl font-black text-slate-900 tracking-tight">
+                🎉 ชำระเงินครบถ้วนเรียบร้อยแล้ว!
+              </h3>
+              <p className="text-sm font-medium text-slate-500 max-w-md mx-auto">
+                ยอดเงินรวม ฿{cartTotal.toLocaleString()} ถูกชำระครบถ้วนผ่านระบบแยกจ่าย
+              </p>
+            </div>
+
+            {/* Split History List */}
+            <div className="w-full max-w-lg bg-slate-50 rounded-2xl p-4 border border-slate-200 space-y-2 text-left">
+              <div className="text-xs font-black uppercase text-slate-400 tracking-wider mb-2">
+                ประวัติการชำระแต่ละงวด ({completedSplits.length} รายการ):
+              </div>
+              {completedSplits.map((split, idx) => (
+                <div key={split.id} className="flex items-center justify-between bg-white p-3 rounded-xl border border-slate-100 text-xs font-bold">
+                  <div className="flex items-center gap-2">
+                    <span className="h-6 w-6 rounded-full bg-slate-900 text-white flex items-center justify-center text-[10px] font-black">
+                      {idx + 1}
+                    </span>
+                    <span className="uppercase font-black text-slate-800">
+                      {split.method === 'cash' ? '💵 เงินสด' : split.method === 'promptpay' ? '📲 สแกน QR' : '💳 บัตรเครดิต'}
+                    </span>
+                    <span className="text-slate-400 font-medium">({split.timestamp})</span>
                   </div>
-                  <div className="w-[1px] h-8 bg-gray-200"></div>
-                  <div>
-                    <div className="text-[11px] font-bold text-emerald-600">เฉลี่ยต่อคน</div>
-                    <div className="text-lg font-black text-emerald-600">฿{equalSplitAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+                  <div className="text-right">
+                    <span className="font-black text-emerald-600 text-sm">
+                      ฿{split.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                    </span>
+                    {split.change && split.change > 0 ? (
+                      <span className="block text-[10px] text-slate-400 font-medium">
+                        (รับ ฿{split.cashReceived} ทอน ฿{split.change})
+                      </span>
+                    ) : null}
                   </div>
                 </div>
+              ))}
+            </div>
+
+            {/* Completion Action Buttons */}
+            <div className="flex flex-wrap items-center justify-center gap-4 pt-4 w-full max-w-md">
+              <button
+                onClick={() => {
+                  if (typeof window !== 'undefined') window.print();
+                }}
+                className="flex-1 h-14 rounded-2xl border-2 border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white font-black text-sm transition-all flex items-center justify-center gap-2 active:scale-95"
+              >
+                <Receipt size={18} />
+                พิมพ์ใบเสร็จ (Print)
+              </button>
+
+              <button
+                onClick={onFinishOrder}
+                className="flex-1 h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 active:scale-95"
+              >
+                <ShieldCheck size={18} />
+                เสร็จสิ้นเปิดบิลใหม่
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* ACTIVE SPLIT PAYMENT WORKFLOW */
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            
+            {/* TAB SELECTOR */}
+            <div className="px-6 pt-5 pb-3 bg-white border-b border-slate-200/80 shrink-0">
+              <div className="flex bg-slate-100 p-1.5 rounded-2xl font-bold gap-1">
+                <button
+                  onClick={() => {
+                    setSplitMode('equal');
+                    setSelectedUnitKeys([]);
+                    setPaymentMethod(null);
+                  }}
+                  className={`flex-1 h-12 rounded-xl flex items-center justify-center gap-2 text-xs font-black uppercase tracking-wider transition-all ${
+                    splitMode === 'equal' 
+                      ? 'bg-slate-900 text-white shadow-md' 
+                      : 'text-slate-500 hover:text-slate-900'
+                  }`}
+                >
+                  <Divide size={16} />
+                  {locale === 'en' ? 'Equal Split' : 'หารเท่ากัน (Equal)'}
+                </button>
+
+                <button
+                  onClick={() => {
+                    setSplitMode('item');
+                    setSelectedUnitKeys([]);
+                    setPaymentMethod(null);
+                  }}
+                  className={`flex-1 h-12 rounded-xl flex items-center justify-center gap-2 text-xs font-black uppercase tracking-wider transition-all ${
+                    splitMode === 'item' 
+                      ? 'bg-slate-900 text-white shadow-md' 
+                      : 'text-slate-500 hover:text-slate-900'
+                  }`}
+                >
+                  <CheckSquare size={16} />
+                  {locale === 'en' ? 'By Item & Options' : 'เลือกตามรายการสินค้า & ตัวเลือก'}
+                </button>
               </div>
             </div>
-          )}
 
-          {/* ITEM SPLIT MODE */}
-          {splitMode === 'item' && (
-            <div className="space-y-4 animate-in slide-in-from-bottom-2 fade-in duration-300">
-              <div className="flex items-center justify-between px-1">
-                <span className="text-xs font-bold text-gray-400">
-                  {locale === 'en' ? 'Select items for this payment' : 'แตะเลือกรายการที่จะจ่ายในบิลนี้ (ดึงตัวเลือกครบถ้วน)'}
-                </span>
+            {/* MAIN CONTENT AREA */}
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6 custom-scrollbar bg-slate-50">
+
+              {/* EQUAL SPLIT MODE DISPLAY */}
+              {splitMode === 'equal' && (
+                <div className="space-y-4 animate-in fade-in duration-200">
+                  <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col items-center justify-center text-center">
+                    <span className="text-xs font-black uppercase tracking-wider text-slate-400 mb-4">
+                      เลือกจำนวนคนหารจ่ายสำหรับยอดคงเหลือ
+                    </span>
+
+                    <div className="flex items-center gap-8 my-2">
+                      <button
+                        onClick={() => setSplitCount(Math.max(2, splitCount - 1))}
+                        className="h-14 w-14 rounded-2xl border-2 border-slate-900 flex items-center justify-center text-2xl font-black text-slate-900 hover:bg-slate-900 hover:text-white active:scale-95 transition-all shadow-sm"
+                      >
+                        <Minus size={20} />
+                      </button>
+
+                      <div className="flex flex-col items-center">
+                        <span className="text-5xl sm:text-6xl font-black text-slate-900 leading-none">
+                          {splitCount}
+                        </span>
+                        <span className="text-xs font-bold text-slate-400 mt-1">คน</span>
+                      </div>
+
+                      <button
+                        onClick={() => setSplitCount(splitCount + 1)}
+                        className="h-14 w-14 rounded-2xl border-2 border-slate-900 flex items-center justify-center text-2xl font-black text-slate-900 hover:bg-slate-900 hover:text-white active:scale-95 transition-all shadow-sm"
+                      >
+                        <Plus size={20} />
+                      </button>
+                    </div>
+
+                    <div className="mt-6 pt-5 border-t border-slate-100 w-full flex items-center justify-around text-center">
+                      <div>
+                        <div className="text-[11px] font-bold text-slate-400">ยอดคงเหลือบิล</div>
+                        <div className="text-base font-black text-slate-800">
+                          ฿{liveRemainingTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                        </div>
+                      </div>
+                      <div className="w-[1px] h-8 bg-slate-200"></div>
+                      <div>
+                        <div className="text-[11px] font-bold text-emerald-600">เฉลี่ยต่องวดนี้</div>
+                        <div className="text-lg font-black text-emerald-600">
+                          ฿{equalSplitAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* BY ITEM SPLIT MODE DISPLAY */}
+              {splitMode === 'item' && (
+                <div className="space-y-3 animate-in fade-in duration-200">
+                  <div className="flex items-center justify-between px-1">
+                    <span className="text-xs font-bold text-slate-500">
+                      รายการสินค้า ({unpaidUnits.length} รายการยังไม่ได้จ่าย):
+                    </span>
+
+                    <button
+                      onClick={toggleSelectAllUnits}
+                      className="text-xs font-bold text-amber-700 bg-amber-100/80 hover:bg-amber-200/80 px-3 py-1.5 rounded-full transition-all"
+                    >
+                      {selectedUnitKeys.length === unpaidUnits.length && unpaidUnits.length > 0 ? 'ล้างการเลือก' : 'เลือกทั้งหมดที่เหลือ'}
+                    </button>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    {splitableUnits.map((unit) => {
+                      const isPaid = paidUnitKeysSet.has(unit.key);
+                      const isSelected = selectedUnitKeys.includes(unit.key);
+
+                      return (
+                        <div
+                          key={unit.key}
+                          onClick={() => !isPaid && toggleUnitKey(unit.key)}
+                          className={`w-full flex items-start justify-between p-4 rounded-2xl border transition-all text-left ${
+                            isPaid
+                              ? 'border-emerald-200 bg-emerald-50/50 text-emerald-900 opacity-80 cursor-not-allowed'
+                              : isSelected
+                              ? 'border-slate-900 bg-slate-900 text-white shadow-md cursor-pointer scale-[1.01]'
+                              : 'border-slate-200/90 bg-white hover:border-slate-300 cursor-pointer text-slate-900'
+                          }`}
+                        >
+                          <div className="flex items-start gap-3.5 flex-1 min-w-0 pr-4">
+                            <div className="mt-0.5 shrink-0">
+                              {isPaid ? (
+                                <CheckCircle2 size={22} className="text-emerald-600" />
+                              ) : isSelected ? (
+                                <CheckSquare size={22} className="text-amber-400" />
+                              ) : (
+                                <Square size={22} className="text-slate-300" />
+                              )}
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className={`text-sm font-black break-words leading-tight ${isSelected ? 'text-white' : 'text-slate-900'}`}>
+                                  {unit.name}
+                                </span>
+
+                                {unit.totalUnits > 1 && (
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
+                                    isSelected ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600'
+                                  }`}>
+                                    ชิ้นที่ {unit.unitIndex}/{unit.totalUnits}
+                                  </span>
+                                )}
+
+                                {isPaid && (
+                                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-600 text-white shrink-0">
+                                    ✓ ชำระแล้ว
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Custom Options / Modifiers Display */}
+                              {unit.modifiersText ? (
+                                <p className={`text-xs font-medium px-2.5 py-1 rounded-lg mt-1.5 inline-block break-words border ${
+                                  isSelected 
+                                    ? 'bg-slate-800/90 text-amber-300 border-slate-700' 
+                                    : 'bg-amber-50 text-amber-900 border-amber-200/60'
+                                }`}>
+                                  ✨ {unit.modifiersText}
+                                </p>
+                              ) : null}
+
+                              {unit.customer_name && (
+                                <div className={`text-[10px] font-bold mt-1 ${isSelected ? 'text-emerald-300' : 'text-emerald-600'}`}>
+                                  👤 {unit.customer_name}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="text-right shrink-0">
+                            <span className={`text-base font-black ${isSelected ? 'text-white' : 'text-slate-900'}`}>
+                              ฿{unit.unitPrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* SPLIT HISTORY ACCORDION */}
+              {completedSplits.length > 0 && (
+                <div className="bg-emerald-50/60 border border-emerald-200 rounded-2xl p-4 text-xs font-bold space-y-2">
+                  <div className="text-emerald-800 font-black uppercase text-[11px] tracking-wider flex items-center justify-between">
+                    <span>รายการที่ชำระสำเร็จแล้ว ({completedSplits.length} งวด):</span>
+                    <span>รวม ฿{totalPaidInSplits.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                  </div>
+                  {completedSplits.map((split, i) => (
+                    <div key={split.id} className="flex items-center justify-between bg-white/80 p-2.5 rounded-xl text-slate-700 border border-emerald-100">
+                      <span>งวดที่ {i + 1}: {split.method === 'cash' ? '💵 เงินสด' : split.method === 'promptpay' ? '📲 สแกน QR' : '💳 บัตรเครดิต'} ({split.timestamp})</span>
+                      <span className="font-black text-emerald-700">฿{split.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* BOTTOM INLINE PAYMENT PANEL */}
+            <footer className="border-t border-slate-200 bg-white p-5 space-y-4 shrink-0 shadow-lg">
+              
+              {/* Payment Summary Bar */}
+              <div className="flex items-end justify-between">
+                <div>
+                  <span className="text-[11px] font-black uppercase tracking-wider text-slate-400 block">
+                    ยอดชำระงวดนี้ (THIS PARTIAL PAYMENT)
+                  </span>
+                  <span className="text-xs font-medium text-slate-500 mt-0.5 block">
+                    {splitMode === 'item' ? `เลือกแล้ว ${selectedUnitKeys.length} ชิ้น` : `แบ่งชำระ 1 ใน ${splitCount} ส่วน`}
+                  </span>
+                </div>
+
+                <div className="text-right">
+                  <span className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
+                    ฿{targetPartialAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
+
+              {/* Payment Method Selector */}
+              <div className="grid grid-cols-3 gap-2.5">
                 <button
-                  onClick={toggleSelectAllUnits}
-                  className="text-xs font-bold text-amber-600 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-full transition-all"
+                  disabled={targetPartialAmount <= 0}
+                  onClick={() => setPaymentMethod('cash')}
+                  className={`h-14 rounded-2xl border flex flex-col items-center justify-center transition-all ${
+                    paymentMethod === 'cash'
+                      ? 'bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-slate-900'
+                      : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                  } disabled:opacity-40`}
                 >
-                  {selectedUnitKeys.length === splitableUnits.length ? 'ล้างการเลือก' : 'เลือกทั้งหมด'}
+                  <Banknote size={18} className="mb-0.5" />
+                  <span className="text-[10px] font-black tracking-wider">เงินสด (CASH)</span>
+                </button>
+
+                <button
+                  disabled={targetPartialAmount <= 0}
+                  onClick={() => setPaymentMethod('promptpay')}
+                  className={`h-14 rounded-2xl border flex flex-col items-center justify-center transition-all ${
+                    paymentMethod === 'promptpay'
+                      ? 'bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-slate-900'
+                      : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                  } disabled:opacity-40`}
+                >
+                  <QrCode size={18} className="mb-0.5" />
+                  <span className="text-[10px] font-black tracking-wider">สแกน QR</span>
+                </button>
+
+                <button
+                  disabled={targetPartialAmount <= 0}
+                  onClick={() => setPaymentMethod('credit_card')}
+                  className={`h-14 rounded-2xl border flex flex-col items-center justify-center transition-all ${
+                    paymentMethod === 'credit_card'
+                      ? 'bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-slate-900'
+                      : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                  } disabled:opacity-40`}
+                >
+                  <CreditCard size={18} className="mb-0.5" />
+                  <span className="text-[10px] font-black tracking-wider">บัตรเครดิต</span>
                 </button>
               </div>
 
-              <div className="space-y-2.5">
-                {splitableUnits.map((unit) => {
-                  const isSelected = selectedUnitKeys.includes(unit.key);
-                  return (
+              {/* INLINE CASH CALCULATOR (WHEN CASH METHOD IS SELECTED) */}
+              {paymentMethod === 'cash' && (
+                <div className="bg-amber-50/80 border border-amber-200 rounded-2xl p-4 space-y-3 animate-in slide-in-from-bottom-2 duration-200">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-amber-900">ระบุจำนวนเงินที่รับมา (Received Cash):</span>
+                    {numCashReceived > 0 && (
+                      <span className={`text-xs font-black ${cashChange >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>
+                        {cashChange >= 0 ? `เงินทอน: ฿${cashChange.toLocaleString()}` : `ยังขาด: ฿${Math.abs(cashChange).toLocaleString()}`}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      value={cashReceivedInput}
+                      onChange={(e) => setCashReceivedInput(e.target.value)}
+                      placeholder={`฿ ${Math.ceil(targetPartialAmount)}`}
+                      className="flex-1 h-12 bg-white border border-amber-300 rounded-xl px-4 text-lg font-black text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+
+                    {/* Quick Banknote Buttons */}
                     <button
-                      key={unit.key}
-                      onClick={() => toggleUnitKey(unit.key)}
-                      className={`w-full flex items-start justify-between p-4 rounded-2xl border transition-all text-left ${
-                        isSelected 
-                          ? 'border-emerald-500 bg-emerald-50/40 shadow-sm' 
-                          : 'border-gray-200/80 bg-white hover:border-gray-300'
-                      }`}
+                      onClick={() => setCashReceivedInput(String(Math.ceil(targetPartialAmount)))}
+                      className="px-3 h-12 rounded-xl bg-white border border-amber-300 text-xs font-bold text-amber-900 hover:bg-amber-100 transition-all"
                     >
-                      <div className="flex items-start gap-3.5 flex-1 min-w-0 pr-4">
-                        <div className={`mt-0.5 shrink-0 ${isSelected ? 'text-emerald-600' : 'text-gray-300'}`}>
-                          {isSelected ? <CheckSquare size={22} /> : <Square size={22} />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-black text-black break-words leading-tight">
-                              {unit.name}
-                            </span>
-                            {unit.totalUnits > 1 && (
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 shrink-0">
-                                ชิ้นที่ {unit.unitIndex}/{unit.totalUnits}
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Custom Options / Modifiers display */}
-                          {unit.modifiersText ? (
-                            <p className="text-xs font-medium text-amber-800 bg-amber-50/80 px-2.5 py-1 rounded-lg mt-1.5 inline-block break-words border border-amber-100/60">
-                              ✨ {unit.modifiersText}
-                            </p>
-                          ) : null}
-
-                          {unit.customer_name && (
-                            <div className="text-[10px] font-bold text-emerald-600 mt-1">
-                              👤 {unit.customer_name}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <div className="text-right shrink-0">
-                        <span className="text-base font-black text-black">
-                          ฿{unit.unitPrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                        </span>
-                      </div>
+                      พอดี
                     </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
+                    <button
+                      onClick={() => setCashReceivedInput(String((Number(cashReceivedInput) || 0) + 100))}
+                      className="px-3 h-12 rounded-xl bg-white border border-amber-300 text-xs font-bold text-amber-900 hover:bg-amber-100 transition-all"
+                    >
+                      +100
+                    </button>
+                    <button
+                      onClick={() => setCashReceivedInput(String((Number(cashReceivedInput) || 0) + 500))}
+                      className="px-3 h-12 rounded-xl bg-white border border-amber-300 text-xs font-bold text-amber-900 hover:bg-amber-100 transition-all"
+                    >
+                      +500
+                    </button>
+                  </div>
+                </div>
+              )}
 
-        {/* Footer Payment Actions */}
-        <footer className="border-t border-gray-100 bg-white p-6">
-          <div className="flex items-end justify-between mb-5">
-            <div className="flex flex-col">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400">
-                {locale === 'en' ? 'Selected Amount' : 'ยอดชำระงวดนี้'}
-              </span>
-              <span className="text-xs font-medium text-gray-500 mt-0.5">
-                {locale === 'en' ? 'Remaining total: ฿' : 'จากยอดคงเหลือทั้งหมด: ฿'}{remainingTotal.toLocaleString()}
-              </span>
-            </div>
-            <div className="text-right">
-              <span className="text-3xl lg:text-4xl font-black text-black tracking-tight">
-                ฿{finalSplitTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-              </span>
-            </div>
+              {/* ACTION CONFIRM BUTTON */}
+              {paymentMethod && (
+                <button
+                  disabled={targetPartialAmount <= 0 || isSubmitting || !isCashValid}
+                  onClick={handleConfirmCurrentSplit}
+                  className="w-full h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-base shadow-lg shadow-emerald-600/30 transition-all flex items-center justify-center gap-2 active:scale-98 disabled:opacity-40"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <RefreshCw size={20} className="animate-spin" />
+                      กำลังบันทึกชำระเงิน...
+                    </>
+                  ) : (
+                    <>
+                      <Check size={20} />
+                      ยืนยันชำระงวดนี้ (฿{targetPartialAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })})
+                    </>
+                  )}
+                </button>
+              )}
+
+            </footer>
           </div>
-          
-          <div className="grid grid-cols-3 gap-3">
-            <button 
-              disabled={isProcessing || finalSplitTotal <= 0} 
-              onClick={() => handleProcessPayment('cash', finalSplitTotal)} 
-              className="h-16 flex flex-col items-center justify-center rounded-2xl border border-gray-200 bg-white hover:bg-black hover:text-white transition-all group disabled:opacity-40 active:scale-95 shadow-sm"
-            >
-              <Banknote size={20} className="text-gray-500 group-hover:text-white mb-1 transition-colors" />
-              <span className="text-[11px] font-black tracking-wider">เงินสด (CASH)</span>
-            </button>
-            <button 
-              disabled={isProcessing || finalSplitTotal <= 0} 
-              onClick={() => handleProcessPayment('promptpay', finalSplitTotal)} 
-              className="h-16 flex flex-col items-center justify-center rounded-2xl border border-gray-200 bg-white hover:bg-black hover:text-white transition-all group disabled:opacity-40 active:scale-95 shadow-sm"
-            >
-              <QrCode size={20} className="text-gray-500 group-hover:text-white mb-1 transition-colors" />
-              <span className="text-[11px] font-black tracking-wider">สแกน QR</span>
-            </button>
-            <button 
-              disabled={isProcessing || finalSplitTotal <= 0} 
-              onClick={() => handleProcessPayment('credit_card', finalSplitTotal)} 
-              className="h-16 flex flex-col items-center justify-center rounded-2xl border border-gray-200 bg-white hover:bg-black hover:text-white transition-all group disabled:opacity-40 active:scale-95 shadow-sm"
-            >
-              <CreditCard size={20} className="text-gray-500 group-hover:text-white mb-1 transition-colors" />
-              <span className="text-[11px] font-black tracking-wider">บัตรเครดิต</span>
-            </button>
-          </div>
-        </footer>
+        )}
       </div>
     </div>
   )
