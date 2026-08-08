@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react'
 import { 
   X, Divide, CheckSquare, Square, Banknote, QrCode, CreditCard, 
   Sparkles, Plus, Minus, CheckCircle2, Receipt, RefreshCw, Check, 
-  Layers, ArrowRight, Wallet, User
+  Layers, ArrowRight, Wallet, User, CheckSquare2
 } from 'lucide-react'
 import { useI18n } from "@/lib/I18nContext";
 
@@ -19,11 +19,11 @@ export default function POSSplitPaymentModal({
 }: any) {
   const { locale } = useI18n();
 
-  // Mode Selection State
+  // Mode Selection State ('equal' | 'item')
   const [splitMode, setSplitMode] = useState<'equal' | 'item'>('equal')
   const [splitCount, setSplitCount] = useState(2)
 
-  // Real-time Trackers for In-Modal Continuous Payments
+  // Track Real-time Completed Splits inside the modal session
   const [completedSplits, setCompletedSplits] = useState<Array<{
     id: string;
     method: string;
@@ -112,45 +112,43 @@ export default function POSSplitPaymentModal({
     return keys;
   }, [completedSplits]);
 
-  // List of remaining unpaid units
-  const unpaidUnits = useMemo(() => {
+  // Separate units into Paid vs Unpaid for crystal clear UI sections
+  const paidUnitsList = useMemo(() => {
+    return splitableUnits.filter(u => paidUnitKeysSet.has(u.key));
+  }, [splitableUnits, paidUnitKeysSet]);
+
+  const unpaidUnitsList = useMemo(() => {
     return splitableUnits.filter(u => !paidUnitKeysSet.has(u.key));
   }, [splitableUnits, paidUnitKeysSet]);
 
+  // Amount already paid prior to opening modal session
+  const previouslyPaidAmount = Math.max(0, cartTotal - remainingTotal);
+
   // Live Calculations for Real-time Progress
-  const totalPaidInSplits = useMemo(() => {
+  const totalPaidInCurrentSession = useMemo(() => {
     return completedSplits.reduce((sum, s) => sum + s.amount, 0);
   }, [completedSplits]);
 
-  // Current remaining amount to be paid
-  const liveRemainingTotal = Math.max(0, remainingTotal - totalPaidInSplits);
+  const totalOverallPaid = previouslyPaidAmount + totalPaidInCurrentSession;
+  const liveRemainingTotal = Math.max(0, cartTotal - totalOverallPaid);
 
   // Equal Split Amount for current turn
   const equalSplitAmount = splitCount > 0 ? liveRemainingTotal / Math.max(1, splitCount) : 0;
 
-  // Item Split Amount Calculation
-  const selectedUnitsSubtotal = useMemo(() => {
+  // Exact Sum of Selected Items in By-Item Mode (NO DIVISION RATIO! EXACT ITEM PRICE!)
+  const selectedUnitsExactPrice = useMemo(() => {
     return splitableUnits
       .filter(unit => selectedUnitKeys.includes(unit.key) && !paidUnitKeysSet.has(unit.key))
       .reduce((sum, unit) => sum + unit.unitPrice, 0);
   }, [splitableUnits, selectedUnitKeys, paidUnitKeysSet]);
 
-  const unpaidUnitsSubtotal = useMemo(() => {
-    return unpaidUnits.reduce((sum, unit) => sum + unit.unitPrice, 0);
-  }, [unpaidUnits]);
-
-  const calculateItemSplitTotal = () => {
-    if (liveRemainingTotal <= 0 || unpaidUnitsSubtotal <= 0) return 0;
-    // Proportional share of the remaining total
-    return (selectedUnitsSubtotal / unpaidUnitsSubtotal) * liveRemainingTotal;
-  };
-
-  // Target Partial Amount for this payment turn
+  // Target Payment Amount for this payment turn
   const targetPartialAmount = useMemo(() => {
     if (liveRemainingTotal <= 0) return 0;
     if (splitMode === 'equal') return Math.min(liveRemainingTotal, equalSplitAmount);
-    return Math.min(liveRemainingTotal, calculateItemSplitTotal());
-  }, [splitMode, equalSplitAmount, selectedUnitsSubtotal, unpaidUnitsSubtotal, liveRemainingTotal]);
+    // BY ITEM MODE: USE EXACT ITEM PRICE SUM!
+    return Math.min(liveRemainingTotal, selectedUnitsExactPrice);
+  }, [splitMode, equalSplitAmount, selectedUnitsExactPrice, liveRemainingTotal]);
 
   // Cash Change Calculation
   const numCashReceived = Number(cashReceivedInput) || 0;
@@ -158,9 +156,9 @@ export default function POSSplitPaymentModal({
   const isCashValid = paymentMethod === 'cash' ? numCashReceived >= (targetPartialAmount - 0.01) : true;
 
   // Is Fully Completed Check
-  const isFullyCompleted = liveRemainingTotal <= 0.01 || (splitMode === 'item' && unpaidUnits.length === 0 && completedSplits.length > 0);
+  const isFullyCompleted = liveRemainingTotal <= 0.01 || (splitMode === 'item' && unpaidUnitsList.length === 0 && (completedSplits.length > 0 || previouslyPaidAmount > 0));
 
-  // Toggle Selection
+  // Toggle Item Unit Selection
   const toggleUnitKey = (key: string) => {
     if (paidUnitKeysSet.has(key)) return;
     if (selectedUnitKeys.includes(key)) {
@@ -170,8 +168,8 @@ export default function POSSplitPaymentModal({
     }
   };
 
-  const toggleSelectAllUnits = () => {
-    const selectable = unpaidUnits.map(u => u.key);
+  const toggleSelectAllUnpaidUnits = () => {
+    const selectable = unpaidUnitsList.map(u => u.key);
     if (selectedUnitKeys.length === selectable.length) {
       setSelectedUnitKeys([]);
     } else {
@@ -217,27 +215,26 @@ export default function POSSplitPaymentModal({
       {/* Dark Blur Backdrop */}
       <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md" onClick={onClose}></div>
       
-      {/* Premium Glass Container */}
+      {/* Premium Glass Modal Box */}
       <div className="relative flex w-full max-w-3xl flex-col bg-[#FAFAFC] font-sans shadow-2xl h-[92vh] rounded-[2.5rem] overflow-hidden border border-slate-200/60">
         
-        {/* HEADER BAR */}
-        <header className="bg-slate-900 text-white px-6 py-4 flex flex-wrap items-center justify-between gap-4 shrink-0 shadow-md">
+        {/* TOP STATUS HEADER BAR */}
+        <header className="bg-slate-900 text-white px-6 py-4 flex flex-wrap items-center justify-between gap-3 shrink-0 shadow-md">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-black border border-amber-500/30">
               <Sparkles size={20} />
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-black uppercase tracking-tight text-white flex items-center gap-2">
-                ระบบแยกชำระบิล (SPLIT BILL)
+                ระบบแยกชำระบิล (SPLIT PAYMENT)
               </h2>
               <p className="text-[11px] text-slate-400 font-medium">
-                เลือกหารเท่ากัน หรือเลือกชำระแยกทีละรายการพร้อมตัวเลือก
+                คำนวณราคาจริงตามรายการที่เลือก ไม่มีการหารเฉลี่ย
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* Live Progress Badges */}
+          <div className="flex items-center gap-2">
             <div className="flex items-center gap-1.5 text-xs font-bold bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700">
               <span className="text-slate-400">บิลรวม:</span>
               <span className="text-white font-black">฿{cartTotal.toLocaleString()}</span>
@@ -245,7 +242,7 @@ export default function POSSplitPaymentModal({
 
             <div className="flex items-center gap-1.5 text-xs font-bold bg-emerald-950/80 text-emerald-400 px-3 py-1.5 rounded-xl border border-emerald-700/50">
               <span>จ่ายแล้ว:</span>
-              <span className="font-black">฿{totalPaidInSplits.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+              <span className="font-black">฿{totalOverallPaid.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
             </div>
 
             <div className="flex items-center gap-1.5 text-xs font-bold bg-amber-950/80 text-amber-400 px-3 py-1.5 rounded-xl border border-amber-700/50">
@@ -274,19 +271,36 @@ export default function POSSplitPaymentModal({
                 🎉 ชำระเงินครบถ้วนเรียบร้อยแล้ว!
               </h3>
               <p className="text-sm font-medium text-slate-500 max-w-md mx-auto">
-                ยอดบิลรวม ฿{cartTotal.toLocaleString()} ได้รับการชำระครบเต็มจำนวนแล้ว
+                ยอดบิลรวม ฿{cartTotal.toLocaleString()} ได้รับการชำระครบเต็มจำนวนเรียบร้อยแล้ว
               </p>
             </div>
 
-            {/* Split Breakdown Table */}
+            {/* Split Breakdown Summary Table */}
             <div className="w-full max-w-lg bg-slate-50 rounded-2xl p-5 border border-slate-200 space-y-3 text-left">
               <div className="text-xs font-black uppercase text-slate-400 tracking-wider flex items-center justify-between">
-                <span>สรุปการชำระแยกตามงวด ({completedSplits.length} งวด):</span>
-                <span className="text-slate-900 font-bold">รวม ฿{totalPaidInSplits.toLocaleString()}</span>
+                <span>สรุปประวัติการชำระบิลนี้:</span>
+                <span className="text-slate-900 font-bold">รวม ฿{totalOverallPaid.toLocaleString()}</span>
               </div>
+
+              {previouslyPaidAmount > 0 && (
+                <div className="flex items-center justify-between bg-white p-3.5 rounded-xl border border-slate-200 text-xs font-bold shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="h-6 w-6 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-[11px] font-black shrink-0">
+                      0
+                    </span>
+                    <span className="uppercase font-black text-slate-800">
+                      ชำระก่อนหน้านี้
+                    </span>
+                  </div>
+                  <span className="font-black text-slate-800 text-base">
+                    ฿{previouslyPaidAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+              )}
+
               {completedSplits.map((split, idx) => (
-                <div key={split.id} className="flex items-center justify-between bg-white p-3.5 rounded-xl border border-slate-200/80 text-xs font-bold shadow-sm">
-                  <div className="flex items-center gap-3">
+                <div key={split.id} className="flex items-center justify-between bg-white p-3.5 rounded-xl border border-slate-200 text-xs font-bold shadow-sm">
+                  <div className="flex items-center gap-2.5">
                     <span className="h-6 w-6 rounded-full bg-slate-900 text-white flex items-center justify-center text-[11px] font-black shrink-0">
                       {idx + 1}
                     </span>
@@ -366,7 +380,7 @@ export default function POSSplitPaymentModal({
                   }`}
                 >
                   <CheckSquare size={16} />
-                  {locale === 'en' ? 'By Item & Options' : '🛍️ เลือกตามรายการสินค้า'}
+                  {locale === 'en' ? 'By Item & Options' : '🛍️ เลือกตามรายการสินค้า (ราคาจริง)'}
                 </button>
               </div>
             </div>
@@ -426,111 +440,160 @@ export default function POSSplitPaymentModal({
 
               {/* BY ITEM SPLIT MODE */}
               {splitMode === 'item' && (
-                <div className="space-y-3 animate-in fade-in duration-200">
-                  <div className="flex items-center justify-between px-1">
-                    <span className="text-xs font-bold text-slate-500">
-                      รายการสินค้าในบิล ({unpaidUnits.length} รายการยังไม่ได้ชำระ):
-                    </span>
+                <div className="space-y-5 animate-in fade-in duration-200">
+                  
+                  {/* SECTION 1: UNPAID ITEMS (รายการที่ต้องเลือกชำระ) */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between px-1">
+                      <span className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-2">
+                        📋 รายการที่ยังไม่ได้ชำระ ({unpaidUnitsList.length} ชิ้น)
+                      </span>
 
-                    <button
-                      onClick={toggleSelectAllUnits}
-                      className="text-xs font-bold text-amber-700 bg-amber-100/80 hover:bg-amber-200/80 px-3 py-1.5 rounded-full transition-all"
-                    >
-                      {selectedUnitKeys.length === unpaidUnits.length && unpaidUnits.length > 0 ? 'ล้างการเลือก' : 'เลือกทั้งหมดที่เหลือ'}
-                    </button>
-                  </div>
+                      <button
+                        onClick={toggleSelectAllUnpaidUnits}
+                        className="text-xs font-bold text-amber-700 bg-amber-100/80 hover:bg-amber-200/80 px-3 py-1 rounded-full transition-all"
+                      >
+                        {selectedUnitKeys.length === unpaidUnitsList.length && unpaidUnitsList.length > 0 ? 'ล้างการเลือก' : 'เลือกทั้งหมดที่เหลือ'}
+                      </button>
+                    </div>
 
-                  <div className="space-y-2.5">
-                    {splitableUnits.map((unit) => {
-                      const isPaid = paidUnitKeysSet.has(unit.key);
-                      const isSelected = selectedUnitKeys.includes(unit.key);
+                    {unpaidUnitsList.length === 0 ? (
+                      <div className="p-6 bg-emerald-50 border border-emerald-200 rounded-2xl text-center text-emerald-800 font-bold text-xs">
+                        ✓ รายการสินค้าทั้งหมดถูกชำระเงินเรียบร้อยแล้ว
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {unpaidUnitsList.map((unit) => {
+                          const isSelected = selectedUnitKeys.includes(unit.key);
 
-                      return (
-                        <div
-                          key={unit.key}
-                          onClick={() => !isPaid && toggleUnitKey(unit.key)}
-                          className={`w-full flex items-start justify-between p-4 rounded-2xl border transition-all text-left ${
-                            isPaid
-                              ? 'border-emerald-200 bg-emerald-50/50 text-emerald-900 opacity-80 cursor-not-allowed'
-                              : isSelected
-                              ? 'border-slate-900 bg-slate-900 text-white shadow-md cursor-pointer scale-[1.01]'
-                              : 'border-slate-200/90 bg-white hover:border-slate-300 cursor-pointer text-slate-900'
-                          }`}
-                        >
-                          <div className="flex items-start gap-3.5 flex-1 min-w-0 pr-4">
-                            <div className="mt-0.5 shrink-0">
-                              {isPaid ? (
-                                <CheckCircle2 size={22} className="text-emerald-600" />
-                              ) : isSelected ? (
-                                <CheckSquare size={22} className="text-amber-400" />
-                              ) : (
-                                <Square size={22} className="text-slate-300" />
-                              )}
-                            </div>
+                          return (
+                            <div
+                              key={unit.key}
+                              onClick={() => toggleUnitKey(unit.key)}
+                              className={`w-full flex items-start justify-between p-4 rounded-2xl border transition-all text-left cursor-pointer ${
+                                isSelected
+                                  ? 'border-slate-900 bg-slate-900 text-white shadow-md scale-[1.01]'
+                                  : 'border-slate-200 bg-white hover:border-slate-300 text-slate-900 shadow-sm'
+                              }`}
+                            >
+                              <div className="flex items-start gap-3.5 flex-1 min-w-0 pr-4">
+                                <div className="mt-0.5 shrink-0">
+                                  {isSelected ? (
+                                    <CheckSquare size={22} className="text-amber-400" />
+                                  ) : (
+                                    <Square size={22} className="text-slate-300" />
+                                  )}
+                                </div>
 
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className={`text-sm font-black break-words leading-tight ${isSelected ? 'text-white' : 'text-slate-900'}`}>
-                                  {unit.name}
-                                </span>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className={`text-sm font-black break-words leading-tight ${isSelected ? 'text-white' : 'text-slate-900'}`}>
+                                      {unit.name}
+                                    </span>
 
-                                {unit.totalUnits > 1 && (
-                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
-                                    isSelected ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600'
-                                  }`}>
-                                    ชิ้นที่ {unit.unitIndex}/{unit.totalUnits}
-                                  </span>
-                                )}
+                                    {unit.totalUnits > 1 && (
+                                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
+                                        isSelected ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600'
+                                      }`}>
+                                        ชิ้นที่ {unit.unitIndex}/{unit.totalUnits}
+                                      </span>
+                                    )}
+                                  </div>
 
-                                {isPaid && (
-                                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-600 text-white shrink-0">
-                                    ✓ ชำระแล้ว
-                                  </span>
-                                )}
+                                  {/* Custom Options / Modifiers Display */}
+                                  {unit.modifiersText ? (
+                                    <p className={`text-xs font-medium px-2.5 py-1 rounded-lg mt-1.5 inline-block break-words border ${
+                                      isSelected 
+                                        ? 'bg-slate-800/90 text-amber-300 border-slate-700' 
+                                        : 'bg-amber-50 text-amber-900 border-amber-200/60'
+                                    }`}>
+                                      ✨ {unit.modifiersText}
+                                    </p>
+                                  ) : null}
+
+                                  {unit.customer_name && (
+                                    <div className={`text-[10px] font-bold mt-1 ${isSelected ? 'text-emerald-300' : 'text-emerald-600'}`}>
+                                      👤 {unit.customer_name}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
 
-                              {/* Custom Options / Modifiers Display */}
-                              {unit.modifiersText ? (
-                                <p className={`text-xs font-medium px-2.5 py-1 rounded-lg mt-1.5 inline-block break-words border ${
-                                  isSelected 
-                                    ? 'bg-slate-800/90 text-amber-300 border-slate-700' 
-                                    : 'bg-amber-50 text-amber-900 border-amber-200/60'
-                                }`}>
-                                  ✨ {unit.modifiersText}
-                                </p>
-                              ) : null}
+                              <div className="text-right shrink-0">
+                                <span className={`text-base font-black ${isSelected ? 'text-white' : 'text-slate-900'}`}>
+                                  ฿{unit.unitPrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
 
-                              {unit.customer_name && (
-                                <div className={`text-[10px] font-bold mt-1 ${isSelected ? 'text-emerald-300' : 'text-emerald-600'}`}>
-                                  👤 {unit.customer_name}
+                  {/* SECTION 2: ALREADY PAID ITEMS (รายการที่ชำระเงินแล้ว) */}
+                  {paidUnitsList.length > 0 && (
+                    <div className="space-y-2 pt-2 border-t border-slate-200">
+                      <span className="text-xs font-black uppercase tracking-wider text-emerald-800 flex items-center gap-1.5 px-1">
+                        <CheckCircle2 size={16} className="text-emerald-600" />
+                        รายการที่ชำระเงินเรียบร้อยแล้ว ({paidUnitsList.length} ชิ้น):
+                      </span>
+
+                      <div className="space-y-2 opacity-85">
+                        {paidUnitsList.map((unit) => (
+                          <div
+                            key={unit.key}
+                            className="w-full flex items-start justify-between p-3.5 rounded-2xl border border-emerald-200 bg-emerald-50/70 text-emerald-950 text-left"
+                          >
+                            <div className="flex items-start gap-3 flex-1 min-w-0 pr-4">
+                              <CheckCircle2 size={20} className="text-emerald-600 shrink-0 mt-0.5" />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-black break-words leading-tight text-emerald-950">
+                                    {unit.name}
+                                  </span>
+                                  {unit.totalUnits > 1 && (
+                                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 shrink-0">
+                                      ชิ้นที่ {unit.unitIndex}/{unit.totalUnits}
+                                    </span>
+                                  )}
+                                  <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-emerald-600 text-white shrink-0">
+                                    ✓ ชำระแล้ว
+                                  </span>
                                 </div>
-                              )}
+                                {unit.modifiersText ? (
+                                  <p className="text-[11px] font-medium text-emerald-800 mt-1">
+                                    ✨ {unit.modifiersText}
+                                  </p>
+                                ) : null}
+                              </div>
+                            </div>
+
+                            <div className="text-right shrink-0">
+                              <span className="text-sm font-black text-emerald-900">
+                                ฿{unit.unitPrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                              </span>
                             </div>
                           </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-                          <div className="text-right shrink-0">
-                            <span className={`text-base font-black ${isSelected ? 'text-white' : 'text-slate-900'}`}>
-                              ฿{unit.unitPrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
                 </div>
               )}
 
-              {/* COMPLETED SPLITS HISTORY LIST */}
+              {/* COMPLETED SPLITS HISTORY SUMMARY */}
               {completedSplits.length > 0 && (
-                <div className="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-4 text-xs font-bold space-y-2">
-                  <div className="text-emerald-800 font-black uppercase text-[11px] tracking-wider flex items-center justify-between">
-                    <span>งวดที่ชำระสำเร็จแล้ว ({completedSplits.length} รายการ):</span>
-                    <span>รวม ฿{totalPaidInSplits.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                <div className="bg-slate-900 text-white rounded-2xl p-4 text-xs font-bold space-y-2 border border-slate-800">
+                  <div className="font-black uppercase text-[11px] tracking-wider flex items-center justify-between text-amber-400">
+                    <span>ประวัติชำระในรอบนี้ ({completedSplits.length} งวด):</span>
+                    <span>รวม ฿{totalPaidInCurrentSession.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
                   </div>
                   {completedSplits.map((split, i) => (
-                    <div key={split.id} className="flex items-center justify-between bg-white/90 p-2.5 rounded-xl text-slate-700 border border-emerald-100">
+                    <div key={split.id} className="flex items-center justify-between bg-slate-800/80 p-2.5 rounded-xl border border-slate-700 text-slate-200">
                       <span>งวดที่ {i + 1}: {split.method === 'cash' ? '💵 เงินสด' : split.method === 'promptpay' ? '📲 สแกน QR' : '💳 บัตรเครดิต'} ({split.timestamp})</span>
-                      <span className="font-black text-emerald-700">฿{split.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                      <span className="font-black text-emerald-400">฿{split.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
                     </div>
                   ))}
                 </div>
@@ -540,14 +603,14 @@ export default function POSSplitPaymentModal({
             {/* INLINE PAYMENT PANEL FOOTER */}
             <footer className="border-t border-slate-200 bg-white p-5 space-y-4 shrink-0 shadow-lg">
               
-              {/* Payment Summary Header */}
+              {/* Payment Summary Display */}
               <div className="flex items-end justify-between">
                 <div>
                   <span className="text-[11px] font-black uppercase tracking-wider text-slate-400 block">
-                    ยอดชำระงวดนี้ (THIS PARTIAL PAYMENT)
+                    ยอดชำระงวดนี้ (ราคาจริงตามรายการ)
                   </span>
-                  <span className="text-xs font-medium text-slate-500 mt-0.5 block">
-                    {splitMode === 'item' ? `เลือกแล้ว ${selectedUnitKeys.length} ชิ้น` : `แบ่งชำระ 1 ใน ${splitCount} ส่วน`}
+                  <span className="text-xs font-bold text-slate-600 mt-0.5 block">
+                    {splitMode === 'item' ? `เลือกแล้ว ${selectedUnitKeys.length} ชิ้น (ราคารวมตรงตามชิ้น)` : `แบ่งชำระ 1 ใน ${splitCount} ส่วน`}
                   </span>
                 </div>
 
@@ -558,7 +621,7 @@ export default function POSSplitPaymentModal({
                 </div>
               </div>
 
-              {/* Payment Method Cards */}
+              {/* Payment Method Selector Cards */}
               <div className="grid grid-cols-3 gap-2.5">
                 <button
                   disabled={targetPartialAmount <= 0}
@@ -600,11 +663,11 @@ export default function POSSplitPaymentModal({
                 </button>
               </div>
 
-              {/* INLINE CASH CALCULATOR (WHEN CASH IS SELECTED) */}
+              {/* INLINE CASH CALCULATOR (WHEN CASH METHOD IS SELECTED) */}
               {paymentMethod === 'cash' && (
-                <div className="bg-amber-50/80 border border-amber-200 rounded-2xl p-4 space-y-3 animate-in slide-in-from-bottom-2 duration-200">
+                <div className="bg-amber-50/90 border border-amber-300 rounded-2xl p-4 space-y-3 animate-in slide-in-from-bottom-2 duration-200 shadow-sm">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-amber-900">ระบุจำนวนเงินที่รับมา (Received Cash):</span>
+                    <span className="text-xs font-bold text-amber-950">ระบุจำนวนเงินที่รับมา (Received Cash):</span>
                     {numCashReceived > 0 && (
                       <span className={`text-xs font-black ${cashChange >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>
                         {cashChange >= 0 ? `เงินทอน: ฿${cashChange.toLocaleString()}` : `ยังขาด: ฿${Math.abs(cashChange).toLocaleString()}`}
@@ -621,7 +684,7 @@ export default function POSSplitPaymentModal({
                       className="flex-1 h-12 bg-white border border-amber-300 rounded-xl px-4 text-lg font-black text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
                     />
 
-                    {/* Quick Banknotes Buttons */}
+                    {/* Quick Banknote Buttons */}
                     <button
                       onClick={() => setCashReceivedInput(String(Math.ceil(targetPartialAmount)))}
                       className="px-3 h-12 rounded-xl bg-white border border-amber-300 text-xs font-bold text-amber-900 hover:bg-amber-100 transition-all"
