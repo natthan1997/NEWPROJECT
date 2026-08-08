@@ -355,8 +355,19 @@ function LiffMemberContent() {
   }, [dbTiers, earnRate]);
   
   const handleRegistrationSubmit = async (data: any) => {
-    const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
-    if (!userId) return;
+    let userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
+    if (!userId && typeof window !== 'undefined' && (window as any).liff) {
+      try {
+        const decoded = (window as any).liff.getDecodedIDToken();
+        if (decoded?.sub) userId = decoded.sub;
+      } catch (e) {
+        console.warn('Failed to get sub token:', e);
+      }
+    }
+    if (!userId) {
+      alert('ไม่พบรหัสผู้ใช้ LINE กรุณาลองปิดและเปิดหน้าต่างใหม่อีกครั้ง');
+      return;
+    }
 
     setIsLinkingPhone(true);
     try {

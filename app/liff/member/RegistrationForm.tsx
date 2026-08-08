@@ -25,26 +25,32 @@ export default function RegistrationForm({ lineProfile, onSubmit, isSubmitting, 
 
   const handleSubmit = () => {
     if (!firstName.trim()) {
+      alert('กรุณากรอกชื่อของคุณ');
       document.getElementById('firstName')?.focus();
       return;
     }
     if (!lastName.trim()) {
+      alert('กรุณากรอกนามสกุลของคุณ');
       document.getElementById('lastName')?.focus();
       return;
     }
     if (phone.length < 9) {
+      alert('กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง (10 หลัก)');
       document.getElementById('phone')?.focus();
       return;
     }
     if (!dob) {
+      alert('กรุณาเลือกวันเดือนปีเกิดของคุณ');
       document.getElementById('dob')?.focus();
       return;
     }
     if (!gender) {
+      alert('กรุณาเลือกเพศของคุณ');
       document.getElementById('genderContainer')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
     if (!consent) {
+      alert('กรุณาติ๊กยอมรับข้อกำหนดและนโยบายความเป็นส่วนตัว');
       document.getElementById('consentContainer')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }

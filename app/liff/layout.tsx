@@ -16,16 +16,43 @@ function LiffPathRedirector() {
   const pathname = usePathname();
   
   useEffect(() => {
-    const path = searchParams.get('path');
-    const claimToken = searchParams.get('claimToken');
-    if (path && path.startsWith('/')) {
-      let target = path;
-      if (claimToken && !target.includes('claimToken=')) {
-        const sep = target.includes('?') ? '&' : '?';
-        target += `${sep}claimToken=${claimToken}`;
+    const pathParam = searchParams.get('path');
+    const claimTokenParam = searchParams.get('claimToken');
+    const liffStateParam = searchParams.get('liff.state');
+
+    let targetPath = pathParam;
+    let token = claimTokenParam;
+
+    // Decode path & claimToken from liff.state if present
+    if (!targetPath && liffStateParam) {
+      let cur = liffStateParam;
+      for (let i = 0; i < 3; i++) {
+        try {
+          const decoded = decodeURIComponent(cur);
+          const matchPath = decoded.match(/(?:[?&]|%3F|%26|^)path(?:=3D|=)([^&%]+)/i) || decoded.match(/path=([^&]+)/i);
+          if (matchPath && matchPath[1]) {
+            targetPath = decodeURIComponent(matchPath[1]);
+          }
+          const matchToken = decoded.match(/(?:[?&]|%3F|%26|^)claimToken(?:=3D|=)([^&%]+)/i) || decoded.match(/claimToken=([^&]+)/i);
+          if (matchToken && matchToken[1]) {
+            token = decodeURIComponent(matchToken[1]);
+          }
+          if (decoded === cur) break;
+          cur = decoded;
+        } catch {
+          break;
+        }
       }
-      const targetPath = target.split('?')[0];
-      if (pathname !== targetPath) {
+    }
+
+    if (targetPath && targetPath.startsWith('/')) {
+      let target = targetPath;
+      if (token && !target.includes('claimToken=')) {
+        const sep = target.includes('?') ? '&' : '?';
+        target += `${sep}claimToken=${token}`;
+      }
+      const targetCleanPath = target.split('?')[0];
+      if (pathname !== targetCleanPath) {
         router.replace(target);
       }
     }

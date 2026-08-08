@@ -29,18 +29,53 @@ export async function POST(req: NextRequest) {
             .select('*')
             .eq('line_user_id', lineUserId)
             .maybeSingle()
-            
-        if (!lineMember) {
-            return NextResponse.json({ error: 'LINE member not found' }, { status: 404 })
-        }
 
         // 2. Get Phone member
-        const { data: phoneMember } = await supabase
-            .from('pos_members')
-            .select('*')
-            .eq('phone', phone)
-            .not('id', 'eq', lineMember.id)
-            .maybeSingle()
+        let phoneQuery = supabase.from('pos_members').select('*').eq('phone', phone);
+        if (lineMember?.id) {
+            phoneQuery = phoneQuery.not('id', 'eq', lineMember.id);
+        }
+        const { data: phoneMember } = await phoneQuery.maybeSingle();
+
+        if (!lineMember) {
+            if (phoneMember) {
+                // Link existing phone member to this line_user_id
+                await supabase.from('pos_members').update({
+                    line_user_id: lineUserId,
+                    full_name: fullName || phoneMember.full_name || undefined,
+                    first_name: firstName || phoneMember.first_name || undefined,
+                    last_name: lastName || phoneMember.last_name || undefined,
+                    date_of_birth: dateOfBirth || phoneMember.date_of_birth || undefined,
+                    gender: gender || phoneMember.gender || undefined,
+                    pdpa_consent: pdpaConsent !== undefined ? pdpaConsent : phoneMember.pdpa_consent
+                }).eq('id', phoneMember.id);
+                return NextResponse.json({ success: true, merged: true, newPoints: phoneMember.points || 0 });
+            } else {
+                // Create brand NEW member record
+                const { data: newMember, error: createErr } = await supabase
+                    .from('pos_members')
+                    .insert([{
+                        line_user_id: lineUserId,
+                        phone: phone,
+                        full_name: fullName || `${firstName || ''} ${lastName || ''}`.trim() || undefined,
+                        first_name: firstName || undefined,
+                        last_name: lastName || undefined,
+                        date_of_birth: dateOfBirth || undefined,
+                        gender: gender || undefined,
+                        pdpa_consent: pdpaConsent !== undefined ? pdpaConsent : true,
+                        points: 0,
+                        total_accumulated_points: 0
+                    }])
+                    .select()
+                    .single();
+
+                if (createErr) {
+                    console.error('Failed to create new member in link-phone:', createErr);
+                    return NextResponse.json({ error: 'Failed to create member record: ' + createErr.message }, { status: 500 });
+                }
+                return NextResponse.json({ success: true, merged: false, newPoints: 0 });
+            }
+        }
 
         if (phoneMember) {
             // MERGE ACCOUNTS
