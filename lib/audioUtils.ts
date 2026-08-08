@@ -3,6 +3,10 @@ const audioBuffers: Record<string, AudioBuffer> = {};
 
 export const initAudio = async () => {
     try {
+        if (typeof window !== 'undefined' && localStorage.getItem('pos_mute_sounds') === 'true') {
+            return;
+        }
+
         if (!audioCtx) {
             audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
         }

@@ -554,11 +554,6 @@ function RestaurantOSPageContent() {
 
   useEffect(() => {
     if (!profile) return
-    if (!audioRef.current) {
-      const audio = new Audio('/assets/sounds/orderline.m4a')
-      audio.volume = 0.8
-      audioRef.current = audio
-    }
 
     const channel = supabase
       .channel('pos-master-sync')
@@ -582,8 +577,13 @@ function RestaurantOSPageContent() {
         const isLiffOrderPaid = isLiffSource && payload.eventType === 'UPDATE' && newOrder?.status === 'paid' && oldOrder?.status === 'payment_pending'
         
         const shouldAlert = isQrOrderInsert || isLiffOrderInsert || isLiffOrderPaid
+        const isMuted = typeof window !== 'undefined' && localStorage.getItem('pos_mute_sounds') === 'true'
 
-        if (shouldAlert && audioRef.current) {
+        if (shouldAlert && !isMuted) {
+          if (!audioRef.current) {
+            audioRef.current = new Audio('/assets/sounds/orderline.m4a')
+            audioRef.current.volume = 0.8
+          }
           audioRef.current.play().catch(() => {})
         }
       })
@@ -599,8 +599,13 @@ function RestaurantOSPageContent() {
       .on('broadcast', { event: 'qr_order_placed' }, () => {
          setSyncPulse(prev => prev + 1)
          fetchPendingOrders()
-         if (audioRef.current) {
-            audioRef.current.play().catch(() => {})
+         const isMuted = typeof window !== 'undefined' && localStorage.getItem('pos_mute_sounds') === 'true'
+         if (!isMuted) {
+           if (!audioRef.current) {
+             audioRef.current = new Audio('/assets/sounds/orderline.m4a')
+             audioRef.current.volume = 0.8
+           }
+           audioRef.current.play().catch(() => {})
          }
       })
       .subscribe()
@@ -954,7 +959,12 @@ function RestaurantOSPageContent() {
 
   const unlockAudio = () => {
     try {
-      // Use a 100% silent audio buffer to unlock HTML5 audio on mobile (iOS Safari ignores volume=0 on orderline.m4a)
+      // IF POS sounds are muted in settings, DO NOT trigger any audio playback to preserve background music (Spotify, Apple Music)
+      if (typeof window !== 'undefined' && localStorage.getItem('pos_mute_sounds') === 'true') {
+        return;
+      }
+
+      // Use a 100% silent audio buffer to unlock HTML5 audio on mobile
       const silentAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=')
       silentAudio
         .play()
@@ -1205,11 +1215,12 @@ function RestaurantOSPageContent() {
   if (loading) return <XYLLoader tagline={locale === 'en' ? 'กำลังเข้าสู่ระบบจัดการ...' : locale === 'zh' ? 'กำลังเข้าสู่ระบบจัดการ...' : 'กำลังเข้าสู่ระบบจัดการ...'} />
 
   const isKitchen = activeView === 'kitchen'
+  const isMuted = typeof window !== 'undefined' && localStorage.getItem('pos_mute_sounds') === 'true'
 
   return (
     <div
       className="italic-selection h-screen bg-white"
-      onClick={!isAudioEnabled ? unlockAudio : undefined}
+      onClick={!isAudioEnabled && !isMuted ? unlockAudio : undefined}
     >
       <POSLayout
         profile={profile}
