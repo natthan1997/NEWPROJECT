@@ -164,13 +164,13 @@ export default function POSSplitPaymentModal({
         {/* HEADER */}
         <header className="flex items-center justify-between px-8 py-6 border-b border-gray-100">
           <div>
-            <h2 className="text-xl font-bold text-gray-900 tracking-tight">Split Payment</h2>
+            <h2 className="text-xl font-bold text-gray-900 tracking-tight">{locale === 'en' ? 'Split Payment' : 'แยกชำระบิล'}</h2>
             <div className="flex gap-4 mt-1 text-sm font-medium text-gray-500">
-              <span>Total: ฿{cartTotal.toLocaleString()}</span>
+              <span>{locale === 'en' ? 'Total' : 'รวม'}: ฿{cartTotal.toLocaleString()}</span>
               <span className="text-gray-300">|</span>
-              <span className="text-gray-900">Paid: ฿{totalOverallPaid.toLocaleString()}</span>
+              <span className="text-gray-900">{locale === 'en' ? 'Paid' : 'จ่ายแล้ว'}: ฿{totalOverallPaid.toLocaleString()}</span>
               <span className="text-gray-300">|</span>
-              <span className="text-gray-900">Left: ฿{liveRemainingTotal.toLocaleString()}</span>
+              <span className="text-gray-900">{locale === 'en' ? 'Left' : 'คงเหลือ'}: ฿{liveRemainingTotal.toLocaleString()}</span>
             </div>
           </div>
           <button onClick={onClose} className="p-2 text-gray-400 hover:text-black transition-colors rounded-full hover:bg-gray-100">
@@ -187,13 +187,13 @@ export default function POSSplitPaymentModal({
                 onClick={() => { setSplitMode('equal'); setSelectedUnitKeys([]); setPaymentMethod(null); }}
                 className={`flex-1 h-10 rounded-lg text-sm transition-all ${splitMode === 'equal' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-black'}`}
               >
-                Equal Split
+                {locale === 'en' ? 'Equal Split' : 'หารเท่ากัน'}
               </button>
               <button
                 onClick={() => { setSplitMode('item'); setSelectedUnitKeys([]); setPaymentMethod(null); }}
                 className={`flex-1 h-10 rounded-lg text-sm transition-all ${splitMode === 'item' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-black'}`}
               >
-                By Item
+                {locale === 'en' ? 'By Item' : 'เลือกรายการ'}
               </button>
             </div>
           </div>
@@ -205,7 +205,7 @@ export default function POSSplitPaymentModal({
             {splitMode === 'equal' && (
               <div className="flex flex-col items-center justify-center h-full space-y-12 animate-in fade-in duration-200">
                 <div className="text-center space-y-8">
-                  <div className="text-sm font-medium text-gray-400">Divide remaining balance into</div>
+                  <div className="text-sm font-medium text-gray-400">{locale === 'en' ? 'Divide remaining balance into' : 'จำนวนคนหารจ่าย'}</div>
                   
                   <div className="flex items-center gap-12">
                     <button onClick={() => setSplitCount(Math.max(2, splitCount - 1))} className="h-16 w-16 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-black transition-all">
@@ -221,7 +221,7 @@ export default function POSSplitPaymentModal({
                 </div>
 
                 <div className="text-center">
-                  <div className="text-sm text-gray-400 mb-1">Amount per person</div>
+                  <div className="text-sm text-gray-400 mb-1">{locale === 'en' ? 'Amount per person' : 'ยอดชำระต่อคน'}</div>
                   <div className="text-4xl font-medium text-black tracking-tight">
                     ฿{equalSplitAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                   </div>
@@ -268,7 +268,7 @@ export default function POSSplitPaymentModal({
 
                 {paidUnitsList.length > 0 && (
                   <div className="space-y-4 pt-6 border-t border-gray-100">
-                    <div className="text-sm font-medium text-gray-400 px-4">Paid</div>
+                    <div className="text-sm font-medium text-gray-400 px-4">{locale === 'en' ? 'Paid' : 'ชำระแล้ว'}</div>
                     {paidUnitsList.map((unit) => (
                       <div key={unit.key} className="flex items-center justify-between px-4 py-2 opacity-50">
                         <div className="flex items-center gap-4">
@@ -291,16 +291,16 @@ export default function POSSplitPaymentModal({
             {isFullyCompleted ? (
               <div className="flex flex-col md:flex-row gap-4 animate-in fade-in duration-300">
                 <button onClick={() => { if (typeof window !== 'undefined') window.print(); }} className="flex-1 h-14 rounded-2xl border border-gray-200 text-black hover:bg-gray-50 font-medium text-sm transition-all flex items-center justify-center gap-2">
-                  Print Receipt
+                  {locale === 'en' ? 'Print Receipt' : 'พิมพ์ใบเสร็จ'}
                 </button>
                 <button onClick={onFinishOrder} className="flex-1 h-14 rounded-2xl bg-black text-white hover:bg-gray-900 font-medium text-sm transition-all flex items-center justify-center gap-2">
-                  Finish Order
+                  {locale === 'en' ? 'Finish Order' : 'เสร็จสิ้นบิล'}
                 </button>
               </div>
             ) : (
               <div className="space-y-6">
                 <div className="flex items-end justify-between px-2">
-                  <div className="text-sm text-gray-500 font-medium">Payment</div>
+                  <div className="text-sm text-gray-500 font-medium">{locale === 'en' ? 'Payment' : 'ยอดชำระ'}</div>
                   <div className="text-4xl font-semibold tracking-tighter text-black">
                     ฿{targetPartialAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                   </div>
@@ -313,7 +313,7 @@ export default function POSSplitPaymentModal({
                     className={`h-16 rounded-2xl border transition-all flex flex-col items-center justify-center gap-1 ${paymentMethod === 'cash' ? 'bg-black text-white border-black' : 'bg-white border-gray-200 text-gray-600 hover:border-black'} disabled:opacity-30`}
                   >
                     <Banknote size={20} strokeWidth={1.5} />
-                    <span className="text-xs font-medium">Cash</span>
+                    <span className="text-xs font-medium">{locale === 'en' ? 'Cash' : 'เงินสด'}</span>
                   </button>
                   <button
                     disabled={targetPartialAmount <= 0}
@@ -321,7 +321,7 @@ export default function POSSplitPaymentModal({
                     className={`h-16 rounded-2xl border transition-all flex flex-col items-center justify-center gap-1 ${paymentMethod === 'promptpay' ? 'bg-black text-white border-black' : 'bg-white border-gray-200 text-gray-600 hover:border-black'} disabled:opacity-30`}
                   >
                     <QrCode size={20} strokeWidth={1.5} />
-                    <span className="text-xs font-medium">QR</span>
+                    <span className="text-xs font-medium">{locale === 'en' ? 'QR' : 'สแกน'}</span>
                   </button>
                   <button
                     disabled={targetPartialAmount <= 0}
@@ -329,7 +329,7 @@ export default function POSSplitPaymentModal({
                     className={`h-16 rounded-2xl border transition-all flex flex-col items-center justify-center gap-1 ${paymentMethod === 'credit_card' ? 'bg-black text-white border-black' : 'bg-white border-gray-200 text-gray-600 hover:border-black'} disabled:opacity-30`}
                   >
                     <CreditCard size={20} strokeWidth={1.5} />
-                    <span className="text-xs font-medium">Card</span>
+                    <span className="text-xs font-medium">{locale === 'en' ? 'Card' : 'บัตร'}</span>
                   </button>
                 </div>
 
@@ -339,10 +339,10 @@ export default function POSSplitPaymentModal({
                       type="number"
                       value={cashReceivedInput}
                       onChange={(e) => setCashReceivedInput(e.target.value)}
-                      placeholder="Received amount"
+                      placeholder={locale === 'en' ? 'Received amount' : 'รับเงินมา...'}
                       className="flex-1 h-14 bg-gray-50 border-transparent rounded-2xl px-5 text-lg font-medium text-black focus:bg-white focus:border-black focus:ring-0 outline-none transition-all"
                     />
-                    <button onClick={() => setCashReceivedInput(String(Math.ceil(targetPartialAmount)))} className="px-5 h-14 rounded-2xl bg-gray-100 text-sm font-medium text-black hover:bg-gray-200 transition-all">Exact</button>
+                    <button onClick={() => setCashReceivedInput(String(Math.ceil(targetPartialAmount)))} className="px-5 h-14 rounded-2xl bg-gray-100 text-sm font-medium text-black hover:bg-gray-200 transition-all">{locale === 'en' ? 'Exact' : 'พอดี'}</button>
                   </div>
                 )}
 
@@ -352,7 +352,7 @@ export default function POSSplitPaymentModal({
                     onClick={handleConfirmCurrentSplit}
                     className="w-full h-16 rounded-2xl bg-black hover:bg-gray-900 text-white font-medium text-lg transition-all flex items-center justify-center gap-2 disabled:opacity-30"
                   >
-                    {isSubmitting ? 'Processing...' : 'Pay'}
+                    {isSubmitting ? (locale === 'en' ? 'Processing...' : 'กำลังบันทึก...') : (locale === 'en' ? 'Pay' : 'ชำระเงิน')}
                   </button>
                 )}
               </div>
