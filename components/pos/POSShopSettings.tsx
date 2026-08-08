@@ -792,8 +792,8 @@ const handleSave = async () => {
                 <div className={`flex-1 h-full overflow-y-auto bg-[#F2F2F7] relative ${showMobileMenu ? 'hidden md:block' : 'block'}`}>
                     <div className="max-w-5xl mx-auto py-8 sm:py-10 px-4 sm:px-8 pb-40 space-y-8">
                         {/* RIGHT PANE HEADER (iOS Style) */}
-                        <div className="sticky top-0 z-20 bg-[#F2F2F7]/90 backdrop-blur-xl py-4 -mx-4 px-4 sm:-mx-8 sm:px-8 mb-6 border-b border-gray-300 flex items-center justify-center relative">
-                            {/* MOBILE BACK BUTTON */}
+                        <div className="sticky top-0 z-20 bg-[#F2F2F7]/90 backdrop-blur-xl h-14 -mx-4 px-4 sm:-mx-8 sm:px-8 mb-6 border-b border-gray-300 flex items-center justify-center relative">
+                            {/* MOBILE BACK BUTTON (Left) */}
                             <div className="md:hidden absolute left-4 sm:left-8">
                                 <button 
                                     onClick={() => setShowMobileMenu(true)}
@@ -803,7 +803,9 @@ const handleSave = async () => {
                                     <span>{locale === 'en' ? 'Settings' : 'การตั้งค่า'}</span>
                                 </button>
                             </div>
-                            <h2 className="text-[17px] font-bold text-black text-center">
+                            
+                            {/* TITLE (Center) */}
+                            <h2 className="text-[17px] font-semibold text-black text-center px-24 truncate">
                                 {[
                                     { id: 'general', label: 'ทั่วไป' },
                                     { id: 'hardware', label: 'เครื่องพิมพ์' },
@@ -815,6 +817,26 @@ const handleSave = async () => {
                                     { id: 'permissions', label: 'สิทธิ์การใช้งาน' }
                                 ].find(t => t.id === activeTab)?.label || 'การตั้งค่า'}
                             </h2>
+
+                            {/* ACTIONS (Right) */}
+                            <div className="absolute right-4 sm:right-8 flex items-center gap-4">
+                                <button 
+                                    type="button"
+                                    onClick={() => window.location.reload()}
+                                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                                    title="Reload App"
+                                >
+                                    <RefreshCw size={18} />
+                                </button>
+                                <button 
+                                    onClick={handleSave} 
+                                    disabled={isSaving}
+                                    className="text-[17px] font-semibold text-[#007AFF] hover:opacity-80 transition-opacity disabled:opacity-50 flex items-center gap-2"
+                                >
+                                    {isSaving && <Loader2 className="animate-spin" size={16} />}
+                                    {isSaving ? (locale === 'en' ? 'Saving' : 'กำลังบันทึก') : (locale === 'en' ? 'Save' : 'บันทึก')}
+                                </button>
+                            </div>
                         </div>
 
                         {/* STATUS TOGGLE HEADER */}
@@ -2452,40 +2474,7 @@ const handleSave = async () => {
 
                 {activeTab === 'campaigns' && <POSCampaignsTab />}
 
-                {/* BOTTOM SAVE BUTTON */}
-                <div className="fixed bottom-0 left-0 right-0 p-6 sm:p-8 bg-white/90 backdrop-blur-md border-t border-gray-100 flex justify-end gap-4 z-50">
-                    <button 
-                        type="button"
-                        onClick={() => {
-                            if (typeof window !== 'undefined') {
-                                if ('serviceWorker' in navigator) {
-                                    navigator.serviceWorker.getRegistrations().then((registrations) => {
-                                        for (let registration of registrations) {
-                                            registration.unregister();
-                                        }
-                                        window.location.reload();
-                                    }).catch(() => {
-                                        window.location.reload();
-                                    });
-                                } else {
-                                    window.location.reload();
-                                }
-                            }
-                        }}
-                        className="w-full sm:w-48 h-16 bg-gray-100 text-gray-800 hover:bg-gray-200 rounded-[10px] flex items-center justify-center gap-3 font-black text-sm uppercase tracking-widest transition-all"
-                    >
-                        <RefreshCw size={20} />
-                        Reload App
-                    </button>
-                    <button 
-                        onClick={handleSave} 
-                        disabled={isSaving}
-                        className="w-full sm:w-64 h-16 bg-black text-white rounded-[10px] flex items-center justify-center gap-3 font-black text-sm uppercase tracking-widest hover:bg-gray-900 transition-all shadow-none disabled:opacity-50"
-                    >
-                        {isSaving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
-                        {isSaving ? 'SAVING...' : 'SAVE SETTINGS'}
-                    </button>
-                </div>
+
 
                 {/* Image Crop Modal */}
                 {showCropModal && selectedImage && (
