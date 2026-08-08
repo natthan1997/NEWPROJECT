@@ -390,6 +390,7 @@ export default function POSTerminal({
   const [showDeliveryHub, setShowDeliveryHub] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
+  const [processingMethod, setProcessingMethod] = useState<string | null>(null)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
 
   const [paymentSplits, setPaymentSplits] = useState<any[]>([])
@@ -3180,7 +3181,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     }
     if (!ensureDeliveryDetailsReady()) return
 
-    setIsProcessing(true); setCheckoutError(null)
+    setIsProcessing(true); setCheckoutError(null); setProcessingMethod(method);
 	    try {
 
 	      playAppSound('pay');
@@ -3742,6 +3743,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       setCheckoutError(`การชำระเงินขัดข้อง: ${e.message || String(e)}`)
     } finally {
       setIsProcessing(false)
+      setProcessingMethod(null)
     }
   }
 
@@ -5123,68 +5125,54 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         </div>
       )}
 
-      {/* 9. PAYMENT MODAL - PREMIUM REDESIGN */}
+      {/* 9. PAYMENT MODAL - ULTRA MINIMAL */}
       {showPaymentModal && (
-        <div className="fixed inset-0 z-[2700] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[2700] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
           <div
-            className="absolute inset-0 bg-[#1A1A18]/60 backdrop-blur-md"
-            onClick={() => setShowPaymentModal(false)}
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => !isProcessing && setShowPaymentModal(false)}
           ></div>
-          <div className="animate-in zoom-in-95 relative flex w-full max-w-2xl flex-col overflow-hidden rounded-[2.5rem] bg-white shadow-[0_30px_100px_-20px_rgba(0,0,0,0.4)] border border-white/20 duration-300">
-            <header className="relative flex items-center justify-between border-b border-gray-100/50 bg-white/50 p-6 sm:p-8 backdrop-blur-md">
-              <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-black text-white shadow-lg">
-                  <Banknote size={24} strokeWidth={2.5} />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-black uppercase leading-none tracking-tighter text-[#1A1A18]">
-                    {locale === 'en' ? 'Checkout' : locale === 'zh' ? '结账' : 'ชำระเงิน'}
-                  </h2>
-                  <p className="text-xs font-bold text-gray-400 mt-1 uppercase tracking-widest">
-                    Select Payment Method
-                  </p>
-                </div>
+          <div className="relative flex w-full max-w-lg flex-col bg-white font-sans shadow-xl rounded-3xl overflow-hidden">
+            <header className="flex items-center justify-between px-8 py-6 border-b border-gray-100">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 tracking-tight">
+                  {locale === 'en' ? 'Checkout' : locale === 'zh' ? '结账' : 'ชำระเงิน'}
+                </h2>
+                <p className="text-sm font-medium text-gray-500 mt-1">
+                  {locale === 'en' ? 'Select Payment Method' : 'เลือกช่องทางการชำระเงิน'}
+                </p>
               </div>
               <button
-                onClick={() => setShowPaymentModal(false)}
-                className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-50 text-gray-400 transition-all hover:bg-gray-100 hover:text-black active:scale-95"
+                onClick={() => !isProcessing && setShowPaymentModal(false)}
+                className="p-2 text-gray-400 hover:text-black transition-colors rounded-full hover:bg-gray-100"
               >
-                <X size={20} strokeWidth={3} />
+                <X size={24} strokeWidth={1.5} />
               </button>
             </header>
 
-            <div className="p-6 sm:p-10 text-center font-bold bg-[#FDFDFB]">
-              <div className="relative mb-10 overflow-hidden rounded-[2rem] bg-gradient-to-br from-black to-gray-800 p-8 shadow-2xl">
-                {/* Decorative background elements */}
-                <div className="absolute -top-24 -right-24 h-48 w-48 rounded-full bg-white/10 blur-3xl"></div>
-                <div className="absolute -bottom-24 -left-24 h-48 w-48 rounded-full bg-emerald-500/20 blur-3xl"></div>
-                
-                <div className="relative z-10">
-                  <span className="mb-3 block text-[11px] font-black uppercase tracking-[0.3em] text-gray-400">
-                    Total Amount Due
-                  </span>
-                  <div className="text-5xl sm:text-7xl font-black text-white tracking-tighter drop-shadow-lg">
-                    <span className="text-3xl sm:text-4xl text-gray-400 mr-2 font-black">{locale === 'en' ? '฿' : locale === 'zh' ? '฿' : '฿'}</span>
-                    {remainingTotal.toLocaleString()}
-                  </div>
-                  
-                  {totalPaid > 0 && (
-                    <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-black tracking-widest text-emerald-400 border border-white/5">
-                      <Check size={14} />
-                      <span>PAID: ฿{totalPaid.toLocaleString()} / TOTAL: ฿{cartTotal.toLocaleString()}</span>
-                    </div>
-                  )}
+            <div className="p-8 space-y-8 bg-white">
+              <div className="text-center">
+                <div className="text-sm font-medium text-gray-400 mb-1">
+                  {locale === 'en' ? 'Total Amount Due' : 'ยอดชำระสุทธิ'}
                 </div>
+                <div className="text-5xl font-light text-black tracking-tighter">
+                  <span className="text-3xl font-normal text-gray-400 mr-2">฿</span>
+                  {remainingTotal.toLocaleString()}
+                </div>
+                {totalPaid > 0 && (
+                  <div className="mt-3 text-sm font-medium text-green-600">
+                    {locale === 'en' ? 'Paid:' : 'ชำระแล้ว:'} ฿{totalPaid.toLocaleString()} / {locale === 'en' ? 'Total:' : 'รวมทั้งหมด:'} ฿{cartTotal.toLocaleString()}
+                  </div>
+                )}
               </div>
 
               {checkoutError && (
-                <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3 text-red-600">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                  <p className="text-sm font-medium leading-relaxed">{checkoutError}</p>
+                <div className="p-4 rounded-2xl bg-red-50 border border-red-100 flex items-start gap-3 text-red-600">
+                  <p className="text-sm font-medium">{checkoutError}</p>
                 </div>
               )}
 
-              <div className="mb-6">
+              <div>
                 <button
                   disabled={isProcessing || remainingTotal <= 0}
                   onClick={() => {
@@ -5193,14 +5181,13 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                     setShowPaymentModal(false)
                     setShowSplitPaymentModal(true)
                   }}
-                  className="w-full h-16 rounded-2xl bg-white border-2 border-gray-100 text-[#1A1A18] text-[12px] font-black uppercase tracking-[0.2em] hover:border-black hover:bg-gray-50 hover:shadow-md transition-all flex items-center justify-center gap-3 active:scale-95"
+                  className="w-full h-14 rounded-2xl bg-gray-50 text-gray-600 text-sm font-medium hover:bg-gray-100 transition-all flex items-center justify-center gap-2"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a2 2 0 0 0 2-2v-5a2 2 0 0 0-2-2z"/></svg>
-                  {locale === 'en' ? 'Split Bill / Partial Payment' : locale === 'zh' ? '分摊付款' : 'หารจ่าย / แยกจ่าย (SPLIT BILL)'}
+                  {locale === 'en' ? 'Split Bill / Partial Payment' : 'หารจ่าย / แยกจ่าย (Split Bill)'}
                 </button>
               </div>
 
-              <div className="grid grid-cols-3 gap-3 sm:gap-5">
+              <div className="grid grid-cols-3 gap-3">
                 <button
                   disabled={isProcessing}
                   onClick={() => {
@@ -5211,47 +5198,46 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                     setCurrentPaymentAmount(remainingTotal);
                     setShowCashPaymentModal(true);
                   }}
-                  className="group relative flex flex-col items-center justify-center rounded-2xl border-2 border-transparent bg-gray-50 py-8 sm:py-10 font-bold text-black transition-all hover:border-black hover:bg-white hover:shadow-xl active:scale-95 overflow-hidden disabled:opacity-70 disabled:cursor-wait"
+                  className={`h-24 rounded-2xl border transition-all flex flex-col items-center justify-center gap-2 ${processingMethod === 'cash' ? 'bg-black text-white border-black' : 'bg-white border-gray-200 text-gray-600 hover:border-black'} disabled:opacity-30`}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-br from-gray-100/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  {isProcessing ? (
-                     <div className="animate-spin rounded-full h-10 w-10 sm:h-14 sm:w-14 border-4 border-gray-200 border-t-black mb-3 sm:mb-4 relative z-10" />
+                  {processingMethod === 'cash' ? (
+                     <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-400 border-t-white" />
                   ) : (
-                     <Banknote className="mb-3 sm:mb-4 h-10 w-10 sm:h-14 sm:w-14 text-gray-400 transition-transform duration-300 group-hover:scale-110 group-hover:text-black relative z-10" strokeWidth={1.5} />
+                     <Banknote size={24} strokeWidth={1.5} />
                   )}
-                  <span className="text-[11px] sm:text-[13px] font-black uppercase tracking-widest relative z-10">{isProcessing ? 'Processing...' : 'Cash'}</span>
+                  <span className="text-xs font-medium">{processingMethod === 'cash' ? (locale === 'en' ? 'Processing...' : 'กำลังบันทึก...') : (locale === 'en' ? 'Cash' : 'เงินสด')}</span>
                 </button>
+
                 <button
                   disabled={isProcessing}
                   onClick={() => {
                     setCheckoutError(null);
                     handleProcessPayment('promptpay')
                   }}
-                  className="group relative flex flex-col items-center justify-center rounded-2xl border-2 border-transparent bg-gray-50 py-8 sm:py-10 font-bold text-black transition-all hover:border-blue-600 hover:bg-white hover:shadow-xl active:scale-95 overflow-hidden disabled:opacity-70 disabled:cursor-wait"
+                  className={`h-24 rounded-2xl border transition-all flex flex-col items-center justify-center gap-2 ${processingMethod === 'promptpay' ? 'bg-black text-white border-black' : 'bg-white border-gray-200 text-gray-600 hover:border-black'} disabled:opacity-30`}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  {isProcessing ? (
-                     <div className="animate-spin rounded-full h-10 w-10 sm:h-14 sm:w-14 border-4 border-blue-200 border-t-blue-600 mb-3 sm:mb-4 relative z-10" />
+                  {processingMethod === 'promptpay' ? (
+                     <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-400 border-t-white" />
                   ) : (
-                     <QrCode className="mb-3 sm:mb-4 h-10 w-10 sm:h-14 sm:w-14 text-gray-400 transition-transform duration-300 group-hover:scale-110 group-hover:text-blue-600 relative z-10" strokeWidth={1.5} />
+                     <QrCode size={24} strokeWidth={1.5} />
                   )}
-                  <span className="text-[11px] sm:text-[13px] font-black uppercase tracking-widest relative z-10">{isProcessing ? 'Processing...' : 'QR Pay'}</span>
+                  <span className="text-xs font-medium">{processingMethod === 'promptpay' ? (locale === 'en' ? 'Processing...' : 'กำลังบันทึก...') : (locale === 'en' ? 'QR Pay' : 'สแกน')}</span>
                 </button>
+
                 <button
                   disabled={isProcessing}
                   onClick={() => {
                     setCheckoutError(null);
                     handleProcessPayment('credit_card')
                   }}
-                  className="group relative flex flex-col items-center justify-center rounded-2xl border-2 border-transparent bg-gray-50 py-8 sm:py-10 font-bold text-black transition-all hover:border-orange-500 hover:bg-white hover:shadow-xl active:scale-95 overflow-hidden disabled:opacity-70 disabled:cursor-wait"
+                  className={`h-24 rounded-2xl border transition-all flex flex-col items-center justify-center gap-2 ${processingMethod === 'credit_card' ? 'bg-black text-white border-black' : 'bg-white border-gray-200 text-gray-600 hover:border-black'} disabled:opacity-30`}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-br from-orange-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  {isProcessing ? (
-                     <div className="animate-spin rounded-full h-10 w-10 sm:h-14 sm:w-14 border-4 border-orange-200 border-t-orange-500 mb-3 sm:mb-4 relative z-10" />
+                  {processingMethod === 'credit_card' ? (
+                     <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-400 border-t-white" />
                   ) : (
-                     <CreditCard className="mb-3 sm:mb-4 h-10 w-10 sm:h-14 sm:w-14 text-gray-400 transition-transform duration-300 group-hover:scale-110 group-hover:text-orange-500 relative z-10" strokeWidth={1.5} />
+                     <CreditCard size={24} strokeWidth={1.5} />
                   )}
-                  <span className="text-[11px] sm:text-[13px] font-black uppercase tracking-widest relative z-10">{isProcessing ? 'Processing...' : 'Card'}</span>
+                  <span className="text-xs font-medium">{processingMethod === 'credit_card' ? (locale === 'en' ? 'Processing...' : 'กำลังบันทึก...') : (locale === 'en' ? 'Card' : 'บัตร')}</span>
                 </button>
               </div>
             </div>
