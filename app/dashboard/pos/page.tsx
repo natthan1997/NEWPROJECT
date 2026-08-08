@@ -953,21 +953,24 @@ function RestaurantOSPageContent() {
   };
 
   const unlockAudio = () => {
-    if (audioRef.current) {
-      const originalVolume = audioRef.current.volume || 0.8
-      audioRef.current.volume = 0
-      audioRef.current
+    try {
+      // Use a 100% silent audio buffer to unlock HTML5 audio on mobile (iOS Safari ignores volume=0 on orderline.m4a)
+      const silentAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=')
+      silentAudio
         .play()
         .then(() => {
-          audioRef.current?.pause()
-          if (audioRef.current) {
-            audioRef.current.currentTime = 0
-            audioRef.current.volume = originalVolume
-          }
           setIsAudioEnabled(true)
         })
         .catch(() => {})
-    }
+
+      const AudioContextClass = typeof window !== 'undefined' && (window.AudioContext || (window as any).webkitAudioContext)
+      if (AudioContextClass) {
+        const ctx = new AudioContextClass()
+        if (ctx.state === 'suspended') {
+          ctx.resume().catch(() => {})
+        }
+      }
+    } catch (e) {}
   }
 
   const handleOpenShift = async (startCash: number) => {
