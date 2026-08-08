@@ -76,6 +76,91 @@ export default function POSMemberManager({
     const [showCrmSettings, setShowCrmSettings] = useState(false)
     const [showQR, setShowQR] = useState(false)
     const [pointsReason, setPointsReason] = useState<string>('')
+    const [showAddModal, setShowAddModal] = useState(false)
+    const [newMemberData, setNewMemberData] = useState({
+      fullName: '',
+      phone: '',
+      points: 4,
+      reason: 'สะสมแต้มจากการสั่งซื้อ'
+    })
+    const [isCreatingMember, setIsCreatingMember] = useState(false)
+
+    const handleCreateNewMember = async () => {
+      if (!newMemberData.phone.trim() || newMemberData.phone.length < 9) {
+        alert('กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง (อย่างน้อย 9 หลัก)');
+        return;
+      }
+      
+      let formattedPhone = newMemberData.phone.trim();
+      if (formattedPhone.startsWith('0')) {
+        formattedPhone = '+66' + formattedPhone.slice(1);
+      } else if (!formattedPhone.startsWith('+66')) {
+        formattedPhone = '+66' + formattedPhone;
+      }
+
+      setIsCreatingMember(true);
+      try {
+        const { data: existing } = await supabase
+          .from('pos_members')
+          .select('id, full_name, display_name, phone, points')
+          .eq('phone', formattedPhone)
+          .maybeSingle();
+
+        if (existing) {
+          alert(`เบอร์นี้มีในระบบแล้ว! (ชื่อ: ${existing.full_name || existing.display_name || 'ลูกค้า'}) คุณสามารถค้นหาและปรับคะแนนในรายการสมาชิกได้ทันที`);
+          setSelectedMember(existing as any);
+          setEditData(existing as any);
+          setShowAddModal(false);
+          return;
+        }
+
+        const pointsNum = Number(newMemberData.points) || 0;
+        const nameStr = newMemberData.fullName.trim() || 'ลูกค้าเบอร์ ' + formattedPhone;
+
+        const { data: createdMember, error: createErr } = await supabase
+          .from('pos_members')
+          .insert([{
+            display_name: nameStr,
+            full_name: nameStr,
+            phone: formattedPhone,
+            points: pointsNum,
+            total_accumulated_points: pointsNum,
+            branch_id: shopSettings?.branch_id || null,
+            created_at: new Date().toISOString()
+          }])
+          .select()
+          .single();
+
+        if (createErr) throw createErr;
+
+        if (createdMember && pointsNum > 0) {
+          const staffName = profile?.full_name || profile?.display_name || 'พนักงาน';
+          const historyObj = {
+            member_id: createdMember.id,
+            points: pointsNum,
+            points_change: pointsNum,
+            type: 'earn',
+            description: `เพิ่มสมาชิกใหม่และให้แต้มโดย ${staffName}: ${newMemberData.reason} (+${pointsNum} แต้ม)`,
+            branch_id: shopSettings?.branch_id || null,
+            created_at: new Date().toISOString()
+          };
+          await supabase.from('pos_points_history').insert(historyObj).catch(() => {});
+        }
+
+        alert(`สร้างสมาชิกใหม่สำเร็จ! ได้รับ ${pointsNum} แต้มเรียบร้อยแล้ว`);
+        setShowAddModal(false);
+        setNewMemberData({ fullName: '', phone: '', points: 4, reason: 'สะสมแต้มจากการสั่งซื้อ' });
+        fetchMembers();
+        if (createdMember) {
+          handleSelectMember(createdMember as any);
+        }
+      } catch (err: any) {
+        console.error('Error creating member:', err);
+        alert('เกิดข้อผิดพลาดในการสร้างสมาชิก: ' + (err?.message || err));
+      } finally {
+        setIsCreatingMember(false);
+      }
+    };
 
     useEffect(() => {
         fetchMembers()
@@ -458,10 +543,17 @@ export default function POSMemberManager({
                                 />
                             </div>
                             <div className="flex gap-2">
-                                <button onClick={() => setShowQR(true)} className="flex items-center justify-center w-12 h-12 text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 rounded-full transition-all">
+                                <button
+                                    onClick={() => setShowAddModal(true)}
+                                    className="flex items-center gap-2 px-5 h-12 bg-[#1A1A18] text-white hover:bg-black font-bold text-xs rounded-full transition-all shadow-sm active:scale-95 shrink-0"
+                                >
+                                    <UserPlus size={18} />
+                                    <span>+ เพิ่มสมาชิกใหม่</span>
+                                </button>
+                                <button onClick={() => setShowQR(true)} className="flex items-center justify-center w-12 h-12 text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 rounded-full transition-all" title="QR Code ร้าน">
                                     <QrCode size={20} />
                                 </button>
-                                <button onClick={() => setShowCrmSettings(true)} className="flex items-center justify-center w-12 h-12 text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 rounded-full transition-all">
+                                <button onClick={() => setShowCrmSettings(true)} className="flex items-center justify-center w-12 h-12 text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 rounded-full transition-all" title="ตั้งค่า CRM">
                                     <Settings size={20} />
                                 </button>
                             </div>
@@ -944,6 +1036,94 @@ export default function POSMemberManager({
                         >
                             <Download size={18} /> บันทึกภาพ
                         </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Add New Member Modal */}
+            {showAddModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in">
+                    <div className="bg-white rounded-3xl w-full max-w-md p-6 sm:p-8 flex flex-col relative shadow-2xl animate-in zoom-in-95 duration-200">
+                        <button onClick={() => setShowAddModal(false)} className="absolute top-6 right-6 p-2 text-gray-400 hover:text-black bg-gray-50 hover:bg-gray-100 rounded-full transition-colors"><X size={20}/></button>
+                        
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600">
+                                <UserPlus size={24} />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-lg text-black">เพิ่มสมาชิกใหม่</h3>
+                                <p className="text-xs text-gray-400">ลงทะเบียนสมาชิกด้วยเบอร์โทรศัพท์</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-600 mb-1.5">
+                                    เบอร์โทรศัพท์ <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="tel"
+                                    placeholder="เช่น 0812345678"
+                                    value={newMemberData.phone}
+                                    onChange={e => setNewMemberData({ ...newMemberData, phone: e.target.value })}
+                                    className="w-full h-12 bg-gray-50 border border-gray-200 rounded-2xl px-4 text-sm font-semibold outline-none focus:bg-white focus:border-black transition-all text-black"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-gray-600 mb-1.5">
+                                    ชื่อสมาชิก / ชื่อเล่น (ถ้ามี)
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder="เช่น คุณสมชาย"
+                                    value={newMemberData.fullName}
+                                    onChange={e => setNewMemberData({ ...newMemberData, fullName: e.target.value })}
+                                    className="w-full h-12 bg-gray-50 border border-gray-200 rounded-2xl px-4 text-sm font-semibold outline-none focus:bg-white focus:border-black transition-all text-black"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-gray-600 mb-1.5">
+                                    แต้มสะสมเริ่มต้น
+                                </label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    value={newMemberData.points}
+                                    onChange={e => setNewMemberData({ ...newMemberData, points: Number(e.target.value) })}
+                                    className="w-full h-12 bg-gray-50 border border-gray-200 rounded-2xl px-4 text-sm font-bold text-emerald-600 outline-none focus:bg-white focus:border-black transition-all"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-gray-600 mb-1.5">
+                                    หมายเหตุ / เหตุผลการสะสมแต้ม
+                                </label>
+                                <input
+                                    type="text"
+                                    value={newMemberData.reason}
+                                    onChange={e => setNewMemberData({ ...newMemberData, reason: e.target.value })}
+                                    className="w-full h-12 bg-gray-50 border border-gray-200 rounded-2xl px-4 text-sm font-medium outline-none focus:bg-white focus:border-black transition-all text-black"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3 mt-8">
+                            <button
+                                onClick={() => setShowAddModal(false)}
+                                className="flex-1 py-3.5 rounded-2xl text-sm font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 transition-colors"
+                            >
+                                ยกเลิก
+                            </button>
+                            <button
+                                onClick={handleCreateNewMember}
+                                disabled={isCreatingMember}
+                                className="flex-1 py-3.5 rounded-2xl text-sm font-bold text-white bg-black hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
+                            >
+                                {isCreatingMember ? <Loader2 size={18} className="animate-spin" /> : 'บันทึกสมาชิก'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
