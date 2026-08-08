@@ -465,61 +465,73 @@ export default function POSMemberManager({
                 // Split View: Left Stats, Right List
                 <div className="flex-1 flex flex-col md:flex-row h-full overflow-hidden animate-in fade-in duration-300 w-full bg-white">
                     
-                    {/* LEFT SIDEBAR: Ultra Clean Dashboard Stats - Reduced Width */}
-                    <div className="w-full md:w-[220px] lg:w-[280px] border-r border-gray-100 p-6 lg:p-10 flex flex-col gap-10 bg-white overflow-y-auto shrink-0 relative z-10">
-                        {/* Member Total */}
-                        <div>
-                            <div className="text-[11px] font-bold text-gray-400 tracking-[0.1em] mb-4">ภาพรวมสมาชิก</div>
-                            <div className="text-5xl lg:text-6xl font-light text-black tracking-tighter mb-2">{memberStats.total}</div>
-                            <div className="text-[13px] font-medium text-gray-500">สมาชิกทั้งหมด</div>
+                    {/* LEFT SIDEBAR: Executive Clean Dashboard Stats */}
+                    <div className="w-full md:w-[240px] lg:w-[280px] border-r border-gray-100 p-6 lg:p-8 flex flex-col gap-6 bg-white overflow-y-auto shrink-0 relative z-10 custom-scrollbar">
+                        <div className="text-[11px] font-bold text-gray-400 tracking-[0.1em] uppercase">ภาพรวมสมาชิก</div>
+
+                        {/* Member Total Metric */}
+                        <div className="bg-gray-50/80 border border-gray-100 rounded-2xl p-5 flex flex-col gap-1 transition-all hover:border-gray-200">
+                            <div className="text-[12px] font-medium text-gray-500">สมาชิกทั้งหมด</div>
+                            <div className="text-4xl lg:text-5xl font-light text-black tracking-tight mt-0.5">
+                                {memberStats.total.toLocaleString()}
+                            </div>
                         </div>
                         
-                        <div className="w-8 h-[1px] bg-gray-200"></div>
-                        
-                        {/* Registration Status - Minimalist */}
-                        <div className="flex flex-col gap-5">
-                            <div className="flex justify-between items-end">
-                                <span className="text-[13px] font-medium text-gray-500">ลงทะเบียนแล้ว</span>
-                                <span className="text-xl font-semibold text-black leading-none">{memberStats.registered}</span>
+                        {/* Registration Status Breakdown - Colorized Green & Orange Cards */}
+                        <div className="flex flex-col gap-2.5">
+                            {/* Registered Card */}
+                            <div className="flex items-center justify-between bg-emerald-50/60 border border-emerald-100/80 rounded-2xl px-4 py-3.5 transition-all hover:bg-emerald-50">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></div>
+                                    <span className="text-[13px] font-medium text-emerald-950">ลงทะเบียนแล้ว</span>
+                                </div>
+                                <span className="text-xl font-bold text-emerald-600 leading-none">
+                                    {memberStats.registered.toLocaleString()}
+                                </span>
                             </div>
-                            <div className="flex justify-between items-end">
-                                <span className="text-[13px] font-medium text-gray-500">ยังไม่ลงทะเบียน</span>
-                                <span className="text-xl font-semibold text-gray-400 leading-none">{memberStats.unregistered}</span>
+
+                            {/* Unregistered Card */}
+                            <div className="flex items-center justify-between bg-amber-50/60 border border-amber-100/80 rounded-2xl px-4 py-3.5 transition-all hover:bg-amber-50">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-amber-500 shrink-0"></div>
+                                    <span className="text-[13px] font-medium text-amber-950">ยังไม่ลงทะเบียน</span>
+                                </div>
+                                <span className="text-xl font-bold text-amber-600 leading-none">
+                                    {memberStats.unregistered.toLocaleString()}
+                                </span>
                             </div>
                         </div>
 
-                        <div className="w-8 h-[1px] bg-gray-200"></div>
-
-                        {/* Gender Ratio - Clean Donut */}
-                        <div>
-                            <div className="text-[11px] font-bold text-gray-400 tracking-[0.1em] mb-6">สัดส่วนเพศ</div>
-                            <div className="flex flex-col items-center gap-6">
+                        {/* Gender Ratio Donut */}
+                        <div className="bg-gray-50/50 border border-gray-100/80 rounded-2xl p-5 flex flex-col gap-4">
+                            <div className="text-[11px] font-bold text-gray-400 tracking-[0.1em] uppercase">สัดส่วนเพศ</div>
+                            <div className="flex flex-col items-center gap-5">
                                 {/* SVG Donut */}
                                 <div className="w-[100px] h-[100px] relative shrink-0">
                                     <svg viewBox="0 0 36 36" className="w-full h-full transform -rotate-90">
-                                        <circle r="15.91549430918954" cx="18" cy="18" fill="transparent" stroke="#F9FAFB" strokeWidth="3"></circle>
+                                        <circle r="15.91549430918954" cx="18" cy="18" fill="transparent" stroke="#F3F4F6" strokeWidth="3"></circle>
                                         {malePct > 0 && <circle r="15.91549430918954" cx="18" cy="18" fill="transparent" stroke="#111827" strokeWidth="3" strokeDasharray={mDash} strokeDashoffset={mOffset}></circle>}
                                         {femalePct > 0 && <circle r="15.91549430918954" cx="18" cy="18" fill="transparent" stroke="#9CA3AF" strokeWidth="3" strokeDasharray={fDash} strokeDashoffset={fOffset}></circle>}
-                                        {unknownPct > 0 && <circle r="15.91549430918954" cx="18" cy="18" fill="transparent" stroke="#F3F4F6" strokeWidth="3" strokeDasharray={uDash} strokeDashoffset={uOffset}></circle>}
+                                        {unknownPct > 0 && <circle r="15.91549430918954" cx="18" cy="18" fill="transparent" stroke="#E5E7EB" strokeWidth="3" strokeDasharray={uDash} strokeDashoffset={uOffset}></circle>}
                                     </svg>
                                 </div>
                                 {/* Legend */}
-                                <div className="flex flex-col gap-3 w-full">
+                                <div className="flex flex-col gap-2.5 w-full">
                                     <div className="flex items-center justify-between text-[13px]">
                                         <div className="flex items-center gap-2 text-gray-600 font-medium">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-gray-900"></div> ชาย
+                                            <div className="w-2 h-2 rounded-full bg-gray-900"></div> ชาย
                                         </div>
                                         <span className="text-black font-semibold">{malePct}%</span>
                                     </div>
                                     <div className="flex items-center justify-between text-[13px]">
                                         <div className="flex items-center gap-2 text-gray-600 font-medium">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-gray-400"></div> หญิง
+                                            <div className="w-2 h-2 rounded-full bg-gray-400"></div> หญิง
                                         </div>
                                         <span className="text-black font-semibold">{femalePct}%</span>
                                     </div>
                                     <div className="flex items-center justify-between text-[13px]">
                                         <div className="flex items-center gap-2 text-gray-600 font-medium">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-gray-100"></div> ไม่ระบุ
+                                            <div className="w-2 h-2 rounded-full bg-gray-200"></div> ไม่ระบุ
                                         </div>
                                         <span className="text-black font-semibold">{unknownPct}%</span>
                                     </div>
@@ -573,7 +585,7 @@ export default function POSMemberManager({
                                         <div className="flex-1 min-w-0">ข้อมูลสมาชิก</div>
                                         <div className="w-[90px] shrink-0 hidden lg:block text-center">วันที่สมัคร</div>
                                         <div className="w-[60px] shrink-0 text-center">คะแนน</div>
-                                        <div className="w-[85px] shrink-0 text-right">สถานะ</div>
+                                        <div className="w-[100px] shrink-0 text-right">สถานะ</div>
                                     </div>
 
                                     <div className="flex flex-col">
