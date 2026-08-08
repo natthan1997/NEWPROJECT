@@ -259,94 +259,8 @@ export default function POSSplitPaymentModal({
           </div>
         </header>
 
-        {/* FULLY COMPLETED VIEW */}
-        {isFullyCompleted ? (
-          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-6 animate-in zoom-in-95 duration-300 bg-white">
-            <div className="h-24 w-24 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shadow-xl shadow-emerald-100 animate-bounce">
-              <CheckCircle2 size={56} />
-            </div>
-
-            <div className="space-y-2">
-              <h3 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                🎉 ชำระเงินครบถ้วนเรียบร้อยแล้ว!
-              </h3>
-              <p className="text-sm font-medium text-slate-500 max-w-md mx-auto">
-                ยอดบิลรวม ฿{cartTotal.toLocaleString()} ได้รับการชำระครบเต็มจำนวนเรียบร้อยแล้ว
-              </p>
-            </div>
-
-            {/* Split Breakdown Summary Table */}
-            <div className="w-full max-w-lg bg-slate-50 rounded-2xl p-5 border border-slate-200 space-y-3 text-left">
-              <div className="text-xs font-black uppercase text-slate-400 tracking-wider flex items-center justify-between">
-                <span>สรุปประวัติการชำระบิลนี้:</span>
-                <span className="text-slate-900 font-bold">รวม ฿{totalOverallPaid.toLocaleString()}</span>
-              </div>
-
-              {previouslyPaidAmount > 0 && (
-                <div className="flex items-center justify-between bg-white p-3.5 rounded-xl border border-slate-200 text-xs font-bold shadow-sm">
-                  <div className="flex items-center gap-2">
-                    <span className="h-6 w-6 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-[11px] font-black shrink-0">
-                      0
-                    </span>
-                    <span className="uppercase font-black text-slate-800">
-                      ชำระก่อนหน้านี้
-                    </span>
-                  </div>
-                  <span className="font-black text-slate-800 text-base">
-                    ฿{previouslyPaidAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-              )}
-
-              {completedSplits.map((split, idx) => (
-                <div key={split.id} className="flex items-center justify-between bg-white p-3.5 rounded-xl border border-slate-200 text-xs font-bold shadow-sm">
-                  <div className="flex items-center gap-2.5">
-                    <span className="h-6 w-6 rounded-full bg-slate-900 text-white flex items-center justify-center text-[11px] font-black shrink-0">
-                      {idx + 1}
-                    </span>
-                    <span className="uppercase font-black text-slate-900">
-                      {split.method === 'cash' ? '💵 เงินสด' : split.method === 'promptpay' ? '📲 สแกน QR' : '💳 บัตรเครดิต'}
-                    </span>
-                    <span className="text-slate-400 font-medium">({split.timestamp})</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="font-black text-emerald-600 text-base">
-                      ฿{split.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                    </span>
-                    {split.change && split.change > 0 ? (
-                      <span className="block text-[10px] text-slate-400 font-medium">
-                        (รับ ฿{split.cashReceived} ทอน ฿{split.change})
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Final CTAs */}
-            <div className="flex flex-wrap items-center justify-center gap-4 pt-4 w-full max-w-md">
-              <button
-                onClick={() => {
-                  if (typeof window !== 'undefined') window.print();
-                }}
-                className="flex-1 h-14 rounded-2xl border-2 border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white font-black text-sm transition-all flex items-center justify-center gap-2 active:scale-95"
-              >
-                <Receipt size={18} />
-                พิมพ์ใบเสร็จ
-              </button>
-
-              <button
-                onClick={onFinishOrder}
-                className="flex-1 h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 active:scale-95"
-              >
-                <Check size={18} />
-                เสร็จสิ้นเปิดบิลใหม่
-              </button>
-            </div>
-          </div>
-        ) : (
-          /* ACTIVE CONTINUOUS SPLIT WORKFLOW */
-          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        {/* ACTIVE CONTINUOUS SPLIT WORKFLOW */}
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
             
             {/* SEGMENTED TAB SWITCHER */}
             <div className="px-6 pt-5 pb-3 bg-white border-b border-slate-200/80 shrink-0">
@@ -601,136 +515,163 @@ export default function POSSplitPaymentModal({
             </div>
 
             {/* INLINE PAYMENT PANEL FOOTER */}
-            <footer className="border-t border-slate-200 bg-white p-5 space-y-4 shrink-0 shadow-lg">
-              
-              {/* Payment Summary Display */}
-              <div className="flex items-end justify-between">
-                <div>
-                  <span className="text-[11px] font-black uppercase tracking-wider text-slate-400 block">
-                    ยอดชำระงวดนี้ (ราคาจริงตามรายการ)
-                  </span>
-                  <span className="text-xs font-bold text-slate-600 mt-0.5 block">
-                    {splitMode === 'item' ? `เลือกแล้ว ${selectedUnitKeys.length} ชิ้น (ราคารวมตรงตามชิ้น)` : `แบ่งชำระ 1 ใน ${splitCount} ส่วน`}
-                  </span>
+            <footer className="border-t border-slate-200 bg-white p-5 space-y-4 shrink-0 shadow-lg relative">
+              {isFullyCompleted ? (
+                <div className="flex flex-col space-y-4 animate-in fade-in zoom-in-95 duration-300">
+                  <div className="flex items-center justify-center gap-2 text-emerald-600 bg-emerald-50 py-3 rounded-2xl border border-emerald-100">
+                    <CheckCircle2 size={24} className="animate-bounce" />
+                    <h3 className="text-lg sm:text-xl font-black">ชำระเงินครบถ้วนเรียบร้อยแล้ว!</h3>
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => {
+                        if (typeof window !== 'undefined') window.print();
+                      }}
+                      className="flex-1 h-14 rounded-2xl border-2 border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white font-black text-sm transition-all flex items-center justify-center gap-2 active:scale-95"
+                    >
+                      <Receipt size={18} />
+                      พิมพ์ใบเสร็จ
+                    </button>
+
+                    <button
+                      onClick={onFinishOrder}
+                      className="flex-1 h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 active:scale-95"
+                    >
+                      <Check size={18} />
+                      เสร็จสิ้นเปิดบิลใหม่
+                    </button>
+                  </div>
                 </div>
-
-                <div className="text-right">
-                  <span className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
-                    ฿{targetPartialAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-              </div>
-
-              {/* Payment Method Selector Cards */}
-              <div className="grid grid-cols-3 gap-2.5">
-                <button
-                  disabled={targetPartialAmount <= 0}
-                  onClick={() => setPaymentMethod('cash')}
-                  className={`h-14 rounded-2xl border flex flex-col items-center justify-center transition-all ${
-                    paymentMethod === 'cash'
-                      ? 'bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-slate-900'
-                      : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-                  } disabled:opacity-40`}
-                >
-                  <Banknote size={18} className="mb-0.5" />
-                  <span className="text-[10px] font-black tracking-wider">เงินสด (CASH)</span>
-                </button>
-
-                <button
-                  disabled={targetPartialAmount <= 0}
-                  onClick={() => setPaymentMethod('promptpay')}
-                  className={`h-14 rounded-2xl border flex flex-col items-center justify-center transition-all ${
-                    paymentMethod === 'promptpay'
-                      ? 'bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-slate-900'
-                      : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-                  } disabled:opacity-40`}
-                >
-                  <QrCode size={18} className="mb-0.5" />
-                  <span className="text-[10px] font-black tracking-wider">สแกน QR</span>
-                </button>
-
-                <button
-                  disabled={targetPartialAmount <= 0}
-                  onClick={() => setPaymentMethod('credit_card')}
-                  className={`h-14 rounded-2xl border flex flex-col items-center justify-center transition-all ${
-                    paymentMethod === 'credit_card'
-                      ? 'bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-slate-900'
-                      : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-                  } disabled:opacity-40`}
-                >
-                  <CreditCard size={18} className="mb-0.5" />
-                  <span className="text-[10px] font-black tracking-wider">บัตรเครดิต</span>
-                </button>
-              </div>
-
-              {/* INLINE CASH CALCULATOR (WHEN CASH METHOD IS SELECTED) */}
-              {paymentMethod === 'cash' && (
-                <div className="bg-amber-50/90 border border-amber-300 rounded-2xl p-4 space-y-3 animate-in slide-in-from-bottom-2 duration-200 shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-amber-950">ระบุจำนวนเงินที่รับมา (Received Cash):</span>
-                    {numCashReceived > 0 && (
-                      <span className={`text-xs font-black ${cashChange >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>
-                        {cashChange >= 0 ? `เงินทอน: ฿${cashChange.toLocaleString()}` : `ยังขาด: ฿${Math.abs(cashChange).toLocaleString()}`}
+              ) : (
+                <>
+                  {/* Payment Summary Display */}
+                  <div className="flex items-end justify-between">
+                    <div>
+                      <span className="text-[11px] font-black uppercase tracking-wider text-slate-400 block">
+                        ยอดชำระงวดนี้ (ราคาจริงตามรายการ)
                       </span>
-                    )}
+                      <span className="text-xs font-bold text-slate-600 mt-0.5 block">
+                        {splitMode === 'item' ? `เลือกแล้ว ${selectedUnitKeys.length} ชิ้น (ราคารวมตรงตามชิ้น)` : `แบ่งชำระ 1 ใน ${splitCount} ส่วน`}
+                      </span>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
+                        ฿{targetPartialAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="flex gap-2">
-                    <input
-                      type="number"
-                      value={cashReceivedInput}
-                      onChange={(e) => setCashReceivedInput(e.target.value)}
-                      placeholder={`฿ ${Math.ceil(targetPartialAmount)}`}
-                      className="flex-1 h-12 bg-white border border-amber-300 rounded-xl px-4 text-lg font-black text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    />
+                  {/* Payment Method Selector Cards */}
+                  <div className="grid grid-cols-3 gap-2.5">
+                    <button
+                      disabled={targetPartialAmount <= 0}
+                      onClick={() => setPaymentMethod('cash')}
+                      className={`h-14 rounded-2xl border flex flex-col items-center justify-center transition-all ${
+                        paymentMethod === 'cash'
+                          ? 'bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-slate-900'
+                          : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                      } disabled:opacity-40`}
+                    >
+                      <Banknote size={18} className="mb-0.5" />
+                      <span className="text-[10px] font-black tracking-wider">เงินสด (CASH)</span>
+                    </button>
 
-                    {/* Quick Banknote Buttons */}
                     <button
-                      onClick={() => setCashReceivedInput(String(Math.ceil(targetPartialAmount)))}
-                      className="px-3 h-12 rounded-xl bg-white border border-amber-300 text-xs font-bold text-amber-900 hover:bg-amber-100 transition-all"
+                      disabled={targetPartialAmount <= 0}
+                      onClick={() => setPaymentMethod('promptpay')}
+                      className={`h-14 rounded-2xl border flex flex-col items-center justify-center transition-all ${
+                        paymentMethod === 'promptpay'
+                          ? 'bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-slate-900'
+                          : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                      } disabled:opacity-40`}
                     >
-                      พอดี
+                      <QrCode size={18} className="mb-0.5" />
+                      <span className="text-[10px] font-black tracking-wider">สแกน QR</span>
                     </button>
+
                     <button
-                      onClick={() => setCashReceivedInput(String((Number(cashReceivedInput) || 0) + 100))}
-                      className="px-3 h-12 rounded-xl bg-white border border-amber-300 text-xs font-bold text-amber-900 hover:bg-amber-100 transition-all"
+                      disabled={targetPartialAmount <= 0}
+                      onClick={() => setPaymentMethod('credit_card')}
+                      className={`h-14 rounded-2xl border flex flex-col items-center justify-center transition-all ${
+                        paymentMethod === 'credit_card'
+                          ? 'bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-slate-900'
+                          : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                      } disabled:opacity-40`}
                     >
-                      +100
-                    </button>
-                    <button
-                      onClick={() => setCashReceivedInput(String((Number(cashReceivedInput) || 0) + 500))}
-                      className="px-3 h-12 rounded-xl bg-white border border-amber-300 text-xs font-bold text-amber-900 hover:bg-amber-100 transition-all"
-                    >
-                      +500
+                      <CreditCard size={18} className="mb-0.5" />
+                      <span className="text-[10px] font-black tracking-wider">บัตรเครดิต</span>
                     </button>
                   </div>
-                </div>
-              )}
 
-              {/* ACTION CONFIRM BUTTON */}
-              {paymentMethod && (
-                <button
-                  disabled={targetPartialAmount <= 0 || isSubmitting || !isCashValid}
-                  onClick={handleConfirmCurrentSplit}
-                  className="w-full h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-base shadow-lg shadow-emerald-600/30 transition-all flex items-center justify-center gap-2 active:scale-98 disabled:opacity-40"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <RefreshCw size={20} className="animate-spin" />
-                      กำลังบันทึกชำระเงิน...
-                    </>
-                  ) : (
-                    <>
-                      <Check size={20} />
-                      ยืนยันชำระงวดนี้ (฿{targetPartialAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })})
-                    </>
+                  {/* INLINE CASH CALCULATOR (WHEN CASH METHOD IS SELECTED) */}
+                  {paymentMethod === 'cash' && (
+                    <div className="bg-amber-50/90 border border-amber-300 rounded-2xl p-4 space-y-3 animate-in slide-in-from-bottom-2 duration-200 shadow-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-amber-950">ระบุจำนวนเงินที่รับมา (Received Cash):</span>
+                        {numCashReceived > 0 && (
+                          <span className={`text-xs font-black ${cashChange >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>
+                            {cashChange >= 0 ? `เงินทอน: ฿${cashChange.toLocaleString()}` : `ยังขาด: ฿${Math.abs(cashChange).toLocaleString()}`}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex gap-2">
+                        <input
+                          type="number"
+                          value={cashReceivedInput}
+                          onChange={(e) => setCashReceivedInput(e.target.value)}
+                          placeholder={`฿ ${Math.ceil(targetPartialAmount)}`}
+                          className="flex-1 h-12 bg-white border border-amber-300 rounded-xl px-4 text-lg font-black text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        />
+
+                        {/* Quick Banknote Buttons */}
+                        <button
+                          onClick={() => setCashReceivedInput(String(Math.ceil(targetPartialAmount)))}
+                          className="px-3 h-12 rounded-xl bg-white border border-amber-300 text-xs font-bold text-amber-900 hover:bg-amber-100 transition-all"
+                        >
+                          พอดี
+                        </button>
+                        <button
+                          onClick={() => setCashReceivedInput(String((Number(cashReceivedInput) || 0) + 100))}
+                          className="px-3 h-12 rounded-xl bg-white border border-amber-300 text-xs font-bold text-amber-900 hover:bg-amber-100 transition-all"
+                        >
+                          +100
+                        </button>
+                        <button
+                          onClick={() => setCashReceivedInput(String((Number(cashReceivedInput) || 0) + 500))}
+                          className="px-3 h-12 rounded-xl bg-white border border-amber-300 text-xs font-bold text-amber-900 hover:bg-amber-100 transition-all"
+                        >
+                          +500
+                        </button>
+                      </div>
+                    </div>
                   )}
-                </button>
-              )}
 
+                  {/* ACTION CONFIRM BUTTON */}
+                  {paymentMethod && (
+                    <button
+                      disabled={targetPartialAmount <= 0 || isSubmitting || !isCashValid}
+                      onClick={handleConfirmCurrentSplit}
+                      className="w-full h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-base shadow-lg shadow-emerald-600/30 transition-all flex items-center justify-center gap-2 active:scale-98 disabled:opacity-40"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <RefreshCw size={20} className="animate-spin" />
+                          กำลังบันทึกชำระเงิน...
+                        </>
+                      ) : (
+                        <>
+                          <Check size={20} />
+                          ยืนยันชำระงวดนี้ (฿{targetPartialAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })})
+                        </>
+                      )}
+                    </button>
+                  )}
+                </>
+              )}
             </footer>
           </div>
-        )}
       </div>
     </div>
   )
