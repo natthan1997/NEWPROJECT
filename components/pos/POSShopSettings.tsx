@@ -291,6 +291,7 @@ export default function POSShopSettings({
                 receipt_show_logo: data.opening_hours?.receipt_show_logo ?? true,
                 receipt_font_size: data.opening_hours?.receipt_font_size || 'normal',
                 receipt_payment_qr_image: data.opening_hours?.receipt_payment_qr_image || '',
+                liff_splash_poster_url: data.opening_hours?.liff_splash_poster_url || '',
                 cover_url: data.opening_hours?.cover_url || '',
                 logo_url: data.opening_hours?.logo_url || '',
                 name_th: data.opening_hours?.name_th || '',
@@ -475,6 +476,7 @@ const handleSave = async () => {
         receipt_show_logo: settings.receipt_show_logo,
         receipt_font_size: settings.receipt_font_size,
         receipt_payment_qr_image: settings.receipt_payment_qr_image,
+        liff_splash_poster_url: settings.liff_splash_poster_url,
         address: settings.address,
         loyalty_points_per_thb: settings.loyalty_points_per_thb,
         loyalty_earn_rate: settings.loyalty_earn_rate,
@@ -507,6 +509,7 @@ const handleSave = async () => {
     delete payload.receipt_show_logo;
     delete payload.receipt_font_size;
     delete payload.receipt_payment_qr_image;
+    delete payload.liff_splash_poster_url;
     delete payload.cover_url;
     delete payload.logo_url;
     delete payload.name_th;
@@ -992,7 +995,6 @@ const handleSave = async () => {
                                                 </div>
                                             </div>
 
-                                            {/* Branch Name TH / EN */}
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                 <div className="relative">
                                                     <input 
@@ -1478,6 +1480,82 @@ const handleSave = async () => {
                                                 )}
                                             </div>
                                         </div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-white rounded-[10px] p-6 sm:p-8 mb-6 border border-amber-100 shadow-sm">
+                                    <h3 className="text-xl font-black mb-2 flex items-center gap-3">
+                                        <Sparkles className="text-amber-500" size={24} /> รูปประชาสัมพันธ์หน้าโหลด LIFF (LIFF Splash Poster)
+                                    </h3>
+                                    <p className="text-[12px] text-gray-500 font-bold mb-6">
+                                        อัปโหลดรูปโปสเตอร์ประชาสัมพันธ์/โปรโมชันเพื่อแสดงในระหว่างที่ลูกค้ากำลังรอโหลดเข้าสู่ระบบสมาชิก LIFF
+                                    </p>
+
+                                    <div className="flex flex-col gap-4">
+                                        <div className="flex items-center gap-3">
+                                            <label className="inline-flex items-center gap-2 cursor-pointer text-[12px] font-black text-black">
+                                                <span className="inline-flex items-center justify-center gap-2 rounded-xl bg-black text-white hover:bg-neutral-800 px-5 py-3 shadow-md transition-all">
+                                                    <Upload size={16} /> อัปโหลดรูปโปสเตอร์
+                                                </span>
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    className="hidden"
+                                                    onChange={(e) => {
+                                                        const file = e.target.files?.[0]
+                                                        if (!file) return
+                                                        const reader = new FileReader()
+                                                        reader.onload = () => {
+                                                            setSettings({
+                                                                ...settings,
+                                                                liff_splash_poster_url: String(reader.result || ''),
+                                                            })
+                                                        }
+                                                        reader.readAsDataURL(file)
+                                                        e.currentTarget.value = ''
+                                                    }}
+                                                />
+                                            </label>
+                                            {settings.liff_splash_poster_url && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSettings({...settings, liff_splash_poster_url: ''})}
+                                                    className="inline-flex items-center gap-1.5 text-[12px] font-black uppercase tracking-widest text-red-500 hover:text-red-600 bg-red-50 px-4 py-3 rounded-xl border border-red-100 transition-all"
+                                                >
+                                                    <X size={16} /> ลบรูปโปสเตอร์
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        <textarea
+                                            value={settings.liff_splash_poster_url || ''}
+                                            onChange={e => setSettings({...settings, liff_splash_poster_url: e.target.value})}
+                                            className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-[12px] font-mono outline-none focus:ring-2 focus:ring-amber-400 min-h-[80px] resize-none transition-all"
+                                            placeholder="วาง data URL หรือ image URL ของรูปโปรโมชัน (https://...)"
+                                        />
+
+                                        {settings.liff_splash_poster_url && (
+                                            <div className="bg-gray-50 rounded-2xl border border-gray-200 p-5 flex flex-col items-center">
+                                                <div className="text-[12px] font-black text-gray-900 mb-3 self-start">ตัวอย่างหน้าจอ Splash Poster ในแอป LIFF</div>
+                                                <div className="w-[240px] h-[420px] rounded-3xl border-4 border-black bg-black overflow-hidden shadow-2xl relative flex flex-col justify-between p-4">
+                                                    <img loading="lazy" src={settings.liff_splash_poster_url} alt="Poster preview" className="absolute inset-0 w-full h-full object-cover" />
+                                                    <div className="relative z-10 bg-black/40 backdrop-blur-md rounded-full px-3 py-1.5 self-start border border-white/20">
+                                                        <div className="text-[9px] font-black text-white tracking-widest uppercase">XYLEM STUDIO</div>
+                                                    </div>
+                                                    <div className="relative z-10 bg-black/70 backdrop-blur-md rounded-2xl p-3 border border-white/20 space-y-2">
+                                                        <div className="flex justify-between items-center text-[10px] font-bold text-white/90">
+                                                            <span className="flex items-center gap-1.5">
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                                                                กำลังดาวน์โหลดข้อมูล...
+                                                            </span>
+                                                        </div>
+                                                        <div className="w-full h-1 bg-white/30 rounded-full overflow-hidden">
+                                                            <div className="h-full bg-amber-400 w-2/3 animate-pulse" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 

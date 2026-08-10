@@ -427,7 +427,10 @@ export const LiffProvider = ({ children }: { children: React.ReactNode }) => {
   return (
     <LiffContext.Provider value={value}>
       {(loading || !isDataReady) ? (
-        <XYLLoader tagline="กำลังเชื่อมต่อระบบ LINE..." banners={banners} />
+        <XYLLoader
+          posterUrl={shopStatus?.opening_hours?.liff_splash_poster_url || shopStatus?.liff_splash_poster_url}
+          tagline="กำลังดาวน์โหลดข้อมูล..."
+        />
       ) : (
         children
       )}
