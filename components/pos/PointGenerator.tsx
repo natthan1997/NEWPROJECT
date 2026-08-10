@@ -116,7 +116,7 @@ export default function PointGenerator({ onClose }: { onClose?: () => void }) {
   };
 
   const qrUrl = token 
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(`https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}#path=${encodeURIComponent('/liff/member')}&claimToken=${token}`)}`
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(`https://xylstudio.com/liff/member?claimToken=${token}`)}`
     : null;
 
   const resetGenerator = () => {

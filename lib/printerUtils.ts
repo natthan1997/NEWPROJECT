@@ -536,7 +536,7 @@ const appendLoyaltyPointsQr = async (b: ESCPOSBuilder, order: PrintOrderData) =>
   if (!order.loyaltyClaimQrUrl && !order.loyaltyClaimToken) return
   const token = order.loyaltyClaimToken || ''
   const liffId = typeof process !== 'undefined' ? (process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi') : '2009322178-2dtfXAvi'
-  const qrUrl = order.loyaltyClaimQrUrl || `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(`https://liff.line.me/${liffId}#path=${encodeURIComponent('/liff/member')}&claimToken=${token}`)}`
+  const qrUrl = order.loyaltyClaimQrUrl || `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(`https://xylstudio.com/liff/member?claimToken=${token}`)}`
   
   b.lf().align('center').bold(true).line('สแกน QR เพื่อสะสมแต้มผ่าน LINE').bold(false)
   if (order.pointsEarned && order.pointsEarned > 0) {

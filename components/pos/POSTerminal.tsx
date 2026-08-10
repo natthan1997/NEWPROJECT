@@ -5979,8 +5979,8 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                              <QRCodeSVG
                                value={
                                  posQrLoyaltyToken !== 'general_member_checkin'
-                                   ? `https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}#path=${encodeURIComponent('/liff/member')}&claimToken=${posQrLoyaltyToken}&session=${qrSessionId}`
-                                   : `https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}#path=${encodeURIComponent('/liff/member')}`
+                                   ? `https://xylstudio.com/liff/member?claimToken=${posQrLoyaltyToken}&session=${qrSessionId}`
+                                   : `https://xylstudio.com/liff/member`
                                }
                                size={280}
                                level="H"
@@ -6518,7 +6518,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                       <div className="flex flex-col items-center justify-center space-y-2">
                         <div className="p-2 bg-white border border-gray-100 rounded-xl shadow-sm flex items-center justify-center">
                           <QRCodeSVG
-                            value={`https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}#path=${encodeURIComponent('/liff/member')}`}
+                            value={`https://xylstudio.com/liff/member`}
                             size={110}
                             level="M"
                             includeMargin={true}
