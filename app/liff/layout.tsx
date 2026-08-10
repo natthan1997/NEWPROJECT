@@ -18,14 +18,13 @@ function LiffPathRedirector() {
   useEffect(() => {
     const pathParam = searchParams.get('path');
     const claimTokenParam = searchParams.get('claimToken');
-    const liffStateParam = searchParams.get('liff.state') || (typeof window !== 'undefined' ? sessionStorage.getItem('liff_raw_state') : null);
+    const liffStateParam = (typeof window !== 'undefined' ? sessionStorage.getItem('liff_raw_state') : null) || searchParams.get('liff.state');
 
     let targetPath = pathParam;
     let token = claimTokenParam;
 
     // Safely extract path & claimToken from liff.state if present
     if (liffStateParam) {
-      if (typeof window !== 'undefined') sessionStorage.removeItem('liff_raw_state');
       let rawState = liffStateParam;
       try {
         // Repeatedly decode in case double-encoded
@@ -36,8 +35,9 @@ function LiffPathRedirector() {
         }
       } catch {}
 
-      // If liffState IS a full path directly like "/liff/member?claimToken=xxx"
-      if (rawState.startsWith('/')) {
+      if (rawState.includes('/member') || rawState.includes('member')) {
+        targetPath = '/liff/member';
+      } else if (rawState.startsWith('/')) {
         targetPath = rawState;
       } else if (rawState.includes('path=')) {
         const matchPath = rawState.match(/(?:[?&]|^)path=([^&]+)/i);
@@ -46,8 +46,8 @@ function LiffPathRedirector() {
         }
       }
 
-      if (!token && rawState.includes('claimToken=')) {
-        const matchToken = rawState.match(/(?:[?&]|^)claimToken=([^&]+)/i);
+      if (!token) {
+        const matchToken = rawState.match(/(?:[?&]|%3F|%26|^)claimToken(?:=3D|=)([^&%]+)/i) || rawState.match(/claimToken=([^&]+)/i);
         if (matchToken && matchToken[1]) {
           token = matchToken[1];
         }
@@ -68,7 +68,7 @@ function LiffPathRedirector() {
     // If claimToken is present, default target path to /liff/member for receiving points
     if (!targetPath && token) {
       targetPath = '/liff/member';
-    } else if (!targetPath && typeof window !== 'undefined' && window.location.pathname.includes('/member')) {
+    } else if (!targetPath && typeof window !== 'undefined' && (window.location.pathname.includes('/member') || window.location.search.includes('claimToken='))) {
       targetPath = '/liff/member';
     }
 
