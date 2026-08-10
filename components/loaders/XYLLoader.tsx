@@ -29,13 +29,24 @@ const XYLLoader: React.FC<XYLLoaderProps> = ({ mini = false, tagline, posterUrl 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[10000] w-full h-full bg-black overflow-hidden select-none"
+          className="fixed inset-0 z-[10000] w-full h-full bg-black flex items-center justify-center overflow-hidden select-none"
         >
+          {/* Ambient blurred backdrop for seamless color fill */}
+          <div className="absolute inset-0 z-0 overflow-hidden opacity-50 blur-2xl scale-110 pointer-events-none">
+            <img
+              loading="eager"
+              src={posterUrl}
+              alt=""
+              className="w-full h-full object-cover object-center"
+            />
+          </div>
+
+          {/* Pure, un-cropped poster image respecting natural ratio */}
           <img
             loading="eager"
             src={posterUrl}
             alt="Promotional Splash"
-            className="w-full h-full object-cover object-center"
+            className="relative z-10 w-full h-full max-w-full max-h-full object-contain object-center shadow-2xl"
           />
         </motion.div>
       </AnimatePresence>
