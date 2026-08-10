@@ -289,14 +289,7 @@ export const LiffProvider = ({ children }: { children: React.ReactNode }) => {
         const cachedUserId = localStorage.getItem('xylem_line_user_id');
 
         if (liff.isLoggedIn()) {
-          // Restore original URL if we redirected for login
-          const pendingRedirect = sessionStorage.getItem('liff_redirect_path');
-          if (pendingRedirect && pendingRedirect !== window.location.href) {
-            sessionStorage.removeItem('liff_redirect_path');
-            window.location.replace(pendingRedirect);
-            return; // Stop execution here, wait for reload
-          }
-
+          sessionStorage.removeItem('liff_redirect_path');
           const profile = await liff.getProfile();
           setLineProfile(profile);
           localStorage.setItem('xylem_line_user_id', profile.userId);
@@ -336,9 +329,9 @@ export const LiffProvider = ({ children }: { children: React.ReactNode }) => {
             window.location.hash.includes('path=') ||
             isMemberPage
           );
+
           if (liff.isInClient() || hasClaimOrPath) {
             try {
-              sessionStorage.setItem('liff_redirect_path', window.location.href);
               const cleanRedirectUri = window.location.origin + window.location.pathname;
               liff.login({ redirectUri: cleanRedirectUri });
               return;
