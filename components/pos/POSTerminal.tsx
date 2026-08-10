@@ -1066,6 +1066,8 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       deliveryPlatform: order.delivery_platform || undefined,
       referenceName: order.reference_name || undefined,
       deliveryFee: Number(order.delivery_fee || 0),
+      loyaltyClaimToken: order.loyalty_claim_token || undefined,
+      pointsEarned: order.points_earned || undefined,
     };
 
     if (type === 'receipt' && order.id && !order.customer_id && !order.customer_name && (!order.points_earned || order.points_earned === 0)) {
@@ -6518,7 +6520,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                       <div className="flex flex-col items-center justify-center space-y-2">
                         <div className="p-2 bg-white border border-gray-100 rounded-xl shadow-sm flex items-center justify-center">
                           <QRCodeSVG
-                            value={`https://xylstudio.com/liff/member`}
+                            value={getLoyaltyQrUrl()}
                             size={110}
                             level="M"
                             includeMargin={true}

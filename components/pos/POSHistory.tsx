@@ -309,6 +309,8 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
     deliveryPlatform: order.delivery_platform || undefined,
     referenceName: order.reference_name || undefined,
     deliveryFee: Number(order.delivery_fee || 0),
+    loyaltyClaimToken: order.loyalty_claim_token || undefined,
+    pointsEarned: order.points_earned || undefined,
   })
 
   const handlePrintReceipt = async (order: any) => {
