@@ -339,7 +339,8 @@ export const LiffProvider = ({ children }: { children: React.ReactNode }) => {
           if (liff.isInClient() || hasClaimOrPath) {
             try {
               sessionStorage.setItem('liff_redirect_path', window.location.href);
-              liff.login();
+              const cleanRedirectUri = window.location.origin + window.location.pathname;
+              liff.login({ redirectUri: cleanRedirectUri });
               return;
             } catch (loginErr) {
               console.error('LIFF login error:', loginErr);
