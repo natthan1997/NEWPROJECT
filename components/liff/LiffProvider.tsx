@@ -118,21 +118,21 @@ export const LiffProvider = ({ children }: { children: React.ReactNode }) => {
   // --- Fetch: App-level data (shared across all LIFF pages) ---
   const fetchCoreData = useCallback(async (userId?: string, preloadedData?: any) => {
     try {
-      if (preloadedData && preloadedData.success) {
+      if (preloadedData && preloadedData.success && preloadedData.menu && Array.isArray(preloadedData.menu.categories) && preloadedData.menu.categories.length > 0) {
         if (preloadedData.banners) setBanners(preloadedData.banners);
         if (preloadedData.shopStatus) setShopStatus(preloadedData.shopStatus);
         if (preloadedData.activeOrders) setActiveOrders(preloadedData.activeOrders);
         if (preloadedData.member) setMemberInfo(preloadedData.member);
         
-        if (preloadedData.menu) {
-          const menuData = preloadedData.menu;
-          if (menuData.categories) setCategories(menuData.categories);
-          if (menuData.items) {
-            const items = menuData.items;
-            const popular = items.filter((i: any) => i.is_popular || i.is_recommended).slice(0, 6);
-            setBestSellers(sortMenuItemsByOrder(popular));
-          }
+        const menuData = preloadedData.menu;
+        setCategories(menuData.categories);
+        if (menuData.items) {
+          const items = menuData.items;
+          const popular = items.filter((i: any) => i.is_popular || i.is_recommended).slice(0, 6);
+          setBestSellers(sortMenuItemsByOrder(popular));
         }
+        setIsDataReady(true);
+        dataFetched.current = true;
         return;
       }
 
