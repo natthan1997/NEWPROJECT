@@ -54,6 +54,17 @@ export default function LiffHistoryPage() {
 
   const filteredOrders = React.useMemo(() => {
     if (selectedMonth === 'all') {
+      if (uniqueMonths.length > 0) {
+        const firstKey = uniqueMonths[0].key;
+        return pastOrders.filter(order => {
+          if (!order.created_at) return false;
+          const date = new Date(order.created_at);
+          const year = date.getFullYear();
+          const month = date.getMonth();
+          const key = `${year}-${String(month + 1).padStart(2, '0')}`;
+          return key === firstKey;
+        });
+      }
       return pastOrders;
     }
     return pastOrders.filter(order => {
@@ -64,8 +75,7 @@ export default function LiffHistoryPage() {
       const key = `${year}-${String(month + 1).padStart(2, '0')}`;
       return key === selectedMonth;
     });
-  }, [pastOrders, selectedMonth]);
-
+  }, [pastOrders, selectedMonth, uniqueMonths]);
   const formatModifierLabel = (modifier: any) => {
     if (!modifier) return '';
     const name = modifier.display_name || modifier.label || modifier.group_name || modifier.name || '';
@@ -76,44 +86,26 @@ export default function LiffHistoryPage() {
   };
 
   const fetchHistory = async () => {
-    const currentUserId = lineProfile?.userId || (typeof window !== 'undefined' ? localStorage.getItem('xylem_line_user_id') : null);
-    const userPhone = phone || (typeof window !== 'undefined' ? localStorage.getItem('xylem_phone') : null);
+    const currentUserId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
     
-    if (!currentUserId && !userPhone) {
+    if (!currentUserId && !phone) {
       setFetchLoading(false);
       return;
     }
     
     try {
       setFetchLoading(true);
-
-      // Find member ID if available
-      let memberId: string | null = null;
-      if (currentUserId || userPhone) {
-        let mQuery = supabase.from('pos_members').select('id');
-        if (currentUserId && userPhone) {
-          mQuery = mQuery.or(`line_user_id.eq.${currentUserId},phone.eq.${userPhone}`);
-        } else if (currentUserId) {
-          mQuery = mQuery.eq('line_user_id', currentUserId);
-        } else if (userPhone) {
-          mQuery = mQuery.eq('phone', userPhone);
-        }
-        const { data: memberData } = await mQuery.maybeSingle();
-        if (memberData) memberId = memberData.id;
-      }
-
-      // Build orders query
+      // Step 1: Fetch Orders
       let query = supabase.from('pos_orders').select('*');
-      const orConditions: string[] = [];
-      if (currentUserId) orConditions.push(`line_user_id.eq.${currentUserId}`);
-      if (memberId) orConditions.push(`customer_id.eq.${memberId}`);
-      if (userPhone) orConditions.push(`reference_name.eq.${userPhone}`);
-
-      if (orConditions.length > 0) {
-        query = query.or(orConditions.join(','));
+      if (currentUserId && phone) {
+        query = query.or(`line_user_id.eq.${currentUserId},reference_name.eq.${phone}`);
+      } else if (currentUserId) {
+        query = query.eq('line_user_id', currentUserId);
+      } else if (phone) {
+        query = query.eq('reference_name', phone);
       }
       
-      const { data: orders, error: ordersError } = await query.order('created_at', { ascending: false }).limit(50);
+      const { data: orders, error: ordersError } = await query.order('created_at', { ascending: false }).limit(20);
       if (ordersError) throw ordersError;
       if (!orders || orders.length === 0) {
         setPastOrders([]);
@@ -122,7 +114,7 @@ export default function LiffHistoryPage() {
 
       // Step 2: Fetch Items
       const orderIds = orders.map(o => o.id);
-      const { data: items } = await supabase
+      const { data: items, error: itemsError } = await supabase
         .from('pos_order_items')
         .select(`*, pos_menu_items!item_id(*)`)
         .in('order_id', orderIds);
@@ -144,6 +136,12 @@ export default function LiffHistoryPage() {
     // Fetch immediately on mount — userId will be in localStorage even if liff is still hydrating
     fetchHistory();
   }, [lineProfile, phone]);
+
+  useEffect(() => {
+    if (uniqueMonths.length > 0 && selectedMonth === 'all') {
+      setSelectedMonth(uniqueMonths[0].key);
+    }
+  }, [uniqueMonths, selectedMonth]);
 
   const handleReorder = async (items: any[]) => {
     if (!items || items.length === 0) return;
