@@ -45,6 +45,17 @@ function LiffPathRedirector() {
       }
     }
 
+    // Decode path & claimToken from hash to prevent 400 Bad Request in LINE Login
+    if (typeof window !== 'undefined' && window.location.hash) {
+      const hashContent = window.location.hash.substring(1); // remove '#'
+      const hashParams = new URLSearchParams(hashContent.replace(/\?/g, '&'));
+      const hashPath = hashParams.get('path');
+      const hashToken = hashParams.get('claimToken');
+      
+      if (hashPath && !targetPath) targetPath = decodeURIComponent(hashPath);
+      if (hashToken && !token) token = decodeURIComponent(hashToken);
+    }
+
     if (targetPath && targetPath.startsWith('/')) {
       let target = targetPath;
       if (token && !target.includes('claimToken=')) {

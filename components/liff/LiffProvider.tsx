@@ -242,6 +242,14 @@ export const LiffProvider = ({ children }: { children: React.ReactNode }) => {
         const cachedUserId = localStorage.getItem('xylem_line_user_id');
 
         if (liff.isLoggedIn()) {
+          // Restore original URL if we redirected for login
+          const pendingRedirect = sessionStorage.getItem('liff_redirect_path');
+          if (pendingRedirect && pendingRedirect !== window.location.href) {
+            sessionStorage.removeItem('liff_redirect_path');
+            window.location.replace(pendingRedirect);
+            return; // Stop execution here, wait for reload
+          }
+
           const profile = await liff.getProfile();
           setLineProfile(profile);
           localStorage.setItem('xylem_line_user_id', profile.userId);
@@ -279,7 +287,12 @@ export const LiffProvider = ({ children }: { children: React.ReactNode }) => {
           );
           if (liff.isInClient() || hasClaimOrPath) {
             try {
-              liff.login({ redirectUri: window.location.href });
+              // Save the current URL with parameters to restore after login
+              sessionStorage.setItem('liff_redirect_path', window.location.href);
+              
+              // Use a clean URL without query parameters to prevent LINE 400 Bad Request
+              const cleanUrl = window.location.origin + window.location.pathname;
+              liff.login({ redirectUri: cleanUrl });
               return;
             } catch (loginErr) {
               console.error('LIFF login error:', loginErr);

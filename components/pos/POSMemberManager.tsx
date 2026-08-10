@@ -341,7 +341,7 @@ export default function POSMemberManager({
                     phone: editData.phone,
                     email: editData.email,
                     points: newPoints,
-                    tier: editData.tier,
+                    tier_level: editData.tier,
                     title: editData.title,
                     date_of_birth: editData.date_of_birth,
                     gender: editData.gender,

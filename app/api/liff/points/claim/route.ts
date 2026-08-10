@@ -351,27 +351,29 @@ export async function POST(req: NextRequest) {
         }
 
         // 5. Record in history (Safely attempt to include description)
-        try {
-            const historyObj: any = {
-                member_id: member?.id || lineUserId,
-                points: tokenInfo.points,
-                points_change: tokenInfo.points,
-                type: 'earn',
-                created_at: new Date().toISOString()
-            }
-            
-            // We try to include description; if it fails due to missing column, we'll catch it
-            const { error: historyError } = await supabase.from('pos_points_history').insert({
-                ...historyObj,
-                description: 'Claimed via QR Code'
-            })
+        if (shouldAwardPoints) {
+            try {
+                const historyObj: any = {
+                    member_id: member?.id || lineUserId,
+                    points: tokenInfo.points,
+                    points_change: tokenInfo.points,
+                    type: 'earn',
+                    created_at: new Date().toISOString()
+                }
+                
+                // We try to include description; if it fails due to missing column, we'll catch it
+                const { error: historyError } = await supabase.from('pos_points_history').insert({
+                    ...historyObj,
+                    description: 'Claimed via QR Code'
+                })
 
-            if (historyError && historyError.message.includes('column "description" of relation "pos_points_history" does not exist')) {
-                // Retry without description column
-                await supabase.from('pos_points_history').insert(historyObj)
+                if (historyError && historyError.message.includes('column "description" of relation "pos_points_history" does not exist')) {
+                    // Retry without description column
+                    await supabase.from('pos_points_history').insert(historyObj)
+                }
+            } catch (hErr) {
+                console.error('History record error (non-fatal):', hErr)
             }
-        } catch (hErr) {
-            console.error('History record error (non-fatal):', hErr)
         }
         let orderItems = [];
         if (tokenInfo.order_id) {

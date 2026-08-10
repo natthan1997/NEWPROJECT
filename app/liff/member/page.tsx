@@ -869,12 +869,23 @@ function LiffMemberContent() {
 
   const totalAccumulated = memberInfo?.total_accumulated_points || memberInfo?.points || 0;
   let currentTierIndex = 0;
+  
+  // 1. Auto calculate by accumulated points
   for (let i = tiers.length - 1; i >= 0; i--) {
     if (totalAccumulated >= tiers[i].minPoints) {
       currentTierIndex = i;
       break;
     }
   }
+
+  // 2. Override with manual tier from DB if it exists
+  if (memberInfo?.tier_level) {
+    const manualTierIndex = tiers.findIndex(t => t.name.toLowerCase() === memberInfo.tier_level.toLowerCase());
+    if (manualTierIndex !== -1) {
+      currentTierIndex = manualTierIndex;
+    }
+  }
+
   const currentTier = tiers[currentTierIndex];
   const nextTier = currentTierIndex < tiers.length - 1 ? tiers[currentTierIndex + 1] : null;
   const progressPercent = nextTier ? Math.min(100, Math.max(0, ((totalAccumulated - currentTier.minPoints) / (nextTier.minPoints - currentTier.minPoints)) * 100)) : 100;

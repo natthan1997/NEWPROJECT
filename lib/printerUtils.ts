@@ -237,22 +237,13 @@ const appendCenteredBox = (b: ESCPOSBuilder, lines: string[]) => {
 const appendDeliveryDetails = (b: ESCPOSBuilder, order: PrintOrderData, boxed = true) => {
   if (!order.deliveryPlatform && !order.referenceName) return
 
-  b.align('center').bold(true).line('ข้อมูลเดลิเวอรี่').bold(false)
-  if (boxed) {
-    b.bold(true).size(1, 2)
-    appendCenteredBox(b, [
-      `ค่าย: ${formatDeliveryPlatformLabel(order.deliveryPlatform)}`,
-      `เลข: ${order.referenceName || '-'}`,
-      ...(order.deliveryFee && Number(order.deliveryFee) > 0 ? [`ค่าส่ง: ${formatCurrency(Number(order.deliveryFee))}`] : []),
-    ])
-    b.size(1, 1).bold(false)
-  } else {
-    b.align('left')
-    b.bold(true).size(1, 2).line(`ค่าย: ${formatDeliveryPlatformLabel(order.deliveryPlatform)}`)
-    if (order.referenceName) b.line(`เลข: ${order.referenceName}`)
-    if (order.deliveryFee && Number(order.deliveryFee) > 0) b.line(`ค่าส่ง: ${formatCurrency(Number(order.deliveryFee))}`)
-    b.size(1, 1).bold(false)
-  }
+  b.align('center').bold(true).line('--- ข้อมูลเดลิเวอรี่ ---').bold(false)
+  b.align('left')
+  b.bold(true).size(1, 2).line(`ค่าย: ${formatDeliveryPlatformLabel(order.deliveryPlatform)}`)
+  if (order.referenceName) b.line(`เลข: ${order.referenceName}`)
+  if (order.deliveryFee && Number(order.deliveryFee) > 0) b.line(`ค่าส่ง: ${formatCurrency(Number(order.deliveryFee))}`)
+  b.size(1, 1).bold(false)
+  b.align('center').line('------------------------')
 }
 
 const appendOrderNotes = (b: ESCPOSBuilder, order: PrintOrderData) => {
@@ -545,7 +536,7 @@ const appendLoyaltyPointsQr = async (b: ESCPOSBuilder, order: PrintOrderData) =>
   if (!order.loyaltyClaimQrUrl && !order.loyaltyClaimToken) return
   const token = order.loyaltyClaimToken || ''
   const liffId = typeof process !== 'undefined' ? (process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi') : '2009322178-2dtfXAvi'
-  const qrUrl = order.loyaltyClaimQrUrl || `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(`https://liff.line.me/${liffId}/?path=${encodeURIComponent(`/liff/member?claimToken=${token}`)}`)}`
+  const qrUrl = order.loyaltyClaimQrUrl || `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(`https://liff.line.me/${liffId}#path=${encodeURIComponent('/liff/member')}&claimToken=${token}`)}`
   
   b.lf().align('center').bold(true).line('สแกน QR เพื่อสะสมแต้มผ่าน LINE').bold(false)
   if (order.pointsEarned && order.pointsEarned > 0) {
@@ -875,7 +866,7 @@ export const printKitchenTicket = async (
     b.align('right').line(`เวลา: ${timeOnly}`)
     b.align('center')
     if (order.orderType === 'delivery') {
-      b.bold(true).line('ข้อมูลเดลิเวอรี่').size(2, 2)
+      b.bold(true).line('ข้อมูลเดลิเวอรี่').size(1, 2)
         .line(formatDeliveryPlatformLabel(order.deliveryPlatform))
         .line(order.referenceName || '-')
         .size(1, 1).bold(false).lf()

@@ -142,6 +142,13 @@ export async function POST(req: Request) {
     const unlockedTitles = evaluatedTitles.filter(t => t.isUnlocked);
     const activeTitle = unlockedTitles.length > 0 ? unlockedTitles[unlockedTitles.length - 1] : null;
 
+    if (activeTitle && targetMemberId) {
+      const { data: member } = await supabase.from('pos_members').select('title').eq('id', targetMemberId).single();
+      if (member && member.title !== activeTitle.name) {
+        await supabase.from('pos_members').update({ title: activeTitle.name }).eq('id', targetMemberId);
+      }
+    }
+
     return NextResponse.json({ 
       success: true, 
       stats,

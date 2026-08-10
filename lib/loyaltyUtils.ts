@@ -39,6 +39,11 @@ export const fetchOrGenerateLoyaltyToken = async (
       }
 
       if (existing?.token) {
+        // Sync points in DB in case cart total changed since token creation
+        await supabase
+          .from('pos_qr_reward_tokens')
+          .update({ points: pointsToGenerate })
+          .eq('token', existing.token);
         return { token: existing.token, points: pointsToGenerate }
       }
     } else {
@@ -51,6 +56,11 @@ export const fetchOrGenerateLoyaltyToken = async (
         .maybeSingle()
 
       if (existing?.token) {
+        // Sync points in DB in case cart total changed since token creation
+        await supabase
+          .from('pos_qr_reward_tokens')
+          .update({ points: pointsToGenerate })
+          .eq('token', existing.token);
         return { token: existing.token, points: pointsToGenerate }
       }
     }

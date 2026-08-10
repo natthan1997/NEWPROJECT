@@ -171,10 +171,8 @@ export default function LiffMenuPage() {
     }
   }, [searchParams, router]);
 
-  if (redirectTo && redirectTo.startsWith('/')) {
-    return <XYLLoader tagline="กำลังนำคุณไปยังหน้าสมาชิก..." />;
-  }
   
+
   // 🛡️ Boutique Shared Context
   const { 
     lineProfile, 
@@ -2070,6 +2068,10 @@ export default function LiffMenuPage() {
       }
     }
   };
+
+  if (redirectTo && redirectTo.startsWith('/')) {
+    return <XYLLoader tagline="กำลังนำคุณไปยังหน้าสมาชิก..." />;
+  }
 
   if (liffLoading && !hasSeenLoader) return <XYLLoader tagline={locale === 'en' ? 'กำลังบันทึกประวัติการสั่งซื้อ...' : locale === 'zh' ? 'กำลังบันทึกประวัติการสั่งซื้อ...' : 'กำลังบันทึกประวัติการสั่งซื้อ...'} />;
 

@@ -3583,15 +3583,18 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
               console.error('Failed to update pending point history:', pErr);
             }
 
-            // Update QR reward token to the final order ID if it was generated with a fake UUID
-            if (qrTargetOrderIdRef.current && qrTargetOrderIdRef.current !== orderIdToSearch) {
+            // Update QR reward token to the final order ID and points if it was generated with a fake UUID
+            if (qrTargetOrderIdRef.current) {
               try {
                 await supabase
                   .from('pos_qr_reward_tokens')
-                  .update({ order_id: orderIdToSearch })
+                  .update({ 
+                    order_id: orderIdToSearch,
+                    points: pointsEarned || 0 
+                  })
                   .eq('order_id', qrTargetOrderIdRef.current);
               } catch (tErr) {
-                console.error('Failed to update token order id:', tErr);
+                console.error('Failed to update token order id and points:', tErr);
               }
             }
           }
@@ -5976,8 +5979,8 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                              <QRCodeSVG
                                value={
                                  posQrLoyaltyToken !== 'general_member_checkin'
-                                   ? `https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}?claimToken=${posQrLoyaltyToken}&session=${qrSessionId}&path=${encodeURIComponent(`/liff/member?claimToken=${posQrLoyaltyToken}&session=${qrSessionId}`)}`
-                                   : `https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}/?path=${encodeURIComponent('/liff/member')}`
+                                   ? `https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}#path=${encodeURIComponent('/liff/member')}&claimToken=${posQrLoyaltyToken}&session=${qrSessionId}`
+                                   : `https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}#path=${encodeURIComponent('/liff/member')}`
                                }
                                size={280}
                                level="H"
@@ -6515,7 +6518,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                       <div className="flex flex-col items-center justify-center space-y-2">
                         <div className="p-2 bg-white border border-gray-100 rounded-xl shadow-sm flex items-center justify-center">
                           <QRCodeSVG
-                            value={`https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}/?path=${encodeURIComponent('/liff/member')}`}
+                            value={`https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}#path=${encodeURIComponent('/liff/member')}`}
                             size={110}
                             level="M"
                             includeMargin={true}

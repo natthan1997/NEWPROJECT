@@ -283,7 +283,7 @@ export default function POSShopSettings({
                     { id: 'manager', label: 'ผู้จัดการสาขา (Manager)', is_system: true },
                     { id: 'staff', label: 'พนักงานทั่วไป (Staff)', is_system: true }
                 ],
-                printers: data.printers || [],
+                printers: (data.printers && data.printers.length > 0) ? data.printers : (typeof window !== 'undefined' && localStorage.getItem('xylem_printer_ip') ? [{ ip: localStorage.getItem('xylem_printer_ip'), type: 'receipt', name: 'Printer 1', encoding: 'cp874', categories: ['all'] }] : []),
                 receipt_header: data.opening_hours?.receipt_header || '',
                 receipt_story_mode: data.opening_hours?.receipt_story_mode || false,
                 show_story_selection_at_checkout: data.opening_hours?.show_story_selection_at_checkout ?? false,
@@ -1119,7 +1119,6 @@ const handleSave = async () => {
               
               <div className="space-y-4">
                 {DAYS.map((day) => {
-                    const { locale } = useI18n();
                   const dayData = settings.opening_hours?.[day.id] || { open: '08:00', close: '20:00', closed: false }
                   return (
                     <div key={day.id} className="flex flex-col md:flex-row md:items-center justify-between p-4 border border-[#F0F0F0] hover:border-[#E5E5E5] transition-colors gap-4">

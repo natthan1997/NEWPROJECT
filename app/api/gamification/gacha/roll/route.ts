@@ -22,8 +22,8 @@ const createSupabaseServiceClient = () => {
 function getRandomReward(pool: any[], requirePity: boolean = false) {
     let filteredPool = pool;
     if (requirePity) {
-        // Pity guarantees SR or UR
-        filteredPool = pool.filter(item => item.rarity_tier === 'SR' || item.rarity_tier === 'UR');
+        // Pity guarantees R, SR or UR
+        filteredPool = pool.filter(item => item.rarity_tier === 'R' || item.rarity_tier === 'SR' || item.rarity_tier === 'UR');
         if (filteredPool.length === 0) {
             filteredPool = pool; // Fallback if no SR/UR exists
         }
@@ -94,16 +94,16 @@ export async function POST(req: NextRequest) {
 
         // 3. Roll Logic
         const results = [];
-        let hasSRorBetter = false;
+        let hasRareOrBetter = false;
 
         for (let i = 0; i < rollCount; i++) {
-            // Apply Pity on the 10th pull if no SR/UR has been obtained in the previous 9 pulls
-            const isPityPull = (rollCount === 10 && i === 9 && !hasSRorBetter);
+            // Apply Pity on the 10th pull if no R/SR/UR has been obtained in the previous 9 pulls
+            const isPityPull = (rollCount === 10 && i === 9 && !hasRareOrBetter);
             
             const reward = getRandomReward(validPool, isPityPull);
             if (reward) {
-                if (reward.rarity_tier === 'SR' || reward.rarity_tier === 'UR') {
-                    hasSRorBetter = true;
+                if (reward.rarity_tier === 'R' || reward.rarity_tier === 'SR' || reward.rarity_tier === 'UR') {
+                    hasRareOrBetter = true;
                 }
                 results.push({
                     reward_id: reward.id,

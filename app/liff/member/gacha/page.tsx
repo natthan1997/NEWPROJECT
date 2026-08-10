@@ -288,7 +288,7 @@ export default function GachaPage() {
             >
                 <span>หมุน 10 ครั้ง</span>
                 <div className={`text-[10px] font-medium tracking-wider ${rollMode === 10 ? 'text-[#FCF7E8]/80' : 'text-[#B48529]'}`}>
-                    การันตี SR
+                    การันตี Rare ขึ้นไป
                 </div>
             </button>
         </div>
