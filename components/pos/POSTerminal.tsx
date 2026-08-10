@@ -5981,8 +5981,8 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                              <QRCodeSVG
                                value={
                                  posQrLoyaltyToken !== 'general_member_checkin'
-                                   ? `https://xylstudio.com/liff/member?claimToken=${posQrLoyaltyToken}&session=${qrSessionId}`
-                                   : `https://xylstudio.com/liff/member`
+                                   ? `https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}?claimToken=${posQrLoyaltyToken}&session=${qrSessionId}&path=${encodeURIComponent(`/liff/member?claimToken=${posQrLoyaltyToken}&session=${qrSessionId}`)}`
+                                   : `https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}?path=${encodeURIComponent('/liff/member')}`
                                }
                                size={280}
                                level="H"

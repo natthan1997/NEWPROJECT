@@ -308,7 +308,7 @@ export default function POSCustomerSelect({ onSelect, selectedCustomer, onClose,
                             <div className="p-4 bg-gray-50 rounded-xl relative group">
                                 <QRCodeCanvas
                                     id="member-qr-canvas"
-                                    value={`https://xylstudio.com/liff/member`}
+                                    value={`https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}?path=${encodeURIComponent('/liff/member')}`}
                                     size={200}
                                     level="H"
                                     includeMargin={true}
