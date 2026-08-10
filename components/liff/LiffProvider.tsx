@@ -71,6 +71,33 @@ export const LiffProvider = ({ children }: { children: React.ReactNode }) => {
   const [isDataReady, setIsDataReady] = useState(false);
   const dataFetched = useRef(false);
 
+  const [posterUrlCache, setPosterUrlCache] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('xyl_poster_url') || null;
+    }
+    return null;
+  });
+
+  const [isPosterMinTimerActive, setIsPosterMinTimerActive] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsPosterMinTimerActive(false);
+    }, 1800);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    const url = shopStatus?.opening_hours?.liff_splash_poster_url || shopStatus?.liff_splash_poster_url;
+    if (url) {
+      setPosterUrlCache(url);
+      localStorage.setItem('xyl_poster_url', url);
+    } else if (shopStatus) {
+      setPosterUrlCache(null);
+      localStorage.removeItem('xyl_poster_url');
+    }
+  }, [shopStatus]);
+
   const formatAddressShort = (addr: string) => {
     if (!addr || addr.trim() === '' || addr.trim() === ':') return 'เลือกที่อยู่จัดส่ง';
     let clean = addr
@@ -424,11 +451,14 @@ export const LiffProvider = ({ children }: { children: React.ReactNode }) => {
     setActiveOrders,
   };
 
+  const currentPoster = posterUrlCache || shopStatus?.opening_hours?.liff_splash_poster_url || shopStatus?.liff_splash_poster_url;
+  const showLoader = loading || !isDataReady || (Boolean(currentPoster) && isPosterMinTimerActive);
+
   return (
     <LiffContext.Provider value={value}>
-      {(loading || !isDataReady) ? (
+      {showLoader ? (
         <XYLLoader
-          posterUrl={shopStatus?.opening_hours?.liff_splash_poster_url || shopStatus?.liff_splash_poster_url}
+          posterUrl={currentPoster}
           tagline="กำลังดาวน์โหลดข้อมูล..."
         />
       ) : (
