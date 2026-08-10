@@ -210,7 +210,8 @@ export const LiffProvider = ({ children }: { children: React.ReactNode }) => {
   }, [memberInfo?.id]);
 
 
-  const liffId = process.env.NEXT_PUBLIC_LIFF_ID?.replace(/[^a-zA-Z0-9-]/g, '');
+  const liffIdRaw = process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi';
+  const liffId = liffIdRaw.replace(/[^a-zA-Z0-9-]/g, '');
 
   useEffect(() => {
     if (initialized.current) return;
@@ -294,8 +295,8 @@ export const LiffProvider = ({ children }: { children: React.ReactNode }) => {
               // Save the current URL with parameters to restore after login
               sessionStorage.setItem('liff_redirect_path', window.location.href);
               
-              // Use the registered LIFF Endpoint URL (/liff/menu) as redirectUri to prevent LINE 400 Bad Request
-              const registeredEndpoint = window.location.origin + '/liff/menu';
+              // Hardcode canonical registered LIFF Endpoint URL (https://xylstudio.com/liff/menu) without www to guarantee LINE OAuth2 approval
+              const registeredEndpoint = 'https://xylstudio.com/liff/menu';
               liff.login({ redirectUri: registeredEndpoint });
               return;
             } catch (loginErr) {
