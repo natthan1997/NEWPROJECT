@@ -49,6 +49,14 @@ const nextConfig = {
         destination: '/liff/member',
       },
       {
+        source: '/liff/liff/:path*',
+        destination: '/liff/:path*',
+      },
+      {
+        source: '/liff/menu/liff/:path*',
+        destination: '/liff/:path*',
+      },
+      {
         source: '/liff/menu/member',
         destination: '/liff/member',
       },
