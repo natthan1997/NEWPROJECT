@@ -1391,7 +1391,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       setPosQrPointsEarned(0);
       qrTargetOrderIdRef.current = null;
     }
-  }, [showMemberCheckoutFlow, editingOrderId, cartTotal, shopSettings]);
+  }, [showMemberCheckoutFlow, editingOrderId, cartTotal, shopSettings, cart]);
 
 
 
