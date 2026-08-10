@@ -23,37 +23,45 @@ function LiffPathRedirector() {
     let targetPath = pathParam;
     let token = claimTokenParam;
 
-    // Decode path & claimToken from liff.state if present
+    // Safely extract path & claimToken from liff.state if present
     if (!targetPath && liffStateParam) {
-      let cur = liffStateParam;
-      for (let i = 0; i < 3; i++) {
-        try {
-          const decoded = decodeURIComponent(cur);
-          const matchPath = decoded.match(/(?:[?&]|%3F|%26|^)path(?:=3D|=)([^&%]+)/i) || decoded.match(/path=([^&]+)/i);
-          if (matchPath && matchPath[1]) {
-            targetPath = decodeURIComponent(matchPath[1]);
-          }
-          const matchToken = decoded.match(/(?:[?&]|%3F|%26|^)claimToken(?:=3D|=)([^&%]+)/i) || decoded.match(/claimToken=([^&]+)/i);
-          if (matchToken && matchToken[1]) {
-            token = decodeURIComponent(matchToken[1]);
-          }
-          if (decoded === cur) break;
-          cur = decoded;
-        } catch {
-          break;
+      let rawState = liffStateParam;
+      try {
+        // Repeatedly decode in case double-encoded
+        for (let i = 0; i < 3; i++) {
+          const dec = decodeURIComponent(rawState);
+          if (dec === rawState) break;
+          rawState = dec;
+        }
+      } catch {}
+
+      // If liffState IS a full path directly like "/liff/member?claimToken=xxx"
+      if (rawState.startsWith('/')) {
+        targetPath = rawState;
+      } else if (rawState.includes('path=')) {
+        const matchPath = rawState.match(/(?:[?&]|^)path=([^&]+)/i);
+        if (matchPath && matchPath[1]) {
+          targetPath = matchPath[1];
+        }
+      }
+
+      if (!token && rawState.includes('claimToken=')) {
+        const matchToken = rawState.match(/(?:[?&]|^)claimToken=([^&]+)/i);
+        if (matchToken && matchToken[1]) {
+          token = matchToken[1];
         }
       }
     }
 
-    // Decode path & claimToken from hash to prevent 400 Bad Request in LINE Login
+    // Decode path & claimToken from hash
     if (typeof window !== 'undefined' && window.location.hash) {
-      const hashContent = window.location.hash.substring(1); // remove '#'
+      const hashContent = window.location.hash.substring(1);
       const hashParams = new URLSearchParams(hashContent.replace(/\?/g, '&'));
       const hashPath = hashParams.get('path');
       const hashToken = hashParams.get('claimToken');
       
-      if (hashPath && !targetPath) targetPath = decodeURIComponent(hashPath);
-      if (hashToken && !token) token = decodeURIComponent(hashToken);
+      if (hashPath && !targetPath) targetPath = hashPath;
+      if (hashToken && !token) token = hashToken;
     }
 
     if (targetPath && targetPath.startsWith('/')) {
@@ -62,8 +70,20 @@ function LiffPathRedirector() {
         const sep = target.includes('?') ? '&' : '?';
         target += `${sep}claimToken=${token}`;
       }
-      const targetCleanPath = target.split('?')[0];
-      if (pathname !== targetCleanPath) {
+      
+      let targetCleanPath = target.split('?')[0].replace(/\/+$/, '');
+      
+      // Prevent redirecting to invalid /liff root path which causes 404
+      if (targetCleanPath === '/liff' || targetCleanPath === '') {
+        targetCleanPath = '/liff/member';
+        target = `/liff/member${target.includes('?') ? '?' + target.split('?')[1] : ''}`;
+      }
+
+      // Valid LIFF sub-routes in app/liff/
+      const validLiffRoutes = ['/liff/member', '/liff/menu', '/liff/history', '/liff/rewards', '/liff/my-rewards', '/liff/point-history', '/liff/success', '/liff/track'];
+      const isValidRoute = validLiffRoutes.some(r => targetCleanPath === r || targetCleanPath.startsWith(r + '/'));
+
+      if (isValidRoute && pathname !== targetCleanPath) {
         router.replace(target);
       }
     }
