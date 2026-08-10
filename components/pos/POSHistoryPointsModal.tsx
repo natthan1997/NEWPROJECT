@@ -232,7 +232,7 @@ export default function POSHistoryPointsModal({ order, shopSettings, onClose, on
                   
                   <div className="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 inline-block">
                     <QRCodeSVG 
-                      value={`https://liff.line.me/2009322178-2dtfXAvi?claimToken=${token}&path=${encodeURIComponent(`/liff/member?claimToken=${token}`)}`}
+                      value={`https://liff.line.me/2009322178-2dtfXAvi/liff/member?claimToken=${token}`}
                       size={200}
                       level="H"
                       includeMargin={true}
