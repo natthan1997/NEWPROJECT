@@ -176,6 +176,68 @@ export default function POSShopSettings({
   const [showCropModal, setShowCropModal] = useState(false)
   const [editingRole, setEditingRole] = useState<string | null>(null)
   const [editingRoleName, setEditingRoleName] = useState('')
+  const [isUploadingPoster, setIsUploadingPoster] = useState(false)
+
+  const handlePosterUpload = async (file: File) => {
+    if (!file) return
+    setIsUploadingPoster(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('bucket', 'pos-settings')
+      formData.append('path', `liff-splash-${Date.now()}.${file.name.split('.').pop() || 'png'}`)
+
+      const res = await fetch('/api/admin/storage/upload', {
+        method: 'POST',
+        body: formData,
+      })
+      const result = await res.json()
+
+      if (result.publicUrl) {
+        setSettings((prev: any) => ({ ...prev, liff_splash_poster_url: result.publicUrl }))
+        setIsUploadingPoster(false)
+        return
+      }
+    } catch (e) {
+      console.warn('R2 upload failed, falling back to canvas compression:', e)
+    }
+
+    try {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const img = new Image()
+        img.onload = () => {
+          const canvas = document.createElement('canvas')
+          let w = img.width
+          let h = img.height
+          const maxDim = 1200
+          if (w > maxDim || h > maxDim) {
+            if (w > h) {
+              h = Math.round((h * maxDim) / w)
+              w = maxDim
+            } else {
+              w = Math.round((w * maxDim) / h)
+              h = maxDim;
+            }
+          }
+          canvas.width = w
+          canvas.height = h
+          const ctx = canvas.getContext('2d')
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, w, h)
+            const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82)
+            setSettings((prev: any) => ({ ...prev, liff_splash_poster_url: compressedDataUrl }))
+          }
+          setIsUploadingPoster(false)
+        }
+        img.src = String(reader.result || '')
+      }
+      reader.readAsDataURL(file)
+    } catch (err: any) {
+      alert('อัปโหลดรูปไม่สำเร็จ: ' + err.message)
+      setIsUploadingPoster(false)
+    }
+  }
 
   const [settings, setSettings] = useState<any>({
     id: null,
@@ -1495,23 +1557,18 @@ const handleSave = async () => {
                                         <div className="flex items-center gap-3">
                                             <label className="inline-flex items-center gap-2 cursor-pointer text-[12px] font-black text-black">
                                                 <span className="inline-flex items-center justify-center gap-2 rounded-xl bg-black text-white hover:bg-neutral-800 px-5 py-3 shadow-md transition-all">
-                                                    <Upload size={16} /> อัปโหลดรูปโปสเตอร์
+                                                    {isUploadingPoster ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+                                                    {isUploadingPoster ? 'กำลังอัปโหลดรูปภาพ...' : 'อัปโหลดรูปโปสเตอร์'}
                                                 </span>
                                                 <input
                                                     type="file"
                                                     accept="image/*"
                                                     className="hidden"
+                                                    disabled={isUploadingPoster}
                                                     onChange={(e) => {
                                                         const file = e.target.files?.[0]
                                                         if (!file) return
-                                                        const reader = new FileReader()
-                                                        reader.onload = () => {
-                                                            setSettings({
-                                                                ...settings,
-                                                                liff_splash_poster_url: String(reader.result || ''),
-                                                            })
-                                                        }
-                                                        reader.readAsDataURL(file)
+                                                        handlePosterUpload(file)
                                                         e.currentTarget.value = ''
                                                     }}
                                                 />
