@@ -281,18 +281,22 @@ export const LiffProvider = ({ children }: { children: React.ReactNode }) => {
           }
         } else {
           // Guest mode or not logged in yet
+          const isMemberPage = typeof window !== 'undefined' && window.location.pathname.includes('/liff/member');
           const hasClaimOrPath = typeof window !== 'undefined' && (
             window.location.search.includes('claimToken=') || 
-            window.location.search.includes('path=')
+            window.location.search.includes('path=') ||
+            window.location.hash.includes('claimToken=') ||
+            window.location.hash.includes('path=') ||
+            isMemberPage
           );
           if (liff.isInClient() || hasClaimOrPath) {
             try {
               // Save the current URL with parameters to restore after login
               sessionStorage.setItem('liff_redirect_path', window.location.href);
               
-              // Use a clean URL without query parameters to prevent LINE 400 Bad Request
-              const cleanUrl = window.location.origin + window.location.pathname;
-              liff.login({ redirectUri: cleanUrl });
+              // Use the registered LIFF Endpoint URL (/liff/menu) as redirectUri to prevent LINE 400 Bad Request
+              const registeredEndpoint = window.location.origin + '/liff/menu';
+              liff.login({ redirectUri: registeredEndpoint });
               return;
             } catch (loginErr) {
               console.error('LIFF login error:', loginErr);
