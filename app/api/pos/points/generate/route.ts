@@ -37,9 +37,54 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}))
     const points = Number(body?.points ?? 0)
     const orderId = body?.orderId || null
+    const cartItems = Array.isArray(body?.cartItems) ? body.cartItems : []
 
     if (isNaN(points) || points < 0) {
       return NextResponse.json({ error: 'Invalid points amount' }, { status: 400 })
+    }
+
+    // Save/sync draft order and items if cartItems are provided and orderId is valid
+    if (orderId && cartItems.length > 0) {
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+      if (uuidRegex.test(orderId)) {
+        try {
+          const totalAmount = cartItems.reduce((sum: number, item: any) => sum + Number(item.subtotal || (item.unit_price * item.quantity) || 0), 0)
+          
+          // 1. Ensure draft order exists in pos_orders
+          const { data: existingOrd } = await supabase
+            .from('pos_orders')
+            .select('id, status')
+            .eq('id', orderId)
+            .maybeSingle()
+
+          if (!existingOrd) {
+            await supabase.from('pos_orders').insert({
+              id: orderId,
+              status: 'pending',
+              order_number: 'DRAFT',
+              total_amount: totalAmount,
+              order_source: 'pos',
+              created_at: new Date().toISOString()
+            })
+          }
+
+          // 2. Insert/update items in pos_order_items
+          const itemsToInsert = cartItems.map((i: any) => ({
+            order_id: orderId,
+            item_id: (i.item_id || i.id) && uuidRegex.test(i.item_id || i.id) ? (i.item_id || i.id) : null,
+            name: i.name || i.item_name || 'สินค้า',
+            quantity: Number(i.quantity || 1),
+            unit_price: Number(i.unit_price || 0),
+            subtotal: Number(i.subtotal || (Number(i.unit_price || 0) * Number(i.quantity || 1))),
+            selected_modifiers: i.selected_modifiers || []
+          }))
+
+          await supabase.from('pos_order_items').delete().eq('order_id', orderId)
+          await supabase.from('pos_order_items').insert(itemsToInsert)
+        } catch (draftErr) {
+          console.error('Failed to sync draft order items:', draftErr)
+        }
+      }
     }
 
     // Generate a secure random token

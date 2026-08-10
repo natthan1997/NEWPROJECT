@@ -1359,7 +1359,15 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             qrTargetOrderIdRef.current = editingOrderId || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `cart_${Date.now()}`);
           }
           const targetOrderId = qrTargetOrderIdRef.current;
-          const res = await fetchOrGenerateLoyaltyToken(targetOrderId, cartTotal, shopSettings);
+          const formattedCartItems = cart.map((i: any) => ({
+            item_id: i.id,
+            name: getPrimaryMenuName(i),
+            quantity: i.quantity,
+            unit_price: getEffectiveItemUnitPrice(i),
+            subtotal: ((getEffectiveItemUnitPrice(i) + (i.selected_modifiers?.reduce((a: number, m: any) => a + ((m.price_adjustment || 0) * (m.qty || 1)), 0) || 0)) * i.quantity) - (i.discount_amount || 0),
+            selected_modifiers: i.selected_modifiers || []
+          }));
+          const res = await fetchOrGenerateLoyaltyToken(targetOrderId, cartTotal, shopSettings, formattedCartItems);
           if (isMounted) {
             if (res.token) {
               setPosQrLoyaltyToken(res.token);

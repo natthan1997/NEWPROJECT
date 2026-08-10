@@ -3,7 +3,8 @@ import { supabase } from '@/lib/supabaseClient'
 export const fetchOrGenerateLoyaltyToken = async (
   orderId: string | undefined | null,
   netTotal: number,
-  shopSettings: any
+  shopSettings: any,
+  cartItems?: any[]
 ): Promise<{ token: string | null; points: number }> => {
   if (!orderId) return { token: null, points: 0 }
 
@@ -73,7 +74,7 @@ export const fetchOrGenerateLoyaltyToken = async (
         'Content-Type': 'application/json',
         ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {}),
       },
-      body: JSON.stringify({ points: pointsToGenerate, orderId }),
+      body: JSON.stringify({ points: pointsToGenerate, orderId, cartItems }),
     })
     const result = await res.json()
     return { token: result.token || null, points: pointsToGenerate }
