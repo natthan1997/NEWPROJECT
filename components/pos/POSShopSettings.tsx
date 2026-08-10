@@ -1549,9 +1549,12 @@ const handleSave = async () => {
                                     <h3 className="text-xl font-black mb-2 flex items-center gap-3">
                                         <Sparkles className="text-amber-500" size={24} /> รูปประชาสัมพันธ์หน้าโหลด LIFF (LIFF Splash Poster)
                                     </h3>
-                                    <p className="text-[12px] text-gray-500 font-bold mb-6">
+                                    <p className="text-[12px] text-gray-500 font-bold mb-2">
                                         อัปโหลดรูปโปสเตอร์ประชาสัมพันธ์/โปรโมชันเพื่อแสดงในระหว่างที่ลูกค้ากำลังรอโหลดเข้าสู่ระบบสมาชิก LIFF
                                     </p>
+                                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-6 text-[11px] font-bold text-amber-900 flex items-center gap-2">
+                                        <span>💡 <b>ขนาดรูปที่แนะนำให้เต็มหน้าจอมือถือพอดีเป๊ะ:</b> อัตราส่วนแนวตั้ง <b>9:16</b> (ความละเอียด <b>1080 x 1920 px</b> หรือขนาดเดียวกับ IG Story / TikTok)</span>
+                                    </div>
 
                                     <div className="flex flex-col gap-4">
                                         <div className="flex items-center gap-3">
