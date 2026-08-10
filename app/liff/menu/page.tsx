@@ -159,9 +159,19 @@ export default function LiffMenuPage() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
+    const pathname = window.location.pathname;
+    const claimToken = params.get('claimToken');
+
+    // If customer scanned QR for points claim, forward to member page immediately
+    if (claimToken || pathname.includes('/member')) {
+      const search = window.location.search;
+      const hash = window.location.hash;
+      router.replace(`/liff/member${search}${hash}`);
+      return;
+    }
+
     const path = params.get('path');
     if (path && path.startsWith('/')) {
-      const claimToken = params.get('claimToken');
       let target = path;
       if (claimToken && !target.includes('claimToken=')) {
         const sep = target.includes('?') ? '&' : '?';

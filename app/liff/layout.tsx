@@ -65,6 +65,13 @@ function LiffPathRedirector() {
       if (hashToken && !token) token = hashToken;
     }
 
+    // If claimToken is present, default target path to /liff/member for receiving points
+    if (!targetPath && token) {
+      targetPath = '/liff/member';
+    } else if (!targetPath && typeof window !== 'undefined' && window.location.pathname.includes('/member')) {
+      targetPath = '/liff/member';
+    }
+
     if (targetPath && targetPath.startsWith('/')) {
       let target = targetPath;
       if (token && !target.includes('claimToken=')) {
