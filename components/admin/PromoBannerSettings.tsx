@@ -132,8 +132,8 @@ export default function PromoBannerSettings() {
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-xl font-black text-gray-900">{locale === 'en' ? 'Promo Banners' : locale === 'zh' ? 'Promo Banners' : 'แบนเนอร์โปรโมชั่น'}</h2>
-          <p className="text-sm text-gray-500 mt-1">{locale === 'en' ? 'Manage banners shown in LIFF menu' : locale === 'zh' ? 'Manage banners shown in LIFF menu' : 'จัดการรูปภาพแบนเนอร์ที่จะแสดงในหน้าสั่งอาหาร (LIFF)'}</p>
+          <h2 className="text-xl font-black text-gray-900">{locale === 'en' ? 'Promo & LIFF Loading Banners' : 'แบนเนอร์ประชาสัมพันธ์ & หน้าโหลด LIFF'}</h2>
+          <p className="text-sm text-gray-500 mt-1">{locale === 'en' ? 'Manage promotional posters shown on LIFF Loading Screen & Member App' : 'จัดการรูปภาพแบนเนอร์ประชาสัมพันธ์ที่จะแสดงในหน้าโหลดเข้าแอป (LIFF Loading Screen) และหน้าสั่งอาหาร'}</p>
         </div>
         
         <div>
