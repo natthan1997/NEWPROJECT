@@ -6520,7 +6520,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                       <div className="flex flex-col items-center justify-center space-y-2">
                         <div className="p-2 bg-white border border-gray-100 rounded-xl shadow-sm flex items-center justify-center">
                           <QRCodeSVG
-                            value={getLoyaltyQrUrl()}
+                            value={`https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}?path=${encodeURIComponent('/liff/member')}`}
                             size={110}
                             level="M"
                             includeMargin={true}
