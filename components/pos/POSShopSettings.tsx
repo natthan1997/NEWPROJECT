@@ -1593,23 +1593,9 @@ const handleSave = async () => {
 
                                         {settings.liff_splash_poster_url && (
                                             <div className="bg-gray-50 rounded-2xl border border-gray-200 p-5 flex flex-col items-center">
-                                                <div className="text-[12px] font-black text-gray-900 mb-3 self-start">ตัวอย่างหน้าจอ Splash Poster ในแอป LIFF</div>
-                                                <div className="w-[240px] h-[420px] rounded-3xl border-4 border-black bg-black overflow-hidden shadow-2xl relative flex flex-col justify-between p-4">
-                                                    <img loading="lazy" src={settings.liff_splash_poster_url} alt="Poster preview" className="absolute inset-0 w-full h-full object-cover" />
-                                                    <div className="relative z-10 bg-black/40 backdrop-blur-md rounded-full px-3 py-1.5 self-start border border-white/20">
-                                                        <div className="text-[9px] font-black text-white tracking-widest uppercase">XYLEM STUDIO</div>
-                                                    </div>
-                                                    <div className="relative z-10 bg-black/70 backdrop-blur-md rounded-2xl p-3 border border-white/20 space-y-2">
-                                                        <div className="flex justify-between items-center text-[10px] font-bold text-white/90">
-                                                            <span className="flex items-center gap-1.5">
-                                                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                                                                กำลังดาวน์โหลดข้อมูล...
-                                                            </span>
-                                                        </div>
-                                                        <div className="w-full h-1 bg-white/30 rounded-full overflow-hidden">
-                                                            <div className="h-full bg-amber-400 w-2/3 animate-pulse" />
-                                                        </div>
-                                                    </div>
+                                                <div className="text-[12px] font-black text-gray-900 mb-3 self-start">ตัวอย่างหน้าจอ Splash Poster ในแอป LIFF (แสดงรูปภาพเพียวๆ เต็มหน้าจอ)</div>
+                                                <div className="w-[240px] h-[420px] rounded-3xl border-4 border-black bg-black overflow-hidden shadow-2xl relative">
+                                                    <img loading="lazy" src={settings.liff_splash_poster_url} alt="Poster preview" className="w-full h-full object-cover" />
                                                 </div>
                                             </div>
                                         )}

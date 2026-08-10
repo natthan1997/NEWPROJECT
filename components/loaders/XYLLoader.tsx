@@ -29,50 +29,14 @@ const XYLLoader: React.FC<XYLLoaderProps> = ({ mini = false, tagline, posterUrl 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[10000] flex flex-col items-center justify-between bg-black text-white font-sans overflow-hidden select-none"
+          className="fixed inset-0 z-[10000] w-full h-full bg-black overflow-hidden select-none"
         >
-          {/* Poster Image Layer */}
-          <div className="absolute inset-0 z-0">
-            <img
-              loading="eager"
-              src={posterUrl}
-              alt="Promotional Splash"
-              className="w-full h-full object-cover object-center"
-            />
-            {/* Subtle Gradient Overlays */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/85 pointer-events-none" />
-          </div>
-
-          {/* Top Brand Header */}
-          <div className="relative z-10 w-full pt-10 px-6 flex justify-between items-center">
-            <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/15 shadow-lg">
-              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-              <span className="text-[11px] font-black tracking-wider text-white uppercase">XYLEM STUDIO</span>
-            </div>
-          </div>
-
-          {/* Bottom Loading Progress Bar */}
-          <div className="relative z-10 w-full pb-10 px-6 max-w-md mx-auto flex flex-col items-center space-y-3">
-            <div className="w-full bg-black/60 backdrop-blur-xl border border-white/20 p-4 rounded-2xl shadow-2xl flex flex-col space-y-3">
-              <div className="flex justify-between items-center text-xs font-bold text-white/90">
-                <span className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                  {tagline || 'กำลังโหลดระบบ...'}
-                </span>
-                <span className="text-[10px] font-mono tracking-widest text-amber-300">LIFF APP</span>
-              </div>
-
-              {/* Animated Progress Bar */}
-              <div className="w-full h-1.5 bg-white/20 rounded-full overflow-hidden relative">
-                <motion.div
-                  initial={{ x: '-100%' }}
-                  animate={{ x: '0%' }}
-                  transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-                  className="h-full bg-gradient-to-r from-amber-400 via-emerald-400 to-emerald-300 rounded-full w-full"
-                />
-              </div>
-            </div>
-          </div>
+          <img
+            loading="eager"
+            src={posterUrl}
+            alt="Promotional Splash"
+            className="w-full h-full object-cover object-center"
+          />
         </motion.div>
       </AnimatePresence>
     )
