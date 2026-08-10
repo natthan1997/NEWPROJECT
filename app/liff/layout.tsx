@@ -18,13 +18,14 @@ function LiffPathRedirector() {
   useEffect(() => {
     const pathParam = searchParams.get('path');
     const claimTokenParam = searchParams.get('claimToken');
-    const liffStateParam = searchParams.get('liff.state');
+    const liffStateParam = searchParams.get('liff.state') || (typeof window !== 'undefined' ? sessionStorage.getItem('liff_raw_state') : null);
 
     let targetPath = pathParam;
     let token = claimTokenParam;
 
     // Safely extract path & claimToken from liff.state if present
-    if (!targetPath && liffStateParam) {
+    if (liffStateParam) {
+      if (typeof window !== 'undefined') sessionStorage.removeItem('liff_raw_state');
       let rawState = liffStateParam;
       try {
         // Repeatedly decode in case double-encoded

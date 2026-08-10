@@ -235,6 +235,25 @@ export const LiffProvider = ({ children }: { children: React.ReactNode }) => {
         }
 
         const liff = (window as any).liff;
+
+        // Clean liff.state from window.location BEFORE liff.init() runs
+        // so LINE SDK does not trigger auto-login with dirty redirect_uri (which causes 400 Bad Request)
+        if (typeof window !== 'undefined' && window.location.search.includes('liff.state=')) {
+          try {
+            const params = new URLSearchParams(window.location.search);
+            const liffState = params.get('liff.state');
+            if (liffState) {
+              sessionStorage.setItem('liff_raw_state', liffState);
+            }
+            params.delete('liff.state');
+            const newSearch = params.toString();
+            const cleanUrl = window.location.pathname + (newSearch ? '?' + newSearch : '') + window.location.hash;
+            window.history.replaceState({}, '', cleanUrl);
+          } catch (e) {
+            console.error('Failed to clean liff.state from URL:', e);
+          }
+        }
+
         await liff.init({ liffId: liffId.trim() });
 
         let userId: string | undefined;
