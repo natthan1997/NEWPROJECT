@@ -182,7 +182,7 @@ export default function LiffTrackPage() {
         fetchQueuePosition(data);
         const { data: itemsData } = await supabase
           .from('pos_order_items')
-          .select(`*, pos_menu_items!pos_order_items_item_id_fkey(*)`)
+          .select(`*, item:pos_menu_items!item_id(*)`)
           .eq('order_id', id);
         if (itemsData) setItems(itemsData);
       }

@@ -267,17 +267,25 @@ export async function POST(req: NextRequest) {
 
                 // Fetch order items for display in the animation overlay
                 let orderItems: any[] = [];
-                const { data: items } = await supabase
+                let { data: items, error: itemsErr } = await supabase
                     .from('pos_order_items')
-                    .select('quantity, item:pos_menu_items!pos_order_items_item_id_fkey(name), unit_price, subtotal, status')
+                    .select('*, item:pos_menu_items!item_id(name)')
                     .eq('order_id', tokenInfo.order_id);
+
+                if (itemsErr || !items) {
+                    const { data: fallbackItems } = await supabase
+                        .from('pos_order_items')
+                        .select('*')
+                        .eq('order_id', tokenInfo.order_id);
+                    items = fallbackItems;
+                }
 
                 if (items) {
                     orderItems = items
                       .filter((i: any) => i.status !== 'cancelled' && i.status !== 'void' && i.status !== 'refunded')
                       .map((i: any) => ({
                         ...i,
-                        item_name: i.item?.name || 'Unknown Item'
+                        item_name: i.item?.name || i.name || i.item_name || 'สินค้า'
                       }));
                 }
 
@@ -377,21 +385,25 @@ export async function POST(req: NextRequest) {
         }
         let orderItems = [];
         if (tokenInfo.order_id) {
-            const { data: items, error: itemsError } = await supabase
+            let { data: items, error: itemsError } = await supabase
                 .from('pos_order_items')
-                .select('quantity, item:pos_menu_items!pos_order_items_item_id_fkey(name), unit_price, subtotal, status')
+                .select('*, item:pos_menu_items!item_id(name)')
                 .eq('order_id', tokenInfo.order_id);
             
-            if (itemsError) {
-                console.error('Error fetching order items:', itemsError);
+            if (itemsError || !items) {
+                const { data: fallbackItems } = await supabase
+                    .from('pos_order_items')
+                    .select('*')
+                    .eq('order_id', tokenInfo.order_id);
+                items = fallbackItems;
             }
             
-            if (!itemsError && items) {
+            if (items) {
                 orderItems = items
                   .filter((i: any) => i.status !== 'cancelled' && i.status !== 'void' && i.status !== 'refunded')
                   .map((i: any) => ({
                     ...i,
-                    item_name: i.item?.name || 'Unknown Item'
+                    item_name: i.item?.name || i.name || i.item_name || 'สินค้า'
                   }));
             }
         }

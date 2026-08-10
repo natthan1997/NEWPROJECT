@@ -812,7 +812,7 @@ export default function LiffMenuPage() {
           rating, 
           comment,
           pos_order_items (
-            item:pos_menu_items!pos_order_items_item_id_fkey (name)
+            item:pos_menu_items!item_id (name)
           )
         `)
         .gt('rating', 0)

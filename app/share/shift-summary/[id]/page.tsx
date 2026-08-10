@@ -51,7 +51,7 @@ export default async function ShiftSummaryPage({ params }: { params: { id: strin
     // Supabase has a URL limit for filtering large arrays, chunking if necessary
     const { data: items } = await supabase
       .from('pos_order_items')
-      .select('*, pos_menu_items!pos_order_items_item_id_fkey(name, category_id)')
+      .select('*, item:pos_menu_items!item_id(name, category_id)')
       .in('order_id', orderIds.slice(0, 500)); // Limit to avoid URL overflow for now
     
     orderItems = items || [];
