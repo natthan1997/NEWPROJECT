@@ -320,33 +320,14 @@ export const LiffProvider = ({ children }: { children: React.ReactNode }) => {
             if (json?.member) setMemberInfo(json.member);
           }
         } else {
-          // Guest mode or not logged in yet
-          const isMemberPage = typeof window !== 'undefined' && window.location.pathname.includes('/liff/member');
-          const hasClaimOrPath = typeof window !== 'undefined' && (
-            window.location.search.includes('claimToken=') || 
-            window.location.search.includes('path=') ||
-            window.location.hash.includes('claimToken=') ||
-            window.location.hash.includes('path=') ||
-            isMemberPage
-          );
-
-          if (liff.isInClient() || hasClaimOrPath) {
-            try {
-              const cleanRedirectUri = window.location.origin + window.location.pathname;
-              liff.login({ redirectUri: cleanRedirectUri });
-              return;
-            } catch (loginErr) {
-              console.error('LIFF login error:', loginErr);
-            }
-          }
-
+          // Guest mode or not logged in yet - load core data smoothly without forcing redirect to access.line.me
           if (!cachedUserId || loading) {
             const res = await fetch('/api/liff/member/init', {
               method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ lineUserId: null })
+              body: JSON.stringify({ lineUserId: cachedUserId || null })
             });
             initResponseData = await res.json().catch(() => null);
-            fetchCoreData(userId, initResponseData);
+            fetchCoreData(cachedUserId || undefined, initResponseData);
           }
         }
       } catch (err: any) {
