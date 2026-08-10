@@ -338,12 +338,8 @@ export const LiffProvider = ({ children }: { children: React.ReactNode }) => {
           );
           if (liff.isInClient() || hasClaimOrPath) {
             try {
-              // Save the current URL with parameters to restore after login
               sessionStorage.setItem('liff_redirect_path', window.location.href);
-              
-              // Hardcode canonical registered LIFF Endpoint URL (https://xylstudio.com/liff/menu) without www to guarantee LINE OAuth2 approval
-              const registeredEndpoint = 'https://xylstudio.com/liff/menu';
-              liff.login({ redirectUri: registeredEndpoint });
+              liff.login();
               return;
             } catch (loginErr) {
               console.error('LIFF login error:', loginErr);
