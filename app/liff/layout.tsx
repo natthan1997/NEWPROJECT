@@ -16,12 +16,16 @@ function LiffPathRedirector() {
   const pathname = usePathname();
   
   useEffect(() => {
-    const pathParam = searchParams.get('path');
-    const claimTokenParam = searchParams.get('claimToken');
-    const liffStateParam = (typeof window !== 'undefined' ? sessionStorage.getItem('liff_raw_state') : null) || searchParams.get('liff.state');
+    const rawState = typeof window !== 'undefined' ? sessionStorage.getItem('liff_raw_state') : null;
+    const liffStateParam = rawState || searchParams.get('liff.state');
 
-    let targetPath = pathParam;
-    let token = claimTokenParam;
+    // Immediately remove raw state from sessionStorage once read so it never hijacks subsequent page navigation
+    if (typeof window !== 'undefined' && rawState) {
+      sessionStorage.removeItem('liff_raw_state');
+    }
+
+    let targetPath = searchParams.get('path');
+    let token = searchParams.get('claimToken');
 
     // Safely extract path & claimToken from liff.state if present
     if (liffStateParam) {
