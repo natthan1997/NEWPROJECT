@@ -1077,7 +1077,6 @@ function RestaurantOSPageContent() {
     { id: 'reports', label: 'รายงาน', icon: BarChart3, roles: ['admin'], group: 'management' },
     { id: 'staff', label: 'พนักงาน', icon: Users, roles: ['admin'], group: 'management' },
     { id: 'menu-management', label: 'จัดการเมนู', icon: Utensils, roles: ['admin', 'manager', 'staff'], group: 'management' },
-    { id: 'management', label: 'จัดการระบบ', icon: Settings, roles: ['admin', 'manager'], group: 'management' },
     { id: 'settings', label: 'ตั้งค่าร้าน', icon: Settings, roles: ['admin', 'manager'], group: 'management' },
   ]
 
@@ -1197,7 +1196,7 @@ function RestaurantOSPageContent() {
       case 'tables':
         return <POSTableManager {...commonProps} />
       case 'inventory':
-        return <POSInventoryManager {...commonProps} />
+        return <POSManagementUnified {...commonProps} />
       case 'recipes':
         return <POSRecipeManager {...commonProps} />
       case 'staff':
@@ -1214,8 +1213,6 @@ function RestaurantOSPageContent() {
         return <POSMemberManager {...commonProps} />
       case 'menu-management':
         return <POSMenuAppConfig {...commonProps} />
-      case 'management':
-        return <POSManagementUnified {...commonProps} />
       case 'history':
         return <POSHistory {...commonProps} />
       default:

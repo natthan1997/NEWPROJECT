@@ -597,6 +597,11 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
                             #{order.reference_name}
                           </span>
                         )}
+                        {order.promo_code && (
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-red-50 text-red-600 border border-red-100">
+                            {order.promo_code}
+                          </span>
+                        )}
                       </div>
                       
                       <p className="text-[11px] font-bold text-neutral-400 mt-0.5">
@@ -663,7 +668,10 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
                         </div>
                         {Number(order.discount_amount) > 0 && (
                           <div className="flex justify-between text-red-500">
-                            <span>{locale === 'en' ? 'Discount' : 'ส่วนลด'}</span>
+                            <span className="flex items-center gap-1">
+                              {locale === 'en' ? 'Discount' : 'ส่วนลด'}
+                              {order.promo_code && <span className="text-[10px] bg-red-100/50 text-red-600 px-1.5 py-0.5 rounded ml-1 font-black uppercase tracking-widest">{order.promo_code}</span>}
+                            </span>
                             <span>{locale === 'en' ? '- ฿' : '- ฿'}{(Number(order.discount_amount)).toLocaleString()}</span>
                           </div>
                         )}

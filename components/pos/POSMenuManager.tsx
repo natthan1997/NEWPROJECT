@@ -412,6 +412,12 @@ export default function POSMenuManager({
     else setItemModifierLinks([])
   }
 
+  const bustMenuCache = () => {
+    const branchId = shopSettings?.branch_id || 'main';
+    fetch(`/api/cache/menu?branchId=${branchId}&bust=true`).catch(() => {});
+  }
+
+
   const handleSaveItem = async () => {
       setIsSaving(true)
       const { category, modifiers, ...cleanItem } = editingItem
@@ -443,6 +449,7 @@ export default function POSMenuManager({
 
           setIsEditorOpen(false)
           fetchData()
+          bustMenuCache()
       } else {
           console.error('Save failed:', error)
           alert('ไม่สามารถบันทึกข้อมูลได้: ' + (error?.message || 'Unknown error'))
@@ -470,6 +477,7 @@ export default function POSMenuManager({
         return item;
       }));
       setStockDraft({});
+      bustMenuCache();
     } catch (e) {
       console.error(e);
     } finally {
@@ -495,9 +503,11 @@ export default function POSMenuManager({
   }
 
 const handleBulkUpdate = async (id: string, field: string, value: any) => {
-    setItems(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item))
     const { error } = await supabase.from('pos_menu_items').update({ [field]: value }).eq('id', id)
-    if (error) {
+    if (!error) {
+        setItems(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item))
+        bustMenuCache()
+    } else {
         fetchData()
     }
    }
@@ -521,6 +531,7 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
         nextGroupIds.map(id => ({ item_id: itemId, group_id: id }))
       )
     }
+    bustMenuCache()
   }
 
   const handleInlineImageUpload = async (itemId: string, file?: File) => {
@@ -657,6 +668,8 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
   const handleDeleteItem = async (id: string) => {
       if (!confirm('ยืนยันการลบรายการนี้?')) return
       await supabase.from('pos_menu_items').delete().eq('id', id)
+      setItems(items.filter(item => item.id !== id))
+      bustMenuCache()
       fetchData()
   }
 
@@ -713,7 +726,7 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
                 <div className="max-w-4xl mx-auto w-full pb-24">
                   {mainTab === 'categories' && (
                       <div className="animate-in fade-in duration-300">
-                          <POSCategoryManager shopSettings={shopSettings} onCategoriesChange={() => fetchData()} />
+                          <POSCategoryManager shopSettings={shopSettings} onCategoriesChange={() => { fetchData(); bustMenuCache(); }} />
                       </div>
                   )}
 
@@ -804,9 +817,9 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
                                                                           onClick={async (e) => {
                                                                               e.stopPropagation();
                                                                               const newVal = !item.is_out_of_stock;
-                                                                              const newItems = items.map(i => i.id === item.id ? { ...i, is_out_of_stock: newVal } : i);
-                                                                              setItems(newItems);
+                                                                              setItems(items.map(i => i.id === item.id ? { ...i, is_out_of_stock: newVal } : i));
                                                                               await supabase.from('pos_menu_items').update({ is_out_of_stock: newVal }).eq('id', item.id);
+                                                                              bustMenuCache();
                                                                           }}
                                                                           className={"relative w-12 h-6 rounded-full transition-colors duration-300 " + (!item.is_out_of_stock ? 'bg-black' : 'bg-gray-300')}
                                                                       >

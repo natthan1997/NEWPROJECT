@@ -3024,6 +3024,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             tax_amount: vatAmount,
             service_charge_amount: serviceChargeAmount,
             discount_amount: discountTotalValue + itemDiscountTotal,
+            promo_code: discountName || null,
             customer_id: selectedCustomer?.id,
             order_type: orderType,
             table_id: selectedTable?.id,
@@ -3298,6 +3299,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
           tax_amount: vatAmount,
           service_charge_amount: serviceChargeAmount,
           discount_amount: discountTotalValue + itemDiscountTotal,
+          promo_code: discountName || null,
           customer_id: selectedCustomer?.id,
           order_type: orderType,
           table_id: selectedTable?.id,
@@ -5630,31 +5632,39 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       {/* CASH PAYMENT MODAL */}
       {showCashPaymentModal && !paymentSuccessData && (
         <div className="fixed inset-0 z-[2800] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-[#3a3a38]/40 backdrop-blur-md" onClick={() => !isProcessing && setShowCashPaymentModal(false)}></div>
-          <div className="relative w-full max-w-md bg-white shadow-2xl animate-in fade-in zoom-in-95 p-8 flex flex-col font-bold">
+          <div className="absolute inset-0 bg-[#1A1A18]/40 backdrop-blur-md" onClick={() => !isProcessing && setShowCashPaymentModal(false)}></div>
+          <div className="relative w-full max-w-md bg-white shadow-2xl animate-in fade-in zoom-in-95 p-8 flex flex-col font-bold rounded-[2rem]">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-black uppercase tracking-tighter text-[#1A1A18]">{locale === 'en' ? 'ชำระเงินสด (CASH)' : locale === 'zh' ? 'ชำระเงินสด (CASH)' : 'ชำระเงินสด (CASH)'}</h3>
               {!isProcessing && (
-                <button onClick={() => setShowCashPaymentModal(false)} className="text-gray-400 hover:text-black">
-                  <X size={24} />
+                <button onClick={() => setShowCashPaymentModal(false)} className="text-gray-400 hover:text-[#1A1A18] transition-all bg-gray-50 hover:bg-gray-100 rounded-full p-2">
+                  <X size={20} />
                 </button>
               )}
             </div>
 
-            <div className="flex justify-between items-center p-4 bg-gray-50 border border-gray-100 mb-6">
+            <div className="flex justify-between items-center p-5 bg-[#FDFDFB] rounded-[1.25rem] border border-gray-100 mb-6 shadow-sm">
               <span className="text-sm font-black text-gray-500 uppercase tracking-widest">{locale === 'en' ? 'ยอดที่ต้องชำระ' : locale === 'zh' ? 'ยอดที่ต้องชำระ' : 'ยอดที่ต้องชำระ'}</span>
               <span className="text-3xl font-black text-emerald-600 tracking-tighter">{locale === 'en' ? '฿' : locale === 'zh' ? '฿' : '฿'}{cartTotal.toLocaleString()}</span>
             </div>
 
             <div className="mb-6">
-              <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2">{locale === 'en' ? 'รับเงินมา (Received)' : locale === 'zh' ? 'รับเงินมา (Received)' : 'รับเงินมา (Received)'}</label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-black text-gray-500 uppercase tracking-widest">{locale === 'en' ? 'รับเงินมา (Received)' : locale === 'zh' ? 'รับเงินมา (Received)' : 'รับเงินมา (Received)'}</label>
+                <button 
+                  onClick={() => setCashReceived('')}
+                  className="text-[10px] font-black text-gray-400 hover:text-red-500 uppercase tracking-widest transition-all"
+                >
+                  {locale === 'en' ? 'Clear' : 'ล้าง'}
+                </button>
+              </div>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-black">{locale === 'en' ? '฿' : locale === 'zh' ? '฿' : '฿'}</span>
+                <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-black">฿</span>
                 <input
                   type="number"
                   value={cashReceived}
                   onChange={(e) => setCashReceived(e.target.value)}
-                  className="w-full h-14 pl-10 pr-4 text-2xl font-black border-2 border-gray-200 outline-none focus:border-black transition-all"
+                  className="w-full h-16 pl-12 pr-6 text-2xl font-black bg-gray-50 border-2 border-transparent outline-none focus:border-[#1A1A18] focus:bg-white rounded-[1.25rem] transition-all"
                   placeholder="0"
                   autoFocus
                 />
@@ -5662,10 +5672,18 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             </div>
 
             <div className="grid grid-cols-4 gap-2 mb-8">
-              <button onClick={() => setCashReceived(cartTotal.toString())} className="h-12 bg-gray-100 hover:bg-gray-200 text-black font-black transition-all border border-gray-200">{locale === 'en' ? 'พอดี' : locale === 'zh' ? 'พอดี' : 'พอดี'}</button>
-              <button onClick={() => setCashReceived('100')} className="h-12 bg-gray-100 hover:bg-gray-200 text-black font-black transition-all border border-gray-200">100</button>
-              <button onClick={() => setCashReceived('500')} className="h-12 bg-gray-100 hover:bg-gray-200 text-black font-black transition-all border border-gray-200">500</button>
-              <button onClick={() => setCashReceived('1000')} className="h-12 bg-gray-100 hover:bg-gray-200 text-black font-black transition-all border border-gray-200">1000</button>
+              <button onClick={() => setCashReceived(cartTotal.toString())} className="h-14 bg-[#FDFDFB] hover:bg-black hover:text-white text-[#1A1A18] rounded-[1rem] font-black transition-all border border-gray-100 active:scale-95 flex flex-col items-center justify-center">
+                <span className="text-xs uppercase">{locale === 'en' ? 'พอดี' : 'พอดี'}</span>
+              </button>
+              <button onClick={() => setCashReceived(prev => (Number(prev || 0) + 100).toString())} className="h-14 bg-[#FDFDFB] hover:bg-[#1A1A18] hover:text-white text-[#1A1A18] rounded-[1rem] font-black transition-all border border-gray-100 active:scale-95 flex flex-col items-center justify-center">
+                <span className="text-sm">+100</span>
+              </button>
+              <button onClick={() => setCashReceived(prev => (Number(prev || 0) + 500).toString())} className="h-14 bg-[#FDFDFB] hover:bg-[#1A1A18] hover:text-white text-[#1A1A18] rounded-[1rem] font-black transition-all border border-gray-100 active:scale-95 flex flex-col items-center justify-center">
+                <span className="text-sm">+500</span>
+              </button>
+              <button onClick={() => setCashReceived(prev => (Number(prev || 0) + 1000).toString())} className="h-14 bg-[#FDFDFB] hover:bg-[#1A1A18] hover:text-white text-[#1A1A18] rounded-[1rem] font-black transition-all border border-gray-100 active:scale-95 flex flex-col items-center justify-center">
+                <span className="text-sm">+1000</span>
+              </button>
             </div>
 
             <button
@@ -5678,12 +5696,18 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                 }
                 await handleProcessPayment('cash', currentPaymentAmount);
               }}
-              className="w-full h-14 bg-[#1A1A18] text-white font-black tracking-widest uppercase hover:bg-black transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              className="w-full h-[60px] bg-[#1A1A18] text-white rounded-[1.25rem] font-black tracking-widest uppercase hover:bg-black hover:shadow-xl active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 overflow-hidden relative"
             >
               {isProcessing ? (
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
               ) : (
-                'ยืนยันชำระเงิน'
+                <>
+                  {!isProcessing && cashReceived && Number(cashReceived) >= cartTotal && (
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] animate-[shimmer_2s_infinite]"></div>
+                  )}
+                  <span>{locale === 'en' ? 'Confirm Payment' : 'ยืนยันชำระเงิน'}</span>
+                  <ArrowRight size={18} />
+                </>
               )}
             </button>
           </div>

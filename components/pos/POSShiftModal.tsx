@@ -56,12 +56,21 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
     if (isOpen) {
       setEligibilityData(null)
       checkEligibility()
+      const shiftSettings = typeof shopSettings?.shift_settings === 'string' 
+        ? JSON.parse(shopSettings.shift_settings) 
+        : (shopSettings?.shift_settings || {});
+        
+      if (shiftSettings?.default_start_cash !== undefined && shiftSettings?.default_start_cash !== null) {
+        setOpeningCash(Number(shiftSettings.default_start_cash) || 0)
+      } else {
+        setOpeningCash(0)
+      }
     } else {
       setShowBlockedModal(false)
       setShowLeaveModal(false)
       setEligibilityData(null)
     }
-  }, [isOpen])
+  }, [isOpen, shopSettings])
 
   const handleGrantEmergencyLeave = async (staffId: string) => {
     if (!staffId) return

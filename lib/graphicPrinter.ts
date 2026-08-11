@@ -194,7 +194,7 @@ const renderReceiptHtml = (order: PrintOrderData, shop: PrintShopData) => {
   if (order.loyaltyClaimQrUrl || order.loyaltyClaimToken) {
     const token = order.loyaltyClaimToken || '';
     const liffId = typeof process !== 'undefined' ? (process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi') : '2009322178-2dtfXAvi';
-    const qrUrl = order.loyaltyClaimQrUrl || `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(`https://liff.line.me/${liffId}/member?claimToken=${token}`)}`;
+    const qrUrl = order.loyaltyClaimQrUrl || `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(`https://liff.line.me/${liffId}/#?path=/member&claimToken=${token}`)}`;
     html += `<div style="margin-top: 16px; border-top: 2px dashed #000; padding-top: 12px; text-align:center;">`;
     html += `<div style="font-size:22px; font-weight:900; margin-bottom: 4px; line-height:1.2;">สะสมแต้มผ่าน LINE</div>`;
     html += `<div style="font-size:16px; font-weight:700; margin-bottom: 8px; line-height:1.2;">สแกน QR เพื่อรับแต้มสะสมจากบิลนี้</div>`;

@@ -258,7 +258,7 @@ export default function POSShopSettings({
     coupon_radius_meters: 500,
     address: '',
     role_permissions: {
-      manager: ['terminal', 'pos:access', 'pos:checkout', 'pos:void', 'pos:discount', 'pos:drawer', 'reports', 'reports:view', 'reports:sales', 'reports:profit', 'reports:export', 'menu-management', 'menu-stock-toggle', 'menu-edit-price', 'inventory', 'inventory:view', 'inventory:edit', 'inventory:audit', 'kitchen', 'kitchen:view', 'tables', 'members', 'drawer', 'delivery', 'history', 'modifiers', 'recipes', 'settings', 'settings:view', 'settings:manage', 'staff', 'staff:view', 'staff:manage', 'management'],
+      manager: ['terminal', 'pos:access', 'pos:checkout', 'pos:void', 'pos:discount', 'pos:drawer', 'reports', 'reports:view', 'reports:sales', 'reports:profit', 'reports:export', 'menu-management', 'menu-stock-toggle', 'menu-edit-price', 'inventory', 'inventory:view', 'inventory:edit', 'inventory:audit', 'kitchen', 'kitchen:view', 'tables', 'members', 'drawer', 'delivery', 'history', 'modifiers', 'recipes', 'settings', 'settings:view', 'settings:manage', 'staff', 'staff:view', 'staff:manage'],
       staff: ['terminal', 'pos:access', 'pos:checkout', 'menu-management', 'menu-stock-toggle', 'inventory', 'inventory:view', 'kitchen', 'kitchen:view', 'tables', 'members', 'drawer', 'delivery', 'history']
     },
     custom_roles: [
@@ -341,7 +341,7 @@ export default function POSShopSettings({
                 status: effectiveStatus,
                 is_open: effectiveStatus === 'open',
                 role_permissions: data.role_permissions || {
-                    manager: ['terminal', 'pos:access', 'pos:checkout', 'pos:void', 'pos:discount', 'pos:drawer', 'reports', 'reports:view', 'reports:sales', 'reports:profit', 'reports:export', 'menu-management', 'menu-stock-toggle', 'menu-edit-price', 'inventory', 'inventory:view', 'inventory:edit', 'inventory:audit', 'kitchen', 'kitchen:view', 'tables', 'members', 'drawer', 'delivery', 'history', 'modifiers', 'recipes', 'settings', 'settings:view', 'settings:manage', 'staff', 'staff:view', 'staff:manage', 'management'],
+                    manager: ['terminal', 'pos:access', 'pos:checkout', 'pos:void', 'pos:discount', 'pos:drawer', 'reports', 'reports:view', 'reports:sales', 'reports:profit', 'reports:export', 'menu-management', 'menu-stock-toggle', 'menu-edit-price', 'inventory', 'inventory:view', 'inventory:edit', 'inventory:audit', 'kitchen', 'kitchen:view', 'tables', 'members', 'drawer', 'delivery', 'history', 'modifiers', 'recipes', 'settings', 'settings:view', 'settings:manage', 'staff', 'staff:view', 'staff:manage'],
                     staff: ['terminal', 'pos:access', 'pos:checkout', 'menu-management', 'menu-stock-toggle', 'inventory', 'inventory:view', 'kitchen', 'kitchen:view', 'tables', 'members', 'drawer', 'delivery', 'history']
                 },
                 custom_roles: data.custom_roles || [
@@ -356,6 +356,9 @@ export default function POSShopSettings({
                 receipt_show_logo: data.opening_hours?.receipt_show_logo ?? true,
                 receipt_font_size: data.opening_hours?.receipt_font_size || 'normal',
                 receipt_payment_qr_image: data.opening_hours?.receipt_payment_qr_image || '',
+                receipt_footer: data.opening_hours?.receipt_footer || '',
+                kitchen_font_size: data.opening_hours?.kitchen_font_size || 'normal',
+                kitchen_show_type: data.opening_hours?.kitchen_show_type ?? true,
                 liff_splash_poster_url: data.opening_hours?.liff_splash_poster_url || '',
                 cover_url: data.opening_hours?.cover_url || '',
                 logo_url: data.opening_hours?.logo_url || '',
@@ -541,6 +544,9 @@ const handleSave = async () => {
         receipt_show_logo: settings.receipt_show_logo,
         receipt_font_size: settings.receipt_font_size,
         receipt_payment_qr_image: settings.receipt_payment_qr_image,
+        receipt_footer: settings.receipt_footer,
+        kitchen_font_size: settings.kitchen_font_size,
+        kitchen_show_type: settings.kitchen_show_type,
         liff_splash_poster_url: settings.liff_splash_poster_url,
         address: settings.address,
         loyalty_points_per_thb: settings.loyalty_points_per_thb,
@@ -574,6 +580,9 @@ const handleSave = async () => {
     delete payload.receipt_show_logo;
     delete payload.receipt_font_size;
     delete payload.receipt_payment_qr_image;
+    delete payload.receipt_footer;
+    delete payload.kitchen_font_size;
+    delete payload.kitchen_show_type;
     delete payload.liff_splash_poster_url;
     delete payload.cover_url;
     delete payload.logo_url;
@@ -622,7 +631,7 @@ const handleSave = async () => {
                 status: effectiveStatus,
                 is_open: effectiveStatus === 'open',
                 role_permissions: data.role_permissions || {
-                    manager: ['terminal', 'pos:access', 'pos:checkout', 'pos:void', 'pos:discount', 'pos:drawer', 'reports', 'reports:view', 'reports:sales', 'reports:profit', 'reports:export', 'menu-management', 'menu-stock-toggle', 'menu-edit-price', 'inventory', 'inventory:view', 'inventory:edit', 'inventory:audit', 'kitchen', 'kitchen:view', 'tables', 'members', 'drawer', 'delivery', 'history', 'modifiers', 'recipes', 'settings', 'settings:view', 'settings:manage', 'staff', 'staff:view', 'staff:manage', 'management'],
+                    manager: ['terminal', 'pos:access', 'pos:checkout', 'pos:void', 'pos:discount', 'pos:drawer', 'reports', 'reports:view', 'reports:sales', 'reports:profit', 'reports:export', 'menu-management', 'menu-stock-toggle', 'menu-edit-price', 'inventory', 'inventory:view', 'inventory:edit', 'inventory:audit', 'kitchen', 'kitchen:view', 'tables', 'members', 'drawer', 'delivery', 'history', 'modifiers', 'recipes', 'settings', 'settings:view', 'settings:manage', 'staff', 'staff:view', 'staff:manage'],
                     staff: ['terminal', 'pos:access', 'pos:checkout', 'menu-management', 'menu-stock-toggle', 'inventory', 'inventory:view', 'kitchen', 'kitchen:view', 'tables', 'members', 'drawer', 'delivery', 'history']
                 },
                 custom_roles: data.custom_roles || [
@@ -637,6 +646,9 @@ const handleSave = async () => {
                 receipt_show_logo: data.opening_hours?.receipt_show_logo ?? true,
                 receipt_font_size: data.opening_hours?.receipt_font_size || 'normal',
                 receipt_payment_qr_image: data.opening_hours?.receipt_payment_qr_image || '',
+                receipt_footer: data.opening_hours?.receipt_footer || '',
+                kitchen_font_size: data.opening_hours?.kitchen_font_size || 'normal',
+                kitchen_show_type: data.opening_hours?.kitchen_show_type ?? true,
                 address: data.opening_hours?.address || '',
                 loyalty_points_per_thb: data.opening_hours?.loyalty_points_per_thb || 10,
                 loyalty_earn_rate: data.opening_hours?.loyalty_earn_rate || 100,
@@ -1653,66 +1665,91 @@ const handleSave = async () => {
                                                 <div className="w-1.5 h-1.5 rounded-full bg-zinc-800 animate-pulse"></div>
                                                 {locale === 'en' ? 'Receipt' : 'ใบเสร็จรับเงิน (Receipt)'}
                                             </div>
-                                            <div id="receipt-preview-capture" className="bg-[#FDFDFB] shadow-2xl p-6 sm:p-8 w-full max-w-[300px] font-mono text-[12px] text-center text-black relative" style={{ fontFamily: '"Courier New", Courier, monospace' }}>
+                                            <div id="receipt-preview-capture" className="bg-[#FDFDFB] shadow-2xl p-6 sm:p-8 w-full max-w-[340px] font-mono text-center text-black relative">
                                                 {/* Paper edge */}
                                                 <div className="absolute -top-1 inset-x-0 h-2 bg-repeat-x flex" style={{ backgroundImage: 'radial-gradient(circle at 4px 0px, transparent 4px, #FDFDFB 5px)', backgroundSize: '10px 10px' }}></div>
                                                 
                                                 {settings.receipt_show_logo !== false && (
                                                     <div className="flex justify-center mb-6 mt-2">
-                                                        <div className="w-14 h-14 bg-black rounded-full flex items-center justify-center text-white text-[9px] font-sans font-bold tracking-widest shadow-inner">LOGO</div>
+                                                        {settings.logo_url ? (
+                                                            <img src={settings.logo_url} alt="Logo" className="w-14 h-14 rounded-full object-cover shadow-sm grayscale" />
+                                                        ) : (
+                                                            <div className="w-14 h-14 bg-black rounded-full flex items-center justify-center text-white text-[9px] font-mono font-bold tracking-widest shadow-inner">LOGO</div>
+                                                        )}
                                                     </div>
                                                 )}
                                                 {settings.receipt_header && (
-                                                    <div className="mb-6 whitespace-pre-wrap font-semibold leading-tight">{settings.receipt_header}</div>
+                                                    <div className="mb-[14px] whitespace-pre-wrap text-[12px] font-bold leading-[1.45] text-center">{settings.receipt_header}</div>
                                                 )}
-                                                <div className={`font-bold uppercase tracking-tight mb-3 ${settings.receipt_font_size === 'large' ? 'text-[20px]' : 'text-[16px]'}`}>{settings.name || 'XYL STUDIO'}</div>
-                                                {settings.branch_name && <div className="text-[10px] font-medium mb-1">{locale === 'en' ? 'Branch: ' : 'สาขา: '}{settings.branch_name}</div>}
-                                                {settings.tax_id && <div className="text-[10px] font-medium mb-1">TAX ID: {settings.tax_id}</div>}
-                                                {settings.phone && <div className="text-[10px] font-medium mb-6">{locale === 'en' ? 'Tel: ' : 'โทร: '}{settings.phone}</div>}
+                                                <div className={`font-bold text-center mb-2 leading-[1.04] ${settings.receipt_font_size === 'large' ? 'text-[20px]' : 'text-[17px]'}`}>{settings.name || 'XYLEM LANDSCAPE'}</div>
+                                                {settings.branch_name && <div className="text-[11px] font-bold mb-1 text-center">{locale === 'en' ? 'Branch: ' : 'สาขา: '}{settings.branch_name}</div>}
+                                                {settings.tax_id && <div className="text-[10px] font-bold mb-1 text-center">TAX ID: {settings.tax_id}</div>}
+                                                {settings.phone && <div className="text-[11px] font-bold mb-[14px] text-center">{locale === 'en' ? 'Tel: ' : 'โทร: '}{settings.phone}</div>}
                                                 
-                                                <div className="border-t-[1.5px] border-dashed border-black/30 my-4"></div>
+                                                <div className="border-t-[3px] border-dashed border-black my-[14px]"></div>
                                                 
-                                                <div className="text-left font-semibold space-y-2">
-                                                    <div className="flex justify-between text-[10px]"><span>{locale === 'en' ? 'Date: ' : 'วันที่: '}{new Date().toLocaleDateString('th-TH')}</span><span>{locale === 'en' ? 'Q: 01' : 'คิว: 01'}</span></div>
-                                                    <div className="text-[10px]">{locale === 'en' ? 'Staff: Demo Staff' : 'พนักงาน: Demo Staff'}</div>
-                                                    <div className="text-[10px]">{locale === 'en' ? 'Type: Dine-In' : 'ประเภท: Dine-In'}</div>
+                                                <div className="text-center text-[10px] font-bold mb-[8px] leading-[1.25]">
+                                                    {locale === 'en' ? 'Date: ' : 'วันที่: '}{new Date().toLocaleDateString('th-TH')} {new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                                                </div>
+                                                <div className="text-center font-bold text-[10px] leading-[1.25] mb-[7px]">{locale === 'en' ? 'Bill No: TAK-0001' : 'รหัสบิล: TAK-0001'}</div>
+                                                <div className="text-center font-bold text-[10px] leading-[1.25] mb-[7px]">{locale === 'en' ? 'Staff: Demo Staff' : 'พนักงาน: Demo Staff'}</div>
+                                                <div className="text-center font-bold text-[10px] leading-[1.25] mb-[7px]">{locale === 'en' ? 'Type: Takeaway' : 'ประเภท: สั่งกลับบ้าน (Takeaway)'}</div>
+                                                
+                                                <div className="my-[14px] border-[2px] border-black p-3 text-center font-bold">
+                                                    <div className="text-[9px] tracking-[0.12em] mb-1.5">{locale === 'en' ? 'QUEUE' : 'คิวที่ (QUEUE)'}</div>
+                                                    <div className="text-[26px] leading-[1.05]">#003</div>
+                                                    <div className="text-[10px] leading-[1.05] mt-1.5">{locale === 'en' ? 'Order: 0001' : 'เลขออเดอร์: 0001'}</div>
                                                 </div>
                                                 
-                                                <div className="border-t-[1.5px] border-dashed border-black/30 my-4"></div>
+                                                <div className="border-t-[3px] border-dashed border-black my-[14px]"></div>
                                                 
-                                                <div className="space-y-3 text-left font-semibold">
-                                                    <div className="flex justify-between items-start">
-                                                        <div><span className="mr-2">1x</span> {locale === 'en' ? 'Iced Latte' : 'กาแฟลาเต้ (เย็น)'}</div>
-                                                        <div>120.00</div>
+                                                <div className="text-left font-bold leading-[1.38]">
+                                                    <div className="flex justify-between items-start gap-3 text-[12px] font-bold leading-[1.25] mb-1">
+                                                        <span><span className="mr-1">1x</span> {locale === 'en' ? 'Iced Americano' : 'อเมริกาโน่เย็น'}</span>
+                                                        <span className="whitespace-nowrap">65.00</span>
                                                     </div>
-                                                    <div className="pl-6 text-[10px] text-gray-500 font-medium space-y-1">
-                                                        <div>{locale === 'en' ? '- Less Sweet 50%' : '- หวานน้อย 50%'}</div>
-                                                        <div>{locale === 'en' ? '- Oat Milk (+20)' : '- เปลี่ยนนมโอ๊ต (+20)'}</div>
+                                                    <div className="pl-[26px] text-[10px] font-bold text-[#444] leading-[1.25] mb-[2px]">
+                                                        {locale === 'en' ? '- Light Roast' : '- คั่วอ่อน'}
+                                                    </div>
+                                                    <div className="pl-[26px] text-[10px] font-bold text-[#444] leading-[1.25] mb-[2px]">
+                                                        {locale === 'en' ? '- No Sweet 0%' : '- ไม่หวาน 0%'}
                                                     </div>
                                                 </div>
                                                 
-                                                <div className="border-t-[1.5px] border-dashed border-black/30 my-4"></div>
+                                                <div className="border-t-[3px] border-dashed border-black my-[14px]"></div>
                                                 
-                                                <div className="space-y-2 text-[10px] font-semibold">
-                                                    <div className="flex justify-between"><span>{locale === 'en' ? 'Tax (VAT 7%)' : 'ภาษี (VAT 7%)'}</span><span>8.40</span></div>
-                                                    <div className="flex justify-between text-[14px] font-bold mt-2"><span>{locale === 'en' ? 'Total' : 'ยอดรวม (Total)'}</span><span>140.00</span></div>
-                                                    <div className="flex justify-between text-gray-500 mt-2"><span>{locale === 'en' ? 'Cash' : 'รับเงิน (CASH)'}</span><span>500.00</span></div>
-                                                    <div className="flex justify-between text-gray-500"><span>{locale === 'en' ? 'Change' : 'เงินทอน'}</span><span>360.00</span></div>
+                                                <div className="font-bold text-[11px] leading-[1.35] space-y-1">
+                                                    <div className="flex justify-between items-end gap-3 text-[16px] font-bold leading-[1.08] mt-[10px]"><span>{locale === 'en' ? 'Total' : 'ยอดรวม'}</span><span>65.00</span></div>
                                                 </div>
                                                 
-                                                <div className="border-t-[1.5px] border-dashed border-black/30 my-4"></div>
+                                                <div className="border-t-[3px] border-dashed border-black my-[14px]"></div>
+                                                <div className="flex justify-between text-[11px] font-bold leading-[1.35]"><span>{locale === 'en' ? 'Cash' : 'รับเงิน (cash)'}</span><span>100.00</span></div>
+                                                <div className="flex justify-between text-[11.5px] font-bold leading-[1.3] mt-1"><span>{locale === 'en' ? 'Change' : 'เงินทอน'}</span><span>35.00</span></div>
                                                 
-                                                <div className="border-t-[1.5px] border-dashed border-black/30 my-4"></div>
-                                                <div className="mt-6 whitespace-pre-wrap font-semibold leading-tight text-[10px] text-center">
-                                                    {settings.receipt_footer || 'Thank you\nPowered by XYL STUDIO'}
+                                                <div className="border-t-[3px] border-dashed border-black my-[14px]"></div>
+                                                
+                                                {settings.receipt_story_mode && settings.receipt_stories?.length > 0 && (
+                                                    <div className="mt-[14px] mb-[14px] pt-[12px]">
+                                                        <div className="font-bold text-[10px] mb-2 text-center">{settings.receipt_stories[previewStoryIndex]?.title}</div>
+                                                        <div className="whitespace-pre-wrap text-[10px] leading-[1.45] font-bold text-center">{settings.receipt_stories[previewStoryIndex]?.content}</div>
+                                                    </div>
+                                                )}
+
+                                                <div className="mt-[16px] border-t-[2px] border-dashed border-black pt-[12px] text-center">
+                                                    <div className="font-bold text-[10px] mb-1 leading-[1.2]">สะสมแต้ม ผ่าน LINE</div>
+                                                    <div className="font-bold text-[9px] mb-2 leading-[1.2]">สแกน QR เพื่อรับแต้มสะสมจากบิลนี้</div>
+                                                    <div className="font-bold text-[10px] mb-[6px]">(+2 PTS)</div>
+                                                    <div className="flex justify-center">
+                                                        <div className="w-[120px] h-[120px] bg-white border-[4px] border-black p-1">
+                                                            <div className="w-full h-full bg-black" style={{ maskImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\'%3E%3Cpath d=\'M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm13-2h3v2h-3v-2zm-3 0h2v2h-2v-2zm3 2h2v2h-2v-2zm-2 2h-2v2h2v-2zm-2 2h-2v2h2v-2zm4 0h2v2h-2v-2zm-2-4h2v2h-2v-2z\'/%3E%3C/svg%3E")', maskSize: 'contain', maskRepeat: 'no-repeat' }}></div>
+                                                        </div>
+                                                    </div>
                                                 </div>
 
-                                                {settings.receipt_story_mode && settings.receipt_stories?.length > 0 && (
-                                                    <div className="mt-6 pt-3 border-t border-dashed border-black/30">
-                                                        <div className="font-bold text-[12px] mb-2 text-center">{settings.receipt_stories[previewStoryIndex]?.title}</div>
-                                                        <div className="whitespace-pre-wrap text-[10px] leading-relaxed text-left">{settings.receipt_stories[previewStoryIndex]?.content}</div>
-                                                    </div>
-                                                )}
+                                                <div className="border-t-[3px] border-dashed border-black my-[14px]"></div>
+                                                <div className="mt-6 whitespace-pre-wrap font-bold leading-[1.35] text-[10px] text-center">
+                                                    {settings.receipt_footer || 'Thank you\nPowered by XYL STUDIO'}
+                                                </div>
                                             </div>
 
                                             {settings.receipt_story_mode && settings.receipt_stories?.length > 0 && (
@@ -1739,37 +1776,55 @@ const handleSave = async () => {
                                                 <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></div>
                                                 {locale === 'en' ? 'Kitchen Order' : 'ใบออเดอร์ (Kitchen)'}
                                             </div>
-                                            <div id="kitchen-preview-capture" className="bg-[#FDFDFB] shadow-2xl p-6 sm:p-8 w-full max-w-[300px] font-mono text-left text-black relative" style={{ fontFamily: '"Courier New", Courier, monospace' }}>
+                                            <div id="kitchen-preview-capture" className="bg-[#FDFDFB] shadow-2xl p-6 sm:p-8 w-full max-w-[340px] font-sans text-left text-black relative">
                                                 <div className="absolute -top-1 inset-x-0 h-2 bg-repeat-x flex" style={{ backgroundImage: 'radial-gradient(circle at 4px 0px, transparent 4px, #FDFDFB 5px)', backgroundSize: '10px 10px' }}></div>
                                                 
-                                                <div className="text-center font-bold text-[20px] mb-3 border-b-[3px] border-black pb-3 mt-2">
+                                                <div className="text-center text-[24px] font-[900] mb-3 border-b-[3px] border-black pb-2 mt-1 leading-[1.05]">
                                                     {locale === 'en' ? 'Kitchen Order' : 'ใบสั่งอาหาร'}
                                                 </div>
                                                 
                                                 {settings.kitchen_show_type !== false && (
-                                                    <div className="text-center font-bold text-[16px] mb-4 bg-black text-white py-1">
-                                                        {locale === 'en' ? 'Dine-In' : 'ทานที่ร้าน (Dine-In)'}
+                                                    <div className="text-center text-[20px] mb-3 bg-black text-white px-2 py-1 font-[900] leading-[1.1]">
+                                                        {locale === 'en' ? ' Takeaway ' : ' สั่งกลับบ้าน (Takeaway) '}
                                                     </div>
                                                 )}
 
-                                                <div className="font-semibold space-y-1 mb-4 text-[11px]">
-                                                    <div className="flex justify-between"><span>{locale === 'en' ? 'Table: T-01' : 'โต๊ะ: T-01'}</span><span>{locale === 'en' ? 'Time: 12:30' : 'เวลา: 12:30'}</span></div>
-                                                    <div>{locale === 'en' ? 'Q: 01' : 'คิว: 01'}</div>
+                                                <div className="text-right mb-2 text-[15px] font-[900] leading-[1.2]">
+                                                    {locale === 'en' ? 'Time: ' : 'เวลา: '}{new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
                                                 </div>
                                                 
-                                                <div className="border-t-[2px] border-dashed border-black/40 my-3"></div>
-                                                
-                                                <div className={`font-bold space-y-3 ${settings.kitchen_font_size === 'huge' ? 'text-[24px]' : settings.kitchen_font_size === 'large' ? 'text-[18px]' : 'text-[14px]'}`}>
-                                                    <div className="flex gap-3 items-start">
-                                                        <span className="leading-none">1x</span>
-                                                        <span className="leading-tight">{locale === 'en' ? 'Pad Thai Shrimp' : 'ผัดไทยกุ้งสด'}</span>
+                                                <div className="border-[3px] border-black p-3 mb-3 text-center font-[900]">
+                                                    <div className="text-[14px] tracking-[0.16em] mb-2">
+                                                        {locale === 'en' ? 'QUEUE' : 'คิวที่ (QUEUE)'}
                                                     </div>
-                                                    <div className="pl-9 text-[12px] text-gray-600 font-semibold space-y-1">
-                                                        <div>{locale === 'en' ? '- No Beansprouts' : '- ไม่ใส่ถั่วงอก'}</div>
-                                                        <div>{locale === 'en' ? '- Mild Spicy' : '- เผ็ดน้อย'}</div>
+                                                    <div className="text-[48px] leading-[1.05] break-words">
+                                                        #002
+                                                    </div>
+                                                    <div className="text-[16px] leading-[1.05] mt-3 font-[900]">
+                                                        {locale === 'en' ? 'Order No: 7104' : 'เลขออเดอร์: 7104'}
                                                     </div>
                                                 </div>
-                                                <div className="border-t-[2px] border-dashed border-black/40 my-4"></div>
+                                                
+                                                <div className="mb-2 text-[14px] font-[800]">
+                                                    {locale === 'en' ? 'Bill No: TAK-627104' : 'รหัสบิล: TAK-627104'}
+                                                </div>
+                                                <div className="mb-2 text-[15px] font-[800]">
+                                                    {locale === 'en' ? 'Type: Takeaway' : 'ประเภท: สั่งกลับบ้าน (Takeaway)'}
+                                                </div>
+                                                
+                                                <div className="border-t-[3px] border-dashed border-black my-3"></div>
+                                                
+                                                <div className="leading-[1.28]">
+                                                    <div className={`flex gap-3 items-start font-[900] mb-3 ${settings.kitchen_font_size === 'huge' ? 'text-[30px]' : settings.kitchen_font_size === 'large' ? 'text-[24px]' : 'text-[20px]'}`}>
+                                                        <span className="font-[900] shrink-0">1x</span>
+                                                        <span>{locale === 'en' ? 'Homemade Brownie' : 'โฮมเมดบราวนี่'}</span>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="border-t-[3px] border-dashed border-black my-4"></div>
+                                                <div className="text-center text-[13px] font-[900]">
+                                                    --- END ---
+                                                </div>
                                             </div>
                                         </div>
                                         )}
