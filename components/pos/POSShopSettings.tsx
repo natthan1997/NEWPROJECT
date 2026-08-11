@@ -895,23 +895,24 @@ const handleSave = async () => {
                         </div>
 
                         {/* Shop Status Toggle */}
-                        <div className="bg-gray-50 rounded-xl p-4 flex items-center justify-between mb-8 mx-2 border border-gray-100">
-                            <div className="flex flex-col">
-                                <span className="text-[14px] font-semibold text-gray-900">สถานะร้านค้า</span>
-                                <span className={`text-[12px] font-medium mt-0.5 ${settings.status === 'open' ? 'text-emerald-600' : 'text-rose-500'}`}>
-                                    {settings.status === 'open' ? '🟢 เปิดให้บริการ' : '🔴 ปิดให้บริการ'}
-                                </span>
-                            </div>
-                            <button 
-                                onClick={() => {
-                                    const newStatus = settings.status === 'open' ? 'closed' : 'open';
-                                    setSettings({ ...settings, status: newStatus, is_open: newStatus === 'open' });
-                                }}
-                                className={`relative w-11 h-6 rounded-full transition-colors duration-300 ${settings.status === 'open' ? 'bg-emerald-500' : 'bg-gray-300'}`}
-                            >
-                                <div className={`absolute top-[2px] w-5 h-5 rounded-full bg-white transition-all duration-300 shadow-sm flex items-center justify-center ${settings.status === 'open' ? 'left-[22px]' : 'left-[2px]'}`}>
+                        <div className="mx-2 mb-8 bg-white border border-gray-100 rounded-xl overflow-hidden shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+                            <div className="px-4 py-3.5 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => {
+                                const newStatus = settings.status === 'open' ? 'closed' : 'open';
+                                setSettings({ ...settings, status: newStatus, is_open: newStatus === 'open' });
+                            }}>
+                                <div className="flex flex-col">
+                                    <span className="text-[14px] font-bold text-gray-900 flex items-center gap-2">
+                                        <div className={`w-2 h-2 rounded-full ${settings.status === 'open' ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)]' : 'bg-rose-500'}`}></div>
+                                        {locale === 'en' ? 'Shop Status' : 'สถานะร้านค้า'}
+                                    </span>
+                                    <span className={`text-[12px] font-medium mt-0.5 ${settings.status === 'open' ? 'text-emerald-600' : 'text-rose-500'}`}>
+                                        {settings.status === 'open' ? (locale === 'en' ? 'Open for orders' : 'เปิดให้บริการตามปกติ') : (locale === 'en' ? 'Temporarily closed' : 'ปิดให้บริการชั่วคราว')}
+                                    </span>
                                 </div>
-                            </button>
+                                <div className={`relative w-11 h-6 rounded-full transition-colors duration-300 ${settings.status === 'open' ? 'bg-emerald-500' : 'bg-gray-300'}`}>
+                                    <div className={`absolute top-[2px] w-5 h-5 rounded-full bg-white transition-all duration-300 shadow-sm flex items-center justify-center ${settings.status === 'open' ? 'left-[22px]' : 'left-[2px]'}`}></div>
+                                </div>
+                            </div>
                         </div>
 
                         {/* Settings Groups */}
@@ -2170,7 +2171,7 @@ const handleSave = async () => {
                                     </p>
                                     
                                     <div className="space-y-6">
-                                        <div className="bg-gray-50 p-6 rounded-2xl border-0 flex flex-col md:flex-row items-center gap-6">
+                                        <div className="bg-gray-50 p-6 rounded-2xl border-0 flex flex-col lg:flex-row items-start lg:items-center gap-6">
                                             <div className="flex-1 w-full">
                                                 <label className="text-[14px] font-medium text-gray-900 block mb-1">
                                                     {locale === 'en' ? 'Earn Rate' : 'เงื่อนไขการได้รับแต้ม (Earn Rate)'}
@@ -2179,13 +2180,13 @@ const handleSave = async () => {
                                                     {locale === 'en' ? 'THB spent to earn 1 Point' : 'ทุกๆ ยอดสั่งซื้อกี่บาท ถึงจะได้รับ 1 แต้ม'}
                                                 </p>
                                             </div>
-                                            <div className="flex items-center gap-3 bg-white px-3 py-2 rounded-xl shadow-sm border border-gray-100">
+                                            <div className="flex flex-wrap items-center gap-3 bg-white px-4 py-3 rounded-xl shadow-sm border border-gray-100 shrink-0 self-stretch lg:self-auto justify-center">
                                                 <div className="relative w-20">
                                                     <input 
                                                         type="number" 
                                                         value={settings.loyalty_earn_thb !== undefined ? settings.loyalty_earn_thb : (settings.loyalty_earn_rate || 100)}
                                                         onChange={e => setSettings({...settings, loyalty_earn_thb: parseInt(e.target.value) || 0})}
-                                                        className="w-full bg-transparent border-0 rounded-lg text-center text-[15px] font-medium outline-none" 
+                                                        className="w-full bg-transparent border-b-2 border-gray-100 hover:border-gray-200 focus:border-black rounded-none text-center text-[15px] font-medium outline-none transition-colors" 
                                                     />
                                                 </div>
                                                 <span className="text-[13px] font-medium text-gray-400">{locale === 'en' ? 'THB' : 'บาท'}</span>
@@ -2196,14 +2197,14 @@ const handleSave = async () => {
                                                         type="number" 
                                                         value={settings.loyalty_earn_pts !== undefined ? settings.loyalty_earn_pts : 1}
                                                         onChange={e => setSettings({...settings, loyalty_earn_pts: parseInt(e.target.value) || 0})}
-                                                        className="w-full bg-transparent border-0 rounded-lg text-center text-[15px] font-medium outline-none" 
+                                                        className="w-full bg-transparent border-b-2 border-gray-100 hover:border-gray-200 focus:border-black rounded-none text-center text-[15px] font-medium outline-none transition-colors" 
                                                     />
                                                 </div>
                                                 <span className="text-[13px] font-medium text-emerald-600">{locale === 'en' ? 'PT' : 'แต้ม'}</span>
                                             </div>
                                         </div>
 
-                                        <div className="bg-gray-50 p-6 rounded-2xl border-0 flex flex-col md:flex-row items-center gap-6">
+                                        <div className="bg-gray-50 p-6 rounded-2xl border-0 flex flex-col lg:flex-row items-start lg:items-center gap-6">
                                             <div className="flex-1 w-full">
                                                 <label className="text-[14px] font-medium text-gray-900 block mb-1">
                                                     {locale === 'en' ? 'Redemption Rate' : 'เงื่อนไขการแลกส่วนลด (Redemption)'}
@@ -2212,14 +2213,14 @@ const handleSave = async () => {
                                                     {locale === 'en' ? 'Points required for 1 THB discount' : 'ต้องใช้กี่แต้ม เพื่อแลกรับส่วนลด 1 บาท'}
                                                 </p>
                                             </div>
-                                            <div className="flex items-center gap-3 bg-white px-3 py-2 rounded-xl shadow-sm border border-gray-100">
+                                            <div className="flex flex-wrap items-center gap-3 bg-white px-4 py-3 rounded-xl shadow-sm border border-gray-100 shrink-0 self-stretch lg:self-auto justify-center">
                                                 <span className="text-[12px] font-medium text-orange-600 bg-orange-50 px-2.5 py-1.5 rounded-lg whitespace-nowrap">ใช้</span>
                                                 <div className="relative w-20">
                                                     <input 
                                                         type="number" 
                                                         value={settings.loyalty_redeem_pts !== undefined ? settings.loyalty_redeem_pts : 1}
                                                         onChange={e => setSettings({...settings, loyalty_redeem_pts: parseInt(e.target.value) || 0})}
-                                                        className="w-full bg-transparent border-0 rounded-lg text-center text-[15px] font-medium outline-none" 
+                                                        className="w-full bg-transparent border-b-2 border-gray-100 hover:border-gray-200 focus:border-black rounded-none text-center text-[15px] font-medium outline-none transition-colors" 
                                                     />
                                                 </div>
                                                 <span className="text-[13px] font-medium text-gray-400">{locale === 'en' ? 'PT' : 'แต้ม'}</span>
@@ -2230,7 +2231,7 @@ const handleSave = async () => {
                                                         type="number" 
                                                         value={settings.loyalty_redeem_thb !== undefined ? settings.loyalty_redeem_thb : (settings.loyalty_points_per_thb || 10)}
                                                         onChange={e => setSettings({...settings, loyalty_redeem_thb: parseInt(e.target.value) || 0})}
-                                                        className="w-full bg-transparent border-0 rounded-lg text-center text-[15px] font-medium outline-none" 
+                                                        className="w-full bg-transparent border-b-2 border-gray-100 hover:border-gray-200 focus:border-black rounded-none text-center text-[15px] font-medium outline-none transition-colors" 
                                                     />
                                                 </div>
                                                 <span className="text-[13px] font-medium text-emerald-600">{locale === 'en' ? 'THB' : 'บาท'}</span>
