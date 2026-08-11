@@ -26,7 +26,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/lib/supabaseClient'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion, LayoutGroup } from 'framer-motion'
 import Link from 'next/link'
 import POSShopStatusModal from '@/components/pos/POSShopStatusModal'
 import { printKitchenTicket, printCustomerReceipt } from '@/lib/printerUtils'
@@ -1229,10 +1229,7 @@ function RestaurantOSPageContent() {
   const isMuted = typeof window !== 'undefined' && localStorage.getItem('pos_mute_sounds') === 'true'
 
   return (
-    <div
-      className="italic-selection h-screen bg-white"
-      onClick={!isAudioEnabled && !isMuted ? unlockAudio : undefined}
-    >
+    <div className="italic-selection h-screen bg-white" onClick={!isAudioEnabled && !isMuted ? unlockAudio : undefined}>
       <POSLayout
         profile={profile}
         activeView={activeView || 'terminal'}

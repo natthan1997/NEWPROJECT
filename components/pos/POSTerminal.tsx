@@ -3682,8 +3682,13 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             receiptPaymentQrImage: shopSettings?.opening_hours?.receipt_payment_qr_image || shopSettings?.receipt_payment_qr_image
           }
 
-          // Only open drawer for cash payments - NO auto printing on payment confirm
-          if (method === 'cash') {
+          // Drawer kick logic based on shift settings
+          const shiftSettings = shopSettings?.opening_hours?.shift_settings || {};
+          const kickOnCash = method === 'cash';
+          const kickOnCredit = method === 'credit_card' && shiftSettings.drawer_kick_on_credit;
+          const kickOnCustom = method !== 'cash' && method !== 'credit_card' && shiftSettings.drawer_kick_on_custom;
+
+          if (kickOnCash || kickOnCredit || kickOnCustom) {
             const receiptPrinters = printers.filter((p: any) => p.type === 'receipt' || p.type === 'both')
             if (receiptPrinters.length > 0) {
               Promise.all(receiptPrinters.map(rp => rp.ip ? printOpenDrawer(rp.ip) : Promise.resolve())).catch(console.error);
@@ -6203,14 +6208,14 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                   {/* Story Mode Selection */}
                   {(shopSettings?.receipt_story_mode || shopSettings?.opening_hours?.receipt_story_mode) && (shopSettings?.receipt_stories?.length > 0 || shopSettings?.opening_hours?.receipt_stories?.length > 0) && (
                     <div>
-                      <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-gray-400">เลือกตอนของนิยายท้ายบิล</label>
+                      <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-gray-400">เลือกข้อความท้ายบิล</label>
                       <div className="relative group">
                         <select
                           value={selectedStoryIndex}
                           onChange={(e) => setSelectedStoryIndex(Number(e.target.value))}
                           className="w-full h-14 pl-5 pr-12 rounded-2xl border-2 border-gray-100 bg-gray-50 text-sm font-bold text-[#1A1A18] outline-none hover:border-gray-200 focus:border-[#1A1A18] focus:bg-white transition-all appearance-none cursor-pointer"
                         >
-                          <option value={-1}>🎲 สุ่มตอน (Random Chapter)</option>
+                          <option value={-1}>🎲 สุ่มข้อความ (Random Message)</option>
                           {(shopSettings?.receipt_stories || shopSettings?.opening_hours?.receipt_stories || []).map((story: any, idx: number) => (
                             <option key={idx} value={idx}>📖 {story.title}</option>
                           ))}

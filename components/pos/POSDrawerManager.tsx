@@ -102,8 +102,11 @@ export default function POSDrawerManager({
     if (activeShift) {
         fetchTransactions()
         fetchShiftStats(activeShift.id)
+    } else {
+        const defaultCash = shopSettings?.opening_hours?.shift_settings?.default_start_cash || 0;
+        setOpeningCash(defaultCash);
     }
-  }, [activeShift, shopSettings?.branch_id])
+  }, [activeShift, shopSettings?.branch_id, shopSettings?.opening_hours?.shift_settings?.default_start_cash])
 
   useEffect(() => {
     if (!activeShift?.id) {
@@ -384,7 +387,20 @@ export default function POSDrawerManager({
     }
   }
 
-  const handleCloseShift = () => {
+  const handleCloseShift = async () => {
+      if (shopSettings?.opening_hours?.shift_settings?.check_open_bills_before_close !== false) {
+          const { data, error } = await supabase
+              .from('pos_orders')
+              .select('id, order_number')
+              .eq('shift_id', activeShift?.id)
+              .eq('status', 'pending');
+
+          if (data && data.length > 0) {
+              const orderNums = data.map(d => d.order_number).join(', ');
+              alert(`ไม่สามารถปิดกะได้: มีบิลที่ยังไม่ได้ชำระเงินค้างอยู่ ${data.length} บิล (${orderNums}) กรุณาชำระเงินหรือยกเลิกบิลก่อนปิดกะ`);
+              return;
+          }
+      }
       setShowCloseConfirm(true)
   }
 
@@ -605,6 +621,18 @@ export default function POSDrawerManager({
           const notifyRes = await res.json()
           console.log('[POS Shift Close] LINE Z-Report Notify Result:', notifyRes)
         } catch (e) { console.error('Failed to send LINE notify for Z-Report:', e) }
+
+        // Email Notification for Z-Report
+        if (shopSettings?.opening_hours?.shift_settings?.auto_email_zreport) {
+           try {
+              const res = await fetch('/api/email/zreport', {
+                 method: 'POST',
+                 headers: { 'Content-Type': 'application/json' },
+                 body: JSON.stringify({ reportData, shopName: printShopData.name })
+              })
+              console.log('[POS Shift Close] Auto Email Z-Report Sent:', await res.json().catch(() => ({})))
+           } catch (e) { console.error('Failed to send Auto Email for Z-Report:', e) }
+        }
 
       await onCloseShift(closingCash)
       setShowCloseConfirm(false)

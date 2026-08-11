@@ -109,7 +109,7 @@ export default function POSCampaignsTab() {
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
+            <div className="bg-white rounded-2xl shadow-sm border border-black/5 p-6 sm:p-8">
                 <div className="flex justify-between items-center mb-8">
                     <div>
                         <h3 className="text-xl font-black mb-2">การ์ดแคมเปญหน้าแอป (Campaigns)</h3>
@@ -132,7 +132,7 @@ export default function POSCampaignsTab() {
 
                 <div className="space-y-4">
                     {campaigns.map((campaign, idx) => (
-                        <div key={campaign.id} className="border border-gray-100 rounded-2xl p-5 bg-gray-50/50">
+                        <div key={campaign.id} className="bg-gray-50 border-0 rounded-2xl p-6">
                             {editingId === campaign.id ? (
                                 <div className="space-y-4">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

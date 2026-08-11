@@ -5,6 +5,7 @@ import {
   MapPin, Bell, Info, ShieldCheck, ShoppingBag, LogOut,
   Volume2, VolumeX
 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
 import PointGenerator from './PointGenerator'
@@ -172,6 +173,8 @@ export default function POSLayout({
         </>
     );
 
+    // If activeView is 'settings', POSLayout just returns a wrapper.
+    // The actual Settings sidebar will slide in from POSShopSettings.
     if (activeView === 'settings') {
         return (
             <div className="xyl-pos-scale h-screen h-[100dvh] flex overflow-hidden font-sans bg-[#F2F2F7] font-bold">
@@ -204,9 +207,18 @@ export default function POSLayout({
         <div className={`print:block print:h-auto print:overflow-visible xyl-pos-scale h-screen h-[100dvh] flex overflow-hidden font-sans ${isDark ? 'bg-[#1A1A18] text-white' : 'bg-[#FDFDFB] text-[#1A1A18]'} selection:bg-sage-600/10 font-bold`}>
             
             {/* PERSISTENT SIDEBAR FOR LG SCREENS */}
-            <aside className={`print:hidden hidden xl:flex w-[280px] 2xl:w-[320px] h-full flex-col flex-shrink-0 font-bold border-r ${isDark ? 'bg-[#1A1A18] border-white/5' : 'bg-[#F5F4F0] border-[#E5E5DF]'}`}>
-                {renderSidebarContent()}
-            </aside>
+            <AnimatePresence mode="wait">
+                <motion.aside 
+                    key="pos-sidebar"
+                    initial={{ x: -300, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    exit={{ x: -300, opacity: 0 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    className={`print:hidden hidden xl:flex w-[280px] 2xl:w-[320px] h-full flex-col flex-shrink-0 font-bold border-r ${isDark ? 'bg-[#1A1A18] border-white/5' : 'bg-[#F5F4F0] border-[#E5E5DF]'}`}
+                >
+                    {renderSidebarContent()}
+                </motion.aside>
+            </AnimatePresence>
 
             {/* OFF-CANVAS SIDEBAR FOR MOBILE/TABLET PORTRAIT */}
             {isSidebarOpen && (

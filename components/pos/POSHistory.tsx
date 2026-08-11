@@ -377,6 +377,12 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
   }
 
   const openPaymentEdit = (order: any) => {
+    if (shopSettings?.opening_hours?.shift_settings?.edit_bill_only_in_open_shift !== false) {
+      if (!activeShift?.id || order.shift_id !== activeShift.id) {
+        alert(locale === 'en' ? 'Cannot edit payment for a closed shift. Please void the bill instead.' : 'ไม่สามารถแก้ไขบิลที่อยู่นอกเหนือจากกะปัจจุบันได้ (กะถูกปิดไปแล้ว) หากผิดพลาดกรุณาใช้วิธี Void (ยกเลิกบิล) แทน');
+        return;
+      }
+    }
     setPaymentEditOrder(order)
     setPaymentEditMethod(normalizePaymentMethod(order.payment_method || getOrderPaymentMethod(order)))
     setPaymentEditOpen(true)
