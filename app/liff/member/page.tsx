@@ -1796,31 +1796,23 @@ function LiffMemberContent() {
 
                 {claimOrderItems && claimOrderItems.length > 0 && (
                   <motion.div 
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    transition={{ duration: 0.8, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                    className="w-full mt-12 pt-8 border-t border-gray-100 overflow-hidden"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                    className="w-full mt-8 pt-6 border-t border-gray-100"
                   >
-                    <motion.p 
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.7 }}
-                      className="text-[10px] font-bold text-gray-400 mb-6 tracking-widest uppercase text-center"
-                    >
-                      Order Details
-                    </motion.p>
-                    <div className="space-y-4 max-h-[220px] overflow-y-auto w-full px-2" style={{ scrollbarWidth: 'none' }}>
+                    <p className="text-[10px] font-bold text-gray-400 mb-4 tracking-widest uppercase text-center">
+                      รายการออเดอร์
+                    </p>
+                    <div className="space-y-3 max-h-[180px] overflow-y-auto w-full px-2">
                       {claimOrderItems.map((item: any, i: number) => (
-                        <motion.div 
+                        <div 
                           key={i} 
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ duration: 0.5, delay: 0.8 + (i * 0.08), ease: "easeOut" }}
-                          className="flex justify-between items-start text-[14px]"
+                          className="flex justify-between items-start text-[13px] py-1 border-b border-gray-50 last:border-0"
                         >
-                          <span className="text-gray-800 font-medium pr-4 leading-snug">{item.item_name}</span>
-                          <span className="text-gray-400 font-medium whitespace-nowrap">x{item.quantity}</span>
-                        </motion.div>
+                          <span className="text-gray-800 font-semibold pr-4 leading-snug">{item.item_name}</span>
+                          <span className="text-gray-500 font-bold whitespace-nowrap">x{item.quantity}</span>
+                        </div>
                       ))}
                     </div>
                   </motion.div>
@@ -1893,26 +1885,23 @@ function LiffMemberContent() {
 
                 {claimOrderItems && claimOrderItems.length > 0 && (
                   <motion.div 
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    transition={{ duration: 0.8, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                    className="w-full mt-6 pt-6 border-t border-gray-100 overflow-hidden"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                    className="w-full mt-6 pt-6 border-t border-gray-100"
                   >
                     <p className="text-[10px] font-bold text-gray-400 mb-4 tracking-widest uppercase text-center">
                       รายการออเดอร์
                     </p>
-                    <div className="space-y-3 max-h-[160px] overflow-y-auto w-full px-2" style={{ scrollbarWidth: 'none' }}>
+                    <div className="space-y-3 max-h-[180px] overflow-y-auto w-full px-2">
                       {claimOrderItems.map((item: any, i: number) => (
-                        <motion.div 
+                        <div 
                           key={i} 
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ duration: 0.5, delay: 0.6 + (i * 0.08), ease: "easeOut" }}
-                          className="flex justify-between items-start text-[13px]"
+                          className="flex justify-between items-start text-[13px] py-1 border-b border-gray-50 last:border-0"
                         >
-                          <span className="text-gray-800 font-medium pr-4 leading-snug">{item.item_name}</span>
-                          <span className="text-gray-400 font-medium whitespace-nowrap">x{item.quantity}</span>
-                        </motion.div>
+                          <span className="text-gray-800 font-semibold pr-4 leading-snug">{item.item_name}</span>
+                          <span className="text-gray-500 font-bold whitespace-nowrap">x{item.quantity}</span>
+                        </div>
                       ))}
                     </div>
                   </motion.div>
