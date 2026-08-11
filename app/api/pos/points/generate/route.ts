@@ -87,7 +87,27 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Generate a secure random token
+    // Check if an unused token ALREADY exists for this order_id
+    if (orderId) {
+      const { data: existingToken } = await supabase
+        .from('pos_qr_reward_tokens')
+        .select('token')
+        .eq('order_id', orderId)
+        .eq('is_used', false)
+        .maybeSingle()
+
+      if (existingToken?.token) {
+        // Update points on existing token
+        await supabase
+          .from('pos_qr_reward_tokens')
+          .update({ points })
+          .eq('token', existingToken.token)
+
+        return NextResponse.json({ success: true, token: existingToken.token })
+      }
+    }
+
+    // Otherwise generate a new secure random token
     const token = crypto.randomBytes(16).toString('hex')
 
     const { data, error } = await supabase

@@ -17,56 +17,22 @@ export const fetchOrGenerateLoyaltyToken = async (
   const pointsToGenerate = earnThb > 0 ? Math.floor(Math.max(0, netTotal) / earnThb) * earnPts : 0
 
   try {
-    const isDraftOrder = !orderId || orderId.startsWith('cart_') || (typeof orderId === 'string' && orderId.length > 30 && !orderId.includes('-'));
+    const isUuid = typeof orderId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId);
 
-    if (!isDraftOrder) {
-      // 1 & 2: Check if existing order already claimed points or unused token exists
-      const [{ data: orderData }, { data: existing }] = await Promise.all([
-        supabase
-          .from('pos_orders')
-          .select('customer_id, customer_name, points_earned')
-          .eq('id', orderId)
-          .maybeSingle(),
-        supabase
-          .from('pos_qr_reward_tokens')
-          .select('token')
-          .eq('order_id', orderId)
-          .eq('is_used', false)
-          .maybeSingle()
-      ]);
+    if (isUuid) {
+      // Check if existing order already completed points claim
+      const { data: orderData } = await supabase
+        .from('pos_orders')
+        .select('customer_id, customer_name, points_earned')
+        .eq('id', orderId)
+        .maybeSingle();
 
       if (orderData && (orderData.customer_id || orderData.customer_name || (orderData.points_earned && orderData.points_earned > 0))) {
         return { token: null, points: 0 }
       }
-
-      if (existing?.token) {
-        // Sync points in DB in case cart total changed since token creation
-        await supabase
-          .from('pos_qr_reward_tokens')
-          .update({ points: pointsToGenerate })
-          .eq('token', existing.token);
-        return { token: existing.token, points: pointsToGenerate }
-      }
-    } else {
-      // Check if unused token already exists for this draft order
-      const { data: existing } = await supabase
-        .from('pos_qr_reward_tokens')
-        .select('token')
-        .eq('order_id', orderId)
-        .eq('is_used', false)
-        .maybeSingle()
-
-      if (existing?.token) {
-        // Sync points in DB in case cart total changed since token creation
-        await supabase
-          .from('pos_qr_reward_tokens')
-          .update({ points: pointsToGenerate })
-          .eq('token', existing.token);
-        return { token: existing.token, points: pointsToGenerate }
-      }
     }
 
-    // Generate via API
+    // Always generate/sync via API so draft cartItems are 100% written to pos_order_items in DB
     const { data: { session } } = await supabase.auth.getSession()
     const res = await fetch('/api/pos/points/generate', {
       method: 'POST',
@@ -77,7 +43,23 @@ export const fetchOrGenerateLoyaltyToken = async (
       body: JSON.stringify({ points: pointsToGenerate, orderId, cartItems }),
     })
     const result = await res.json()
-    return { token: result.token || null, points: pointsToGenerate }
+    if (result.token) {
+      return { token: result.token, points: pointsToGenerate }
+    }
+
+    // Fallback: Check if unused token exists
+    const { data: existing } = await supabase
+      .from('pos_qr_reward_tokens')
+      .select('token')
+      .eq('order_id', orderId)
+      .eq('is_used', false)
+      .maybeSingle()
+
+    if (existing?.token) {
+      return { token: existing.token, points: pointsToGenerate }
+    }
+
+    return { token: null, points: pointsToGenerate }
   } catch (err) {
     console.error('Error fetching/generating loyalty token:', err)
     return { token: null, points: pointsToGenerate }
