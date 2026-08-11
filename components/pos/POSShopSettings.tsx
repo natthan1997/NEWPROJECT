@@ -1291,12 +1291,14 @@ const handleSave = async () => {
                                             />
                                         </label>
 
-                                        <textarea
-                                            value={settings.liff_splash_poster_url || ''}
-                                            onChange={e => setSettings({...settings, liff_splash_poster_url: e.target.value})}
-                                            className="w-full bg-gray-50 border-0 rounded-xl py-3 px-4 text-[13px] font-mono outline-none min-h-[60px] resize-none"
-                                            placeholder="วาง data URL หรือ image URL ของรูปโปรโมชัน (https://...)"
-                                        />
+                                        {!settings.liff_splash_poster_url && (
+                                            <textarea
+                                                value={settings.liff_splash_poster_url || ''}
+                                                onChange={e => setSettings({...settings, liff_splash_poster_url: e.target.value})}
+                                                className="w-full bg-gray-50 border-0 rounded-xl py-3 px-4 text-[13px] font-mono outline-none min-h-[60px] resize-none"
+                                                placeholder="วาง data URL หรือ image URL ของรูปโปรโมชัน (https://...)"
+                                            />
+                                        )}
 
                                         {settings.liff_splash_poster_url && (
                                             <div className="bg-gray-50 rounded-xl p-4 flex flex-col items-center border border-black/5">
@@ -1870,12 +1872,14 @@ const handleSave = async () => {
                                                         }}
                                                     />
                                                 </label>
-                                                <textarea
-                                                    value={settings.receipt_payment_qr_image || ''}
-                                                    onChange={e => setSettings({...settings, receipt_payment_qr_image: e.target.value})}
-                                                    className="w-full bg-white border-0 rounded-lg py-3 px-3 text-[12px] font-mono outline-none min-h-[80px] resize-none"
-                                                    placeholder="วาง data URL หรือ image URL ของ QR ที่ต้องการพิมพ์ท้ายใบเสร็จ"
-                                                />
+                                                {!settings.receipt_payment_qr_image && (
+                                                    <textarea
+                                                        value={settings.receipt_payment_qr_image || ''}
+                                                        onChange={e => setSettings({...settings, receipt_payment_qr_image: e.target.value})}
+                                                        className="w-full bg-white border-0 rounded-lg py-3 px-3 text-[12px] font-mono outline-none min-h-[80px] resize-none"
+                                                        placeholder="วาง data URL หรือ image URL ของ QR ที่ต้องการพิมพ์ท้ายใบเสร็จ"
+                                                    />
+                                                )}
                                                 {settings.receipt_payment_qr_image && (
                                                     <div className="bg-white rounded-xl p-4 flex items-center gap-4 mt-2 border border-emerald-100">
                                                         <div className="w-16 h-16 rounded-lg border border-gray-100 bg-white overflow-hidden flex items-center justify-center shrink-0">
