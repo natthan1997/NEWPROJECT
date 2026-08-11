@@ -151,6 +151,16 @@ export default function POSHistoryPointsModal({ order, shopSettings, onClose, on
         points_earned: pointsToGenerate
       }).eq('id', order.id);
 
+      // 4. Trigger Gamification Evaluation
+      fetch('/api/gamification/evaluate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          order_id: order.id,
+          member_id: selectedCustomer.id
+        })
+      }).catch(err => console.error('Gamification eval error from history modal:', err));
+
       onSuccess();
     } catch (e) {
       console.error(e);
@@ -232,7 +242,7 @@ export default function POSHistoryPointsModal({ order, shopSettings, onClose, on
                   
                   <div className="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 inline-block">
                     <QRCodeSVG 
-                      value={`https://liff.line.me/2009322178-2dtfXAvi/member?claimToken=${token}`}
+                      value={`https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}/#?path=/member&claimToken=${token}`}
                       size={200}
                       level="H"
                       includeMargin={true}

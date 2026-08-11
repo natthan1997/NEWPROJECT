@@ -406,6 +406,20 @@ export async function POST(req: NextRequest) {
                     item_name: i.item?.name || i.name || i.item_name || 'สินค้า'
                   }));
             }
+            
+            // --- Gamification Retroactive Trigger ---
+            if (member?.id || lineUserId) {
+                const targetMemberId = member?.id || lineUserId;
+                const gamificationUrl = new URL('/api/gamification/evaluate', req.url).toString();
+                fetch(gamificationUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        order_id: tokenInfo.order_id,
+                        member_id: targetMemberId
+                    })
+                }).catch(err => console.error('LIFF gamification eval error:', err));
+            }
         }
 
         return NextResponse.json({ 
