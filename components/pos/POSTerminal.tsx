@@ -340,6 +340,7 @@ export default function POSTerminal({
   setIsAutoCreatingOrder: setIsAutoCreatingOrderProp,
 }: POSTerminalProps) {
   // --- INTERNAL STATES ---
+  const paymentLockRef = useRef(false);
   const router = useRouter()
   const [items, setItems] = useState<MenuItem[]>(() => {
     if (typeof window !== 'undefined') {
@@ -2914,6 +2915,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   };
 
   async function handleHoldOrder(options?: { suppressProcessingState?: boolean; suppressAlert?: boolean; keepComposer?: boolean }) {
+    if (paymentLockRef.current) return;
     if (cart.length === 0) return
     if (typeof window !== 'undefined' && !navigator.onLine) {
       logPOSPrintFlow('hold_guard:fail', { reason: 'offline' })
@@ -2944,6 +2946,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       throw new Error('บิลนี้พักไว้แล้ว กรุณาเพิ่มรายการใหม่ก่อนส่งออเดอร์เพิ่ม')
     }
 
+        paymentLockRef.current = true;
 	    if (!options?.suppressProcessingState) setIsProcessing(true); setCheckoutError(null)
 	    try {
 	      let finalOrderId = editingOrderId
@@ -3111,6 +3114,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 	      if (!options?.suppressAlert) alert('ไม่สามารถพักบิลได้: ' + (e as any).message)
 	      throw e
 	    } finally {
+          paymentLockRef.current = false;
 	      if (!options?.suppressProcessingState) setIsProcessing(false)
 	    }
 	  }
@@ -3171,7 +3175,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   };
 
   const handleProcessPayment = async (method: string, amount?: number) => {
-    if (isProcessing) {
+    if (paymentLockRef.current || isProcessing) {
       alert('กำลังประมวลผล กรุณารอสักครู่... หากค้างนานเกินไปให้รีเฟรชแอปพลิเคชัน');
       return;
     }
@@ -3191,6 +3195,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     }
     if (!ensureDeliveryDetailsReady()) return
 
+    paymentLockRef.current = true;
     setIsProcessing(true); setCheckoutError(null); setProcessingMethod(method);
 	    try {
 
@@ -3760,6 +3765,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       console.error('Payment Error:', e)
       setCheckoutError(`การชำระเงินขัดข้อง: ${e.message || String(e)}`)
     } finally {
+      paymentLockRef.current = false;
       setIsProcessing(false)
       setProcessingMethod(null)
     }
@@ -5994,8 +6000,8 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                              <QRCodeSVG
                                value={
                                  posQrLoyaltyToken !== 'general_member_checkin'
-                                   ? `https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}/member?claimToken=${posQrLoyaltyToken}&session=${qrSessionId}`
-                                   : `https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}/member`
+                                   ? `https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}/#?path=/member&claimToken=${posQrLoyaltyToken}&session=${qrSessionId}`
+                                   : `https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}/#?path=/member`
                                }
                                size={280}
                                level="H"
@@ -6533,7 +6539,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                       <div className="flex flex-col items-center justify-center space-y-2">
                         <div className="p-2 bg-white border border-gray-100 rounded-xl shadow-sm flex items-center justify-center">
                           <QRCodeSVG
-                            value={`https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}/member`}
+                            value={`https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2009322178-2dtfXAvi'}/#?path=/member`}
                             size={110}
                             level="M"
                             includeMargin={true}
