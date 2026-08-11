@@ -925,8 +925,7 @@ const handleSave = async () => {
                                     { id: 'receipt', icon: Printer, label: 'บิล' },
                                     { id: 'shift', icon: Wallet, label: 'กะและลิ้นชัก' },
                                     { id: 'advanced', icon: Star, label: 'ตั้งค่าการชำระเงิน' },
-                                    { id: 'delivery', icon: Truck, label: 'เดลิเวอรี่' },
-                                    { id: 'kitchen', icon: MenuIcon, label: 'ห้องครัว' }
+                                    { id: 'delivery', icon: Truck, label: 'เดลิเวอรี่' }
                                 ].map((tab) => {
                                     const Icon = tab.icon;
                                     const isActive = activeTab === tab.id;
@@ -1986,12 +1985,8 @@ const handleSave = async () => {
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        )}
 
-                        {/* TAB: KITCHEN */}
-                        {activeTab === 'kitchen' && (
-                            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                {/* KITCHEN SETTINGS SECTION */}
                                 <div className="bg-white rounded-2xl shadow-sm border border-black/5 p-6 sm:p-8">
                                     <h3 className="text-[17px] font-semibold mb-1">
                                         {locale === 'en' ? 'Kitchen Settings' : 'ตั้งค่าบิลส่งครัว'}
@@ -2026,6 +2021,7 @@ const handleSave = async () => {
                                         </div>
                                     </div>
                                 </div>
+
                             </div>
                         )}
 
