@@ -100,9 +100,9 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
         .from('pos_orders')
         .select('*, pos_order_items(*, item:pos_menu_items!item_id(*)), pos_order_payments(amount, payment_method, status), customer:pos_members!customer_id(display_name, full_name, phone)')
         .in('status', ['paid', 'completed', 'cancelled'])
-        .gte('updated_at', startOfDay.toISOString())
-        .lt('updated_at', endOfDay.toISOString())
-        .order('updated_at', { ascending: false })
+        .gte('created_at', startOfDay.toISOString())
+        .lt('created_at', endOfDay.toISOString())
+        .order('created_at', { ascending: false })
 
       if (error) {
         console.error('Error fetching orders:', error)
