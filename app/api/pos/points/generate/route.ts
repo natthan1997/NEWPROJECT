@@ -72,9 +72,9 @@ export async function POST(req: NextRequest) {
           const itemsToInsert = cartItems.map((i: any) => ({
             order_id: orderId,
             item_id: (i.item_id || i.id) && uuidRegex.test(i.item_id || i.id) ? (i.item_id || i.id) : null,
-            name: i.name || i.item_name || 'สินค้า',
             quantity: Number(i.quantity || 1),
             unit_price: Number(i.unit_price || 0),
+            cost_price: Number(i.cost_price || 0),
             subtotal: Number(i.subtotal || (Number(i.unit_price || 0) * Number(i.quantity || 1))),
             selected_modifiers: i.selected_modifiers || []
           }))
@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
       .insert({
         token,
         points,
-        order_id: orderId,
+        order_id: orderId && (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i).test(orderId) ? orderId : null,
         created_by: requestUser?.id || null,
       })
       .select('token')
