@@ -688,7 +688,10 @@ export default function POSStaffManager({
             has_social_security: selectedStaff.has_social_security || false
         }).eq('id', selectedStaff.id)
         if (!error) {
+            alert('บันทึกข้อมูลเรียบร้อยแล้ว')
             fetchStaff()
+        } else {
+            alert('เกิดข้อผิดพลาดในการบันทึก: ' + error.message)
         }
         setIsSaving(false)
     }
