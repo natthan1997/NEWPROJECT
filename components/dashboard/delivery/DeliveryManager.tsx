@@ -273,35 +273,32 @@ export default function DeliveryManager({ unlockAudio, isAudioEnabled, variant =
   }
 
   return (
-    <div className={`flex flex-col overflow-hidden font-sans ${isDrawer ? 'h-full bg-[#F5F5F7]' : 'h-[calc(100vh-120px)] bg-[#F5F5F7]'}`}>
+    <div className={`flex flex-col overflow-hidden font-sans ${isDrawer ? 'h-full bg-white' : 'h-[calc(100vh-120px)] bg-[#F5F5F7]'}`}>
       
-      {/* 🔝 PREMIUM HEADER */}
-      <div className={`flex-none border-b border-gray-200/50 z-10 ${isDrawer ? 'px-6 pt-12 pb-6 bg-[#F5F5F7]' : 'px-8 py-6 bg-white shadow-sm'}`}>
+      {/* 🔝 ULTRA CLEAN HEADER */}
+      <div className={`flex-none z-10 ${isDrawer ? 'px-8 pt-14 pb-6 bg-white' : 'px-10 py-8 bg-white border-b border-gray-100'}`}>
         <div className="flex justify-between items-start">
-          <div className="flex items-center gap-3">
-             <div className="w-12 h-12 shrink-0 bg-orange-50 text-orange-500 flex items-center justify-center rounded-2xl border border-orange-100">
-               <Truck size={24} />
-             </div>
+          <div className="flex items-center gap-4">
              <div className="flex flex-col">
-               <h1 className={`font-black text-[#1A1A18] leading-tight ${isDrawer ? 'text-lg' : 'text-2xl'}`}>
-                 {isDrawer ? 'เดลิเวอรี่ / กลับบ้าน' : 'ติดตามสถานะ (Delivery)'}
+               <h1 className={`font-black text-[#1A1A18] tracking-tight ${isDrawer ? 'text-[22px]' : 'text-[28px]'}`}>
+                 {isDrawer ? 'เดลิเวอรี่' : 'Delivery Monitoring'}
                </h1>
-               <p className="text-[11px] font-bold text-gray-400 mt-1">
-                 {isDrawer ? 'จัดการออเดอร์เดลิเวอรี่และสั่งกลับบ้าน' : 'อัพเดทสถานะแบบเรียลไทม์'}
+               <p className="text-[12px] font-medium text-gray-400 mt-0.5">
+                 {isDrawer ? 'รายการสั่งกลับบ้านและเดลิเวอรี่ทั้งหมด' : 'อัพเดทสถานะแบบเรียลไทม์'}
                </p>
              </div>
           </div>
-          <div className="flex gap-2">
-              <button onClick={unlockAudio} className={`flex items-center justify-center w-12 h-12 rounded-2xl transition-all shadow-sm ${isAudioEnabled ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-red-50 text-red-600 border border-red-100 animate-pulse'}`}>
-                  {isAudioEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
+          <div className="flex items-center gap-1">
+              <button onClick={unlockAudio} className={`flex items-center justify-center w-10 h-10 rounded-full transition-all ${isAudioEnabled ? 'text-gray-400 hover:text-emerald-500 hover:bg-emerald-50' : 'text-red-400 animate-pulse bg-red-50'}`}>
+                  {isAudioEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
               </button>
-              <button onClick={fetchData} className={`flex items-center justify-center w-12 h-12 bg-white text-[#1A1A18] border border-gray-200 rounded-2xl hover:bg-gray-50 active:scale-95 transition-all shadow-sm`}>
-                  <RefreshCcw size={20} className={isLoading ? 'animate-spin' : ''} />
+              <button onClick={fetchData} className={`flex items-center justify-center w-10 h-10 text-gray-400 rounded-full hover:bg-gray-50 hover:text-gray-800 transition-all`}>
+                  <RefreshCcw size={18} className={isLoading ? 'animate-spin text-[#1A1A18]' : ''} />
               </button>
               {isDrawer && (
                 <button
                   onClick={onClose}
-                  className="flex items-center justify-center w-12 h-12 bg-[#1A1A18] text-white rounded-2xl hover:bg-black active:scale-95 transition-all shadow-xl shadow-black/20 ml-1"
+                  className="flex items-center justify-center w-10 h-10 text-gray-400 rounded-full hover:bg-gray-50 hover:text-gray-800 transition-all ml-1"
                 >
                   <X size={20} />
                 </button>
@@ -311,18 +308,12 @@ export default function DeliveryManager({ unlockAudio, isAudioEnabled, variant =
       </div>
 
       <div className="flex-1 flex overflow-hidden">
-        
         {/* 📋 LIST VIEW (NO MAP) */}
         <div className={`flex-1 overflow-y-auto custom-scrollbar ${isDrawer ? 'p-4 pb-24 flex flex-col gap-4' : 'p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'}`}>
            {orders.length === 0 ? (
-             <div className="col-span-full h-full flex flex-col items-center justify-center text-gray-400">
-                <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-sm border border-gray-100 mb-5">
-                  <Package size={28} className="text-gray-300" />
-                </div>
-                <p className="text-[14px] font-bold text-gray-500">ยังไม่มีออเดอร์ในขณะนี้</p>
-                <p className="text-[11px] font-medium text-gray-400 mt-2 text-center max-w-[200px]">
-                  ออเดอร์เดลิเวอรี่และสั่งกลับบ้านจะแสดงที่นี่เมื่อมีรายการใหม่
-                </p>
+             <div className="col-span-full h-full flex flex-col items-center justify-center text-gray-300">
+                <Truck size={32} className="mb-4 opacity-20" strokeWidth={1.5} />
+                <p className="text-[13px] font-medium text-gray-400">ยังไม่มีรายการเดลิเวอรี่</p>
              </div>
            ) : orders.map(order => {
             const statusMeta = getStatusMeta(order.status)
