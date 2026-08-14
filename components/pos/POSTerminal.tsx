@@ -2071,6 +2071,8 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     const handleKickDrawer = (e: any) => {
       const method = e.detail?.method || 'cash';
       
+      const shiftSettings = shopSettings?.opening_hours?.shift_settings || {};
+      
       const kickOnCash = method === 'cash' && shiftSettings?.drawer_kick_on_cash;
       const kickOnCredit = method === 'credit_card' && shiftSettings?.drawer_kick_on_credit;
       const kickOnCustom = method !== 'cash' && method !== 'credit_card' && shiftSettings?.drawer_kick_on_custom;
@@ -2086,7 +2088,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     };
     window.addEventListener('kickPOSDrawer', handleKickDrawer);
     return () => window.removeEventListener('kickPOSDrawer', handleKickDrawer);
-  }, [shiftSettings, receiptPrinters]);
+  }, [shopSettings, receiptPrinters]);
 
 
   useEffect(() => {
