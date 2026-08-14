@@ -1506,6 +1506,9 @@ export default function POSStaffManager({
                         </div>
                     )}
 
+                    {detailTab === 'payroll' && (
+                        <div className="space-y-6">
+                            <div className="bg-white p-6 border border-neutral-200 shadow-sm">
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-neutral-100 pb-4">
                                     <div>
                                         <h3 className="text-lg font-black text-neutral-900">
