@@ -713,46 +713,25 @@ const handleSave = async () => {
             ]
         };
 
-        const dummyShop = {
-            name_th: settings.name_th,
-            name_en: settings.name_en,
-            branch_name_th: settings.branch_name_th,
-            branch_name_en: settings.branch_name_en,
-            taxId: settings.tax_id,
-            address: settings.address || settings.opening_hours?.address,
-            phone: settings.phone,
-            receiptHeader: settings.receipt_header,
-            receiptFooter: settings.receipt_footer,
-            receiptShowLogo: settings.receipt_show_logo,
-            receiptFontSize: settings.receipt_font_size,
-            kitchenFontSize: settings.kitchen_font_size,
-            kitchenShowType: settings.kitchen_show_type,
-            bill_number_format: settings.bill_number_format,
-            order_number_format: settings.order_number_format,
-            receipt_story_mode: settings.receipt_story_mode,
-            receipt_stories: settings.receipt_stories,
-            receipt_payment_qr_image: settings.receipt_payment_qr_image,
-        };
-
         if (printer.encoding === 'graphic') {
             if (printer.type === 'kitchen') {
-                await printGraphicModeKitchenTicket(printer.ip, dummyOrder, dummyShop, printer.model, printer.encoding);
+                await printGraphicModeKitchenTicket(printer.ip, dummyOrder, settings, printer.model, printer.encoding);
             } else if (printer.type === 'receipt') {
-                await printGraphicModeCustomerReceipt(printer.ip, dummyOrder, dummyShop, printer.model, printer.encoding);
+                await printGraphicModeCustomerReceipt(printer.ip, dummyOrder, settings, printer.model, printer.encoding);
             } else {
-                await printGraphicModeCustomerReceipt(printer.ip, dummyOrder, dummyShop, printer.model, printer.encoding);
+                await printGraphicModeCustomerReceipt(printer.ip, dummyOrder, settings, printer.model, printer.encoding);
                 await new Promise(r => setTimeout(r, 1000));
-                await printGraphicModeKitchenTicket(printer.ip, dummyOrder, dummyShop, printer.model, printer.encoding);
+                await printGraphicModeKitchenTicket(printer.ip, dummyOrder, settings, printer.model, printer.encoding);
             }
         } else {
             if (printer.type === 'kitchen') {
-                await printKitchenTicket(printer.ip, dummyOrder, dummyShop, printer.model, printer.encoding);
+                await printKitchenTicket(printer.ip, dummyOrder, settings, printer.model, printer.encoding);
             } else if (printer.type === 'receipt') {
-                await printCustomerReceipt(printer.ip, dummyOrder, dummyShop, printer.model, printer.encoding);
+                await printCustomerReceipt(printer.ip, dummyOrder, settings, printer.model, printer.encoding);
             } else {
-                await printCustomerReceipt(printer.ip, dummyOrder, dummyShop, printer.model, printer.encoding);
+                await printCustomerReceipt(printer.ip, dummyOrder, settings, printer.model, printer.encoding);
                 await new Promise(r => setTimeout(r, 1000));
-                await printKitchenTicket(printer.ip, dummyOrder, dummyShop, printer.model, printer.encoding);
+                await printKitchenTicket(printer.ip, dummyOrder, settings, printer.model, printer.encoding);
             }
         }
 

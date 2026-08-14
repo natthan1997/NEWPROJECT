@@ -84,6 +84,7 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
   const [pointsOrderId, setPointsOrderId] = useState<any | null>(null)
   const [paymentEditOrder, setPaymentEditOrder] = useState<any | null>(null)
   const [paymentEditMethod, setPaymentEditMethod] = useState<string>('cash')
+  const [cashReceivedInput, setCashReceivedInput] = useState<string>('')
   const [paymentEditOpen, setPaymentEditOpen] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [filterType, setFilterType] = useState<'all'|'store'|'delivery'|'cancelled'>('all')
@@ -386,12 +387,22 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
     }
     setPaymentEditOrder(order)
     setPaymentEditMethod(normalizePaymentMethod(order.payment_method || getOrderPaymentMethod(order)))
+    setCashReceivedInput('')
     setPaymentEditOpen(true)
   }
 
   const savePaymentEdit = async () => {
     if (!paymentEditOrder) return
     const paymentMethod = normalizePaymentMethod(paymentEditMethod)
+    const orderTotal = paymentEditOrder.net_total || paymentEditOrder.total_amount || 0;
+    const numCashReceived = Number(cashReceivedInput) || 0;
+    const cashChange = Math.max(0, numCashReceived - orderTotal);
+
+    if (paymentMethod === 'cash' && cashReceivedInput && numCashReceived < orderTotal) {
+      alert('ยอดเงินรับมาน้อยกว่ายอดที่ต้องชำระ');
+      return;
+    }
+
     try {
       const { error: orderError } = await supabase
         .from('pos_orders')
@@ -406,6 +417,8 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
         .from('pos_order_payments')
         .update({
           payment_method: paymentMethod,
+          received_amount: paymentMethod === 'cash' && numCashReceived >= orderTotal ? numCashReceived : orderTotal,
+          change_amount: paymentMethod === 'cash' && numCashReceived >= orderTotal ? cashChange : 0,
           updated_at: new Date().toISOString(),
         })
         .eq('order_id', paymentEditOrder.id)
@@ -745,6 +758,7 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
                                 () => {
                                   setPaymentEditOrder(order)
                                   setPaymentEditMethod(getPaymentMethodValue(order))
+                                  setCashReceivedInput('')
                                   setPaymentEditOpen(true)
                                 },
                                 'แก้ไขช่องทางชำระเงิน',
@@ -841,6 +855,33 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
                 <option value="credit_card">บัตรเครดิต</option>
                 <option value="promptpay">พร้อมเพย์</option>
               </select>
+
+              {paymentEditMethod === 'cash' && (
+                <div className="mt-4 space-y-3">
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-black">฿</span>
+                    <input
+                      type="number"
+                      value={cashReceivedInput}
+                      onChange={(e) => setCashReceivedInput(e.target.value)}
+                      placeholder="รับเงินมา (Received)"
+                      className="h-14 w-full rounded-none border border-black bg-white pl-10 pr-4 text-xl font-black text-[#1A1A18] outline-none focus:bg-white"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 gap-2">
+                    <button type="button" onClick={() => setCashReceivedInput(String(Math.ceil(paymentEditOrder.net_total || paymentEditOrder.total_amount || 0)))} className="h-12 border border-black bg-white hover:bg-black hover:text-white transition-all text-xs font-black">พอดี</button>
+                    <button type="button" onClick={() => setCashReceivedInput(prev => String(Number(prev || 0) + 100))} className="h-12 border border-black bg-white hover:bg-black hover:text-white transition-all text-xs font-black">+100</button>
+                    <button type="button" onClick={() => setCashReceivedInput(prev => String(Number(prev || 0) + 500))} className="h-12 border border-black bg-white hover:bg-black hover:text-white transition-all text-xs font-black">+500</button>
+                    <button type="button" onClick={() => setCashReceivedInput(prev => String(Number(prev || 0) + 1000))} className="h-12 border border-black bg-white hover:bg-black hover:text-white transition-all text-xs font-black">+1000</button>
+                  </div>
+                  {Number(cashReceivedInput) > 0 && Number(cashReceivedInput) >= (paymentEditOrder.net_total || paymentEditOrder.total_amount || 0) && (
+                    <div className="flex justify-between items-center bg-emerald-50 text-emerald-700 p-4 border border-emerald-200 mt-2">
+                      <span className="text-sm font-bold uppercase tracking-widest">เงินทอน</span>
+                      <span className="text-2xl font-black">฿{(Number(cashReceivedInput) - (paymentEditOrder.net_total || paymentEditOrder.total_amount || 0)).toLocaleString()}</span>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <button
                 type="button"

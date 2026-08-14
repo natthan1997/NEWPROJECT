@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import XYLLoader from '@/components/loaders/XYLLoader'
+import { printOpenDrawer } from '@/lib/printerUtils'
 
 export default function DeliveryManager({ unlockAudio, isAudioEnabled, variant = 'page', onClose, syncPulse, onStatusChange }: any) {
   const isDrawer = variant === 'drawer'
@@ -117,7 +118,9 @@ export default function DeliveryManager({ unlockAudio, isAudioEnabled, variant =
     }
   }, [expandedOrderId, orders])
 
-  const [finishModalOrder, setFinishModalOrder] = useState<any>(null)
+  const [finishModalOrder, setFinishModalOrder] = useState<any | null>(null)
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'cash'|'transfer'|null>(null)
+  const [cashReceivedInput, setCashReceivedInput] = useState<string>('')
   const [isFinishing, setIsFinishing] = useState(false)
 
   const handleStatus = async (id: string, status: string) => {
@@ -160,6 +163,16 @@ export default function DeliveryManager({ unlockAudio, isAudioEnabled, variant =
     if (!finishModalOrder || isFinishing) return
     setIsFinishing(true)
     
+    const orderTotal = Number(finishModalOrder.net_total || finishModalOrder.total_amount || 0)
+    const numCashReceived = Number(cashReceivedInput) || 0
+    const cashChange = Math.max(0, numCashReceived - orderTotal)
+
+    if (method === 'cash' && numCashReceived > 0 && numCashReceived < orderTotal) {
+      alert('ยอดเงินรับมาน้อยกว่ายอดชำระ')
+      setIsFinishing(false)
+      return
+    }
+
     try {
       const { data: existingPayments } = await supabase.from('pos_order_payments').select('id').eq('order_id', finishModalOrder.id)
       
@@ -167,10 +180,16 @@ export default function DeliveryManager({ unlockAudio, isAudioEnabled, variant =
         await supabase.from('pos_order_payments').insert({
           order_id: finishModalOrder.id,
           payment_method: method,
-          amount: Number(finishModalOrder.net_total || finishModalOrder.total_amount || 0),
+          amount: orderTotal,
+          received_amount: method === 'cash' && numCashReceived >= orderTotal ? numCashReceived : orderTotal,
+          change_amount: method === 'cash' && numCashReceived >= orderTotal ? cashChange : 0,
           status: 'paid'
         })
         await supabase.from('pos_orders').update({ payment_method: method, paid_at: new Date().toISOString() }).eq('id', finishModalOrder.id)
+        
+        if (method === 'cash') {
+          printOpenDrawer().catch(console.error)
+        }
       }
 
       // 🎁 Award Loyalty Points
@@ -588,7 +607,11 @@ export default function DeliveryManager({ unlockAudio, isAudioEnabled, variant =
                            <span className="text-[9px]">G-MAPS</span>
                         </button>
                         <button 
-                          onClick={() => setFinishModalOrder(order)}
+                          onClick={() => {
+                            setSelectedPaymentMethod(null)
+                            setCashReceivedInput('')
+                            setFinishModalOrder(order)
+                          }}
                           className="bg-emerald-500 text-white rounded-2xl font-black uppercase tracking-widest flex flex-col items-center justify-center gap-1 active:scale-95 transition-all shadow-md shadow-emerald-500/20 hover:bg-emerald-600 h-14"
                         >
                            <CheckCircle2 size={16} />
@@ -621,20 +644,71 @@ export default function DeliveryManager({ unlockAudio, isAudioEnabled, variant =
               </p>
               
               <div className="w-full space-y-3">
-                <button
-                  onClick={() => handleCompleteDelivery('cash')}
-                  disabled={isFinishing}
-                  className="w-full py-5 bg-emerald-50 text-emerald-700 border-2 border-emerald-200 rounded-2xl font-black uppercase tracking-widest hover:bg-emerald-100 transition-colors disabled:opacity-50"
-                >
-                  💵 เงินสด (CASH)
-                </button>
-                <button
-                  onClick={() => handleCompleteDelivery('transfer')}
-                  disabled={isFinishing}
-                  className="w-full py-5 bg-blue-50 text-blue-700 border-2 border-blue-200 rounded-2xl font-black uppercase tracking-widest hover:bg-blue-100 transition-colors disabled:opacity-50"
-                >
-                  📱 โอนเงิน (TRANSFER)
-                </button>
+                {!selectedPaymentMethod ? (
+                  <>
+                    <button
+                      onClick={() => setSelectedPaymentMethod('cash')}
+                      disabled={isFinishing}
+                      className="w-full py-5 bg-emerald-50 text-emerald-700 border-2 border-emerald-200 rounded-2xl font-black uppercase tracking-widest hover:bg-emerald-100 transition-colors disabled:opacity-50"
+                    >
+                      💵 เงินสด (CASH)
+                    </button>
+                    <button
+                      onClick={() => handleCompleteDelivery('transfer')}
+                      disabled={isFinishing}
+                      className="w-full py-5 bg-blue-50 text-blue-700 border-2 border-blue-200 rounded-2xl font-black uppercase tracking-widest hover:bg-blue-100 transition-colors disabled:opacity-50"
+                    >
+                      📱 โอนเงิน (TRANSFER)
+                    </button>
+                  </>
+                ) : selectedPaymentMethod === 'cash' ? (
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-2xl border border-emerald-200">
+                      <span className="text-sm font-black text-emerald-700">ยอดที่ต้องชำระ</span>
+                      <span className="text-2xl font-black text-emerald-700">฿{(finishModalOrder.net_total || finishModalOrder.total_amount || 0).toLocaleString()}</span>
+                    </div>
+                    
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-black">฿</span>
+                      <input
+                        type="number"
+                        value={cashReceivedInput}
+                        onChange={(e) => setCashReceivedInput(e.target.value)}
+                        placeholder="รับเงินมา (Received)"
+                        className="h-14 w-full rounded-2xl border border-gray-200 bg-gray-50 pl-10 pr-4 text-xl font-black text-[#1A1A18] outline-none focus:bg-white focus:border-emerald-500"
+                        autoFocus
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-4 gap-2">
+                      <button type="button" onClick={() => setCashReceivedInput(String(Math.ceil(finishModalOrder.net_total || finishModalOrder.total_amount || 0)))} className="h-12 border border-gray-200 bg-gray-50 hover:bg-[#1A1A18] hover:text-white rounded-xl transition-all text-xs font-black">พอดี</button>
+                      <button type="button" onClick={() => setCashReceivedInput(prev => String(Number(prev || 0) + 100))} className="h-12 border border-gray-200 bg-gray-50 hover:bg-[#1A1A18] hover:text-white rounded-xl transition-all text-xs font-black">+100</button>
+                      <button type="button" onClick={() => setCashReceivedInput(prev => String(Number(prev || 0) + 500))} className="h-12 border border-gray-200 bg-gray-50 hover:bg-[#1A1A18] hover:text-white rounded-xl transition-all text-xs font-black">+500</button>
+                      <button type="button" onClick={() => setCashReceivedInput(prev => String(Number(prev || 0) + 1000))} className="h-12 border border-gray-200 bg-gray-50 hover:bg-[#1A1A18] hover:text-white rounded-xl transition-all text-xs font-black">+1000</button>
+                    </div>
+
+                    {Number(cashReceivedInput) > 0 && Number(cashReceivedInput) >= (finishModalOrder.net_total || finishModalOrder.total_amount || 0) && (
+                      <div className="flex justify-between items-center bg-gray-100 p-4 border border-gray-200 rounded-2xl">
+                        <span className="text-sm font-bold uppercase tracking-widest text-gray-500">เงินทอน</span>
+                        <span className="text-2xl font-black text-black">฿{(Number(cashReceivedInput) - (finishModalOrder.net_total || finishModalOrder.total_amount || 0)).toLocaleString()}</span>
+                      </div>
+                    )}
+
+                    <button
+                      disabled={isFinishing || !cashReceivedInput || Number(cashReceivedInput) < (finishModalOrder.net_total || finishModalOrder.total_amount || 0)}
+                      onClick={() => handleCompleteDelivery('cash')}
+                      className="w-full py-4 mt-2 bg-[#1A1A18] text-white rounded-2xl font-black uppercase tracking-widest hover:bg-black transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isFinishing ? 'กำลังบันทึก...' : 'ยืนยันรับชำระเงินสด'}
+                    </button>
+                    <button
+                      onClick={() => setSelectedPaymentMethod(null)}
+                      className="w-full py-3 text-xs font-black text-gray-400 hover:text-gray-600 transition-colors uppercase"
+                    >
+                      ย้อนกลับ
+                    </button>
+                  </div>
+                ) : null}
               </div>
 
               <button
