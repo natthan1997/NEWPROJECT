@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useI18n } from "@/lib/I18nContext";
 import { QRCodeCanvas } from 'qrcode.react';
 import { buildMemberSearchFilter, formatPhoneDisplay } from '@/lib/phoneUtils';
+import CrmSettingsPage from '@/app/dashboard/admin/pos-settings/crm/page';
 
 interface Customer {
     id: string
