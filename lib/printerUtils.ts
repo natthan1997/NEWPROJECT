@@ -435,7 +435,7 @@ const shouldPrintReceiptPaymentQr = (order: PrintOrderData, shop: PrintShopData)
   if (!shop.receiptPaymentQrImage) return false
   const source = normalizePaymentMethod(order.orderSource)
   const paymentMethod = normalizePaymentMethod(order.paymentMethod)
-  return source === 'liff' && ['cod', 'cash_on_delivery', 'cash-on-delivery'].includes(paymentMethod)
+  return source === 'liff' && ['cod', 'cash_on_delivery', 'cash-on-delivery', 'cash'].includes(paymentMethod)
 }
 
 const loadImageElement = (src: string): Promise<HTMLImageElement> => {
