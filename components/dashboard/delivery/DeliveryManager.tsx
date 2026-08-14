@@ -278,30 +278,32 @@ export default function DeliveryManager({ unlockAudio, isAudioEnabled, variant =
       {/* 🔝 PREMIUM HEADER */}
       <div className={`flex-none border-b border-gray-200/50 z-10 ${isDrawer ? 'px-6 pt-12 pb-6 bg-[#F5F5F7]' : 'px-8 py-6 bg-white shadow-sm'}`}>
         <div className="flex justify-between items-start">
-          <div>
-            <h1 className={`font-black text-[#1A1A18] flex items-center gap-4 ${isDrawer ? 'text-3xl' : 'text-2xl'}`}>
-               <div className="w-14 h-14 bg-orange-50 text-orange-500 flex items-center justify-center rounded-2xl border border-orange-100 shadow-sm">
-                 <Truck size={isDrawer ? 28 : 28} />
-               </div>
-               {isDrawer ? 'เดลิเวอรี่ / สั่งกลับบ้าน' : 'ติดตามสถานะออเดอร์ (DELIVERY)'}
-            </h1>
-            <p className="text-[10px] font-bold text-gray-400 uppercase mt-4">
-              {isDrawer ? 'จัดการออเดอร์เดลิเวอรี่และสั่งกลับบ้าน' : 'อัพเดทสถานะออเดอร์แบบเรียลไทม์'}
-            </p>
+          <div className="flex items-center gap-3">
+             <div className="w-12 h-12 shrink-0 bg-orange-50 text-orange-500 flex items-center justify-center rounded-2xl border border-orange-100">
+               <Truck size={24} />
+             </div>
+             <div className="flex flex-col">
+               <h1 className={`font-black text-[#1A1A18] leading-tight ${isDrawer ? 'text-lg' : 'text-2xl'}`}>
+                 {isDrawer ? 'เดลิเวอรี่ / กลับบ้าน' : 'ติดตามสถานะ (Delivery)'}
+               </h1>
+               <p className="text-[11px] font-bold text-gray-400 mt-1">
+                 {isDrawer ? 'จัดการออเดอร์เดลิเวอรี่และสั่งกลับบ้าน' : 'อัพเดทสถานะแบบเรียลไทม์'}
+               </p>
+             </div>
           </div>
-          <div className="flex gap-3">
-              <button onClick={unlockAudio} className={`flex items-center justify-center w-14 h-14 rounded-2xl transition-all shadow-sm ${isAudioEnabled ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-red-50 text-red-600 border border-red-100 animate-pulse'}`}>
-                  {isAudioEnabled ? <Volume2 size={22} /> : <VolumeX size={22} />}
+          <div className="flex gap-2">
+              <button onClick={unlockAudio} className={`flex items-center justify-center w-12 h-12 rounded-2xl transition-all shadow-sm ${isAudioEnabled ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-red-50 text-red-600 border border-red-100 animate-pulse'}`}>
+                  {isAudioEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
               </button>
-              <button onClick={fetchData} className={`flex items-center justify-center w-14 h-14 bg-white text-[#1A1A18] border border-gray-200 rounded-2xl hover:bg-gray-50 active:scale-95 transition-all shadow-sm`}>
-                  <RefreshCcw size={22} className={isLoading ? 'animate-spin' : ''} />
+              <button onClick={fetchData} className={`flex items-center justify-center w-12 h-12 bg-white text-[#1A1A18] border border-gray-200 rounded-2xl hover:bg-gray-50 active:scale-95 transition-all shadow-sm`}>
+                  <RefreshCcw size={20} className={isLoading ? 'animate-spin' : ''} />
               </button>
               {isDrawer && (
                 <button
                   onClick={onClose}
-                  className="flex items-center justify-center w-14 h-14 bg-[#1A1A18] text-white rounded-2xl hover:bg-black active:scale-95 transition-all shadow-xl shadow-black/20 ml-2"
+                  className="flex items-center justify-center w-12 h-12 bg-[#1A1A18] text-white rounded-2xl hover:bg-black active:scale-95 transition-all shadow-xl shadow-black/20 ml-1"
                 >
-                  <X size={24} />
+                  <X size={20} />
                 </button>
               )}
           </div>
@@ -313,9 +315,14 @@ export default function DeliveryManager({ unlockAudio, isAudioEnabled, variant =
         {/* 📋 LIST VIEW (NO MAP) */}
         <div className={`flex-1 overflow-y-auto custom-scrollbar ${isDrawer ? 'p-4 pb-24 flex flex-col gap-4' : 'p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'}`}>
            {orders.length === 0 ? (
-             <div className="col-span-full h-full flex flex-col items-center justify-center text-gray-300">
-                <Package size={64} className="mb-4 opacity-20" />
-                <p className="text-[13px] font-black uppercase text-gray-400">ไม่มีออเดอร์ในขณะนี้</p>
+             <div className="col-span-full h-full flex flex-col items-center justify-center text-gray-400">
+                <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-sm border border-gray-100 mb-5">
+                  <Package size={28} className="text-gray-300" />
+                </div>
+                <p className="text-[14px] font-bold text-gray-500">ยังไม่มีออเดอร์ในขณะนี้</p>
+                <p className="text-[11px] font-medium text-gray-400 mt-2 text-center max-w-[200px]">
+                  ออเดอร์เดลิเวอรี่และสั่งกลับบ้านจะแสดงที่นี่เมื่อมีรายการใหม่
+                </p>
              </div>
            ) : orders.map(order => {
             const statusMeta = getStatusMeta(order.status)
