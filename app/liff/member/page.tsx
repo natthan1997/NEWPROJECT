@@ -143,9 +143,11 @@ function LiffMemberContent() {
   const [selectedBadge, setSelectedBadge] = useState<any>(null);
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [quickRewards, setQuickRewards] = useState<any[]>([]);
+  const [hasUsedBirthdayFree, setHasUsedBirthdayFree] = useState(false);
+  const [suggestedReward, setSuggestedReward] = useState<any>(null);
+  const [missionsLoading, setMissionsLoading] = useState(true);
 
   const [activeMissions, setActiveMissions] = useState<any[]>([]);
-  const [missionsLoading, setMissionsLoading] = useState(true);
 
   // Mystery Box State
   const [showMysteryBox, setShowMysteryBox] = useState(false);
@@ -437,6 +439,21 @@ function LiffMemberContent() {
       if (member) {
         setMemberInfo(member);
         try {
+          const currentYear = new Date().getFullYear();
+          const startOfYear = new Date(currentYear, 0, 1).toISOString();
+          const { data: history } = await supabase
+            .from('pos_points_history')
+            .select('id')
+            .eq('member_id', member.id)
+            .like('description', '[BIRTHDAY_FREE]%')
+            .gte('created_at', startOfYear)
+            .limit(1);
+          setHasUsedBirthdayFree(!!history && history.length > 0);
+        } catch (err) {
+          console.error('Failed to check birthday free status', err);
+        }
+
+        try {
           const { count } = await supabase
             .from('pos_member_coupons')
             .select('*', { count: 'exact', head: true })
@@ -568,8 +585,18 @@ function LiffMemberContent() {
   };
 
   const handleRedeemQuick = async (reward: any) => {
-    const points = memberInfo?.points || 0;
-    if (points < reward.cost_points) {
+    const dobStr = memberInfo?.date_of_birth || memberInfo?.dateOfBirth;
+    let isBirthdayMonth = false;
+    if (dobStr) {
+      const dob = new Date(dobStr);
+      const today = new Date();
+      isBirthdayMonth = dob.getMonth() === today.getMonth();
+    }
+    const isBirthdayFreeActive = isBirthdayMonth && !hasUsedBirthdayFree;
+    
+    const canRedeem = isBirthdayFreeActive || (memberInfo?.points || 0) >= reward.cost_points;
+
+    if (!canRedeem) {
       Swal.fire({
         icon: 'error',
         title: 'พอยท์ไม่พอ 😢',
@@ -581,9 +608,13 @@ function LiffMemberContent() {
       return;
     }
     
+    const confirmMessage = isBirthdayFreeActive
+      ? `ต้องการใช้สิทธิ์แลกฟรี 1 ครั้งสำหรับเดือนเกิดกับคูปอง "${reward.name}" ใช่หรือไม่?`
+      : `ใช้ ${reward.cost_points} พอยท์ เพื่อแลกคูปอง "${reward.name}" ใช่หรือไม่?`;
+      
     const confirmResult = await Swal.fire({
       title: 'ยืนยันการแลกรางวัล',
-      text: `ใช้ ${reward.cost_points} พอยท์ เพื่อแลกคูปอง "${reward.name}" ใช่หรือไม่?`,
+      text: confirmMessage,
       icon: 'question',
       showCancelButton: true,
       confirmButtonColor: '#1A1A18',
@@ -604,7 +635,8 @@ function LiffMemberContent() {
     setShowRedeemSuccess(true);
     setActiveCouponCount(prev => prev + 1);
     const previousPoints = memberInfo?.points || 0;
-    setMemberInfo((prev: any) => prev ? { ...prev, points: prev.points - reward.cost_points } : null);
+    const actualCost = isBirthdayFreeActive ? 0 : reward.cost_points;
+    setMemberInfo((prev: any) => prev ? { ...prev, points: prev.points - actualCost } : null);
     
     // 2. Scroll to top so user sees the message
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -618,10 +650,13 @@ function LiffMemberContent() {
       const res = await fetch('/api/liff/member/redeem', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lineUserId: userId, couponId: reward.id })
+        body: JSON.stringify({ 
+          lineUserId: userId, 
+          couponId: reward.id,
+          useBirthdayFree: isBirthdayFreeActive
+        })
       });
       const data = await res.json();
-      
       if (!data.success) {
         // Rollback on API logical error
         throw new Error(data.error || 'Failed to redeem');
@@ -1323,7 +1358,20 @@ function LiffMemberContent() {
           className="-mx-5 mt-4"
         >
           <div className="px-5 mb-4 flex justify-between items-baseline">
-            <h3 className="text-[16px] font-semibold text-gray-900 tracking-tight">แลกของรางวัล</h3>
+            <h3 className="text-[16px] font-semibold text-gray-900 tracking-tight flex items-center gap-2">
+                แลกของรางวัล
+                {(() => {
+                    const dobStr = memberInfo?.date_of_birth || memberInfo?.dateOfBirth;
+                    if (!dobStr) return false;
+                    const dob = new Date(dobStr);
+                    const today = new Date();
+                    const isBirthdayMonth = dob.getMonth() === today.getMonth();
+                    if (isBirthdayMonth && !hasUsedBirthdayFree) {
+                        return <span className="text-[10px] font-bold text-pink-500 animate-pulse bg-pink-50 px-2 py-0.5 rounded-full">🎉 ฟรี 1 ชิ้น!</span>;
+                    }
+                    return null;
+                })()}
+            </h3>
             <Link href="/liff/rewards" className="text-[12px] text-[#1A1A18] font-medium">ดูทั้งหมด</Link>
           </div>
           
@@ -1352,8 +1400,33 @@ function LiffMemberContent() {
                           </h4>
                         </div>
                         <div className="flex items-baseline drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] mt-0.5 text-[#FCF7E8]">
-                          <span className="text-[16px] font-black leading-none">{reward.cost_points.toLocaleString()}</span>
-                          <span className="text-[9px] font-semibold ml-1 opacity-90">พอยท์</span>
+                          {(() => {
+                              const dobStr = memberInfo?.date_of_birth || memberInfo?.dateOfBirth;
+                              let isBirthdayMonth = false;
+                              if (dobStr) {
+                                const dob = new Date(dobStr);
+                                const today = new Date();
+                                isBirthdayMonth = dob.getMonth() === today.getMonth();
+                              }
+                              const isBirthdayFreeActive = isBirthdayMonth && !hasUsedBirthdayFree;
+                              
+                              if (isBirthdayFreeActive) {
+                                  return (
+                                      <div className="flex items-baseline gap-1">
+                                          <span className="line-through text-white/70 text-[11px] font-normal">{reward.cost_points}</span>
+                                          <span className="text-[16px] font-black leading-none text-pink-400">0</span>
+                                          <span className="text-[9px] font-bold ml-0.5 text-pink-400">(ฟรี!)</span>
+                                      </div>
+                                  );
+                              }
+                              
+                              return (
+                                  <>
+                                      <span className="text-[16px] font-black leading-none">{reward.cost_points.toLocaleString()}</span>
+                                      <span className="text-[9px] font-semibold ml-1 opacity-90">พอยท์</span>
+                                  </>
+                              );
+                          })()}
                         </div>
                       </div>
                     </div>
