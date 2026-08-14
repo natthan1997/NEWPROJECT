@@ -274,6 +274,7 @@ export default function LiffMenuPage() {
 
   const [shakePhone, setShakePhone] = useState(false);
   const [shakeAddress, setShakeAddress] = useState(false);
+  const [guestName, setGuestName] = useState('');
   const [tempAddress, setTempAddress] = useState('');
   const [tempAddressShort, setTempAddressShort] = useState('');
   const [isLocatingAddress, setIsLocatingAddress] = useState(false);
@@ -2051,7 +2052,7 @@ export default function LiffMenuPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           items: cart, 
-          customerName: lineProfile?.displayName,
+          customerName: lineProfile?.displayName || guestName || null,
           customerImage: lineProfile?.pictureUrl,
           lineUserId: lineProfile?.userId,
           phoneNumber: phone, 
@@ -2968,6 +2969,13 @@ export default function LiffMenuPage() {
                       </div>
                     </div>
                   </button>
+                )}
+
+                {!lineProfile && (
+                  <div className="p-4 rounded-2xl border transition-all mb-4 border-neutral-100 bg-white">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 block mb-1">{locale === 'en' ? 'Your Name' : 'ชื่อของคุณ (ลูกค้าทั่วไป)'}</label>
+                    <input type="text" value={guestName} onChange={e => setGuestName(e.target.value)} placeholder={locale === 'en' ? 'Enter your name...' : 'ระบุชื่อของคุณ...'} className="w-full bg-transparent border-none p-0 text-[18px] font-black text-[#1A1A18] focus:ring-0 placeholder:text-neutral-200" />
+                  </div>
                 )}
 
                 <div id="phone-input" className={`p-4 rounded-2xl border transition-all ${shakePhone ? 'animate-shake border-red-500 bg-red-50' : 'border-neutral-100 bg-white'}`}>

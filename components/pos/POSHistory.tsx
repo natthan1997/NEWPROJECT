@@ -817,7 +817,7 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
               <div className="text-[10px] font-black uppercase tracking-[0.3em] text-[#1A1A18]">Payment Method</div>
               <h3 className="mt-2 text-2xl font-black text-[#1A1A18] uppercase tracking-tighter">แก้ไขช่องทางชำระเงิน</h3>
               <p className="mt-2 text-sm font-bold text-gray-500">
-                {paymentEditOrder.order_number} · {paymentEditOrder.customer_name || 'Guest'}
+                {paymentEditOrder.order_number} · {paymentEditOrder.customer_name || paymentEditOrder.reference_name || 'Guest'}
               </p>
             </div>
 

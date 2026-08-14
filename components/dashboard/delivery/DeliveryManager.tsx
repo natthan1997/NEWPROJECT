@@ -336,7 +336,7 @@ export default function DeliveryManager({ unlockAudio, isAudioEnabled, variant =
                            </span>
                          </div>
                          <h3 className="truncate text-[22px] font-black text-[#1A1A18] uppercase tracking-tight leading-tight mb-1">
-                           {order.customer_name || 'GUEST'}
+                           {order.customer_name || order.reference_name || 'GUEST'}
                          </h3>
                          {order.reference_name && (
                            <div className="flex items-center gap-1.5 text-gray-500 mb-2">
