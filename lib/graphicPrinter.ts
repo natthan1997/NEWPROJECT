@@ -216,8 +216,11 @@ const renderReceiptHtml = (order: PrintOrderData, shop: PrintShopData) => {
     html += `</div>`;
   }
   html += `<div style="border-top: 3px dashed black; margin: 14px 0;"></div>`;
-  if (shop.receiptFooter) html += `<div style="white-space: pre-wrap; text-align:center; font-size:21px; line-height:1.35;">${escapeHtml(shop.receiptFooter)}</div>`;
-  else html += `<div style="white-space: pre-wrap; text-align:center; font-size:21px; line-height:1.35; font-weight:800;">Thank you<br/>Powered by XYL STUDIO</div>`;
+  if (shop.receiptFooter) {
+    html += `<div style="white-space: pre-wrap; text-align:center; font-size:21px; line-height:1.35;">${escapeHtml(shop.receiptFooter)}</div>`;
+  } else {
+    html += `<div style="white-space: pre-wrap; text-align:center; font-size:21px; line-height:1.35; font-weight:800;">Thank you<br>Powered by XYL STUDIO</div>`;
+  }
   return html;
 };
 
