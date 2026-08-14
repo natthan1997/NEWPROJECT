@@ -1062,62 +1062,72 @@ function LiffMemberContent() {
           initial={{ opacity: 0, y: 20, scale: 0.95 }} 
           animate={{ opacity: 1, y: 0, scale: 1 }} 
           transition={{ duration: 0.6, ease: "easeOut" }}
-          className={`w-full flex flex-col relative rounded-[32px] overflow-hidden ${isBirthdayMonth ? 'p-[2.5px] shadow-[0_0_20px_rgba(236,72,153,0.3)]' : ''}`}
-          style={{ perspective: 1000 }}
+          className={`w-full flex flex-col relative rounded-[32px] ${isBirthdayMonth ? 'p-[2.5px] shadow-[0_0_30px_rgba(236,72,153,0.4)]' : ''}`}
+          style={{ perspective: 1200, WebkitPerspective: 1200 }}
         >
-          {/* Animated Birthday Border */}
+          {/* Animated Birthday Border Container (Masked) */}
           {isBirthdayMonth && (
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200%] h-[200%] bg-[conic-gradient(from_0deg,transparent_0_270deg,rgba(236,72,153,1)_315deg,rgba(245,158,11,1)_360deg)] animate-[spin_3s_linear_infinite]"></div>
+            <div className="absolute inset-0 rounded-[32px] overflow-hidden pointer-events-none">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200%] h-[200%] bg-[conic-gradient(from_0deg,transparent_0_270deg,rgba(236,72,153,1)_315deg,rgba(245,158,11,1)_360deg)] animate-[spin_3s_linear_infinite]"></div>
+            </div>
           )}
 
           <motion.div 
             animate={{ 
-              rotateX: [0, 3, -3, 0], 
-              rotateY: [0, -3, 3, 0],
-              y: [0, -4, 0]
+              rotateX: [0, 8, -8, 0], 
+              rotateY: [0, -8, 8, 0],
+              y: [0, -10, 0]
             }}
             transition={{ 
-              duration: 6, 
+              duration: 5, 
               repeat: Infinity, 
               ease: "easeInOut" 
             }}
-            className={`p-8 rounded-[30px] relative z-10 flex flex-col overflow-hidden shadow-xl h-full w-full ${currentTier.cardBg || 'bg-[#1A1A18]'}`}
-            style={{ transformStyle: "preserve-3d" }}
+            className="p-0 relative z-10 flex flex-col h-full w-full rounded-[30px] shadow-2xl"
+            style={{ transformStyle: "preserve-3d", WebkitTransformStyle: "preserve-3d" }}
           >
-            {/* Minimalist Accent */}
-            <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-white/10 to-transparent pointer-events-none" style={{ transform: 'translateZ(-10px)' }}></div>
-            
-            {/* Special Birthday Effects Inside the Card */}
-            {isBirthdayMonth && (
-              <>
-                {/* Gold Shimmer Sweep */}
-                <motion.div 
-                  initial={{ x: '-100%' }} animate={{ x: '200%' }} transition={{ duration: 3, ease: 'easeInOut', repeat: Infinity, repeatDelay: 1 }}
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12 z-0 pointer-events-none"
-                />
+            {/* Background Layer (Has overflow-hidden for rounded corners) */}
+            <div className={`absolute inset-0 rounded-[30px] overflow-hidden ${currentTier.cardBg || 'bg-[#1A1A18]'}`} style={{ transform: 'translateZ(-10px)' }}>
+              {/* Minimalist Accent */}
+              <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-white/10 to-transparent pointer-events-none"></div>
+              
+              {/* Special Birthday Effects Inside the Card */}
+              {isBirthdayMonth && (
+                <>
+                  {/* Dynamic 3D Glare / Shimmer Sweep */}
+                  <motion.div 
+                    initial={{ x: '-100%' }} animate={{ x: '200%' }} transition={{ duration: 3, ease: 'easeInOut', repeat: Infinity, repeatDelay: 1 }}
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-12 z-0 pointer-events-none"
+                  />
+                  
+                  {/* Top Right Ribbon / Badge */}
+                  <div className="absolute top-0 right-0 overflow-hidden w-28 h-28 pointer-events-none z-0">
+                     <div className="absolute top-6 -right-6 w-40 bg-gradient-to-r from-pink-500 to-amber-500 transform rotate-45 text-center text-white text-[8px] font-extrabold tracking-widest py-1 shadow-lg shadow-pink-500/30">
+                       BIRTHDAY MONTH
+                     </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Content Layer (No overflow-hidden, pops out in 3D) */}
+            <div className="relative z-10 text-white flex flex-col h-full p-8" style={{ transform: 'translateZ(40px)', transformStyle: "preserve-3d", WebkitTransformStyle: "preserve-3d" }}>
                 
-                {/* Top Right Ribbon / Badge */}
-                <div className="absolute top-0 right-0 overflow-hidden w-28 h-28 pointer-events-none z-0">
-                   <div className="absolute top-6 -right-6 w-40 bg-gradient-to-r from-pink-500 to-amber-500 transform rotate-45 text-center text-white text-[8px] font-extrabold tracking-widest py-1 shadow-lg shadow-pink-500/30">
-                     BIRTHDAY MONTH
-                   </div>
-                </div>
+                {/* Floating Sparkles that pop out with the text */}
+                {isBirthdayMonth && (
+                  <>
+                    <motion.div animate={{ y: [0, -15, 0], opacity: [0.4, 1, 0.4], rotate: [0, 20, 0] }} transition={{ duration: 3, repeat: Infinity }} className="absolute top-0 left-1/2 text-amber-300 pointer-events-none" style={{ transform: 'translateZ(10px)' }}>
+                      <Sparkles size={18} strokeWidth={1.5} />
+                    </motion.div>
+                    <motion.div animate={{ y: [0, 15, 0], opacity: [0.3, 0.8, 0.3], scale: [1, 1.3, 1] }} transition={{ duration: 2.5, repeat: Infinity, delay: 1 }} className="absolute bottom-4 right-0 text-pink-300 pointer-events-none" style={{ transform: 'translateZ(15px)' }}>
+                      <Sparkles size={16} strokeWidth={1.5} />
+                    </motion.div>
+                    <motion.div animate={{ scale: [1, 1.4, 1], opacity: [0.4, 1, 0.4], rotate: [0, -25, 0] }} transition={{ duration: 2, repeat: Infinity, delay: 0.5 }} className="absolute top-10 right-10 text-yellow-200 pointer-events-none" style={{ transform: 'translateZ(20px)' }}>
+                      <Sparkles size={20} strokeWidth={1.5} />
+                    </motion.div>
+                  </>
+                )}
 
-                {/* Floating Sparkles */}
-                <motion.div animate={{ y: [0, -10, 0], opacity: [0.3, 0.8, 0.3], rotate: [0, 15, 0] }} transition={{ duration: 3, repeat: Infinity }} className="absolute top-6 left-1/2 text-amber-300 pointer-events-none">
-                  <Sparkles size={16} strokeWidth={1.5} />
-                </motion.div>
-                <motion.div animate={{ y: [0, 10, 0], opacity: [0.2, 0.6, 0.2], scale: [1, 1.2, 1] }} transition={{ duration: 2.5, repeat: Infinity, delay: 1 }} className="absolute bottom-10 right-6 text-pink-300 pointer-events-none">
-                  <Sparkles size={14} strokeWidth={1.5} />
-                </motion.div>
-                <motion.div animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.9, 0.3], rotate: [0, -20, 0] }} transition={{ duration: 2, repeat: Infinity, delay: 0.5 }} className="absolute top-20 right-20 text-yellow-200 pointer-events-none">
-                  <Sparkles size={18} strokeWidth={1.5} />
-                </motion.div>
-              </>
-            )}
-
-            {/* Content Container with slight 3D pop */}
-            <div className="relative z-10 text-white flex flex-col h-full" style={{ transform: 'translateZ(20px)' }}>
                 <div className="flex justify-between items-start mb-10">
                     <div className="flex flex-col">
                         <span className="text-[11px] font-medium tracking-[0.15em] uppercase opacity-70 mb-1">{dict.points}</span>
