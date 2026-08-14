@@ -684,7 +684,8 @@ export default function POSStaffManager({
             can_void_orders: !!selectedStaff.can_void_orders,
             can_give_discounts: selectedStaff.can_give_discounts !== false,
             can_open_cash_drawer: selectedStaff.can_open_cash_drawer !== false,
-            can_manage_stock: !!selectedStaff.can_manage_stock
+            can_manage_stock: !!selectedStaff.can_manage_stock,
+            has_social_security: selectedStaff.has_social_security || false
         }).eq('id', selectedStaff.id)
         if (!error) {
             fetchStaff()
@@ -800,7 +801,8 @@ export default function POSStaffManager({
             role: 'user',
             staff_level: newStaffForm.staff_level || 'staff',
             is_verified: true,
-            quota_public_holiday: 0
+            quota_public_holiday: 0,
+            has_social_security: newStaffForm.has_social_security || false
         });
 
         if (error) {
