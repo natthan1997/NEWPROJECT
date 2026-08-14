@@ -410,6 +410,11 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
         })
         .eq('order_id', paymentEditOrder.id)
       await fetchCompletedOrders()
+      
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('kickPOSDrawer', { detail: { method: paymentMethod } }))
+      }
+
       if (typeof window !== 'undefined' && activeShift?.id) {
         await supabase
           .from('pos_shifts')

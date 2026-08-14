@@ -231,6 +231,10 @@ export default function DeliveryManager({ unlockAudio, isAudioEnabled, variant =
       }
 
       await handleStatus(finishModalOrder.id, 'completed')
+      
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('kickPOSDrawer', { detail: { method } }))
+      }
     } catch (e: any) {
       console.error(e)
     } finally {

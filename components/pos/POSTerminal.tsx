@@ -2067,6 +2067,26 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     }
   }, [cart]);
 
+  useEffect(() => {
+    const handleKickDrawer = (e: any) => {
+      const method = e.detail?.method || 'cash';
+      
+      const kickOnCash = method === 'cash' && shiftSettings?.drawer_kick_on_cash;
+      const kickOnCredit = method === 'credit_card' && shiftSettings?.drawer_kick_on_credit;
+      const kickOnCustom = method !== 'cash' && method !== 'credit_card' && shiftSettings?.drawer_kick_on_custom;
+      
+      if (kickOnCash || kickOnCredit || kickOnCustom) {
+        if (receiptPrinters.length > 0) {
+          Promise.all(receiptPrinters.map(rp => rp.ip ? printOpenDrawer(rp.ip) : Promise.resolve())).catch(console.error);
+        } else {
+          const fallbackIp = localStorage.getItem('xyl_pos_printer_ip');
+          if (fallbackIp) printOpenDrawer(fallbackIp).catch(console.error);
+        }
+      }
+    };
+    window.addEventListener('kickPOSDrawer', handleKickDrawer);
+    return () => window.removeEventListener('kickPOSDrawer', handleKickDrawer);
+  }, [shiftSettings, receiptPrinters]);
 
 
   useEffect(() => {
