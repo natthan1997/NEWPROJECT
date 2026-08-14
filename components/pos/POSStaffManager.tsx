@@ -216,9 +216,11 @@ export default function POSStaffManager({
         staff_type: 'general',
         staff_level: 'staff',
         salary_type: 'daily',
+        is_rider: false,
         holiday_compensation_type: 'money',
         daily_wage: 0,
         is_pos_device: false,
+        has_social_security: false,
         work_days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
     })
 
@@ -227,6 +229,9 @@ export default function POSStaffManager({
         profile_id: '',
         leave_date: '',
         leave_type: 'sick',
+        is_active: false,
+        is_rider: false,
+        permissions: [] as string[],
         is_paid: false,
         reason: ''
     })
@@ -396,7 +401,8 @@ export default function POSStaffManager({
                         const checkInDate = new Date(log.timestamp);
                         const checkInMins = checkInDate.getHours() * 60 + checkInDate.getMinutes();
                         const targetMins = (sHour || 8) * 60 + (sMin || 30);
-                        const gracePeriod = 10;
+                        const shiftSettings = typeof shopSettings?.shift_settings === 'string' ? JSON.parse(shopSettings.shift_settings) : (shopSettings?.shift_settings || {});
+                        const gracePeriod = shiftSettings.late_grace_period_minutes !== undefined ? Number(shiftSettings.late_grace_period_minutes) : 10;
 
                         if (checkInMins > targetMins + gracePeriod) {
                             grouped[key].late_minutes = checkInMins - targetMins;
@@ -532,8 +538,8 @@ export default function POSStaffManager({
                         const [sHour, sMin] = shiftStart.split(':').map(Number);
                         const checkInDate = new Date(log.timestamp);
                         const checkInMins = checkInDate.getHours() * 60 + checkInDate.getMinutes();
-                        const targetMins = (sHour || 8) * 60 + (sMin || 30);
-                        const gracePeriod = 10;
+                        const targetMins = (sHour || 8) * 60 + (sMin || 30);                        const shiftSettings = typeof shopSettings?.shift_settings === 'string' ? JSON.parse(shopSettings.shift_settings) : (shopSettings?.shift_settings || {});
+                        const gracePeriod = shiftSettings.late_grace_period_minutes !== undefined ? Number(shiftSettings.late_grace_period_minutes) : 10;
 
                         if (checkInMins > targetMins + gracePeriod) {
                             grouped[key].late_minutes = checkInMins - targetMins;
@@ -663,6 +669,7 @@ export default function POSStaffManager({
             department: selectedStaff.department,
             daily_wage: selectedStaff.daily_wage,
             salary_type: selectedStaff.salary_type,
+            is_rider: selectedStaff.is_rider || false,
             holiday_compensation_type: selectedStaff.holiday_compensation_type,
             is_pos_account: selectedStaff.is_pos_account,
             shift_start: selectedStaff.shift_start,
@@ -784,7 +791,8 @@ export default function POSStaffManager({
             phone: newStaffForm.phone,
             staff_type: newStaffForm.staff_type,
             department: newStaffForm.staff_type,
-            salary_type: newStaffForm.salary_type,
+            salary_type: newStaffForm.salary_type || 'daily',
+            is_rider: newStaffForm.is_rider || false,
             holiday_compensation_type: newStaffForm.holiday_compensation_type,
             daily_wage: newStaffForm.daily_wage,
             is_pos_device: newStaffForm.is_pos_device,
@@ -800,7 +808,7 @@ export default function POSStaffManager({
         } else {
             setShowAddStaffModal(false);
             setNewStaffForm({
-                display_name: '', staff_code: '', phone: '', staff_type: 'general', staff_level: 'staff', salary_type: 'daily', holiday_compensation_type: 'money', daily_wage: 0, is_pos_device: false, work_days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
+                display_name: '', staff_code: '', phone: '', staff_type: 'general', staff_level: 'staff', salary_type: 'daily', is_rider: false, holiday_compensation_type: 'money', daily_wage: 0, is_pos_device: false, has_social_security: false, work_days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
             });
             fetchStaff();
         }
@@ -822,7 +830,7 @@ export default function POSStaffManager({
             alert('เกิดข้อผิดพลาด: ' + error.message);
         } else {
             setShowLeaveModal(false);
-            setLeaveForm({ profile_id: '', leave_date: '', leave_type: 'sick', is_paid: false, reason: '' });
+            setLeaveForm({ profile_id: '', leave_date: '', leave_type: 'sick', is_active: false, is_rider: false, permissions: [], is_paid: false, reason: '' });
             fetchAttendances();
             if (selectedStaff) fetchStaffIndividualAttendance(selectedStaff.id);
         }
@@ -1045,6 +1053,17 @@ export default function POSStaffManager({
                                             <option value="general">ทั่วไป</option>
                                         </select>
                                     </div>
+                                    <div className="space-y-1.5 flex items-end pb-2">
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={selectedStaff.is_rider || false}
+                                                onChange={e => setSelectedStaff({ ...selectedStaff, is_rider: e.target.checked })}
+                                                className="w-4 h-4 text-black border-neutral-300 rounded focus:ring-black"
+                                            />
+                                            <span className="text-xs font-bold text-neutral-700">เป็นไรเดอร์ส่งของควบคู่</span>
+                                        </label>
+                                    </div>
                                     <div className="space-y-1.5">
                                         <label className="text-[10px] font-bold text-neutral-400">ประเภทเงินเดือน</label>
                                         <select value={selectedStaff.salary_type || 'daily'} onChange={e => setSelectedStaff({ ...selectedStaff, salary_type: e.target.value })} className="w-full bg-neutral-50 rounded-lg border border-neutral-200 py-2.5 px-3 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors">
@@ -1077,6 +1096,18 @@ export default function POSStaffManager({
                                             placeholder="เช่น 500"
                                             className="w-full bg-neutral-50 rounded-lg border border-neutral-200 py-2.5 px-3 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
                                         />
+                                    </div>
+                                    <div className="space-y-1.5 sm:col-span-2">
+                                        <label className="text-[10px] font-bold text-neutral-400">หักประกันสังคม (Social Security)</label>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <input 
+                                                type="checkbox"
+                                                className="w-4 h-4 text-black border-gray-300 rounded focus:ring-black"
+                                                checked={selectedStaff.has_social_security || false}
+                                                onChange={e => setSelectedStaff({ ...selectedStaff, has_social_security: e.target.checked })}
+                                            />
+                                            <span className="text-sm font-bold text-gray-700">เข้าระบบหักประกันสังคม 5%</span>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -1521,7 +1552,16 @@ export default function POSStaffManager({
                                                 const lateDeduction = totalLateMinutes * 1;
                                                 const isEligibleDiligence = totalLateMinutes === 0 && unpaidLeaves === 0 && (selectedStaff?.diligence_allowance > 0);
                                                 const diligenceBonus = isEligibleDiligence ? Number(selectedStaff?.diligence_allowance || 0) : 0;
-                                                const netPay = basePay + otPay + diligenceBonus - lateDeduction - totalAdvanceAmount;
+                                                
+                                                let socialSecurityDeduction = 0;
+                                                if (selectedStaff?.has_social_security) {
+                                                    const monthlyBaseEstimate = selectedStaff?.salary_type === 'monthly' ? wage : (wage * (selectedStaff?.target_working_days || 26));
+                                                    const ssfAmount = Math.round(monthlyBaseEstimate * 0.05);
+                                                    socialSecurityDeduction = Math.min(750, Math.max(83, ssfAmount));
+                                                    if (basePay === 0) socialSecurityDeduction = 0;
+                                                }
+
+                                                const netPay = basePay + otPay + diligenceBonus - lateDeduction - totalAdvanceAmount - socialSecurityDeduction;
 
                                                 setPrintData({
                                                     type: 'payslip',
@@ -1529,7 +1569,7 @@ export default function POSStaffManager({
                                                         staff: selectedStaff,
                                                         month: selectedMonth,
                                                         daysWorked, paidLeaves, unpaidLeaves, totalLateMinutes, totalOtMinutes,
-                                                        basePay, otPay, diligenceBonus, lateDeduction, totalAdvanceAmount, netPay
+                                                        basePay, otPay, diligenceBonus, lateDeduction, totalAdvanceAmount, netPay, socialSecurityDeduction
                                                     }
                                                 });
                                                 setTimeout(() => {
@@ -1578,12 +1618,27 @@ export default function POSStaffManager({
                                     }
 
                                     const otPay = (totalOtMinutes / 60) * otRate;
-                                    const lateDeduction = totalLateMinutes * 1;
+                                    
+                                    let hourlyRate = 0;
+                                    if (selectedStaff?.salary_type === 'monthly') {
+                                        hourlyRate = (wage / 30) / 8;
+                                    } else {
+                                        hourlyRate = wage / 8;
+                                    }
+                                    const lateDeduction = (hourlyRate / 60) * totalLateMinutes;
 
                                     const isEligibleDiligence = totalLateMinutes === 0 && unpaidLeaves === 0 && (selectedStaff?.diligence_allowance > 0);
                                     const diligenceBonus = isEligibleDiligence ? Number(selectedStaff?.diligence_allowance || 0) : 0;
 
-                                    const netPay = basePay + otPay + diligenceBonus - lateDeduction - totalAdvanceAmount;
+                                    let socialSecurityDeduction = 0;
+                                    if (selectedStaff?.has_social_security) {
+                                        const monthlyBaseEstimate = selectedStaff?.salary_type === 'monthly' ? wage : (wage * (selectedStaff?.target_working_days || 26));
+                                        const ssfAmount = Math.round(monthlyBaseEstimate * 0.05);
+                                        socialSecurityDeduction = Math.min(750, Math.max(83, ssfAmount));
+                                        if (basePay === 0) socialSecurityDeduction = 0;
+                                    }
+
+                                    const netPay = basePay + otPay + diligenceBonus - lateDeduction - totalAdvanceAmount - socialSecurityDeduction;
 
                                     return (
                                         <div className="space-y-6">
@@ -1638,8 +1693,8 @@ export default function POSStaffManager({
                                                     </div>
                                                 )}
                                                 <div className="flex justify-between items-center text-sm font-bold text-red-500">
-                                                    <span>หักมาสาย (นาทีละ 1 บาท)</span>
-                                                    <span>- ฿{lateDeduction.toLocaleString()}</span>
+                                                    <span>หักมาสายอัตโนมัติ</span>
+                                                    <span>- ฿{lateDeduction.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
                                                 </div>
                                                 {totalAdvanceAmount > 0 && (
                                                     <div className="flex justify-between items-center text-sm font-bold text-amber-600">
@@ -2114,6 +2169,20 @@ export default function POSStaffManager({
                                     <option value="admin">แอดมิน (Admin)</option>
                                 </select>
                             </div>
+
+                            <div className="space-y-1.5 flex items-center gap-3">
+                                <input 
+                                    type="checkbox" 
+                                    id="add-is-rider"
+                                    checked={newStaffForm.is_rider || false}
+                                    onChange={e => setNewStaffForm({ ...newStaffForm, is_rider: e.target.checked })}
+                                    className="w-4 h-4 text-black border-gray-300 rounded focus:ring-black"
+                                />
+                                <label htmlFor="add-is-rider" className="text-sm font-bold text-gray-700 cursor-pointer">
+                                    เป็นพนักงานส่งของ (Rider) ควบคู่ด้วย
+                                </label>
+                            </div>
+
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1.5">
                                     <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">ประเภทค่าจ้าง</label>
@@ -2146,6 +2215,18 @@ export default function POSStaffManager({
                                         placeholder="0"
                                         className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
                                     />
+                                </div>
+                                <div className="space-y-1.5 sm:col-span-2">
+                                    <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">หักประกันสังคม (Social Security)</label>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <input 
+                                            type="checkbox"
+                                            className="w-4 h-4 text-black border-gray-300 rounded focus:ring-black"
+                                            checked={newStaffForm.has_social_security || false}
+                                            onChange={e => setNewStaffForm({ ...newStaffForm, has_social_security: e.target.checked })}
+                                        />
+                                        <span className="text-sm font-bold text-gray-700">เข้าระบบหักประกันสังคม 5%</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -2452,8 +2533,8 @@ export default function POSStaffManager({
                                                 <td className="p-2 text-right font-bold text-red-600">฿{printData.data.totalAdvanceAmount.toLocaleString()}</td>
                                             </tr>
                                             <tr className="border-b border-gray-200">
-                                                <td className="p-2 text-gray-400">หักประกันสังคม (SSF)</td>
-                                                <td className="p-2 text-right text-gray-400">฿0.00</td>
+                                                <td className="p-2 text-black">หักประกันสังคม (SSF)</td>
+                                                <td className="p-2 text-right font-bold text-red-600">฿{(printData.data.socialSecurityDeduction || 0).toLocaleString()}</td>
                                             </tr>
                                             <tr>
                                                 <td className="p-2 text-gray-400">ภาษีหัก ณ ที่จ่าย (WHT)</td>

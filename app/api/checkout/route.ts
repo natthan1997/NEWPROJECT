@@ -225,10 +225,28 @@ export async function POST(req: Request) {
 
     // 3. GENERATE ONE SHARED IDENTITY: order_number is the internal bill,
     // queue_number is the kitchen/customer queue for the active shift.
+    let shopSettings = null
+    if (branchId) {
+      const { data } = await supabase
+        .from('pos_shop_settings')
+        .select('*')
+        .eq('branch_id', branchId)
+        .maybeSingle()
+      if (data) shopSettings = data
+    } else {
+      const { data } = await supabase
+        .from('pos_shop_settings')
+        .select('*')
+        .eq('id', '00000000-0000-0000-0000-000000000001')
+        .maybeSingle()
+      if (data) shopSettings = data
+    }
+
     const identity = await reservePOSOrderIdentity(supabase as any, {
       orderType,
       branchId,
       shiftId: activeShift?.id || null,
+      shopSettings,
     })
 
     // Look up customer by lineUserId (result already fetched via Promise.all)

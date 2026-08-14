@@ -1,4 +1,5 @@
 import html2canvas from 'html2canvas';
+import { formatOrderNumber, getPOSOrderPrefix } from './posOrderIdentity';
 import {
   PrintOrderData,
   PrintShopData,
@@ -89,6 +90,16 @@ const pickReceiptStory = (shop: PrintShopData) => {
 
 const normalizePaymentMethod = (method?: string) => String(method || '').trim().toLowerCase();
 
+const getOrderRefNum = (order: PrintOrderData, shop: PrintShopData) => {
+  if (!order.orderNumber || order.orderNumber === 'Draft') return order.orderNumber || '-';
+  if (shop.orderNumberFormat) {
+    const qNum = parseInt(String(order.queueNumber || '0'), 10) || 0;
+    const prefix = getPOSOrderPrefix(order.orderType);
+    return formatOrderNumber(shop.orderNumberFormat, prefix, qNum);
+  }
+  return String(order.orderNumber).slice(-4);
+};
+
 const shouldPrintReceiptPaymentQr = (order: PrintOrderData, shop: PrintShopData) => {
   if (!shop.receiptPaymentQrImage) return false;
   const source = normalizePaymentMethod(order.orderSource);
@@ -131,7 +142,7 @@ const renderReceiptHtml = (order: PrintOrderData, shop: PrintShopData) => {
       if (qStr && qStr !== '0' && qStr !== 'null') {
         html += `<div style="font-size: 28px; margin-top: 6px; border-top: 2px dashed black; padding-top: 6px;">คิวเดลิเวอรี่: ${escapeHtml(qStr)}</div>`;
       }
-      const orderRefNum = (order.orderNumber && order.orderNumber !== 'Draft') ? String(order.orderNumber).slice(-4) : (order.orderNumber || '-');
+      const orderRefNum = getOrderRefNum(order, shop);
       html += `<div style="font-size: 28px; margin-top: 6px; border-top: 2px dashed black; padding-top: 6px;">เลขออเดอร์: ${escapeHtml(orderRefNum)}</div>`;
       
       if (order.deliveryFee && Number(order.deliveryFee) > 0) {
@@ -141,7 +152,7 @@ const renderReceiptHtml = (order: PrintOrderData, shop: PrintShopData) => {
     }
   } else {
     const qStr = String(order.queueNumber || '').trim();
-    const orderRefNum = (order.orderNumber && order.orderNumber !== 'Draft') ? String(order.orderNumber).slice(-4) : (order.orderNumber || '-');
+    const orderRefNum = getOrderRefNum(order, shop);
 
     html += `<div style="margin: 14px 0; border:3px solid #000; padding:12px 10px; text-align:center; font-weight: 900;">`;
     if (qStr && qStr !== '0' && qStr !== 'null') {
@@ -226,14 +237,14 @@ const renderKitchenHtml = (order: PrintOrderData, shop: PrintShopData) => {
     if (qStr && qStr !== '0' && qStr !== 'null') {
       html += `<div style="font-size: 32px; border-top: 2px dashed black; padding-top: 8px; margin-top: 4px;">คิวเดลิเวอรี่: ${escapeHtml(qStr)}</div>`;
     }
-    const orderRefNum = (order.orderNumber && order.orderNumber !== 'Draft') ? String(order.orderNumber).slice(-4) : (order.orderNumber || '-');
+    const orderRefNum = getOrderRefNum(order, shop);
     html += `<div style="font-size: 32px; border-top: 2px dashed black; padding-top: 8px; margin-top: 4px;">เลขออเดอร์: ${escapeHtml(orderRefNum)}</div>`;
   } else if (order.orderType === 'dine-in' || order.orderType === 'dine_in') {
     html += `<div style="font-size: 16px; letter-spacing: 0.16em; margin-bottom: 8px;">โต๊ะ (TABLE)</div>`;
     html += `<div style="font-size: 72px; line-height: 0.95; word-break: break-word;">${escapeHtml(order.tableNumber || '-')}</div>`;
   } else {
     const qStr = String(order.queueNumber || '').trim();
-    const orderRefNum = (order.orderNumber && order.orderNumber !== 'Draft') ? String(order.orderNumber).slice(-4) : (order.orderNumber || '-');
+    const orderRefNum = getOrderRefNum(order, shop);
 
     if (qStr && qStr !== '0' && qStr !== 'null') {
       html += `<div style="font-size: 18px; letter-spacing: 0.16em; margin-bottom: 8px;">คิวที่ (QUEUE)</div>`;

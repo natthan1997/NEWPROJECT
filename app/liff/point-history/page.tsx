@@ -239,7 +239,28 @@ export default function LiffPointHistoryPage() {
                            {tx.description && (
                              <div className="flex items-start text-[9px] font-bold text-gray-400 uppercase tracking-widest">
                                <span className="w-[80px] shrink-0">หมายเหตุ:</span>
-                               <span className="text-gray-600">{tx.description}</span>
+                               <span className="text-gray-600">
+                                 {(() => {
+                                   if (tx.description?.startsWith('Claimed via QR Code')) {
+                                     if (tx.description.includes('Order #')) {
+                                       const orderNum = tx.description.split('#')[1]?.replace(')', '') || '';
+                                       return locale === 'en' ? `Claimed via QR Code (Order #${orderNum})` : locale === 'zh' ? `通过二维码领取 (订单 #${orderNum})` : `สแกนรับแต้มจาก QR Code (ออเดอร์ #${orderNum})`;
+                                     }
+                                     return locale === 'en' ? 'Claimed via QR Code' : locale === 'zh' ? '通过二维码领取' : 'สแกนรับแต้มจาก QR Code';
+                                   }
+                                   if (tx.description?.includes('Earned from POS Order #')) {
+                                     const orderNum = tx.description.split('#')[1] || '';
+                                     return locale === 'en' ? `Earned from Order #${orderNum}` : locale === 'zh' ? `从订单获得积分 #${orderNum}` : `ได้รับจากออเดอร์ #${orderNum}`;
+                                   }
+                                   if (tx.description?.includes('Redeemed') && tx.description?.includes('pts for POS Order #')) {
+                                     const match = tx.description.match(/Redeemed (\d+) pts for POS Order #(.+)/);
+                                     if (match) {
+                                       return locale === 'en' ? `Redeemed ${match[1]} pts for Order #${match[2]}` : locale === 'zh' ? `兑换 ${match[1]} 积分于订单 #${match[2]}` : `ใช้ ${match[1]} แต้มกับออเดอร์ #${match[2]}`;
+                                     }
+                                   }
+                                   return tx.description;
+                                 })()}
+                               </span>
                              </div>
                            )}
                          </div>

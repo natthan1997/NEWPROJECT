@@ -6,17 +6,28 @@ import {
   CheckCircle2, XCircle, FileText
 } from 'lucide-react'
 import { useI18n } from "@/lib/I18nContext";
+import dynamic from 'next/dynamic';
+import 'react-quill/dist/quill.snow.css';
+
+const ReactQuill = dynamic(() => import('react-quill'), { 
+    ssr: false, 
+    loading: () => <div className="h-[300px] flex items-center justify-center bg-gray-50 rounded-lg border border-gray-200 text-sm font-bold text-gray-400 uppercase tracking-widest">Loading Editor...</div>
+});
 
 export default function AdminDevelopmentPage() {
   const { locale } = useI18n();
-  const [activeTab, setActiveTab] = useState<'skills' | 'training' | 'evaluations'>('skills');
+  const [activeTab, setActiveTab] = useState<'skills' | 'training' | 'evaluations' | 'sops'>('skills');
   const [skills, setSkills] = useState<any[]>([]);
+  const [sops, setSops] = useState<any[]>([]);
   const [staff, setStaff] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Forms
   const [showAddSkill, setShowAddSkill] = useState(false);
   const [newSkill, setNewSkill] = useState({ name: '', description: '', level: 'Beginner', category: 'Barista' });
+  
+  const [showAddSop, setShowAddSop] = useState(false);
+  const [newSop, setNewSop] = useState({ title: '', content: '', category: 'ทั่วไป' });
 
   useEffect(() => {
     fetchData();
@@ -24,13 +35,15 @@ export default function AdminDevelopmentPage() {
 
   const fetchData = async () => {
     setLoading(true);
-    const [skillsRes, staffRes] = await Promise.all([
+    const [skillsRes, staffRes, sopsRes] = await Promise.all([
       supabase.from('pos_staff_skills').select('*').order('created_at', { ascending: false }),
-      supabase.from('profiles').select('id, display_name, staff_code, role').eq('role', 'staff')
+      supabase.from('profiles').select('id, display_name, staff_code, role').eq('role', 'staff'),
+      supabase.from('pos_staff_sops').select('*').order('created_at', { ascending: false })
     ]);
 
     if (skillsRes.data) setSkills(skillsRes.data);
     if (staffRes.data) setStaff(staffRes.data);
+    if (sopsRes.data) setSops(sopsRes.data);
     setLoading(false);
   };
 
@@ -43,6 +56,19 @@ export default function AdminDevelopmentPage() {
       setNewSkill({ name: '', description: '', level: 'Beginner', category: 'Barista' });
     } else {
       alert('Failed to add skill: ' + error?.message);
+    }
+  };
+
+  const handleAddSop = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSop.title || !newSop.content) return;
+    const { data, error } = await supabase.from('pos_staff_sops').insert([newSop]).select().single();
+    if (data) {
+      setSops([data, ...sops]);
+      setShowAddSop(false);
+      setNewSop({ title: '', content: '', category: 'ทั่วไป' });
+    } else {
+      alert('Failed to add SOP: ' + error?.message);
     }
   };
 
@@ -79,6 +105,12 @@ export default function AdminDevelopmentPage() {
           >
             <TrendingUp size={18} /> ประเมินผล (KPI)
           </button>
+          <button 
+            onClick={() => setActiveTab('sops')}
+            className={`px-6 py-4 flex items-center gap-3 text-sm font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'sops' ? 'bg-black text-white' : 'bg-white text-gray-400 border border-gray-200 hover:border-black'}`}
+          >
+            <FileText size={18} /> คู่มือ SOP
+          </button>
         </div>
 
         {/* CONTENT */}
@@ -86,6 +118,71 @@ export default function AdminDevelopmentPage() {
            <div className="p-20 text-center text-gray-400 text-sm font-black uppercase">Loading...</div>
         ) : (
           <div className="bg-white border border-gray-100 shadow-xl overflow-hidden min-h-[400px]">
+            {activeTab === 'sops' && (
+              <div className="p-8">
+                <div className="flex justify-between items-center mb-8">
+                  <h2 className="text-xl font-black">คู่มือ SOP (Standard Operating Procedures)</h2>
+                  <button 
+                    onClick={() => setShowAddSop(!showAddSop)}
+                    className="bg-black text-white px-4 py-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"
+                  >
+                    {showAddSop ? 'ยกเลิก' : <><Plus size={14} /> สร้างเอกสารใหม่</>}
+                  </button>
+                </div>
+
+                {showAddSop && (
+                  <form onSubmit={handleAddSop} className="mb-8 bg-gray-50 p-6 border border-gray-200 grid grid-cols-1 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest">หัวข้อเอกสาร (Title)</label>
+                        <input type="text" required value={newSop.title} onChange={e => setNewSop({...newSop, title: e.target.value})} className="w-full p-3 border border-gray-200 font-bold text-sm outline-none focus:border-black" placeholder="เช่น คู่มือแคชเชียร์" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest">หมวดหมู่ (Category)</label>
+                        <input type="text" value={newSop.category} onChange={e => setNewSop({...newSop, category: e.target.value})} className="w-full p-3 border border-gray-200 font-bold text-sm outline-none focus:border-black" placeholder="เช่น บริการหน้าร้าน" />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest">เนื้อหา (Content)</label>
+                      <div className="bg-white">
+                        <ReactQuill 
+                          theme="snow"
+                          value={newSop.content}
+                          onChange={(content) => setNewSop({...newSop, content})}
+                          className="h-[300px] mb-12"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end pt-4">
+                      <button type="submit" className="bg-black text-white px-8 py-3 text-xs font-black uppercase tracking-widest hover:bg-[#3A5A40] transition-colors">
+                        บันทึกเอกสาร
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                <div className="space-y-4">
+                  {sops.map(sop => (
+                    <div key={sop.id} className="border border-gray-100 p-6 hover:border-black transition-colors">
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <span className="bg-gray-100 text-gray-500 px-2 py-1 text-[10px] font-black uppercase tracking-widest rounded-sm mb-2 inline-block">{sop.category}</span>
+                          <h3 className="text-lg font-black">{sop.title}</h3>
+                          <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-widest">อัปเดตล่าสุด: {new Date(sop.updated_at).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                      <div className="prose prose-sm max-w-none prose-headings:font-black prose-p:font-bold text-gray-500 border-t border-gray-50 pt-4 mt-4" dangerouslySetInnerHTML={{ __html: sop.content }} />
+                    </div>
+                  ))}
+                  {sops.length === 0 && !showAddSop && (
+                    <div className="text-center py-10 text-gray-400 text-sm font-black uppercase tracking-widest">
+                      ยังไม่มีเอกสาร SOP
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {activeTab === 'skills' && (
               <div className="p-8">
                 <div className="flex justify-between items-center mb-8">

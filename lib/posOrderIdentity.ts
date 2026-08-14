@@ -43,6 +43,37 @@ const fallbackOrderNumber = (prefix: string) => {
   return `${prefix}#${datePart}-${suffix}`
 }
 
+export const formatOrderNumber = (
+  format: string | undefined | null,
+  prefix: string,
+  queueNumber: number
+): string => {
+  if (!format) return fallbackOrderNumber(prefix)
+  
+  const now = new Date()
+  const yy = String(now.getFullYear()).slice(-2)
+  const yyyy = String(now.getFullYear())
+  const mm = String(now.getMonth() + 1).padStart(2, '0')
+  const dd = String(now.getDate()).padStart(2, '0')
+  
+  let result = format
+    .replace(/{Prefix}/gi, prefix)
+    .replace(/{YYMMDD}/gi, `${yy}${mm}${dd}`)
+    .replace(/{YYYYMMDD}/gi, `${yyyy}${mm}${dd}`)
+    .replace(/{YYMM}/gi, `${yy}${mm}`)
+    .replace(/{YYYYMM}/gi, `${yyyy}${mm}`)
+    .replace(/{MMDD}/gi, `${mm}${dd}`)
+
+  // Handle {Queue:N} or {Queue}
+  result = result.replace(/{Queue(?::(\d+))?}/gi, (match, digits) => {
+    const padLength = digits ? parseInt(digits, 10) : 1
+    return String(queueNumber).padStart(padLength, '0')
+  })
+
+  return result
+}
+
+
 export const reservePOSOrderIdentity = async (
   supabase: any,
   options: {
@@ -51,6 +82,7 @@ export const reservePOSOrderIdentity = async (
     shiftId?: string | null
     existingOrderId?: string | null
     tableName?: string | null
+    shopSettings?: any | null
   }
 ): Promise<POSOrderIdentity> => {
   const prefix = getPOSOrderPrefix(options.orderType)
@@ -132,9 +164,15 @@ export const reservePOSOrderIdentity = async (
   const queueNumber = latestQueue + 1
 
   if (!existingOrderNumber) {
-    // Note: We don't use tableName as orderNumber anymore. 
-    // It's always INV-... for receipt tracking.
-    orderNumber = fallbackOrderNumber(prefix)
+    if (options.shopSettings?.opening_hours?.bill_number_format) {
+      orderNumber = formatOrderNumber(
+        options.shopSettings.opening_hours.bill_number_format,
+        prefix,
+        queueNumber
+      )
+    } else {
+      orderNumber = fallbackOrderNumber(prefix)
+    }
   }
 
   return { orderNumber, queueNumber }

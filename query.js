@@ -1,11 +1,12 @@
 const { createClient } = require('@supabase/supabase-js');
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+const dotenv = require('dotenv');
+dotenv.config({ path: '.env.local' });
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
+
 async function run() {
-  const { data, error } = await supabase.from('pos_inventory_audit_sessions').select('*').limit(1);
-  if (data && data.length > 0) console.log(Object.keys(data[0]));
-  else {
-    const { data: cols } = await supabase.rpc('query', { query_text: "SELECT column_name FROM information_schema.columns WHERE table_name = 'pos_inventory_audit_sessions';" }).catch(()=>({}));
-    console.log(cols || 'no rows');
-  }
+  const { data, error } = await supabase.from('pos_orders').select('*').eq('order_number', 'TAK-575174').single();
+  console.log(JSON.stringify(data, null, 2));
 }
 run();

@@ -6,8 +6,7 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PU
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function run() {
-  const { data, error } = await supabase.rpc('execute_sql', { sql_query: "SELECT trigger_name, event_object_table, event_manipulation, action_statement FROM information_schema.triggers WHERE event_object_table = 'pos_orders';" });
-  console.log("Triggers error:", error);
-  console.log("Triggers data:", data);
+  const { data, error } = await supabase.rpc('execute_sql', { sql_query: "SELECT prosrc FROM pg_proc WHERE proname = 'pos_checkout_order';" });
+  console.log("Data:", data, "Error:", error);
 }
 run();

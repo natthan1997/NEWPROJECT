@@ -3,7 +3,7 @@
 import React, { useState, useEffect, Suspense, useRef, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
-  ChevronRight, ChevronLeft, Info, X, Gift, Phone, Globe, Facebook, MessageCircle, QrCode, Coins, Sparkles, AlertCircle, Loader2, CheckCircle2, HelpCircle, ArrowRight, History, XCircle, Clock
+  ChevronRight, ChevronLeft, Info, X, Gift, Phone, Globe, Facebook, MessageCircle, QrCode, Coins, Sparkles, AlertCircle, Loader2, CheckCircle2, HelpCircle, ArrowRight, History, XCircle, Clock, Target
 } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useTransform, useMotionValue, animate } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
@@ -106,6 +106,7 @@ function LiffMemberContent() {
   // Real-time check-in states
   const [activeCheckInId, setActiveCheckInId] = useState<string | null>(null);
   const [activeCouponCount, setActiveCouponCount] = useState(0);
+  const [showRedeemSuccess, setShowRedeemSuccess] = useState(false);
   const [checkInStatus, setCheckInStatus] = useState<string | null>(null);
   const [linkedOrder, setLinkedOrder] = useState<any | null>(null);
   const [claimLoading, setClaimLoading] = useState(false);
@@ -569,14 +570,50 @@ function LiffMemberContent() {
   const handleRedeemQuick = async (reward: any) => {
     const points = memberInfo?.points || 0;
     if (points < reward.cost_points) {
-      alert('คะแนนสะสมของคุณไม่เพียงพอสำหรับการแลกรางวัลนี้');
+      Swal.fire({
+        icon: 'error',
+        title: 'พอยท์ไม่พอ 😢',
+        text: 'คุณมีพอยท์ไม่เพียงพอสำหรับการแลกรางวัลนี้',
+        confirmButtonColor: '#1A1A18',
+        confirmButtonText: 'ตกลง',
+        shape: 'rounded-2xl'
+      });
       return;
     }
     
-    if (!confirm(`ยืนยันการใช้ ${reward.cost_points} พอยท์ เพื่อแลกคูปอง "${reward.name}" ใช่หรือไม่?`)) return;
+    const confirmResult = await Swal.fire({
+      title: 'ยืนยันการแลกรางวัล',
+      text: `ใช้ ${reward.cost_points} พอยท์ เพื่อแลกคูปอง "${reward.name}" ใช่หรือไม่?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#1A1A18',
+      cancelButtonColor: '#e5e7eb',
+      cancelButtonText: '<span style="color: black">ยกเลิก</span>',
+      confirmButtonText: 'ยืนยัน',
+      customClass: {
+         popup: 'rounded-3xl',
+         confirmButton: 'rounded-full px-6 py-2 font-bold',
+         cancelButton: 'rounded-full px-6 py-2 font-bold text-black'
+      }
+    });
+
+    if (!confirmResult.isConfirmed) return;
     
+    // --- Optimistic UI Update ---
+    // 1. Immediately update UI to make it feel INSTANT
+    setShowRedeemSuccess(true);
+    setActiveCouponCount(prev => prev + 1);
+    const previousPoints = memberInfo?.points || 0;
+    setMemberInfo((prev: any) => prev ? { ...prev, points: prev.points - reward.cost_points } : null);
+    
+    // 2. Scroll to top so user sees the message
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // 3. Auto-hide the pointer after 4 seconds
+    setTimeout(() => setShowRedeemSuccess(false), 4000);
+    
+    // --- Background API Request ---
     try {
-      setLoading(true);
       const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
       const res = await fetch('/api/liff/member/redeem', {
         method: 'POST',
@@ -584,16 +621,24 @@ function LiffMemberContent() {
         body: JSON.stringify({ lineUserId: userId, couponId: reward.id })
       });
       const data = await res.json();
-      if (data.success) {
-        alert('แลกคูปองสำเร็จ! คูปองถูกเก็บไว้ในบัญชีของคุณแล้ว');
-        setMemberInfo((prev: any) => prev ? { ...prev, points: prev.points - reward.cost_points } : null);
-      } else {
-        alert(data.error || 'Failed to redeem');
+      
+      if (!data.success) {
+        // Rollback on API logical error
+        throw new Error(data.error || 'Failed to redeem');
       }
-    } catch (e) {
-      alert('Error connecting to server');
-    } finally {
-      setLoading(false);
+    } catch (e: any) {
+      // Rollback UI changes on error
+      setShowRedeemSuccess(false);
+      setActiveCouponCount(prev => Math.max(0, prev - 1));
+      setMemberInfo((prev: any) => prev ? { ...prev, points: previousPoints } : null);
+      
+      Swal.fire({
+        icon: 'error',
+        title: 'ผิดพลาด',
+        text: e.message || 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้ในขณะนี้',
+        confirmButtonColor: '#1A1A18',
+        customClass: { popup: 'rounded-3xl' }
+      });
     }
   };
 
@@ -643,6 +688,9 @@ function LiffMemberContent() {
     const channel = supabase.channel('member_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_members' }, () => {
         fetchData(true); // Background sync
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_customer_coupons' }, () => {
+        fetchData(true); // Background sync for coupons
       })
       .subscribe();
       
@@ -909,12 +957,33 @@ function LiffMemberContent() {
             <History size={20} />
           </Link>
           <Link id="tour-my-rewards" href="/liff/my-rewards" className="w-10 h-10 flex items-center justify-center text-gray-400 active:scale-95 transition-transform relative">
-            <Gift size={20} />
+            <Gift size={20} className={showRedeemSuccess ? "text-[#E0A865] animate-bounce" : ""} />
             {activeCouponCount > 0 && (
               <span className="absolute top-1.5 right-1.5 bg-red-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-sm">
                 {activeCouponCount}
               </span>
             )}
+            
+            <AnimatePresence>
+              {showRedeemSuccess && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 15, scale: 0.8 }} 
+                  animate={{ opacity: 1, y: 0, scale: 1 }} 
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ type: "spring", bounce: 0.5 }}
+                  className="absolute top-full right-0 mt-3 w-48 bg-white text-gray-900 p-3.5 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] border border-gray-100 z-50 pointer-events-none"
+                >
+                  <div className="absolute -top-1.5 right-4 w-3.5 h-3.5 bg-white border-t border-l border-gray-100 rotate-45 rounded-sm"></div>
+                  <div className="relative z-10 flex flex-col gap-1 items-center text-center">
+                    <div className="w-8 h-8 rounded-full bg-[#FCF7E8] text-[#B48529] flex items-center justify-center mb-0.5">
+                      <Gift size={16} />
+                    </div>
+                    <span className="font-extrabold text-[13px] text-gray-900 mt-1 tracking-tight">เก็บคูปองให้แล้ว!</span>
+                    <span className="text-[10.5px] font-medium text-gray-500 leading-tight">คูปองที่แลกจะอยู่ในกล่องของขวัญนี้<br/>สามารถกดเข้ามาดูและใช้งานได้เลยครับ</span>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </Link>
         </div>
       </header>
@@ -927,48 +996,43 @@ function LiffMemberContent() {
           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
           className="w-full flex flex-col"
         >
-          <div className={`p-7 rounded-[24px] relative flex flex-col overflow-hidden shadow-sm ${currentTier.cardBg || 'bg-[#1A1A18]'}`}>
-            {/* Background Graphic Accent */}
-            <div className="absolute -right-10 -bottom-10 opacity-30 pointer-events-none">
-                <svg width="200" height="200" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 2L2 22h20L12 2z" />
-                </svg>
-            </div>
+          <div className={`p-8 rounded-[32px] relative flex flex-col overflow-hidden shadow-xl ${currentTier.cardBg || 'bg-[#1A1A18]'}`}>
+            {/* Minimalist Accent */}
+            <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-white/10 to-transparent pointer-events-none"></div>
             
-            <div className="relative z-10 text-white">
-                <div className="flex justify-between items-start mb-6">
-                    <p className="text-[15px] font-medium tracking-wide opacity-90">{dict.points}</p>
-                    <button onClick={() => setShowBenefits(true)}>
-                        <Info size={20} className="opacity-70" />
+            <div className="relative z-10 text-white flex flex-col h-full">
+                <div className="flex justify-between items-start mb-10">
+                    <div className="flex flex-col">
+                        <span className="text-[11px] font-medium tracking-[0.15em] uppercase opacity-70 mb-1">{dict.points}</span>
+                        <div className="flex items-baseline gap-1.5">
+                            <span className="text-[52px] leading-[1] font-medium tracking-tight">
+                                {(memberInfo?.points || 0).toLocaleString()}
+                            </span>
+                            <span className="text-[14px] font-normal opacity-60">PT</span>
+                        </div>
+                    </div>
+                    <button onClick={() => setShowBenefits(true)} className="text-white/70 hover:text-white transition-colors mt-1">
+                        <Info size={22} strokeWidth={1.5} />
                     </button>
                 </div>
-                
-                <div className="flex items-baseline gap-2 mb-8">
-                  <div className="bg-white/20 px-2 py-1 rounded text-[12px] font-bold tracking-widest uppercase writing-vertical-rl rotate-180 h-16 flex items-center justify-center" style={{ writingMode: 'vertical-rl' }}>
-                    พอยท์
-                  </div>
-                  <span className="text-[56px] leading-none font-bold tracking-tight">
-                    {(memberInfo?.points || 0).toLocaleString()}
-                  </span>
-                </div>
 
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full overflow-hidden bg-white/20 border border-white/30 shrink-0">
+                <div className="flex items-center gap-4 mb-8">
+                    <div className="w-12 h-12 rounded-full overflow-hidden border-[1.5px] border-white/30 shrink-0">
                         {lineProfile?.pictureUrl ? (
                             <img src={lineProfile.pictureUrl} alt="Profile" className="w-full h-full object-cover" />
                         ) : (
-                            <div className="w-full h-full bg-white/30"></div>
+                            <div className="w-full h-full bg-white/20"></div>
                         )}
                     </div>
-                    <div id="tour-titles">
-                        <div className="flex items-center gap-2 mb-1">
-                            <div className="text-[15px] font-medium leading-tight">
+                    <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                            <div className="text-[17px] font-medium leading-tight truncate">
                                 {memberInfo?.nickname || memberInfo?.name || lineProfile?.displayName || 'Member'}
                             </div>
                             {activeTitle && (
                                 <button 
                                   onClick={() => setShowCatalog(true)}
-                                  className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide flex items-center gap-0.5 shadow-sm active:scale-95 transition-transform"
+                                  className="shrink-0 px-2 py-0.5 rounded-full text-[9px] font-medium tracking-wider flex items-center gap-0.5"
                                   style={{ backgroundColor: activeTitle.bgHex || '#F5F5F5', color: activeTitle.textHex || '#1A1A18' }}
                                 >
                                   {activeTitle.name}
@@ -976,46 +1040,44 @@ function LiffMemberContent() {
                                 </button>
                             )}
                         </div>
-                        <div className="flex items-center gap-2 opacity-90 mt-0.5">
-                            <div className="flex items-center gap-1">
-                                <span className="w-3 h-3 rounded-full bg-white flex items-center justify-center">
-                                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: currentTier.textHex }}></span>
-                                </span>
-                                <span className="text-[12px] font-medium">{currentTier.name}</span>
+                        <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: currentTier.bgHex === '#F2ECE4' ? '#B89F89' : currentTier.textHex }}></span>
+                                <span className="text-[12px] font-medium tracking-wide text-white/90">{currentTier.name}</span>
                             </div>
                             {!activeTitle && (
-                                <>
-                                    <span className="text-white/40 text-[10px]">|</span>
-                                    <button onClick={() => setShowCatalog(true)} className="text-[11px] font-medium text-white hover:text-white transition-colors underline decoration-white/40 underline-offset-2">
-                                        ดูฉายา
-                                    </button>
-                                </>
+                                <button onClick={() => setShowCatalog(true)} className="text-[11px] text-white/50 hover:text-white transition-colors ml-1">
+                                    เลือกฉายา &rarr;
+                                </button>
                             )}
                         </div>
                     </div>
                 </div>
-
-                {/* Progress Section (Moved inside card) */}
-                <div className="mt-4 border-t border-white/10 pt-4">
-                  <div className="flex justify-between items-baseline mb-2 text-white">
-                      <span className="text-[12px] font-medium flex items-center gap-1 opacity-90">
+                
+                {/* Progress Section */}
+                <div className="mt-auto pt-4 border-t border-white/15">
+                  <div className="flex justify-between items-baseline mb-3 text-white">
+                      <span className="text-[11px] font-medium opacity-70 tracking-wide">
                           พอยท์สะสมระดับสมาชิก 
-                          <button onClick={() => setShowBenefits(true)}><Info size={14} className="opacity-60" /></button>
                       </span>
-                      <span className="text-[12px] font-semibold">
-                          <span>{totalAccumulated}</span> <span className="opacity-60 font-normal">/ {nextTier ? nextTier.minPoints : 'Max'}</span>
+                      <span className="text-[12px] font-medium">
+                          {totalAccumulated} <span className="opacity-50">/ {nextTier ? nextTier.minPoints : 'Max'}</span>
                       </span>
                   </div>
-                  <div className="w-full h-[5px] rounded-full overflow-hidden bg-black/20">
+                  <div className="w-full h-1 rounded-full overflow-hidden bg-black/20">
                       <motion.div 
                         initial={{ width: 0 }}
-                        animate={{ width: `${Math.max(2, progressPercent)}%` }}
+                        animate={{ width: `${Math.max(1, progressPercent)}%` }}
                         transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
-                        className="h-full rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]" 
+                        className="h-full rounded-full bg-white/90" 
                       />
                   </div>
+                  {nextTier && (
+                      <div className="text-[10px] text-white/50 text-right mt-2 tracking-wide">
+                          อีก {(nextTier.minPoints - totalAccumulated).toLocaleString()} PT เพื่อเป็นระดับ {nextTier.name}
+                      </div>
+                  )}
                 </div>
-
             </div>
           </div>
         </motion.section>
@@ -1076,41 +1138,36 @@ function LiffMemberContent() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.1 * idx }}
-                  className="bg-white p-5 rounded-[24px] border border-[#E5E5E5] shadow-sm relative active:scale-[0.98] transition-transform cursor-pointer min-w-[300px] w-[85vw] max-w-[340px] h-full snap-center shrink-0 flex flex-col justify-between"
+                  className="bg-white p-5 rounded-[24px] border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] relative active:scale-[0.98] transition-transform cursor-pointer min-w-[300px] w-[85vw] max-w-[340px] h-full snap-center shrink-0 flex flex-col justify-between group"
                   onClick={() => router.push('/liff/member/missions')}
                 >
-                  <div>
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex-1 pr-3">
-                        <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-gray-100 text-[#1A1A18] text-[9px] font-bold tracking-widest uppercase mb-2">
-                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div> ภารกิจ (IN PROGRESS)
+                  <div className="relative z-10 flex flex-col h-full justify-between">
+                    <div>
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex-1 pr-3">
+                          <div className="inline-flex items-center px-2 py-1 rounded-md bg-emerald-50 text-emerald-600 text-[10px] font-bold tracking-wide mb-2">
+                            {mission.campaign_type === 'daily' ? 'ภารกิจรายวัน' : mission.campaign_type === 'weekly' ? 'ภารกิจรายสัปดาห์' : mission.campaign_type === 'monthly' ? 'ภารกิจรายเดือน' : 'ภารกิจพิเศษ'}
+                          </div>
+                          <h4 className="text-[#1A1A18] font-bold text-[16px] leading-tight mb-1">{mission.title}</h4>
                         </div>
-                        <h4 className="text-[#1A1A18] font-bold text-[16px] leading-tight mb-1">{mission.title}</h4>
-                        {mission.description && (
-                          <p className="text-gray-500 text-[12px] leading-snug line-clamp-2">
-                            {mission.description}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-50 text-gray-400 shrink-0 shadow-inner">
-                        <ChevronRight size={16} />
+                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-50 text-gray-400 shrink-0 group-active:bg-gray-100 transition-colors">
+                          <ChevronRight size={16} />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  
-                  <div className="mt-2 pt-3 border-t border-gray-100">
-                    <div className="flex justify-between items-baseline mb-2">
-                      <span className="text-[11px] font-medium text-gray-500">ความคืบหน้า</span>
-                      <span className="text-[14px] font-bold text-[#1A1A18]">
-                        {mission.progress?.count || 0} <span className="text-gray-400 font-medium text-[12px]">/ {mission.condition_rules?.count || 1}</span>
-                      </span>
-                    </div>
-                    <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden shadow-inner">
-                      <div 
-                        className="h-full bg-gradient-to-r from-gray-700 to-black rounded-full transition-all duration-1000 ease-out relative" 
-                        style={{ width: `${Math.min(100, ((mission.progress?.count || 0) / (mission.condition_rules?.count || 1)) * 100)}%` }}
-                      >
-                        <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+                    
+                    <div className="mt-2 pt-3 border-t border-gray-100">
+                      <div className="flex justify-between items-baseline mb-2.5">
+                        <span className="text-[11px] font-medium text-gray-500">ความคืบหน้า</span>
+                        <span className="text-[13px] font-bold text-[#1A1A18]">
+                          {mission.progress?.count || 0} <span className="text-gray-400 font-medium text-[11px]">/ {mission.condition_rules?.count || 1}</span>
+                        </span>
+                      </div>
+                      <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-emerald-500 rounded-full transition-all duration-1000 ease-out" 
+                          style={{ width: `${Math.min(100, ((mission.progress?.count || 0) / (mission.condition_rules?.count || 1)) * 100)}%` }}
+                        />
                       </div>
                     </div>
                   </div>
@@ -1202,33 +1259,35 @@ function LiffMemberContent() {
             {quickRewards.length > 0 ? quickRewards.map((reward) => (
                 <div 
                   key={reward.id} 
-                  onClick={() => handleRedeemQuick(reward)} 
-                  className="min-w-[160px] h-[230px] snap-center bg-white border border-gray-100 rounded-[20px] overflow-hidden flex flex-col shadow-sm relative cursor-pointer active:scale-95 transition-transform"
+                  className="relative group select-none touch-manipulation shrink-0 w-[150px] h-[150px] block cursor-pointer"
+                  onClick={() => handleRedeemQuick(reward)}
                 >
-                    <div className="h-32 bg-gray-100 flex items-center justify-center relative overflow-hidden">
-                        {reward.image_url ? (
-                          <img 
-                            src={reward.image_url} 
-                            alt={reward.name} 
-                            className="w-full h-full object-cover" 
-                          />
-                        ) : (
-                          <Gift size={32} className="text-gray-400" />
-                        )}
-                        
-                        <div className="absolute top-2 right-2 bg-white/80 backdrop-blur-sm px-2 py-0.5 rounded-full text-[8px] font-bold text-[#1A1A18] uppercase tracking-wider shadow-sm">
-                            REDEEM
+                  <button className="absolute inset-0 w-full h-full flex text-left font-bold rounded-[1.2rem] overflow-hidden border border-[#E5E5DF]/50 bg-gray-100 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 active:scale-95 outline-none">
+                    {reward.image_url ? (
+                      <img loading="lazy" crossOrigin="anonymous" src={reward.image_url} className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110 z-0" />
+                    ) : (
+                      <div className="absolute inset-0 flex h-full w-full items-center justify-center bg-gray-100 text-gray-300 z-0"><Gift size={48} /></div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10 transition-colors duration-300"></div>
+                    
+                    <div className="relative z-10 flex-1 flex flex-col justify-end p-3 font-bold text-white w-full">
+                      <div className="flex flex-col w-full gap-0.5 text-left">
+                        <div className="flex flex-col w-full">
+                          <h4 className="line-clamp-2 text-[13px] leading-tight font-black tracking-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                            {reward.name}
+                          </h4>
                         </div>
+                        <div className="flex items-baseline drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] mt-0.5 text-[#FCF7E8]">
+                          <span className="text-[16px] font-black leading-none">{reward.cost_points.toLocaleString()}</span>
+                          <span className="text-[9px] font-semibold ml-1 opacity-90">พอยท์</span>
+                        </div>
+                      </div>
                     </div>
                     
-                    <div className="p-3 flex-1 flex flex-col justify-between">
-                        <h4 className="text-[12px] font-medium text-gray-900 leading-tight line-clamp-2">
-                            {reward.name}
-                        </h4>
-                        <p className="text-[11px] font-bold text-[#1A1A18] mt-1">
-                            ใช้ {reward.cost_points.toLocaleString()} พอยท์
-                        </p>
+                    <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-0.5 rounded-full text-[8px] font-bold text-[#1A1A18] uppercase tracking-wider shadow-sm z-20">
+                      REDEEM
                     </div>
+                  </button>
                 </div>
             )) : (
                 <div onClick={() => router.push('/liff/rewards')} className="min-w-[280px] h-[140px] snap-center bg-gray-100 rounded-[20px] flex items-center justify-center relative overflow-hidden cursor-pointer active:scale-95 transition-transform">

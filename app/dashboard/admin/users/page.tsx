@@ -13,13 +13,14 @@ interface UserRow {
   customer_base_code?: string;
   staff_code?: string;
   branch_code?: string;
-  staff_type?: 'cafe' | 'garden';
+  staff_type?: 'cafe' | 'garden' | 'rider';
   daily_wage?: number;
   overtime_rate_per_hour?: number;
   target_working_days?: number;
   salary_type?: 'daily' | 'monthly';
   shift_start?: string;
   shift_end?: string;
+  has_social_security?: boolean;
 }
 
 interface HouseRow {
@@ -80,7 +81,7 @@ export default function AdminUsersPage() {
   const [error, setError] = useState<string | null>(null);
   const [showAddUser, setShowAddUser] = useState(false);
   const [showAddHouse, setShowAddHouse] = useState<string | null>(null);
-  const [newUser, setNewUser] = useState({ email: "", password: "", display_name: "", role: "customer" as "customer" | "staff", staff_type: "" as "" | "cafe" | "garden" });
+  const [newUser, setNewUser] = useState({ email: "", password: "", display_name: "", role: "customer" as "customer" | "staff", staff_type: "" as "" | "cafe" | "garden" | "rider" });
   const [newHouse, setNewHouse] = useState({ name: "", user_id: "", address: "" });
   const [houses, setHouses] = useState<HouseRow[]>([]);
   const [toast, setToast] = useState<string | null>(null);
@@ -173,7 +174,8 @@ export default function AdminUsersPage() {
         target_working_days: isNaN(Number(user.target_working_days)) ? 26 : Number(user.target_working_days),
         salary_type: (user.salary_type ? String(user.salary_type).toLowerCase().trim() : 'daily'),
         shift_start: user.shift_start || '08:30',
-        shift_end: user.shift_end || '17:30'
+        shift_end: user.shift_end || '17:30',
+        has_social_security: user.has_social_security || false
       };
 
       console.log("=== SENDING UPDATE PAYLOAD ===", payload);
@@ -221,7 +223,7 @@ export default function AdminUsersPage() {
       setError(null);
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, email, display_name, role, customer_base_code, staff_code, branch_code, staff_type, daily_wage, overtime_rate_per_hour, target_working_days, salary_type, shift_start, shift_end")
+        .select("id, email, display_name, role, customer_base_code, staff_code, branch_code, staff_type, daily_wage, overtime_rate_per_hour, target_working_days, salary_type, shift_start, shift_end, has_social_security")
         .in("role", ["customer", "staff", "admin"])
         .order("created_at", { ascending: false });
       
@@ -488,12 +490,13 @@ export default function AdminUsersPage() {
                       <select 
                         className="w-full border border-gray-300 px-4 py-2 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200" 
                         value={newUser.staff_type} 
-                        onChange={e => setNewUser({ ...newUser, staff_type: e.target.value as "cafe" | "garden" })}
+                        onChange={e => setNewUser({ ...newUser, staff_type: e.target.value as "cafe" | "garden" | "rider" })}
                         required
                       >
                         <option value="">{locale === 'en' ? 'เลือกแผนก...' : locale === 'zh' ? 'เลือกแผนก...' : 'เลือกแผนก...'}</option>
                         <option value="cafe">{locale === 'en' ? 'พนักงานคาเฟ่ / ร้านอาหาร' : locale === 'zh' ? 'พนักงานคาเฟ่ / ร้านอาหาร' : 'พนักงานคาเฟ่ / ร้านอาหาร'}</option>
                         <option value="garden">{locale === 'en' ? 'คนสวน / งานบริการ' : locale === 'zh' ? 'คนสวน / งานบริการ' : 'คนสวน / งานบริการ'}</option>
+                        <option value="rider">{locale === 'en' ? 'Rider / Delivery' : locale === 'zh' ? '骑手' : 'ไรเดอร์ / พนักงานส่งของ'}</option>
                       </select>
                     </div>
                   )}
@@ -740,7 +743,7 @@ export default function AdminUsersPage() {
                                           className="w-full border-0 bg-transparent text-sm text-gray-800 focus:ring-2 focus:ring-blue-500 rounded px-2 py-1"
                                           value={user.staff_type || ''}
                                           onChange={(e) => {
-                                            const newType = e.target.value as "cafe" | "garden";
+                                            const newType = e.target.value as "cafe" | "garden" | "rider";
                                             setUsers(currentUsers =>
                                               currentUsers.map(u => (u.id === user.id ? { ...u, staff_type: newType } : u))
                                             );
@@ -749,10 +752,11 @@ export default function AdminUsersPage() {
                                           <option value="">{locale === 'en' ? 'เลือกแผนก...' : locale === 'zh' ? 'เลือกแผนก...' : 'เลือกแผนก...'}</option>
                                           <option value="cafe">{locale === 'en' ? 'คาเฟ่' : locale === 'zh' ? 'คาเฟ่' : 'คาเฟ่'}</option>
                                           <option value="garden">{locale === 'en' ? 'สวน' : locale === 'zh' ? 'สวน' : 'สวน'}</option>
+                                          <option value="rider">{locale === 'en' ? 'Rider' : locale === 'zh' ? '骑手' : 'ไรเดอร์'}</option>
                                         </select>
                                       ) : (
                                         <div className="text-sm text-gray-800 px-2 py-1">
-                                          {user.staff_type === 'cafe' ? 'คาเฟ่' : user.staff_type === 'garden' ? 'สวน' : 'ไม่ได้ระบุ'}
+                                          {user.staff_type === 'cafe' ? 'คาเฟ่' : user.staff_type === 'garden' ? 'สวน' : user.staff_type === 'rider' ? 'ไรเดอร์' : 'ไม่ได้ระบุ'}
                                         </div>
                                       )}
                                     </div>
@@ -880,6 +884,33 @@ export default function AdminUsersPage() {
                                         ) : (
                                           <div className="text-sm text-gray-800 px-2 py-1">
                                             {user.shift_end || '17:30'}
+                                          </div>
+                                        )}
+                                      </div>
+                                      
+                                      <div className={`p-3 rounded-lg border ${editingUserId === user.id ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'} col-span-1 md:col-span-2`}>
+                                        <label className={`block text-xs font-medium mb-2 ${editingUserId === user.id ? 'text-blue-600' : 'text-gray-600'}`}>{locale === 'en' ? 'หักประกันสังคม (Social Security)' : 'หักประกันสังคม 5%'}</label>
+                                        {editingUserId === user.id ? (
+                                          <div className="flex items-center gap-2">
+                                            <input
+                                              type="checkbox"
+                                              className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                              checked={user.has_social_security || false}
+                                              onChange={(e) => {
+                                                const checked = e.target.checked;
+                                                setUsers(currentUsers =>
+                                                  currentUsers.map(u => (u.id === user.id ? { ...u, has_social_security: checked } : u))
+                                                );
+                                              }}
+                                            />
+                                            <span className="text-sm text-gray-800">เข้าระบบประกันสังคม</span>
+                                          </div>
+                                        ) : (
+                                          <div className="text-sm px-2 py-1 flex items-center gap-2">
+                                            <div className={`w-2 h-2 rounded-full ${user.has_social_security ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                                            <span className={user.has_social_security ? 'text-green-700 font-medium' : 'text-gray-500'}>
+                                              {user.has_social_security ? 'หักประกันสังคม' : 'ไม่หักประกันสังคม'}
+                                            </span>
                                           </div>
                                         )}
                                       </div>

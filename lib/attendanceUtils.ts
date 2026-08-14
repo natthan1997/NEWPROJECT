@@ -25,6 +25,7 @@ export interface WageConfig {
   overtime_rate_per_hour: number;
   salary_type: 'daily' | 'monthly';
   target_working_days: number;
+  has_social_security?: boolean;
 }
 
 /**
@@ -147,21 +148,62 @@ export function calculateAttendanceStats(
 }
 
 /**
+export interface SalaryBreakdown {
+  totalPay: number;
+  basePay: number;
+  otPay: number;
+  lateDeduction: number;
+  socialSecurityDeduction: number;
+}
+
+/**
  * Calculates estimated salary based on stats and wage configuration.
  * @param deductions - Manual deductions (e.g., unpaid leaves for monthly staff). Positive number representing currency.
  */
-export function calculateSalary(stats: AttendanceStats, config: WageConfig, deductions: number = 0): number {
+export function calculateSalary(stats: AttendanceStats, config: WageConfig, deductions: number = 0): SalaryBreakdown {
   // We only pay for APPROVED OT
   const otHours = stats.approvedOtMinutes / 60;
   const otPay = otHours * (config.overtime_rate_per_hour || 0);
+  
+  // Calculate Late Deduction (No Work, No Pay)
+  // Standard assumption: 8 working hours per day
+  let hourlyRate = 0;
+  let basePay = 0;
+  const baseSalary = config.daily_wage || 0; // daily wage or monthly salary
 
   if (config.salary_type === 'monthly') {
-    // For monthly, salary is fixed, minus manual deductions, plus approved OT.
-    const baseSalary = config.daily_wage || 0; // In monthly mode, daily_wage field acts as monthly base salary
-    return Math.max(0, baseSalary - deductions) + otPay;
+    // For monthly, default divisor is 30 days per month
+    const dailyRate = baseSalary / 30;
+    hourlyRate = dailyRate / 8;
+    basePay = baseSalary;
   } else {
     // Daily wage mode
-    const basePay = stats.daysWorked * (config.daily_wage || 0);
-    return Math.max(0, basePay - deductions) + otPay;
+    hourlyRate = baseSalary / 8;
+    basePay = stats.daysWorked * baseSalary;
   }
+
+  // Late deduction formula: (hourlyRate / 60) * lateMinutes
+  const lateDeduction = (hourlyRate / 60) * stats.lateMinutes;
+
+  // Calculate Social Security (5% of base salary, min 83, max 750)
+  let socialSecurityDeduction = 0;
+  if (config.has_social_security) {
+    const monthlyBaseEstimate = config.salary_type === 'monthly' ? baseSalary : (baseSalary * (config.target_working_days || 26));
+    const ssfAmount = Math.round(monthlyBaseEstimate * 0.05);
+    socialSecurityDeduction = Math.min(750, Math.max(83, ssfAmount));
+    
+    if (basePay === 0) {
+      socialSecurityDeduction = 0;
+    }
+  }
+
+  const totalPay = Math.max(0, basePay - deductions - lateDeduction - socialSecurityDeduction) + otPay;
+
+  return {
+    totalPay,
+    basePay,
+    otPay,
+    lateDeduction,
+    socialSecurityDeduction
+  };
 }

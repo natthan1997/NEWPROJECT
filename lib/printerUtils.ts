@@ -62,6 +62,7 @@ export interface PrintShopData {
   receipt_story_mode?: boolean
   receipt_stories?: Array<{ title: string, content: string }>
   receiptPaymentQrImage?: string
+  orderNumberFormat?: string
 }
 
 export interface PrintZReportData {

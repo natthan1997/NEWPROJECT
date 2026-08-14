@@ -810,20 +810,20 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
                                                                       )}
                                                                   </div>
                                                                   <div className="flex flex-col items-end gap-1.5 shrink-0">
-                                                                      <span className={"text-[11px] font-medium " + (item.is_out_of_stock ? 'text-gray-400' : 'text-black')}>
-                                                                          {item.is_out_of_stock ? 'งดขายชั่วคราว' : 'มีจำหน่าย'}
+                                                                      <span className={"text-[11px] font-medium " + (item.in_stock === false ? 'text-gray-400' : 'text-black')}>
+                                                                          {item.in_stock === false ? 'งดขายชั่วคราว' : 'มีจำหน่าย'}
                                                                       </span>
                                                                       <button 
                                                                           onClick={async (e) => {
                                                                               e.stopPropagation();
-                                                                              const newVal = !item.is_out_of_stock;
-                                                                              setItems(items.map(i => i.id === item.id ? { ...i, is_out_of_stock: newVal } : i));
-                                                                              await supabase.from('pos_menu_items').update({ is_out_of_stock: newVal }).eq('id', item.id);
+                                                                              const newVal = item.in_stock === false ? true : false;
+                                                                              setItems(items.map(i => i.id === item.id ? { ...i, in_stock: newVal } : i));
+                                                                              await supabase.from('pos_menu_items').update({ in_stock: newVal }).eq('id', item.id);
                                                                               bustMenuCache();
                                                                           }}
-                                                                          className={"relative w-12 h-6 rounded-full transition-colors duration-300 " + (!item.is_out_of_stock ? 'bg-black' : 'bg-gray-300')}
+                                                                          className={"relative w-12 h-6 rounded-full transition-colors duration-300 " + (item.in_stock !== false ? 'bg-emerald-500' : 'bg-gray-300')}
                                                                       >
-                                                                          <div className={"absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform duration-300 shadow-sm " + (!item.is_out_of_stock ? 'translate-x-6' : 'translate-x-0')}></div>
+                                                                          <div className={"absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform duration-300 shadow-sm " + (item.in_stock !== false ? 'translate-x-6' : 'translate-x-0')}></div>
                                                                       </button>
                                                                   </div>
                                                               </div>

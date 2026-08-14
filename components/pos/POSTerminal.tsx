@@ -401,7 +401,7 @@ export default function POSTerminal({
   const [showBillDiscountModal, setShowBillDiscountModal] = useState(false)
   const [billDiscountInput, setBillDiscountInput] = useState<string>('')
   const [billDiscountModalType, setBillDiscountModalType] = useState<'fixed' | 'percent'>('fixed')
-  const [billDiscountReason, setBillDiscountReason] = useState<string>('โปรโมชั่น/ส่วนลด')
+  const [billDiscountReason, setBillDiscountReason] = useState<string>('')
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(false)
   const [vatRate, setVatRate] = useState(7) // Default to 7%
 
@@ -427,7 +427,7 @@ export default function POSTerminal({
   const [itemDiscountModalItem, setItemDiscountModalItem] = useState<CartItem | null>(null)
   const [itemDiscountValue, setItemDiscountValue] = useState<string>('')
   const [itemDiscountType, setItemDiscountType] = useState<'fixed' | 'percent'>('fixed')
-  const [itemDiscountReason, setItemDiscountReason] = useState<string>('ใช้แต้มแลก (Points)')
+  const [itemDiscountReason, setItemDiscountReason] = useState<string>('')
   const [activePromotions, setActivePromotions] = useState<any[]>([])
   const [showPromotionsModal, setShowPromotionsModal] = useState(false)
 
@@ -961,6 +961,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
           receiptFontSize: shopSettings?.receipt_font_size,
           kitchenFontSize: shopSettings?.kitchen_font_size,
           kitchenShowType: shopSettings?.kitchen_show_type,
+          orderNumberFormat: shopSettings?.order_number_format || shopSettings?.opening_hours?.order_number_format,
           receiptPaymentQrImage: shopSettings?.opening_hours?.receipt_payment_qr_image
             || shopSettings?.receipt_payment_qr_image
             || (shopSettings as any)?.receipt_payment_qr_image,
@@ -1092,6 +1093,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       receiptFontSize: shopSettings?.receipt_font_size || 'normal',
       kitchenFontSize: shopSettings?.kitchen_font_size || 'normal',
       kitchenShowType: shopSettings?.kitchen_show_type,
+      orderNumberFormat: shopSettings?.order_number_format || shopSettings?.opening_hours?.order_number_format,
       receipt_story_mode: shopSettings?.receipt_story_mode || false,
       receipt_stories: shopSettings?.receipt_stories || [],
       receiptPaymentQrImage: shopSettings?.opening_hours?.receipt_payment_qr_image
@@ -3686,6 +3688,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             receiptFontSize: shopSettings?.receipt_font_size,
             kitchenFontSize: shopSettings?.kitchen_font_size,
             kitchenShowType: shopSettings?.kitchen_show_type,
+            orderNumberFormat: shopSettings?.order_number_format || shopSettings?.opening_hours?.order_number_format,
             receiptPaymentQrImage: shopSettings?.opening_hours?.receipt_payment_qr_image || shopSettings?.receipt_payment_qr_image
           }
 
@@ -4064,6 +4067,266 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
           onClick={() => setIsCartExpanded(false)}
         ></div>
         <div className={`relative flex h-full w-full flex-col bg-white font-bold shadow-2xl lg:shadow-none transition-transform duration-500 sm:max-w-xl lg:max-w-none ${isCartExpanded ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}`}>
+        <AnimatePresence mode="wait">
+        {showBillDiscountModal ? (
+          <motion.div
+            key="bill-discount"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.2 }}
+            className="flex h-full w-full flex-col bg-white absolute inset-0"
+          >
+            <header className="flex items-center gap-4 border-b border-gray-100 bg-[#FDFDFB] p-6 sm:p-8 shrink-0">
+              <button
+                onClick={() => setShowBillDiscountModal(false)}
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-900"
+              >
+                <ArrowLeft size={24} />
+              </button>
+              <div>
+                <h3 className="text-xl font-black uppercase tracking-tighter text-black">
+                  ส่วนลดทั้งบิล
+                </h3>
+                <p className="mt-1 text-[10px] font-bold tracking-widest text-gray-500">
+                  จัดการโปรโมชั่นหรือส่วนลดท้ายบิล
+                </p>
+              </div>
+            </header>
+
+            <div className="custom-scrollbar flex-1 overflow-y-auto p-6 sm:p-8 space-y-6 bg-white">
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-gray-700">
+                  ประเภทส่วนลด
+                </label>
+                <div className="flex rounded-xl bg-gray-100 p-1">
+                  <button
+                    onClick={() => setBillDiscountModalType('fixed')}
+                    className={`flex-1 rounded-lg py-2.5 text-sm font-medium transition-all ${
+                      billDiscountModalType === 'fixed'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-500 hover:text-gray-900'
+                    }`}
+                  >
+                    ลดเป็นบาท (฿)
+                  </button>
+                  <button
+                    onClick={() => setBillDiscountModalType('percent')}
+                    className={`flex-1 rounded-lg py-2.5 text-sm font-medium transition-all ${
+                      billDiscountModalType === 'percent'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-500 hover:text-gray-900'
+                    }`}
+                  >
+                    ลดเปอร์เซ็นต์ (%)
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-gray-700">
+                  มูลค่าส่วนลด
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-4 flex items-center text-xl font-medium text-gray-400 pointer-events-none">
+                    {billDiscountModalType === 'fixed' ? '฿' : '%'}
+                  </div>
+                  <input
+                    type="number"
+                    value={billDiscountInput}
+                    onChange={e => setBillDiscountInput(e.target.value)}
+                    placeholder="0"
+                    className="w-full rounded-2xl border border-gray-200 bg-white p-4 pl-12 text-2xl font-bold text-gray-900 transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  />
+                </div>
+              </div>
+
+              {activePromotions.length > 0 && (
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-gray-700">
+                    โปรโมชั่นที่เปิดใช้งาน
+                  </label>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {activePromotions.map(p => (
+                      <button
+                        key={p.id}
+                        onClick={() => {
+                          setBillDiscountModalType(p.discount_type)
+                          setBillDiscountInput(String(p.discount_value))
+                          setBillDiscountReason(`โปรโมชั่น: ${p.name}`)
+                        }}
+                        className="flex items-center gap-1.5 rounded-full border border-indigo-100 bg-indigo-50/50 px-3.5 py-2 text-sm font-medium text-indigo-700 transition-all hover:bg-indigo-100"
+                      >
+                        <Tag size={14} className="text-indigo-500" />
+                        {p.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-gray-700">
+                  เหตุผล (หมายเหตุ)
+                </label>
+                <input
+                    type="text"
+                    value={billDiscountReason}
+                    onChange={e => setBillDiscountReason(e.target.value)}
+                    placeholder=""
+                    className="w-full rounded-xl border border-gray-200 bg-white p-3 text-sm text-gray-900 transition-all focus:border-gray-400 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <footer className="border-t border-gray-100 bg-[#FDFDFB] p-6 sm:p-8 shrink-0">
+              <button
+                onClick={applyBillDiscount}
+                disabled={!billDiscountInput || Number(billDiscountInput) <= 0}
+                className={`flex w-full items-center justify-center gap-2 rounded-xl py-4 text-sm font-bold transition-all ${
+                  !billDiscountInput || Number(billDiscountInput) <= 0
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg shadow-emerald-500/30'
+                }`}
+              >
+                ยืนยันส่วนลดทั้งบิล
+              </button>
+            </footer>
+          </motion.div>
+        ) : itemDiscountModalItem ? (
+          <motion.div
+            key="item-discount"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.2 }}
+            className="flex h-full w-full flex-col bg-white absolute inset-0"
+          >
+            <header className="flex items-center gap-4 border-b border-gray-100 bg-[#FDFDFB] p-6 sm:p-8 shrink-0">
+              <button
+                onClick={() => setItemDiscountModalItem(null)}
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-900"
+              >
+                <ArrowLeft size={24} />
+              </button>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-xl font-black uppercase tracking-tighter text-black truncate">
+                  ส่วนลดรายการ
+                </h3>
+                <p className="mt-1 text-[10px] font-bold tracking-widest text-emerald-500 truncate">
+                  {itemDiscountModalItem && getPrimaryMenuName(itemDiscountModalItem)}
+                </p>
+              </div>
+            </header>
+
+            <div className="custom-scrollbar flex-1 overflow-y-auto p-6 sm:p-8 space-y-6 bg-white">
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-gray-700">
+                  ประเภทส่วนลด
+                </label>
+                <div className="flex rounded-xl bg-gray-100 p-1">
+                  <button
+                    onClick={() => setItemDiscountType('fixed')}
+                    className={`flex-1 rounded-lg py-2.5 text-sm font-medium transition-all ${
+                      itemDiscountType === 'fixed'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-500 hover:text-gray-900'
+                    }`}
+                  >
+                    ลดเป็นบาท (฿)
+                  </button>
+                  <button
+                    onClick={() => setItemDiscountType('percent')}
+                    className={`flex-1 rounded-lg py-2.5 text-sm font-medium transition-all ${
+                      itemDiscountType === 'percent'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-500 hover:text-gray-900'
+                    }`}
+                  >
+                    ลดเปอร์เซ็นต์ (%)
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-gray-700">
+                  มูลค่าส่วนลด
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-4 flex items-center text-xl font-medium text-gray-400 pointer-events-none">
+                    {itemDiscountType === 'fixed' ? '฿' : '%'}
+                  </div>
+                  <input
+                    type="number"
+                    value={itemDiscountValue}
+                    onChange={e => setItemDiscountValue(e.target.value)}
+                    placeholder="0"
+                    className="w-full rounded-2xl border border-gray-200 bg-white p-4 pl-12 text-2xl font-bold text-gray-900 transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  />
+                </div>
+              </div>
+
+              {activePromotions.length > 0 && (
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-gray-700">
+                    โปรโมชั่นที่เปิดใช้งาน
+                  </label>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {activePromotions.map(p => (
+                      <button
+                        key={p.id}
+                        onClick={() => {
+                          setItemDiscountType(p.discount_type)
+                          setItemDiscountValue(String(p.discount_value))
+                          setItemDiscountReason(`โปรโมชั่น: ${p.name}`)
+                        }}
+                        className="flex items-center gap-1.5 rounded-full border border-indigo-100 bg-indigo-50/50 px-3.5 py-2 text-sm font-medium text-indigo-700 transition-all hover:bg-indigo-100"
+                      >
+                        <Tag size={14} className="text-indigo-500" />
+                        {p.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-gray-700">
+                  เหตุผล (หมายเหตุ)
+                </label>
+                <input
+                    type="text"
+                    value={itemDiscountReason}
+                    onChange={e => setItemDiscountReason(e.target.value)}
+                    placeholder=""
+                    className="w-full rounded-xl border border-gray-200 bg-white p-3 text-sm text-gray-900 transition-all focus:border-gray-400 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <footer className="border-t border-gray-100 bg-[#FDFDFB] p-6 sm:p-8 shrink-0">
+              <button
+                onClick={applyItemDiscount}
+                disabled={!itemDiscountValue || Number(itemDiscountValue) <= 0}
+                className={`flex w-full items-center justify-center gap-2 rounded-xl py-4 text-sm font-bold transition-all ${
+                  !itemDiscountValue || Number(itemDiscountValue) <= 0
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg shadow-emerald-500/30'
+                }`}
+              >
+                ยืนยันส่วนลดรายการ
+              </button>
+            </footer>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="cart-view"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.2 }}
+            className="flex h-full w-full flex-col bg-white absolute inset-0"
+          >
           <header className="flex flex-col gap-6 border-b border-gray-50 bg-[#FDFDFB] p-6 sm:p-8 xl:p-10">
             <div className="flex w-full items-center justify-between">
               <motion.h3 
@@ -4514,6 +4777,9 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                 )}
               </div>
             </footer>
+          </motion.div>
+        )}
+        </AnimatePresence>
         </div>
       </div>
 
@@ -6625,305 +6891,6 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         onPromotionsChanged={fetchPromotions}
         shopSettings={shopSettings}
       />
-
-      {/* ITEM DISCOUNT MODAL */}
-      <AnimatePresence>
-        {itemDiscountModalItem && (
-          <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="w-full max-w-md overflow-hidden rounded-[2rem] bg-white shadow-2xl"
-            >
-              <div className="p-6 sm:p-8">
-                <div className="flex items-start justify-between mb-6">
-                  <div>
-                    <h3 className="text-xl font-black text-[#1A1A18]">
-                      ส่วนลดเฉพาะรายการ
-                    </h3>
-                    <p className="mt-1 text-sm font-bold text-gray-400">
-                      {getPrimaryMenuName(itemDiscountModalItem)} x {itemDiscountModalItem.quantity}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setItemDiscountModalItem(null)
-                      setItemDiscountValue('')
-                    }}
-                    className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-500 transition-all hover:bg-gray-200 hover:text-black active:scale-95"
-                  >
-                    <X size={20} />
-                  </button>
-                </div>
-
-                <div className="space-y-6">
-                  <div>
-                    <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-gray-400">
-                      ประเภทส่วนลด
-                    </label>
-                    <div className="flex rounded-xl bg-gray-100 p-1">
-                      <button
-                        onClick={() => setItemDiscountType('fixed')}
-                        className={`flex-1 rounded-lg py-2.5 text-sm font-bold transition-all ${
-                          itemDiscountType === 'fixed'
-                            ? 'bg-white text-black shadow-sm'
-                            : 'text-gray-500 hover:text-black'
-                        }`}
-                      >
-                        ลดเป็นบาท (฿)
-                      </button>
-                      <button
-                        onClick={() => setItemDiscountType('percent')}
-                        className={`flex-1 rounded-lg py-2.5 text-sm font-bold transition-all ${
-                          itemDiscountType === 'percent'
-                            ? 'bg-white text-black shadow-sm'
-                            : 'text-gray-500 hover:text-black'
-                        }`}
-                      >
-                        ลดเปอร์เซ็นต์ (%)
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-gray-400">
-                      มูลค่าส่วนลด
-                    </label>
-                    <div className="relative">
-                      <div className="absolute bottom-0 left-6 top-0 flex items-center text-2xl font-black text-gray-300 pointer-events-none">
-                        {itemDiscountType === 'fixed' ? '฿' : '%'}
-                      </div>
-                      <input
-                        type="number"
-                        value={itemDiscountValue}
-                        onChange={e => setItemDiscountValue(e.target.value)}
-                        placeholder="0"
-                        className="w-full rounded-2xl border-2 border-gray-100 bg-gray-50 p-4 text-center text-3xl font-black text-[#1A1A18] transition-all focus:border-[#1A1A18] focus:bg-white focus:outline-none appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-gray-400">
-                      โปรโมชั่นที่เปิดใช้งาน (Auto-fill)
-                    </label>
-                    {activePromotions.length > 0 ? (
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {activePromotions.map(p => (
-                          <button
-                            key={p.id}
-                            onClick={() => {
-                              setItemDiscountType(p.discount_type)
-                              setItemDiscountValue(String(p.discount_value))
-                              setItemDiscountReason(`โปรโมชั่น: ${p.name}`)
-                            }}
-                            className="flex items-center gap-1.5 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-[11px] font-bold text-emerald-700 transition-all hover:bg-emerald-100 hover:scale-[0.98] active:scale-95"
-                          >
-                            <Tag size={12} className="fill-emerald-500 text-emerald-600" />
-                            {p.name}
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="mb-4 text-[11px] font-bold text-gray-400 italic bg-gray-50 p-3 rounded-xl border border-dashed border-gray-200">ไม่มีโปรโมชั่นที่เปิดใช้งาน</div>
-                    )}
-
-                    <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-gray-400">
-                      เหตุผล (หมายเหตุ)
-                    </label>
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      {['ใช้แต้มแลก (Points)', 'ส่วนลดพนักงาน (Staff)', 'ลูกค้าประจำ'].map(reason => (
-                        <button
-                          key={reason}
-                          onClick={() => setItemDiscountReason(reason)}
-                          className={`rounded-lg px-3 py-1.5 text-[10px] font-bold transition-all ${
-                            itemDiscountReason === reason
-                              ? 'bg-[#1A1A18] text-white shadow-sm'
-                              : 'bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-black'
-                          }`}
-                        >
-                          {reason}
-                        </button>
-                      ))}
-                    </div>
-                    <input
-                        type="text"
-                        value={itemDiscountReason}
-                        onChange={e => setItemDiscountReason(e.target.value)}
-                        placeholder="ระบุเหตุผลอื่นๆ..."
-                        className="w-full rounded-xl border-2 border-gray-100 bg-gray-50 p-3 text-sm font-bold text-[#1A1A18] transition-all focus:border-[#1A1A18] focus:bg-white focus:outline-none"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 p-6 sm:p-8">
-                <button
-                  onClick={applyItemDiscount}
-                  disabled={!itemDiscountValue || Number(itemDiscountValue) <= 0}
-                  className={`relative flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-[13px] font-black uppercase tracking-widest transition-all ${
-                    !itemDiscountValue || Number(itemDiscountValue) <= 0
-                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                      : 'bg-emerald-500 text-white shadow-[0_8px_20px_-8px_rgba(16,185,129,0.5)] hover:bg-emerald-600 hover:shadow-lg active:scale-95'
-                  }`}
-                >
-                  <Tag size={18} />
-                  ยืนยันส่วนลดรายการ
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* BILL DISCOUNT MODAL */}
-      <AnimatePresence>
-        {showBillDiscountModal && (
-          <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="w-full max-w-md overflow-hidden rounded-[2rem] bg-white shadow-2xl"
-            >
-              <div className="p-6 sm:p-8">
-                <div className="flex items-start justify-between mb-6">
-                  <div>
-                    <h3 className="text-xl font-black text-[#1A1A18]">
-                      ส่วนลดทั้งบิล
-                    </h3>
-                    <p className="mt-1 text-sm font-bold text-gray-400">
-                      จัดการโปรโมชั่นหรือส่วนลดท้ายบิล
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setShowBillDiscountModal(false)}
-                    className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-500 transition-all hover:bg-gray-200 hover:text-black active:scale-95"
-                  >
-                    <X size={20} />
-                  </button>
-                </div>
-
-                <div className="space-y-6">
-                  <div>
-                    <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-gray-400">
-                      ประเภทส่วนลด
-                    </label>
-                    <div className="flex rounded-xl bg-gray-100 p-1">
-                      <button
-                        onClick={() => setBillDiscountModalType('fixed')}
-                        className={`flex-1 rounded-lg py-2.5 text-sm font-bold transition-all ${
-                          billDiscountModalType === 'fixed'
-                            ? 'bg-white text-black shadow-sm'
-                            : 'text-gray-500 hover:text-black'
-                        }`}
-                      >
-                        ลดเป็นบาท (฿)
-                      </button>
-                      <button
-                        onClick={() => setBillDiscountModalType('percent')}
-                        className={`flex-1 rounded-lg py-2.5 text-sm font-bold transition-all ${
-                          billDiscountModalType === 'percent'
-                            ? 'bg-white text-black shadow-sm'
-                            : 'text-gray-500 hover:text-black'
-                        }`}
-                      >
-                        ลดเปอร์เซ็นต์ (%)
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-gray-400">
-                      มูลค่าส่วนลด
-                    </label>
-                    <div className="relative">
-                      <div className="absolute bottom-0 left-6 top-0 flex items-center text-2xl font-black text-gray-300 pointer-events-none">
-                        {billDiscountModalType === 'fixed' ? '฿' : '%'}
-                      </div>
-                      <input
-                        type="number"
-                        value={billDiscountInput}
-                        onChange={e => setBillDiscountInput(e.target.value)}
-                        placeholder="0"
-                        className="w-full rounded-2xl border-2 border-gray-100 bg-gray-50 p-4 text-center text-3xl font-black text-[#1A1A18] transition-all focus:border-[#1A1A18] focus:bg-white focus:outline-none appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-gray-400">
-                      โปรโมชั่นที่เปิดใช้งาน (Auto-fill)
-                    </label>
-                    {activePromotions.length > 0 ? (
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {activePromotions.map(p => (
-                          <button
-                            key={p.id}
-                            onClick={() => {
-                              setBillDiscountModalType(p.discount_type)
-                              setBillDiscountInput(String(p.discount_value))
-                              setBillDiscountReason(`โปรโมชั่น: ${p.name}`)
-                            }}
-                            className="flex items-center gap-1.5 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-[11px] font-bold text-emerald-700 transition-all hover:bg-emerald-100 hover:scale-[0.98] active:scale-95"
-                          >
-                            <Tag size={12} className="fill-emerald-500 text-emerald-600" />
-                            {p.name}
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="mb-4 text-[11px] font-bold text-gray-400 italic bg-gray-50 p-3 rounded-xl border border-dashed border-gray-200">ไม่มีโปรโมชั่นที่เปิดใช้งาน</div>
-                    )}
-
-                    <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-gray-400">
-                      เหตุผล (หมายเหตุ)
-                    </label>
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      {['โปรโมชั่น/ส่วนลด', 'ใช้แต้มแลก (Points)', 'ส่วนลดพนักงาน (Staff)', 'ลูกค้าประจำ'].map(reason => (
-                        <button
-                          key={reason}
-                          onClick={() => setBillDiscountReason(reason)}
-                          className={`rounded-lg px-3 py-1.5 text-[10px] font-bold transition-all ${
-                            billDiscountReason === reason
-                              ? 'bg-[#1A1A18] text-white shadow-sm'
-                              : 'bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-black'
-                          }`}
-                        >
-                          {reason}
-                        </button>
-                      ))}
-                    </div>
-                    <input
-                        type="text"
-                        value={billDiscountReason}
-                        onChange={e => setBillDiscountReason(e.target.value)}
-                        placeholder="ระบุเหตุผลอื่นๆ..."
-                        className="w-full rounded-xl border-2 border-gray-100 bg-gray-50 p-3 text-sm font-bold text-[#1A1A18] transition-all focus:border-[#1A1A18] focus:bg-white focus:outline-none"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 p-6 sm:p-8">
-                <button
-                  onClick={applyBillDiscount}
-                  disabled={!billDiscountInput || Number(billDiscountInput) <= 0}
-                  className={`relative flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-[13px] font-black uppercase tracking-widest transition-all ${
-                    !billDiscountInput || Number(billDiscountInput) <= 0
-                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                      : 'bg-emerald-500 text-white shadow-[0_8px_20px_-8px_rgba(16,185,129,0.5)] hover:bg-emerald-600 hover:shadow-lg active:scale-95'
-                  }`}
-                >
-                  <Tag size={18} />
-                  ยืนยันส่วนลดทั้งบิล
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
       {/* GLOBAL PRINT STYLES */}
       <style jsx global>{`

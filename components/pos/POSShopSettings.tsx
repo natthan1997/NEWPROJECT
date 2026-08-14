@@ -357,6 +357,9 @@ export default function POSShopSettings({
                 receipt_font_size: data.opening_hours?.receipt_font_size || 'normal',
                 receipt_payment_qr_image: data.opening_hours?.receipt_payment_qr_image || '',
                 receipt_footer: data.opening_hours?.receipt_footer || '',
+                bill_number_format: data.opening_hours?.bill_number_format || '{Prefix}{YYMMDD}-{Queue:4}',
+                order_number_format: data.opening_hours?.order_number_format || '{Queue:4}',
+                hide_queue_in_pos: data.opening_hours?.hide_queue_in_pos ?? true,
                 kitchen_font_size: data.opening_hours?.kitchen_font_size || 'normal',
                 kitchen_show_type: data.opening_hours?.kitchen_show_type ?? true,
                 liff_splash_poster_url: data.opening_hours?.liff_splash_poster_url || '',
@@ -545,6 +548,9 @@ const handleSave = async () => {
         receipt_font_size: settings.receipt_font_size,
         receipt_payment_qr_image: settings.receipt_payment_qr_image,
         receipt_footer: settings.receipt_footer,
+        bill_number_format: settings.bill_number_format,
+        order_number_format: settings.order_number_format,
+        hide_queue_in_pos: settings.hide_queue_in_pos,
         kitchen_font_size: settings.kitchen_font_size,
         kitchen_show_type: settings.kitchen_show_type,
         liff_splash_poster_url: settings.liff_splash_poster_url,
@@ -581,6 +587,9 @@ const handleSave = async () => {
     delete payload.receipt_font_size;
     delete payload.receipt_payment_qr_image;
     delete payload.receipt_footer;
+    delete payload.bill_number_format;
+    delete payload.order_number_format;
+    delete payload.hide_queue_in_pos;
     delete payload.kitchen_font_size;
     delete payload.kitchen_show_type;
     delete payload.liff_splash_poster_url;
@@ -647,6 +656,9 @@ const handleSave = async () => {
                 receipt_font_size: data.opening_hours?.receipt_font_size || 'normal',
                 receipt_payment_qr_image: data.opening_hours?.receipt_payment_qr_image || '',
                 receipt_footer: data.opening_hours?.receipt_footer || '',
+                bill_number_format: data.opening_hours?.bill_number_format || '{Prefix}{YYMMDD}-{Queue:4}',
+                order_number_format: data.opening_hours?.order_number_format || '{Queue:4}',
+                hide_queue_in_pos: data.opening_hours?.hide_queue_in_pos ?? true,
                 kitchen_font_size: data.opening_hours?.kitchen_font_size || 'normal',
                 kitchen_show_type: data.opening_hours?.kitchen_show_type ?? true,
                 address: data.opening_hours?.address || '',
@@ -1857,7 +1869,44 @@ const handleSave = async () => {
                                             </div>
                                         </div>
                                         
-                                        <div className="divide-y divide-black/5 border-t border-black/5 pt-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                            <div className="bg-gray-50 p-4 rounded-xl flex flex-col justify-between">
+                                                <label className="text-[13px] font-medium text-gray-900 block mb-2">{locale === 'en' ? 'Bill ID Format (รหัสบิล)' : 'รูปแบบรหัสบิล'}</label>
+                                                <p className="text-[11px] text-gray-500 mb-2 leading-tight">ตัวแปรที่ใช้ได้: {'{Prefix}'}, {'{YYMMDD}'}, {'{YYYYMMDD}'}, {'{Queue:4}'}</p>
+                                                <input 
+                                                    type="text"
+                                                    value={settings.bill_number_format || '{Prefix}{YYMMDD}-{Queue:4}'}
+                                                    onChange={e => setSettings({...settings, bill_number_format: e.target.value})}
+                                                    className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-[14px] outline-none"
+                                                    placeholder="{Prefix}{YYMMDD}-{Queue:4}"
+                                                />
+                                            </div>
+                                            <div className="bg-gray-50 p-4 rounded-xl flex flex-col justify-between">
+                                                <label className="text-[13px] font-medium text-gray-900 block mb-2">{locale === 'en' ? 'Order Number Format (เลขออเดอร์)' : 'รูปแบบเลขออเดอร์'}</label>
+                                                <p className="text-[11px] text-gray-500 mb-2 leading-tight">ตัวแปรที่ใช้ได้: {'{Queue:4}'}, {'{Queue:3}'}, {'{Queue}'}</p>
+                                                <input 
+                                                    type="text"
+                                                    value={settings.order_number_format || '{Queue:4}'}
+                                                    onChange={e => setSettings({...settings, order_number_format: e.target.value})}
+                                                    className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-[14px] outline-none"
+                                                    placeholder="{Queue:4}"
+                                                />
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="divide-y divide-black/5 border-t border-black/5 pt-4 mt-4">
+                                            <div className="py-4 flex items-center justify-between gap-4">
+                                                <div>
+                                                    <label className="text-[14px] font-medium text-gray-900 block">{locale === 'en' ? 'Hide Queue Number on POS' : 'ซ่อนเลขคิวสำหรับบิลหน้าร้าน'}</label>
+                                                    <p className="text-[12px] text-gray-500 mt-1">{locale === 'en' ? 'Hide large queue box for POS orders (only show for LIFF)' : 'ปิดกล่องคิวขนาดใหญ่ หากสั่งผ่าน POS'}</p>
+                                                </div>
+                                                <button 
+                                                    onClick={() => setSettings({...settings, hide_queue_in_pos: !settings.hide_queue_in_pos})}
+                                                    className={`relative w-11 h-6 rounded-full transition-colors duration-300 ${settings.hide_queue_in_pos ? 'bg-indigo-500' : 'bg-gray-200'}`}
+                                                >
+                                                    <div className={`absolute top-[2px] w-5 h-5 rounded-full bg-white transition-all duration-300 shadow-sm flex items-center justify-center ${settings.hide_queue_in_pos ? 'left-[22px]' : 'left-[2px]'}`} />
+                                                </button>
+                                            </div>
                                             <div className="py-4 flex items-center justify-between gap-4">
                                                 <div>
                                                     <label className="text-[14px] font-medium text-gray-900 block">{locale === 'en' ? 'Show Logo' : 'แสดงโลโก้ร้าน'}</label>
@@ -2126,6 +2175,27 @@ const handleSave = async () => {
                                                         placeholder="2000"
                                                     />
                                                     <span className="text-[13px] font-medium text-gray-400">THB</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Late Grace Period */}
+                                            <div className="py-4 flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
+                                                <div>
+                                                    <h4 className="text-[14px] font-medium text-gray-900">{locale === 'en' ? 'Late Grace Period' : 'ระยะเวลาผ่อนผันมาสาย'}</h4>
+                                                    <p className="text-[12px] text-gray-500 mt-1">
+                                                        {locale === 'en' ? 'Minutes staff can be late without deduction' : 'จำนวนนาทีที่พนักงานสามารถเข้างานสายได้โดยไม่ถูกหักเงิน'}
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <input 
+                                                        type="number" 
+                                                        min="0"
+                                                        value={shiftSettings.late_grace_period_minutes ?? 10}
+                                                        onChange={(e) => updateShiftSetting('late_grace_period_minutes', Number(e.target.value))}
+                                                        className="w-24 sm:w-32 bg-gray-50 border-0 rounded-lg py-2 px-3 text-right text-[14px] outline-none"
+                                                        placeholder="10"
+                                                    />
+                                                    <span className="text-[13px] font-medium text-gray-400">{locale === 'en' ? 'Mins' : 'นาที'}</span>
                                                 </div>
                                             </div>
 

@@ -72,7 +72,7 @@ function LiffPathRedirector() {
     // If claimToken is present, default target path to /liff/member for receiving points
     if (!targetPath && token) {
       targetPath = '/liff/member';
-    } else if (!targetPath && typeof window !== 'undefined' && (window.location.pathname.includes('/member') || window.location.search.includes('claimToken='))) {
+    } else if (!targetPath && typeof window !== 'undefined' && window.location.pathname === '/liff') {
       targetPath = '/liff/member';
     }
 
@@ -85,6 +85,12 @@ function LiffPathRedirector() {
       
       let targetCleanPath = target.split('?')[0].replace(/\/+$/, '');
       
+      // Auto-prefix with /liff if missing (common mistake in Rich Menu setup)
+      if (!targetCleanPath.startsWith('/liff')) {
+        targetCleanPath = `/liff${targetCleanPath.startsWith('/') ? '' : '/'}${targetCleanPath}`;
+        target = `/liff${target.startsWith('/') ? '' : '/'}${target}`;
+      }
+      
       // Prevent redirecting to invalid /liff root path which causes 404
       if (targetCleanPath === '/liff' || targetCleanPath === '') {
         targetCleanPath = '/liff/member';
@@ -95,9 +101,17 @@ function LiffPathRedirector() {
       const validLiffRoutes = ['/liff/member', '/liff/menu', '/liff/history', '/liff/rewards', '/liff/my-rewards', '/liff/point-history', '/liff/success', '/liff/track'];
       const isValidRoute = validLiffRoutes.some(r => targetCleanPath === r || targetCleanPath.startsWith(r + '/'));
 
-      if (isValidRoute && pathname !== targetCleanPath) {
-        router.replace(target);
+      if (isValidRoute) {
+        if (pathname !== targetCleanPath) {
+          router.replace(target);
+        }
+      } else if (pathname === '/liff') {
+        // Fallback for completely invalid routes to avoid getting stuck on the loader
+        router.replace('/liff/member');
       }
+    } else if (pathname === '/liff') {
+      // Fallback if targetPath is missing but we're on the root liff page
+      router.replace('/liff/member');
     }
   }, [searchParams, router, pathname]);
 

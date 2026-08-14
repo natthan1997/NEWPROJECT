@@ -130,6 +130,26 @@ export async function evaluateOrderMissions(order_id: string, member_id: string)
         }
 
         const isCompleted = newProgressCount >= targetCount;
+        let claimedAt = null;
+
+        if (isCompleted) {
+           claimedAt = new Date().toISOString();
+           // Grant reward automatically
+           const { data: member } = await supabase
+              .from('pos_members')
+              .select('gacha_tickets')
+              .eq('id', member_id)
+              .single();
+              
+           if (member) {
+              const currentTickets = member.gacha_tickets || 0;
+              const newTickets = currentTickets + (mission.reward_tickets || 1);
+              await supabase
+                  .from('pos_members')
+                  .update({ gacha_tickets: newTickets })
+                  .eq('id', member_id);
+           }
+        }
 
         if (currentProgressRow && currentProgressRow.id) {
           await supabase
@@ -137,7 +157,7 @@ export async function evaluateOrderMissions(order_id: string, member_id: string)
             .update({
               progress_data: progressData,
               is_completed: isCompleted,
-              claimed_at: null,
+              claimed_at: claimedAt,
               updated_at: new Date().toISOString()
             })
             .eq('id', progressId);
@@ -148,7 +168,8 @@ export async function evaluateOrderMissions(order_id: string, member_id: string)
               member_id: member_id,
               mission_id: mission.id,
               progress_data: progressData,
-              is_completed: isCompleted
+              is_completed: isCompleted,
+              claimed_at: claimedAt
             });
         }
       }

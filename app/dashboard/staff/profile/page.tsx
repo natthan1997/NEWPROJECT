@@ -152,6 +152,7 @@ export default function StaffProfile() {
     holidaysUsed: 0,
     holidaysPaid: 0,
     deductions: 0,
+    lateDeduction: 0,
     baseSalary: 0,
     otPay: 0,
     holidayPay: 0,
@@ -307,6 +308,20 @@ export default function StaffProfile() {
           .gte('advance_date', firstDay)
           .lte('advance_date', lastDay)
 
+        // 4. Fetch shop settings for grace period
+        const { data: shopSettings } = await supabase
+          .from('pos_shop_settings')
+          .select('shift_settings')
+          .maybeSingle()
+
+        let gracePeriod = 10;
+        if (shopSettings?.shift_settings) {
+          const shiftSettings = typeof shopSettings.shift_settings === 'string' ? JSON.parse(shopSettings.shift_settings) : shopSettings.shift_settings;
+          if (shiftSettings.late_grace_period_minutes !== undefined) {
+            gracePeriod = Number(shiftSettings.late_grace_period_minutes);
+          }
+        }
+
         let daysWorked = 0
         let lateMinutes = 0
         let otHours = 0
@@ -334,7 +349,6 @@ export default function StaffProfile() {
               const checkInDate = new Date(checkInLog.timestamp)
               const checkInMins = checkInDate.getHours() * 60 + checkInDate.getMinutes()
               const targetMins = (sHour || 8) * 60 + (sMin || 30)
-              const gracePeriod = 10
               
               if (checkInMins > targetMins + gracePeriod) {
                 lateMinutes += (checkInMins - targetMins)
@@ -366,7 +380,16 @@ export default function StaffProfile() {
         const otPay = otHours * otRate
         const holidayPay = holidaysPaid * (salaryType === 'monthly' ? (dailyWage / 30) : dailyWage)
         const baseSalary = salaryType === 'monthly' ? dailyWage : (daysWorked * dailyWage)
-        const netSalary = Math.max(0, baseSalary + otPay + holidayPay - deductions)
+        
+        let hourlyRate = 0
+        if (salaryType === 'monthly') {
+            hourlyRate = (dailyWage / 30) / 8
+        } else {
+            hourlyRate = dailyWage / 8
+        }
+        const lateDeduction = (hourlyRate / 60) * lateMinutes
+        
+        const netSalary = Math.max(0, baseSalary + otPay + holidayPay - deductions - lateDeduction)
 
         setAttendanceSummary({
           daysWorked,
@@ -376,6 +399,7 @@ export default function StaffProfile() {
           holidaysUsed,
           holidaysPaid,
           deductions,
+          lateDeduction,
           baseSalary,
           otPay,
           holidayPay,
@@ -757,6 +781,12 @@ export default function StaffProfile() {
                                             <span className="text-sm font-light text-rose-400">เบิกล่วงหน้า/หักเงิน</span>
                                             <span className="text-lg font-bold text-rose-400">-{attendanceSummary.deductions.toLocaleString()} ฿</span>
                                         </div>
+                                        {attendanceSummary.lateDeduction > 0 && (
+                                        <div className="flex justify-between items-center pb-4 border-b border-white/10">
+                                            <span className="text-sm font-light text-rose-400">หักสายอัตโนมัติ</span>
+                                            <span className="text-lg font-bold text-rose-400">-{attendanceSummary.lateDeduction.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿</span>
+                                        </div>
+                                        )}
                                         <div className="flex justify-between items-center pt-4">
                                             <span className="text-sm font-bold text-white uppercase tracking-wider">รวมสุทธิ</span>
                                             <span className="text-4xl font-light text-white">{attendanceSummary.netSalary.toLocaleString()} <span className="text-lg font-bold text-white/50">฿</span></span>

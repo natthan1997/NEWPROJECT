@@ -16,9 +16,9 @@ import {
 } from "@heroicons/react/24/outline";
 import { 
   calculateAttendanceStats,
-  calculateDailyStats,
   calculateSalary,
   AttendanceLog,
+  SalaryBreakdown
 } from "@/lib/attendanceUtils";
 import { format, parseISO, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isToday, isFuture } from "date-fns";
 import { th } from "date-fns/locale";
@@ -39,9 +39,12 @@ interface StaffSummary {
     daysWorked: number;
     lateMinutes: number;
     otMinutes: number;
+    approvedOtMinutes: number;
+    hasPendingOT: boolean;
     totalHours: number;
   };
-  estimatedSalary: number;
+  estimatedSalary: SalaryBreakdown;
+  totalDeductions?: number;
   rawLogs: AttendanceLog[];
 }
 
@@ -69,7 +72,7 @@ export default function AdminAttendancePage() {
       // 1. Fetch all staff
       const { data: staffData, error: staffError } = await supabase
         .from("profiles")
-        .select("id, display_name, role, staff_type, daily_wage, overtime_rate_per_hour, target_working_days, salary_type, shift_start, shift_end, is_pos_account")
+        .select("id, display_name, role, staff_type, daily_wage, overtime_rate_per_hour, target_working_days, salary_type, shift_start, shift_end, is_pos_account, has_social_security")
         .eq("role", "staff");
 
       if (staffError) throw staffError;
@@ -97,10 +100,24 @@ export default function AdminAttendancePage() {
 
       if (adjError) throw adjError;
 
+      // 3.5. Fetch shop settings for grace period
+      const { data: shopSettings } = await supabase
+        .from("pos_shop_settings")
+        .select("shift_settings")
+        .maybeSingle();
+      
+      let gracePeriod = 10;
+      if (shopSettings?.shift_settings) {
+        const shiftSettings = typeof shopSettings.shift_settings === 'string' ? JSON.parse(shopSettings.shift_settings) : shopSettings.shift_settings;
+        if (shiftSettings.late_grace_period_minutes !== undefined) {
+          gracePeriod = Number(shiftSettings.late_grace_period_minutes);
+        }
+      }
+
       // 4. Process data
       const summaries: StaffSummary[] = (staff || []).map(s => {
         const staffLogs = (logs || []).filter(l => l.profile_id === s.id) as AttendanceLog[];
-        const stats = calculateAttendanceStats(staffLogs, s.shift_start || "08:30", s.shift_end || "17:30");
+        const stats = calculateAttendanceStats(staffLogs, s.shift_start || "08:30", s.shift_end || "17:30", gracePeriod);
         
         const staffAdjustments = (adjustments || []).filter(a => a.profile_id === s.id);
         const totalDeductions = staffAdjustments.filter(a => a.amount < 0).reduce((sum, a) => sum + Math.abs(a.amount), 0);
@@ -109,7 +126,8 @@ export default function AdminAttendancePage() {
           daily_wage: s.daily_wage || 0,
           overtime_rate_per_hour: s.overtime_rate_per_hour || 0,
           salary_type: s.salary_type || 'daily',
-          target_working_days: s.target_working_days || 26
+          target_working_days: s.target_working_days || 26,
+          has_social_security: s.has_social_security || false
         }, totalDeductions);
 
         return {
@@ -136,13 +154,13 @@ export default function AdminAttendancePage() {
     const headers = ["ชื่อพนักงาน", "ประเภท", "วันทำงาน", "สาย (นาที)", "OT (นาที)", "ขาดงาน", "เวลาทำงาน", "ค่าแรงประมาณการ"];
     const rows = staffSummaries.map(s => [
       s.display_name,
-      s.staff_type === 'cafe' ? 'คาเฟ่' : 'สวน',
+      s.staff_type === 'cafe' ? 'คาเฟ่' : s.staff_type === 'garden' ? 'สวน' : s.staff_type === 'rider' ? 'ไรเดอร์' : 'ไม่ได้ระบุ',
       s.stats.daysWorked,
       s.stats.lateMinutes,
       s.stats.otMinutes,
       Math.max(0, (s.target_working_days || 26) - s.stats.daysWorked),
       `${s.shift_start}-${s.shift_end}`,
-      s.estimatedSalary.toFixed(2)
+      s.estimatedSalary.totalPay.toFixed(2)
     ]);
 
     const csvContent = "\uFEFF" + [headers, ...rows].map(e => e.join(",")).join("\n");
@@ -274,25 +292,39 @@ export default function AdminAttendancePage() {
               </div>
             </div>
 
+            <div className="bg-red-50 p-3 rounded-lg border border-red-100 mb-8">
+              <div className="text-sm font-bold text-red-800">{locale === 'en' ? 'Monthly manual deduction (Advances/Others)' : locale === 'zh' ? '每月人工扣除' : 'หักเงินแบบแมนนวล (เบิกล่วงหน้า/อื่นๆ)'}</div>
+              <div className="text-xs text-red-600">{locale === 'en' ? 'Current deducted amount: ฿' : locale === 'zh' ? '当前扣除金额：฿' : 'ยอดหักปัจจุบัน: ฿'}{(selectedStaff as any).totalDeductions || 0}</div>
+              
+              <div className="mt-2 text-sm font-bold text-rose-800">{locale === 'en' ? 'Automatic Late Deduction' : locale === 'zh' ? '自动迟到扣除' : 'หักเงินมาสายอัตโนมัติ (No Work, No Pay)'}</div>
+              <div className="text-xs text-rose-600">{locale === 'en' ? 'Deducted: ฿' : locale === 'zh' ? '扣除：฿' : 'ยอดหักมาสาย: ฿'}{selectedStaff.estimatedSalary?.lateDeduction?.toFixed(2) || 0}</div>
+
+              {selectedStaff.estimatedSalary?.socialSecurityDeduction > 0 && (
+                <>
+                  <div className="mt-2 text-sm font-bold text-rose-800">หักประกันสังคม (SSF)</div>
+                  <div className="text-xs text-rose-600">ยอดหักประกันสังคม: ฿{selectedStaff.estimatedSalary?.socialSecurityDeduction?.toFixed(2)}</div>
+                </>
+              )}
+            </div>
+
             {selectedStaff.salary_type === 'monthly' && (
-              <div className="mb-8 p-4 bg-red-50 rounded-xl border border-red-100 flex items-center justify-between">
+              <div className="mb-8 p-4 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-between">
                 <div>
-                  <div className="text-sm font-bold text-red-800">{locale === 'en' ? 'Monthly deduction (Leave work/absence from work)' : locale === 'zh' ? '每月扣除（请假/旷工）' : 'หักเงินรายเดือน (ลางาน/ขาดงาน)'}</div>
-                  <div className="text-xs text-red-600">{locale === 'en' ? 'Current deducted amount: ฿' : locale === 'zh' ? '当前扣除金额：฿' : 'ยอดหักปัจจุบัน: ฿'}{(selectedStaff as any).totalDeductions || 0}</div>
+                  <div className="text-sm font-bold text-gray-800">{locale === 'en' ? 'Add manual deduction' : locale === 'zh' ? '添加手动扣除' : 'เพิ่มการหักเงิน (แมนนวล)'}</div>
                 </div>
                 <div className="flex items-center gap-2">
                   <input 
                     type="number" 
-                    placeholder={locale === 'en' ? 'Amount to be additionally deducted' : locale === 'zh' ? '需额外扣除的金额' : 'ยอดเงินที่ต้องการหักเพิ่ม'} 
-                    className="border border-red-200 rounded px-3 py-1.5 text-sm w-48"
+                    placeholder={locale === 'en' ? 'Amount' : locale === 'zh' ? '金额' : 'จำนวนเงิน'} 
+                    className="border border-gray-200 rounded px-3 py-1.5 text-sm w-32"
                     value={deductionAmount}
                     onChange={e => setDeductionAmount(e.target.value)}
                   />
                   <button 
                     onClick={handleSaveDeduction}
-                    className="bg-red-600 text-white px-4 py-1.5 rounded text-sm font-bold hover:bg-red-700 transition-colors"
+                    className="bg-black text-white px-4 py-1.5 rounded text-sm font-bold hover:bg-gray-800 transition-colors"
                   >
-                    {locale === 'en' ? 'Record of deduction' : locale === 'zh' ? '扣除记录' : '                     บันทึกหักเงิน                   '}</button>
+                    {locale === 'en' ? 'Record' : locale === 'zh' ? '记录' : 'บันทึก'}</button>
                 </div>
               </div>
             )}
@@ -567,7 +599,7 @@ export default function AdminAttendancePage() {
           <div className="bg-white p-6 border border-[#E5E5DF] shadow-sm">
             <div className="text-[10px] font-black uppercase tracking-widest text-[#A3A3A3] mb-2">{locale === 'en' ? 'Total payment amount (estimated)' : locale === 'zh' ? '付款总额（预计）' : 'ยอดจ่ายทั้งหมด (ประมาณการ)'}</div>
             <div className="text-2xl font-bold text-[#1A1A1A]">
-              {locale === 'en' ? '               ฿' : locale === 'zh' ? '               ฿' : '               ฿'}{staffSummaries.reduce((sum, s) => sum + s.estimatedSalary, 0).toLocaleString()}
+              {locale === 'en' ? '               ฿' : locale === 'zh' ? '               ฿' : '               ฿'}{staffSummaries.reduce((sum, s) => sum + s.estimatedSalary.totalPay, 0).toLocaleString()}
             </div>
           </div>
           <div className="bg-white p-6 border border-[#E5E5DF] shadow-sm flex justify-between items-center">
@@ -616,10 +648,10 @@ export default function AdminAttendancePage() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col gap-1">
-                          <span className={`px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest border w-fit ${
-                            staff.staff_type === 'cafe' ? 'bg-amber-50 text-amber-700 border-amber-100' : 'bg-green-50 text-green-700 border-green-100'
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium border ${
+                            staff.staff_type === 'cafe' ? 'bg-amber-50 text-amber-700 border-amber-100' : staff.staff_type === 'garden' ? 'bg-green-50 text-green-700 border-green-100' : staff.staff_type === 'rider' ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-gray-50 text-gray-700 border-gray-100'
                           }`}>
-                            {staff.staff_type || 'N/A'}
+                            {staff.staff_type === 'cafe' ? 'คาเฟ่' : staff.staff_type === 'garden' ? 'สวน' : staff.staff_type === 'rider' ? 'ไรเดอร์' : 'N/A'}
                           </span>
                           <span className="text-[10px] text-gray-500 font-mono">{staff.shift_start}-{staff.shift_end}</span>
                         </div>
@@ -647,8 +679,20 @@ export default function AdminAttendancePage() {
                         <div>{locale === 'en' ? 'OT per hour ฿' : locale === 'zh' ? '每小时 OT ฿' : 'OT ชม.ละ ฿'}{staff.overtime_rate_per_hour?.toLocaleString()}</div>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <div className="text-lg font-black text-[#1A1A1A]">
-                          {locale === 'en' ? '                           ฿' : locale === 'zh' ? '                           ฿' : '                           ฿'}{staff.estimatedSalary.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        <div className="flex flex-col items-end">
+                          <span className="text-lg font-black text-[#1A1A1A] block">
+                            {locale === 'en' ? '                           ฿' : locale === 'zh' ? '                           ฿' : '                           ฿'}{staff.estimatedSalary.totalPay.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </span>
+                          {staff.estimatedSalary.lateDeduction > 0 && (
+                            <span className="text-[10px] text-red-500 bg-red-50 px-1.5 py-0.5 rounded font-medium mt-0.5">
+                              หักสาย: ฿{staff.estimatedSalary.lateDeduction.toFixed(2)}
+                            </span>
+                          )}
+                          {staff.estimatedSalary.socialSecurityDeduction > 0 && (
+                            <span className="text-[10px] text-red-500 bg-red-50 px-1.5 py-0.5 rounded font-medium mt-0.5">
+                              ประกันสังคม: ฿{staff.estimatedSalary.socialSecurityDeduction.toFixed(2)}
+                            </span>
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4 text-right">

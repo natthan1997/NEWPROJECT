@@ -31,12 +31,15 @@ interface POSDrawerManagerProps {
   fetchShiftStats: (id: string) => void
   setViewExtraHeader: (node: React.ReactNode) => void
   shopSettings: any
+  setEditingOrderId?: (id: string | null) => void
+  setEditingOrderNumber?: (no: string | null) => void
+  setSelectedTable?: (table: any | null) => void
 }
 
 export default function POSDrawerManager({ 
   profile, activeView, allowedNav, onSetView, onShiftModalOpen, 
   activeShift, shiftStats, onOpenShift, onCloseShift, fetchShiftStats, setViewExtraHeader,
-  shopSettings
+  shopSettings, setEditingOrderId, setEditingOrderNumber, setSelectedTable
 }: POSDrawerManagerProps) {
     const { locale } = useI18n();
   const [openingCash, setOpeningCash] = useState(0)
@@ -57,6 +60,16 @@ export default function POSDrawerManager({
     type: null,
     amount: '',
     reason: '',
+  })
+  
+  const [shiftBlocker, setShiftBlocker] = useState<{
+    open: boolean;
+    type: 'unpaid' | 'ghost' | null;
+    orders: any[];
+  }>({
+    open: false,
+    type: null,
+    orders: []
   })
   
   // History Mode State
@@ -391,14 +404,34 @@ export default function POSDrawerManager({
       if (shopSettings?.opening_hours?.shift_settings?.check_open_bills_before_close !== false) {
           const { data, error } = await supabase
               .from('pos_orders')
-              .select('id, order_number')
+              .select('id, order_number, table_id, table_number, total_amount, status, pos_order_items(id)')
               .eq('shift_id', activeShift?.id)
               .eq('status', 'pending');
 
           if (data && data.length > 0) {
-              const orderNums = data.map(d => d.order_number).join(', ');
-              alert(`ไม่สามารถปิดกะได้: มีบิลที่ยังไม่ได้ชำระเงินค้างอยู่ ${data.length} บิล (${orderNums}) กรุณาชำระเงินหรือยกเลิกบิลก่อนปิดกะ`);
-              return;
+              const validPendingOrders = data.filter((order: any) => {
+                  const hasItems = order.pos_order_items && order.pos_order_items.length > 0;
+                  const total = Number(order.total_amount || 0);
+                  const isGhost = (!hasItems || total === 0) && order.status === 'pending';
+                  return !isGhost;
+              });
+
+              if (validPendingOrders.length > 0) {
+                  setShiftBlocker({ open: true, type: 'unpaid', orders: validPendingOrders });
+                  return;
+              }
+              
+              const ghostOrders = data.filter((order: any) => {
+                  const hasItems = order.pos_order_items && order.pos_order_items.length > 0;
+                  const total = Number(order.total_amount || 0);
+                  const isGhost = (!hasItems || total === 0) && order.status === 'pending';
+                  return isGhost;
+              });
+
+              if (ghostOrders.length > 0) {
+                  setShiftBlocker({ open: true, type: 'ghost', orders: ghostOrders });
+                  return;
+              }
           }
       }
       setShowCloseConfirm(true)
@@ -1168,7 +1201,82 @@ export default function POSDrawerManager({
 
             {/* Shift Closure Step-Down Confirmation Modal */}
             <AnimatePresence>
-                {showCloseConfirm && (
+                {/* Shift Blocker Modal */}
+                <AnimatePresence>
+                {shiftBlocker.open && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                            className="bg-[#FDFDFB] rounded-[24px] border border-[#E5E5DF] p-8 max-w-xl w-full shadow-2xl flex flex-col max-h-[85vh]"
+                        >
+                            <div className="flex items-start gap-5">
+                                <div className="p-3 bg-red-100 text-red-500 rounded-2xl shrink-0">
+                                    <AlertTriangle size={28} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <h3 className="text-xl font-black text-[#1A1A18] tracking-tight">
+                                        {shiftBlocker.type === 'unpaid' ? 'มีบิลที่ยังไม่ได้ชำระเงินค้างอยู่' : 'มีโต๊ะเปิดค้างไว้แต่ไม่มีการสั่งอาหาร'}
+                                    </h3>
+                                    <p className="text-[13px] font-bold text-gray-500 mt-1">
+                                        {shiftBlocker.type === 'unpaid' 
+                                            ? `ไม่สามารถปิดกะได้ เนื่องจากมีบิลค้างชำระ ${shiftBlocker.orders.length} รายการ กรุณาไปชำระเงินหรือยกเลิกบิลก่อนปิดกะ` 
+                                            : `ไม่สามารถปิดกะได้ เนื่องจากมีโต๊ะหรือรายการเปิดค้างไว้ ${shiftBlocker.orders.length} รายการ กรุณาไปเคลียร์ก่อนปิดกะ`}
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <div className="mt-8 flex-1 overflow-y-auto custom-scrollbar border border-neutral-200 rounded-2xl bg-white p-2">
+                                <div className="flex flex-col gap-2">
+                                    {shiftBlocker.orders.map((order, idx) => (
+                                        <div key={idx} className="flex items-center justify-between p-4 bg-neutral-50 border border-neutral-100 rounded-xl hover:border-neutral-200 transition-colors">
+                                            <div className="flex flex-col">
+                                                <span className="font-black text-[14px] text-neutral-800">
+                                                    {order.table_number ? `โต๊ะ ${order.table_number}` : `บิล ${order.order_number}`}
+                                                </span>
+                                                {order.table_number && (
+                                                    <span className="font-bold text-[11px] text-neutral-400">
+                                                        {order.order_number}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <button 
+                                                onClick={() => {
+                                                    setShiftBlocker({ ...shiftBlocker, open: false })
+                                                    if (shiftBlocker.type === 'ghost' && order.table_number) {
+                                                        if (setSelectedTable) setSelectedTable({ id: order.table_id || null, name: order.table_number })
+                                                        onSetView('tables')
+                                                    } else {
+                                                        if (setEditingOrderId) setEditingOrderId(order.id)
+                                                        if (setEditingOrderNumber) setEditingOrderNumber(order.order_number)
+                                                        onSetView('terminal')
+                                                    }
+                                                }}
+                                                className="flex items-center gap-2 px-4 py-2.5 bg-neutral-900 text-white rounded-lg text-[12px] font-black hover:bg-neutral-800 active:scale-95 transition-all shadow-sm"
+                                            >
+                                                <span>ไปจัดการ</span>
+                                                <ChevronRight size={14} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="mt-8 pt-6 border-t border-neutral-100 flex justify-end">
+                                <button 
+                                    onClick={() => setShiftBlocker({ ...shiftBlocker, open: false })}
+                                    className="px-8 py-3.5 bg-neutral-100 text-neutral-600 font-black text-[12px] uppercase tracking-widest rounded-xl hover:bg-neutral-200 active:scale-95 transition-all"
+                                >
+                                    ปิด (Close)
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+                </AnimatePresence>
+
+                {/* Close Confirm Modal */}{showCloseConfirm && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
                         <motion.div 
                             initial={{ opacity: 0, scale: 0.9 }}

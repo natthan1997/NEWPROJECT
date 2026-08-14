@@ -43,13 +43,19 @@ function useLongPressReorder(isReordering: boolean) {
         const el = itemRef.current
         if (!el) return
 
-        const handleTouchStart = (e: TouchEvent) => {
-            e.stopPropagation() // Prevent parent from receiving the touch
+        const handleDown = (e: TouchEvent | MouseEvent) => {
+            e.stopPropagation()
+            if ('button' in e && (e as MouseEvent).button !== 0) return // only left click
+            
             state.current.isLongPressed = false
             state.current.isDragging = false
-            state.current.startX = e.touches[0].clientX
-            state.current.startY = e.touches[0].clientY
-            state.current.startEvent = e
+            
+            const clientX = 'touches' in e ? (e as TouchEvent).touches[0].clientX : (e as MouseEvent).clientX
+            const clientY = 'touches' in e ? (e as TouchEvent).touches[0].clientY : (e as MouseEvent).clientY
+            
+            state.current.startX = clientX
+            state.current.startY = clientY
+            state.current.startEvent = e as any
 
             state.current.timer = setTimeout(() => {
                 state.current.isLongPressed = true
@@ -57,45 +63,60 @@ function useLongPressReorder(isReordering: boolean) {
                 
                 el.classList.remove('shadow-sm')
                 el.classList.add('shadow-2xl', 'border-black/20', 'z-50')
+                el.style.cursor = 'grabbing'
             }, 300)
         }
 
-        const handleTouchMove = (e: TouchEvent) => {
+        const handleMove = (e: TouchEvent | MouseEvent) => {
             if (!state.current.isLongPressed) {
-                const dx = Math.abs(e.touches[0].clientX - state.current.startX)
-                const dy = Math.abs(e.touches[0].clientY - state.current.startY)
+                const clientX = 'touches' in e ? (e as TouchEvent).touches[0].clientX : (e as MouseEvent).clientX
+                const clientY = 'touches' in e ? (e as TouchEvent).touches[0].clientY : (e as MouseEvent).clientY
+                const dx = Math.abs(clientX - state.current.startX)
+                const dy = Math.abs(clientY - state.current.startY)
                 if (dx > 10 || dy > 10) {
                     if (state.current.timer) clearTimeout(state.current.timer)
                 }
                 return
             }
-            e.stopPropagation() // Prevent parent from receiving the move
+            e.stopPropagation() 
             if (e.cancelable) e.preventDefault()
+            
             if (!state.current.isDragging) {
                 state.current.isDragging = true
-                controls.start(state.current.startEvent as any || e as any)
+                controls.start(state.current.startEvent || e as any)
             }
         }
 
-        const handleTouchEnd = (e: TouchEvent) => {
+        const handleUp = (e: Event) => {
             e.stopPropagation()
             if (state.current.timer) clearTimeout(state.current.timer)
             state.current.isLongPressed = false
             state.current.isDragging = false
             el.classList.remove('shadow-2xl', 'border-black/20', 'z-50')
             el.classList.add('shadow-sm')
+            el.style.cursor = ''
         }
 
-        el.addEventListener('touchstart', handleTouchStart, { passive: false })
-        el.addEventListener('touchmove', handleTouchMove, { passive: false })
-        el.addEventListener('touchend', handleTouchEnd)
-        el.addEventListener('touchcancel', handleTouchEnd)
+        el.addEventListener('touchstart', handleDown, { passive: false })
+        el.addEventListener('touchmove', handleMove, { passive: false })
+        el.addEventListener('touchend', handleUp)
+        el.addEventListener('touchcancel', handleUp)
+        
+        el.addEventListener('mousedown', handleDown)
+        el.addEventListener('mousemove', handleMove)
+        el.addEventListener('mouseup', handleUp)
+        el.addEventListener('mouseleave', handleUp)
 
         return () => {
-            el.removeEventListener('touchstart', handleTouchStart)
-            el.removeEventListener('touchmove', handleTouchMove)
-            el.removeEventListener('touchend', handleTouchEnd)
-            el.removeEventListener('touchcancel', handleTouchEnd)
+            el.removeEventListener('touchstart', handleDown)
+            el.removeEventListener('touchmove', handleMove)
+            el.removeEventListener('touchend', handleUp)
+            el.removeEventListener('touchcancel', handleUp)
+            
+            el.removeEventListener('mousedown', handleDown)
+            el.removeEventListener('mousemove', handleMove)
+            el.removeEventListener('mouseup', handleUp)
+            el.removeEventListener('mouseleave', handleUp)
         }
     }, [controls, isReordering])
 
@@ -113,47 +134,32 @@ interface ModifierOption {
   shopSettings?: any
 }
 
-const ModifierOptionItem = ({ opt, onEditOption, isReordering }: any) => {
-  const { controls, itemRef } = useLongPressReorder(isReordering)
-
-  if (isReordering) {
-    return (
-      <Reorder.Item 
-          ref={itemRef}
-          value={opt} 
-          dragListener={false}
-          dragControls={controls}
-          onMouseDown={(e) => {
-             e.stopPropagation()
-             controls.start(e)
-          }}
-          className="flex flex-col bg-white border border-gray-100 rounded-[12px] shadow-sm mb-2 relative z-10 cursor-grab active:cursor-grabbing transition-shadow"
-          style={{ WebkitUserSelect: 'none', userSelect: 'none', WebkitTouchCallout: 'none', touchAction: 'pan-y' }}
-      >
-        <div className="p-3 flex items-center justify-between min-w-0">
-          <div className="flex items-center gap-2 truncate">
-              <GripVertical size={16} className="text-gray-300 shrink-0" />
-              <span className="text-[14px] font-bold text-gray-800 truncate">{opt.name}</span>
-          </div>
-          {opt.price_adjustment > 0 && (
-              <span className="text-[12px] font-black text-emerald-600 px-2 shrink-0">+ ฿{opt.price_adjustment}</span>
-          )}
-        </div>
-      </Reorder.Item>
-    )
-  }
+const ModifierOptionItem = ({ opt, onEditOption, onDragStateChange }: any) => {
+  const { controls, itemRef } = useLongPressReorder(true)
 
   return (
-    <div className="group/item flex items-center gap-3 bg-white p-3 border-b border-gray-50 last:border-b-0 hover:bg-gray-50 transition-colors">
-      <div className="w-5" />
-      <span className="text-[13px] font-bold text-gray-700 flex-1">{opt.name}</span>
-      {opt.price_adjustment > 0 && (
-        <span className="text-[11px] font-black text-emerald-600 px-2">+ ฿{opt.price_adjustment}</span>
-      )}
-      <button onClick={() => onEditOption(opt)} className="text-gray-400 hover:text-black p-1 transition-colors">
-         <Edit3 size={14} />
-      </button>
-    </div>
+    <Reorder.Item
+        ref={itemRef}
+        value={opt}
+        dragListener={false}
+        dragControls={controls}
+        onDragStart={() => onDragStateChange?.(true)}
+        onDragEnd={() => onDragStateChange?.(false)}
+        onPointerDown={(e) => e.stopPropagation()}
+        className="group/item flex flex-col bg-white border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors relative z-10 cursor-pointer"
+        style={{ WebkitUserSelect: 'none', userSelect: 'none', WebkitTouchCallout: 'none', touchAction: 'pan-y' }}
+    >
+      <div className="p-3 flex items-center gap-3 min-w-0">
+          <div className="w-2"></div>
+          <span className="text-[13px] font-bold text-gray-700 flex-1 truncate">{opt.name}</span>
+          {opt.price_adjustment > 0 && (
+            <span className="text-[11px] font-black text-emerald-600 px-2 shrink-0">+ ฿{opt.price_adjustment}</span>
+          )}
+          <button onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); onEditOption(opt); }} className="text-gray-400 hover:text-black p-1 transition-colors z-20">
+             <Edit3 size={14} />
+          </button>
+      </div>
+    </Reorder.Item>
   )
 }
 
@@ -164,50 +170,27 @@ const ModifierGroupItem = ({
   onEditOption,
   expandedGroup,
   setExpandedGroup,
-  isReordering
+  onDragStateChange
 }: any) => {
   const isExpanded = expandedGroup === group.id
   const { locale } = useI18n()
-  const { controls, itemRef } = useLongPressReorder(isReordering)
-
-  if (isReordering) {
-    return (
-      <Reorder.Item 
-          ref={itemRef}
-          value={group} 
-          dragListener={false}
-          dragControls={controls}
-          onMouseDown={(e) => {
-             e.stopPropagation()
-             controls.start(e)
-          }}
-          className="bg-white border border-gray-100 rounded-[12px] shadow-sm mb-3 relative z-10 cursor-grab active:cursor-grabbing transition-shadow"
-          style={{ WebkitUserSelect: 'none', userSelect: 'none', WebkitTouchCallout: 'none', touchAction: 'pan-y' }}
-      >
-        <div className="p-4 flex items-center gap-2">
-            <GripVertical size={20} className="text-gray-400" />
-            <span className="text-[15px] font-bold text-gray-800">{group.name}</span>
-            <span className="text-[14px] text-gray-400 font-medium">({group.options?.length || 0})</span>
-        </div>
-        
-        {isExpanded && group.options && group.options.length > 0 && (
-          <div className="bg-gray-50/50 p-4 border-t border-gray-100 rounded-b-[12px]">
-             <Reorder.Group axis="y" values={group.options} onReorder={onReorderOptions} className="flex flex-col">
-                {group.options.map((opt: any) => (
-                  <ModifierOptionItem key={opt.id} opt={opt} onEditOption={onEditOption} isReordering={true} />
-                ))}
-             </Reorder.Group>
-          </div>
-        )}
-      </Reorder.Item>
-    )
-  }
+  const { controls, itemRef } = useLongPressReorder(true)
 
   return (
-    <div className="bg-white border-b border-gray-100 last:border-b-0">
+    <Reorder.Item
+        ref={itemRef}
+        value={group}
+        dragListener={false}
+        dragControls={controls}
+        onDragStart={() => onDragStateChange?.(true)}
+        onDragEnd={() => onDragStateChange?.(false)}
+        onPointerDown={(e) => e.stopPropagation()}
+        className="bg-white border-b border-gray-200 last:border-b-0 relative z-10 cursor-pointer"
+        style={{ WebkitUserSelect: 'none', userSelect: 'none', WebkitTouchCallout: 'none', touchAction: 'pan-y' }}
+    >
       <div 
         onClick={() => setExpandedGroup(isExpanded ? null : group.id)}
-        className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer"
+        className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors group/groupitem"
       >
         <div className="flex items-center gap-2">
             <span className="text-[15px] font-bold text-gray-800">{group.name}</span>
@@ -215,6 +198,7 @@ const ModifierGroupItem = ({
         </div>
         <div className="flex items-center gap-3">
             <button 
+                onPointerDown={(e) => e.stopPropagation()}
                 onClick={(e) => { e.stopPropagation(); onEditGroup(); }} 
                 className="text-[13px] text-black font-medium flex items-center gap-1 hover:underline"
             >
@@ -232,30 +216,36 @@ const ModifierGroupItem = ({
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
         >
-          <div className="bg-gray-50/50 p-4 border-t border-gray-50 border-b border-gray-100">
+          <div className="bg-gray-50/50 p-4 border-t border-gray-100 border-b border-gray-100">
             {group.options && group.options.length > 0 && (
                 <Reorder.Group
                   axis="y"
                   values={group.options}
                   onReorder={onReorderOptions}
-                  className="space-y-2 mb-4"
+                  className="flex flex-col border border-gray-200 rounded-xl overflow-hidden mb-4 shadow-sm"
                 >
                   {group.options.map((opt: any) => (
-                    <ModifierOptionItem key={opt.id} opt={opt} onEditOption={onEditOption} isReordering={false} />
+                    <ModifierOptionItem 
+                       key={opt.id} 
+                       opt={opt} 
+                       onEditOption={onEditOption} 
+                       onDragStateChange={onDragStateChange}
+                    />
                   ))}
                 </Reorder.Group>
             )}
             <button
+                onPointerDown={(e) => e.stopPropagation()}
                 onClick={(e) => { e.stopPropagation(); onEditOption(); }}
-                className="w-full py-3 border-2 border-dashed border-gray-200 rounded-2xl text-[12px] font-bold text-gray-500 hover:border-gray-400 hover:text-gray-900 hover:bg-gray-50 transition-all flex items-center justify-center gap-2"
+                className="w-full py-3 border-2 border-dashed border-gray-300 rounded-xl text-[13px] font-bold text-gray-500 hover:border-black hover:text-black hover:bg-white transition-all flex items-center justify-center gap-2"
             >
-                <Plus size={14} /> เพิ่มตัวเลือกย่อย
+                <Plus size={16} /> เพิ่มตัวเลือกย่อย
             </button>
           </div>
         </motion.div>
       )}
       </AnimatePresence>
-    </div>
+    </Reorder.Item>
   )
 }
 
@@ -289,20 +279,22 @@ export default function POSModifierManager({
     'is_active',
   ])
   const [showColumnSelector, setShowColumnSelector] = useState(false)
-  const [isSortMode, setIsSortMode] = useState(false)
   const [isSavingOrder, setIsSavingOrder] = useState(false)
+  const [hasOrderChanged, setHasOrderChanged] = useState(false)
 
   const handleReorderGroups = (newGroups: any[]) => {
     setGroups(newGroups)
+    setHasOrderChanged(true)
   }
 
   const handleReorderOptions = (groupId: string, newOptions: any[]) => {
     setGroups(prev => prev.map(g => (g.id === groupId ? { ...g, options: newOptions } : g)))
+    setHasOrderChanged(true)
   }
 
   // DEBOUNCED SAVE LOGIC
   useEffect(() => {
-    if (!isSortMode) return
+    if (!hasOrderChanged) return
 
     const saveOrder = async () => {
       setIsSavingOrder(true)
@@ -335,12 +327,13 @@ export default function POSModifierManager({
         console.error('Failed to save order:', e)
       } finally {
         setIsSavingOrder(false)
+        setHasOrderChanged(false)
       }
     }
 
     const timer = setTimeout(saveOrder, 2000)
     return () => clearTimeout(timer)
-  }, [groups, isSortMode])
+  }, [groups, hasOrderChanged])
 
   const columns = [
     { id: 'name', label: 'ชื่อรายการย่อย' },
@@ -361,12 +354,6 @@ export default function POSModifierManager({
     setViewExtraHeader(
       <div className="flex items-center justify-end gap-4">
         <div className="flex items-center gap-1 border border-gray-100 bg-gray-50 p-1">
-          <button
-            onClick={() => setIsSortMode(prev => !prev)}
-            className={`flex h-10 items-center justify-center px-4 transition-all ${isSortMode ? 'bg-[#1A1A18] text-white shadow-lg' : 'font-bold text-gray-300 hover:text-black'} gap-2 text-[10px] font-black uppercase tracking-widest`}
-          >
-            <GripVertical size={14} /> {isSortMode ? 'Done Sorting' : 'Sort Mode'}
-          </button>
           <button
             onClick={() => setViewMode('grid')}
             className={`flex h-10 w-10 items-center justify-center transition-all ${viewMode === 'grid' ? 'bg-[#1A1A18] text-white shadow-lg' : 'font-bold text-gray-300 hover:text-black'}`}
@@ -391,7 +378,7 @@ export default function POSModifierManager({
       </div>
     )
     return () => setViewExtraHeader(null)
-  }, [setViewExtraHeader, searchTerm, viewMode, isSortMode])
+  }, [setViewExtraHeader, searchTerm, viewMode, locale])
 
   const fetchData = async () => {
     setLoading(true)
@@ -575,12 +562,10 @@ export default function POSModifierManager({
           <p className="text-sm text-gray-500 font-medium">ยังไม่มีกลุ่มตัวเลือก</p>
         </div>
       ) : (
-        <div className="divide-y divide-gray-100 border-b border-gray-100">
-          {isSortMode && (
-            <div className="p-4 mb-2 text-center bg-gray-50 border-b border-gray-100">
-              <span className="text-[13px] font-medium text-gray-500">กดค้างเพื่อลากสลับตำแหน่ง</span>
-            </div>
-          )}
+        <div className="divide-y divide-gray-100 border-b border-gray-100 pb-20">
+          <div className="p-4 mb-2 text-center bg-gray-50 border-b border-gray-100">
+            <span className="text-[13px] font-medium text-gray-500">กดค้างที่รายการย่อยเพื่อลากสลับตำแหน่ง</span>
+          </div>
           <Reorder.Group
             axis="y"
             values={groups}
@@ -591,12 +576,11 @@ export default function POSModifierManager({
               <ModifierGroupItem
                 key={group.id}
                 group={group}
-                onReorderOptions={newOptions => handleReorderOptions(group.id, newOptions)}
+                onReorderOptions={(newOptions: any[]) => handleReorderOptions(group.id, newOptions)}
                 onEditGroup={() => openGroupEditor(group)}
                 onEditOption={(opt: any) => opt ? openOptionEditor(group, opt) : openOptionEditor(group)}
                 expandedGroup={expandedGroup}
                 setExpandedGroup={setExpandedGroup}
-                isReordering={isSortMode}
               />
             ))}
           </Reorder.Group>

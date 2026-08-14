@@ -248,6 +248,7 @@ export default function CustomerMenuPage() {
   const [isShopOpen, setIsShopOpen] = useState(true)
   const [shopClosedMessage, setShopClosedMessage] = useState('ขณะนี้ร้านปิดให้บริการ')
   const [tableBillItems, setTableBillItems] = useState<any[]>([])
+  const [shopSettingsState, setShopSettingsState] = useState<any>(null)
   const [tableBillLoading, setTableBillLoading] = useState(false)
   const [isCallingStaff, setIsCallingStaff] = useState(false)
   const [lang, setLang] = useState<'th' | 'en' | 'zh'>('th')
@@ -580,6 +581,9 @@ export default function CustomerMenuPage() {
               query = query.eq('id', '00000000-0000-0000-0000-000000000001')
           }
           const { data: shopSettings } = await query.maybeSingle()
+          if (shopSettings) {
+            setShopSettingsState(shopSettings)
+          }
           const { data: payments } = await supabase.from('pos_order_payments')
               .select('*')
               .eq('order_id', openOrderData.id)
@@ -2208,6 +2212,7 @@ export default function CustomerMenuPage() {
             <div ref={printRef}>
                 {openOrder && (
                     <POSReceipt 
+                        orderNumberFormat={shopSettingsState?.opening_hours?.order_number_format}
                         orderNumber={openOrder.order_number}
                         orderType={openOrder.order_type || 'dine_in'}
                         orderSource={openOrder.order_source || 'table'}

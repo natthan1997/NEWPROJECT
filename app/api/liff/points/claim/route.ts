@@ -317,12 +317,17 @@ export async function POST(req: NextRequest) {
         // 3.5 Update pos_orders with customer info & points earned if linked to an order
         // Only if it hasn't been awarded by the POS already
         let shouldAwardPoints = true;
+        let finalOrderNumber = null;
         if (tokenInfo.order_id) {
             const { data: existingOrderInfo } = await supabase
                 .from('pos_orders')
-                .select('points_earned, customer_id')
+                .select('points_earned, customer_id, order_number')
                 .eq('id', tokenInfo.order_id)
                 .maybeSingle();
+                
+            if (existingOrderInfo) {
+                finalOrderNumber = existingOrderInfo.order_number;
+            }
                 
             if (existingOrderInfo && existingOrderInfo.points_earned > 0 && existingOrderInfo.customer_id) {
                 shouldAwardPoints = false; // Points were already awarded during POS checkout
@@ -369,10 +374,14 @@ export async function POST(req: NextRequest) {
                     created_at: new Date().toISOString()
                 }
                 
+                const descStr = finalOrderNumber 
+                    ? `Claimed via QR Code (Order #${finalOrderNumber})`
+                    : 'Claimed via QR Code';
+
                 // We try to include description; if it fails due to missing column, we'll catch it
                 const { error: historyError } = await supabase.from('pos_points_history').insert({
                     ...historyObj,
-                    description: 'Claimed via QR Code'
+                    description: descStr
                 })
 
                 if (historyError && historyError.message.includes('column "description" of relation "pos_points_history" does not exist')) {

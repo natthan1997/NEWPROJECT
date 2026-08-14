@@ -108,6 +108,8 @@ export default function StaffDashboard() {
     holidaysUsed: 0,
     holidaysPaid: 0,
     deductions: 0,
+    lateDeduction: 0,
+    socialSecurityDeduction: 0,
     baseSalary: 0,
     otPay: 0,
     holidayPay: 0,
@@ -598,6 +600,20 @@ export default function StaffDashboard() {
         .gte('advance_date', firstDay)
         .lte('advance_date', lastDay)
 
+      // 4. Fetch shop settings for grace period
+      const { data: shopSettings } = await supabase
+        .from('pos_shop_settings')
+        .select('shift_settings')
+        .maybeSingle()
+
+      let gracePeriod = 10;
+      if (shopSettings?.shift_settings) {
+        const shiftSettings = typeof shopSettings.shift_settings === 'string' ? JSON.parse(shopSettings.shift_settings) : shopSettings.shift_settings;
+        if (shiftSettings.late_grace_period_minutes !== undefined) {
+          gracePeriod = Number(shiftSettings.late_grace_period_minutes);
+        }
+      }
+
       const hd = new Holidays('TH');
 
       let daysWorked = 0
@@ -628,7 +644,6 @@ export default function StaffDashboard() {
             const checkInDate = new Date(checkInLog.timestamp)
             const checkInMins = checkInDate.getHours() * 60 + checkInDate.getMinutes()
             const targetMins = (sHour || 8) * 60 + (sMin || 30)
-            const gracePeriod = 10
             
             if (checkInMins > targetMins + gracePeriod) {
               lateMinutes += (checkInMins - targetMins)
@@ -674,7 +689,24 @@ export default function StaffDashboard() {
       const otPay = otHours * otRate
       const holidayPay = compType === 'dayoff' ? 0 : (holidaysPaid * (salaryType === 'monthly' ? (dailyWage / 30) : dailyWage))
       const baseSalary = salaryType === 'monthly' ? dailyWage : (daysWorked * dailyWage)
-      const netSalary = Math.max(0, baseSalary + otPay + holidayPay - deductions)
+      
+      let hourlyRate = 0
+      if (salaryType === 'monthly') {
+          hourlyRate = (dailyWage / 30) / 8
+      } else {
+          hourlyRate = dailyWage / 8
+      }
+      const lateDeduction = (hourlyRate / 60) * lateMinutes
+      
+      let socialSecurityDeduction = 0;
+      if (activeProfile?.has_social_security) {
+        const monthlyBaseEstimate = salaryType === 'monthly' ? dailyWage : (dailyWage * (activeProfile?.target_working_days || 26));
+        const ssfAmount = Math.round(monthlyBaseEstimate * 0.05);
+        socialSecurityDeduction = Math.min(750, Math.max(83, ssfAmount));
+        if (baseSalary === 0) socialSecurityDeduction = 0;
+      }
+
+      const netSalary = Math.max(0, baseSalary + otPay + holidayPay - deductions - lateDeduction - socialSecurityDeduction)
 
       setAttendanceSummary({
         daysWorked,
@@ -685,6 +717,8 @@ export default function StaffDashboard() {
         holidaysUsed,
         holidaysPaid,
         deductions,
+        lateDeduction,
+        socialSecurityDeduction,
         baseSalary,
         otPay,
         holidayPay,
@@ -1584,6 +1618,18 @@ export default function StaffDashboard() {
                                 <span className="text-[12px] text-gray-500 font-medium">หักเงิน / เบิก</span>
                                 <span className="text-[13px] font-semibold text-gray-400">-{attendanceSummary.deductions.toLocaleString()} ฿</span>
                             </div>
+                            {attendanceSummary.lateDeduction > 0 && (
+                            <div className="flex justify-between items-center pb-2 border-b border-gray-50">
+                                <span className="text-[12px] text-rose-500 font-medium">หักมาสายอัตโนมัติ</span>
+                                <span className="text-[13px] font-semibold text-rose-500">-{attendanceSummary.lateDeduction.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿</span>
+                            </div>
+                            )}
+                            {attendanceSummary.socialSecurityDeduction > 0 && (
+                            <div className="flex justify-between items-center pb-2 border-b border-gray-50">
+                                <span className="text-[12px] text-rose-500 font-medium">หักประกันสังคม (SSF)</span>
+                                <span className="text-[13px] font-semibold text-rose-500">-{attendanceSummary.socialSecurityDeduction.toLocaleString()} ฿</span>
+                            </div>
+                            )}
                             <div className="flex justify-between items-end pt-3 mt-1">
                                 <span className="text-[11px] font-bold text-[#1A1A18] uppercase tracking-wide">รวมสุทธิ</span>
                                 <span className="text-[24px] font-medium text-[#1A1A18] leading-none font-mono tracking-tight">{attendanceSummary.netSalary.toLocaleString()} <span className="text-[12px] text-gray-400 font-medium font-sans">฿</span></span>

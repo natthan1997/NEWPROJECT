@@ -14,23 +14,27 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Get the member
-    const { data: member, error: memberError } = await supabaseAdmin
-      .from('pos_members')
-      .select('*')
-      .eq('line_user_id', lineUserId)
-      .single();
+    const [ memberRes, couponRes ] = await Promise.all([
+      supabaseAdmin
+        .from('pos_members')
+        .select('*')
+        .eq('line_user_id', lineUserId)
+        .single(),
+      supabaseAdmin
+        .from('pos_loyalty_coupons')
+        .select('*')
+        .eq('id', couponId)
+        .single()
+    ]);
+
+    const member = memberRes.data;
+    const memberError = memberRes.error;
+    const coupon = couponRes.data;
+    const couponError = couponRes.error;
 
     if (memberError || !member) {
       return NextResponse.json({ success: false, error: 'Member not found' }, { status: 404 });
     }
-
-    // Get the coupon
-    const { data: coupon, error: couponError } = await supabaseAdmin
-      .from('pos_loyalty_coupons')
-      .select('*')
-      .eq('id', couponId)
-      .single();
 
     if (couponError || !coupon) {
       return NextResponse.json({ success: false, error: 'Coupon not found' }, { status: 404 });
@@ -47,43 +51,44 @@ export async function POST(req: Request) {
     // Transaction-like operations
     const newPoints = member.points - coupon.cost_points;
 
-    const { error: updateError } = await supabaseAdmin
-      .from('pos_members')
-      .update({ points: newPoints })
-      .eq('id', member.id);
+    // Execute writes in parallel
+    const [ updateMemberResult, insertCouponResult, insertHistoryResult ] = await Promise.all([
+      supabaseAdmin
+        .from('pos_members')
+        .update({ points: newPoints })
+        .eq('id', member.id),
+      
+      supabaseAdmin
+        .from('pos_member_coupons')
+        .insert([{
+          member_id: member.id,
+          coupon_id: coupon.id,
+          coupon_name: coupon.name,
+          discount_type: coupon.discount_type,
+          discount_value: coupon.discount_value,
+          applicable_categories: coupon.applicable_categories,
+          applicable_items: coupon.applicable_items,
+          excluded_categories: coupon.excluded_categories,
+          excluded_items: coupon.excluded_items,
+          min_order_amount: coupon.min_order_amount,
+          max_discount_amount: coupon.max_discount_amount,
+          image_url: coupon.image_url,
+          status: 'active'
+        }]),
 
-    if (updateError) throw updateError;
+      supabaseAdmin
+        .from('pos_points_history')
+        .insert([{
+          member_id: member.id,
+          points_change: -coupon.cost_points,
+          type: 'redeem',
+          description: `Redeemed coupon: ${coupon.name}`
+        }])
+    ]);
 
-     // Create member coupon
-     const { error: insertCouponError } = await supabaseAdmin
-       .from('pos_member_coupons')
-       .insert([{
-         member_id: member.id,
-         coupon_id: coupon.id,
-         coupon_name: coupon.name,
-         discount_type: coupon.discount_type,
-         discount_value: coupon.discount_value,
-         applicable_categories: coupon.applicable_categories,
-         applicable_items: coupon.applicable_items,
-         excluded_categories: coupon.excluded_categories,
-         excluded_items: coupon.excluded_items,
-         min_order_amount: coupon.min_order_amount,
-         max_discount_amount: coupon.max_discount_amount,
-         image_url: coupon.image_url,
-         status: 'active'
-       }]);
-
-    if (insertCouponError) throw insertCouponError;
-
-    // Log history
-    await supabaseAdmin
-      .from('pos_points_history')
-      .insert([{
-        member_id: member.id,
-        points: -coupon.cost_points,
-        type: 'redeem',
-        description: `Redeemed coupon: ${coupon.name}`
-      }]);
+    if (updateMemberResult.error) throw updateMemberResult.error;
+    if (insertCouponResult.error) throw insertCouponResult.error;
+    if (insertHistoryResult.error) throw insertHistoryResult.error;
 
     return NextResponse.json({ success: true, newPoints });
 

@@ -41,6 +41,7 @@ import { createClient } from '@/utils/supabase/client';
 import { useJsApiLoader, GoogleMap, Marker, Autocomplete } from '@react-google-maps/api';
 import { useLiff } from '@/components/liff/LiffProvider';
 import { BannerSkeleton, CategorySkeleton, MenuRowSkeleton } from '@/components/liff/LiffSkeleton';
+import Swal from 'sweetalert2';
 
 import { calculateDistance, getDeliveryFee } from '@/lib/geoUtils';
 import { useI18n } from "@/lib/I18nContext";
@@ -219,6 +220,40 @@ export default function LiffMenuPage() {
   const [cartShake, setCartShake] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [orderType, setOrderType] = useState<'delivery' | 'takeaway'>('delivery');
+  const [activeRidersCount, setActiveRidersCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!isDataReady) return;
+    
+    const fetchRiders = async () => {
+      const { count } = await supabase
+        .from('pos_attendance')
+        .select(`
+          id,
+          staff_id,
+          profiles!inner(is_rider)
+        `, { count: 'exact', head: true })
+        .eq('status', 'active')
+        .is('check_out_at', null)
+        .eq('profiles.is_rider', true);
+      
+      const riders = count || 0;
+      setActiveRidersCount(riders);
+    };
+    
+    fetchRiders();
+    
+    const channel = supabase.channel('riders_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_attendance' }, () => {
+        fetchRiders();
+      })
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isDataReady]);
+
   const [notes, setNotes] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSweetnessOpen, setIsSweetnessOpen] = useState(false);
@@ -1846,6 +1881,7 @@ export default function LiffMenuPage() {
 
   const validateAndCheckout = () => {
     if (!phone || phone.length < 9) {
+      alert(locale === 'en' ? 'Please enter a valid phone number (at least 9 digits)' : 'กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง (อย่างน้อย 9 หลัก)');
       const phoneEl = document.getElementById('phone-input');
       if (phoneEl) {
         phoneEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1915,16 +1951,58 @@ export default function LiffMenuPage() {
        return;
     }
 
+    if (orderType === 'delivery' && activeRidersCount === 0) {
+      const confirmSwitch = await Swal.fire({
+        html: `
+          <div class="flex flex-col items-center pt-2">
+            <div class="w-16 h-16 bg-[#F9F9F9] rounded-full flex items-center justify-center mb-5 shadow-sm border border-neutral-100">
+              <span class="text-3xl ml-1 mt-1">🛵</span>
+            </div>
+            <h3 class="text-[18px] font-bold text-[#1A1A18] tracking-tight mb-2">
+              ${locale === 'en' ? 'No Riders Available' : 'ไม่มีไรเดอร์จัดส่งในขณะนี้'}
+            </h3>
+            <p class="text-[14px] text-neutral-500 text-center leading-[1.6] px-1">
+              ${locale === 'en' 
+                ? 'Would you like to switch to <span class="font-bold text-[#1A1A18]">Takeaway</span>?' 
+                : 'เปลี่ยนออเดอร์เป็น <span class="font-bold text-[#1A1A18]">"รับหน้าร้าน"</span> แทนไหมครับ?'}
+            </p>
+          </div>
+        `,
+        showCancelButton: true,
+        showConfirmButton: true,
+        buttonsStyling: false,
+        focusConfirm: false,
+        confirmButtonText: locale === 'en' ? 'Switch to Takeaway' : 'เปลี่ยนเป็นรับหน้าร้าน',
+        cancelButtonText: locale === 'en' ? 'Cancel' : 'ยกเลิก',
+        customClass: { 
+          popup: 'rounded-[32px] px-6 pt-8 pb-6 max-w-[300px] w-full bg-white/95 backdrop-blur-2xl border border-white/50 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.15)]', 
+          actions: 'flex flex-col w-full mt-6 gap-2',
+          confirmButton: 'w-full bg-[#1A1A18] text-white rounded-[18px] py-3.5 text-[15px] font-bold tracking-wide active:scale-95 transition-transform',
+          cancelButton: 'w-full bg-transparent text-neutral-400 hover:text-neutral-600 rounded-[18px] py-3 text-[14px] font-medium active:bg-neutral-50 transition-colors'
+        },
+        didOpen: () => {
+          const container = Swal.getContainer();
+          if (container) {
+            container.style.zIndex = '9999';
+            container.style.backdropFilter = 'blur(6px)';
+            container.style.backgroundColor = 'rgba(0,0,0,0.2)';
+          }
+        }
+      });
+
+      if (confirmSwitch.isConfirmed) {
+        setOrderType('takeaway');
+        setPickupTimeDraft(pickupTime || getDefaultPickupTime());
+        setShowPickupTimeModal(true);
+      }
+      return;
+    }
+
     const checkoutLockKey = buildCheckoutLockKey();
-    const previousLock = typeof window !== 'undefined' ? sessionStorage.getItem('xyl_liff_checkout_lock') : null;
-    if (previousLock === checkoutLockKey) return;
 
     checkoutLockRef.current = true;
     setIsProcessing(true); // 🛡️ Show loading state immediately to prevent double-clicks
     
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('xyl_liff_checkout_lock', checkoutLockKey);
-    }
 
     // 🛡️ RE-VERIFY STATUS JUST BEFORE PAYMENT
     const currentBranchId = activeBranch?.branch_id || shopSettings?.branch_id;

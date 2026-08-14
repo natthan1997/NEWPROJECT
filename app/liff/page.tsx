@@ -6,9 +6,8 @@ import { useRouter } from 'next/navigation';
 export default function LiffRootPage() {
   const router = useRouter();
 
-  useEffect(() => {
-    router.replace('/liff/member');
-  }, [router]);
+  // Routing is handled entirely by LiffPathRedirector in app/liff/layout.tsx
+  // This page just serves as a loading placeholder while the redirector calculates the correct path
 
   return (
     <div className="min-h-screen bg-[#fcfcf9] flex items-center justify-center p-4">

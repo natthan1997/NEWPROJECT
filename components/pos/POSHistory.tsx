@@ -351,6 +351,7 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
         receiptHeader: shopSettings?.receipt_header || '',
         receiptFooter: shopSettings?.receipt_footer || '',
         receiptFontSize: shopSettings?.receipt_font_size || 'normal',
+        orderNumberFormat: shopSettings?.order_number_format || shopSettings?.opening_hours?.order_number_format,
         receipt_story_mode: shopSettings?.receipt_story_mode ?? shopSettings?.opening_hours?.receipt_story_mode ?? false,
         receipt_stories: (shopSettings?.receipt_stories && shopSettings.receipt_stories.length > 0)
           ? shopSettings.receipt_stories
@@ -652,6 +653,14 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
                                     {item.selected_modifiers.map((m: any) => m?.is_note ? `หมายเหตุ: ${m?.value || m?.name || ''}` : (m?.value && m.value !== m.name ? `${m.name}: ${m.value}` : m?.name || '')).filter(Boolean).join(', ')}
                                   </p>
                                 )}
+                                {Number(item.discount_amount) > 0 && (
+                                  <p className="mt-1 text-[12px] font-bold text-red-500 leading-snug flex items-center gap-1">
+                                    ส่วนลด: -฿{Number(item.discount_amount).toLocaleString()}
+                                    {item.discount_reason && (
+                                      <span className="text-[10px] bg-red-100/50 text-red-600 px-1.5 py-0.5 rounded ml-1 uppercase tracking-widest">{item.discount_reason}</span>
+                                    )}
+                                  </p>
+                                )}
                               </div>
                             </div>
                             <span className="font-black text-neutral-900 ml-4">
@@ -668,9 +677,13 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
                         </div>
                         {Number(order.discount_amount) > 0 && (
                           <div className="flex justify-between text-red-500">
-                            <span className="flex items-center gap-1">
+                            <span className="flex items-center gap-1 flex-wrap">
                               {locale === 'en' ? 'Discount' : 'ส่วนลด'}
-                              {order.promo_code && <span className="text-[10px] bg-red-100/50 text-red-600 px-1.5 py-0.5 rounded ml-1 font-black uppercase tracking-widest">{order.promo_code}</span>}
+                              {order.promo_code ? (
+                                <span className="text-[10px] bg-red-100/50 text-red-600 px-1.5 py-0.5 rounded ml-1 font-black uppercase tracking-widest">{order.promo_code}</span>
+                              ) : (
+                                <span className="text-[10px] bg-red-100/50 text-red-600 px-1.5 py-0.5 rounded ml-1 font-black uppercase tracking-widest">โปรโมชั่น/ส่วนลด</span>
+                              )}
                             </span>
                             <span>{locale === 'en' ? '- ฿' : '- ฿'}{(Number(order.discount_amount)).toLocaleString()}</span>
                           </div>

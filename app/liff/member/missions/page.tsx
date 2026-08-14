@@ -17,7 +17,7 @@ export default function MissionsPage() {
   const [missions, setMissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [claiming, setClaiming] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'daily' | 'weekly' | 'monthly' | 'special'>('daily');
+  const [activeTab, setActiveTab] = useState<'all' | 'daily' | 'weekly' | 'monthly' | 'special'>('all');
   const [showRewardMotion, setShowRewardMotion] = useState(false);
   const [rewardAmount, setRewardAmount] = useState(0);
 
@@ -98,38 +98,30 @@ export default function MissionsPage() {
         <div className="flex flex-col items-center flex-1">
             <h1 className="text-[16px] font-bold tracking-widest text-[#1A1A18]">ภารกิจและแคมเปญ</h1>
         </div>
-        <div className="w-10"></div>
+        <button 
+            onClick={() => router.push('/liff/member/gacha')}
+            className="flex items-center gap-1.5 px-3 py-2 bg-[#FCF7E8] text-[#B48529] rounded-full active:scale-95 transition-transform shadow-sm border border-[#F4E9D8]"
+        >
+            <Ticket size={16} />
+            <span className="font-black text-[13px]">{memberInfo?.gacha_tickets || 0}</span>
+        </button>
       </header>
 
       <main className="px-5 pt-6 max-w-lg mx-auto flex flex-col gap-6">
         
-        {/* Ticket Summary */}
-        <div className="bg-[#1A1A18] text-white p-5 rounded-2xl flex items-center justify-between shadow-sm">
-          <div>
-            <p className="text-[13px] opacity-80 mb-1">ตั๋วกาชาของคุณ</p>
-            <div className="text-[32px] font-bold leading-none flex items-center gap-2">
-              <Ticket size={28} className="text-[#FCF7E8]" />
-              {memberInfo?.gacha_tickets || 0}
-            </div>
-          </div>
-          <button 
-            onClick={() => router.push('/liff/member/gacha')}
-            className="bg-[#FCF7E8] text-[#1A1A18] px-4 py-2 rounded-full text-[14px] font-bold active:scale-95 transition-transform"
-          >
-            สุ่มกาชาเลย
-          </button>
-        </div>
+
+
+
 
         <div>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-[18px] font-bold flex items-center gap-2">
-              <Target size={20} className="text-blue-500" />
-              แคมเปญปัจจุบัน
-            </h2>
-          </div>
-
           {/* Tabs */}
           <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide">
+            <button 
+              onClick={() => setActiveTab('all')}
+              className={`px-4 py-2 rounded-full text-[13px] font-bold whitespace-nowrap transition-colors ${activeTab === 'all' ? 'bg-[#1A1A18] text-white' : 'bg-white text-gray-500 border border-gray-200'}`}
+            >
+              ทั้งหมด
+            </button>
             <button 
               onClick={() => setActiveTab('daily')}
               className={`px-4 py-2 rounded-full text-[13px] font-bold whitespace-nowrap transition-colors ${activeTab === 'daily' ? 'bg-blue-100 text-blue-700' : 'bg-white text-gray-500 border border-gray-200'}`}
@@ -178,10 +170,10 @@ export default function MissionsPage() {
                   <div className="h-10 bg-gray-100 rounded-xl w-full mt-2"></div>
                 </div>
               ))
-            ) : missions.filter(m => (m.campaign_type || 'weekly') === activeTab).length === 0 ? (
+            ) : missions.filter(m => activeTab === 'all' || (m.campaign_type || 'weekly') === activeTab).length === 0 ? (
               <div className="text-center py-10 text-gray-400">ไม่มีแคมเปญในหมวดหมู่นี้</div>
             ) : (
-              missions.filter(m => (m.campaign_type || 'weekly') === activeTab).map((mission) => {
+              missions.filter(m => activeTab === 'all' || (m.campaign_type || 'weekly') === activeTab).map((mission) => {
                 const targetValue = mission.condition_rules?.count || mission.condition_rules?.targetValue || 1;
                 const currentValue = mission.progress?.count || mission.progress?.currentValue || 0;
                 const progressPercent = Math.min(100, (currentValue / targetValue) * 100);
@@ -213,8 +205,8 @@ export default function MissionsPage() {
 
                     {mission.is_completed ? (
                       mission.claimed_at ? (
-                         <div className="w-full py-2 bg-gray-50 text-gray-400 rounded-lg text-center text-[13px] font-bold flex justify-center items-center gap-1">
-                           <CheckCircle2 size={16} /> รับรางวัลแล้ว
+                         <div className="w-full py-2 bg-green-50 text-green-600 rounded-lg text-center text-[13px] font-bold flex justify-center items-center gap-1">
+                           <CheckCircle2 size={16} /> ได้รับตั๋วรางวัลแล้ว
                          </div>
                       ) : (
                         <button 

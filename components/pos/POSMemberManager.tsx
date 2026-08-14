@@ -405,7 +405,11 @@ export default function POSMemberManager({
                 return locale === 'en' ? `Redeemed ${match[1]} pts for Order #${match[2]}` : locale === 'zh' ? `兑换 ${match[1]} 积分于订单 #${match[2]}` : `ใช้ ${match[1]} แต้มกับออเดอร์ #${match[2]}`;
             }
         }
-        if (desc === 'Claimed via QR Code') {
+        if (desc.startsWith('Claimed via QR Code')) {
+            if (desc.includes('Order #')) {
+                const orderNum = desc.split('#')[1]?.replace(')', '') || '';
+                return locale === 'en' ? `Claimed via QR Code (Order #${orderNum})` : locale === 'zh' ? `通过二维码领取 (订单 #${orderNum})` : `สแกนรับแต้มจาก QR Code (ออเดอร์ #${orderNum})`;
+            }
             return locale === 'en' ? 'Claimed via QR Code' : locale === 'zh' ? '通过二维码领取' : 'สแกนรับแต้มจาก QR Code';
         }
         return desc;

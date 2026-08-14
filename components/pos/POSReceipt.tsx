@@ -1,5 +1,6 @@
 import React, { forwardRef } from 'react'
 import { useI18n } from "@/lib/I18nContext";
+import { formatOrderNumber, getPOSOrderPrefix } from '@/lib/posOrderIdentity'
 
 export interface ReceiptProps {
   orderNumber: string
@@ -25,6 +26,7 @@ export interface ReceiptProps {
   receiptStories?: Array<{ title: string; content: string }>
   receiptFooter?: string
   receiptPaymentQrImage?: string
+  orderNumberFormat?: string
 }
 
 export const POSReceipt = forwardRef<HTMLDivElement, ReceiptProps>(({
@@ -50,7 +52,8 @@ export const POSReceipt = forwardRef<HTMLDivElement, ReceiptProps>(({
   receiptStoryMode,
   receiptStories,
   receiptFooter,
-  receiptPaymentQrImage
+  receiptPaymentQrImage,
+  orderNumberFormat
 }, ref) => {
     const { locale } = useI18n();
   const formatDeliveryPlatformLabel = (platform?: string) => platform ? platform.replace(/_/g, ' ').toUpperCase() : '-'
@@ -104,13 +107,13 @@ export const POSReceipt = forwardRef<HTMLDivElement, ReceiptProps>(({
         ) : (
           <div className="mt-4 border-t-2 border-b-2 border-black border-dashed py-2">
             <div className="text-[14px] font-bold">ออเดอร์ / ORDER NO.</div>
-            <div className="text-[48px] font-extrabold leading-none">#{queueNumber && queueNumber !== '0' && queueNumber !== 'null' ? String(queueNumber).padStart(3, '0') : String(orderNumber).slice(-4)}</div>
+            <div className="text-[48px] font-extrabold leading-none">#{orderNumberFormat ? formatOrderNumber(orderNumberFormat, getPOSOrderPrefix(orderType), parseInt(queueNumber || '0', 10) || 0) : String(orderNumber).slice(-4)}</div>
           </div>
         )}
       </div>
 
       <div className="mb-4 text-[17px] border-b-2 border-black border-dashed pb-3 font-semibold">
-        <div className="flex justify-between"><span>รหัสบิล (Bill ID):</span> <span className="break-all font-mono">{orderNumber}</span></div>
+        <div className="flex justify-between"><span>รหัสบิล (Bill ID):</span> <span className="break-all font-mono">{orderNumberFormat ? formatOrderNumber(orderNumberFormat, getPOSOrderPrefix(orderType), parseInt(queueNumber || '0', 10) || 0) : orderNumber}</span></div>
         <div className="flex justify-between"><span>Date:</span> <span>{new Date(timestamp).toLocaleString('th-TH')}</span></div>
         <div className="flex justify-between"><span>Type:</span> <span className="uppercase">{formatOrderTypeLabel(orderType)}</span></div>
         {orderType === 'delivery' && (

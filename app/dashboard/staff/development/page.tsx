@@ -2,15 +2,17 @@
 import React, { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { 
-  Award, Star, TrendingUp, ChevronRight
+  Award, Star, TrendingUp, ChevronRight, FileText
 } from 'lucide-react'
 import { useI18n } from "@/lib/I18nContext";
 
 export default function StaffDevelopmentPage() {
   const { locale } = useI18n();
-  const [activeTab, setActiveTab] = useState<'training' | 'evaluations'>('evaluations');
+  const [activeTab, setActiveTab] = useState<'training' | 'evaluations' | 'sops'>('evaluations');
   const [evaluations, setEvaluations] = useState<any[]>([]);
   const [trainings, setTrainings] = useState<any[]>([]);
+  const [sops, setSops] = useState<any[]>([]);
+  const [selectedSop, setSelectedSop] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,13 +25,15 @@ export default function StaffDevelopmentPage() {
     if (userData?.user) {
       const userId = userData.user.id;
       
-      const [evalRes, trainRes] = await Promise.all([
+      const [evalRes, trainRes, sopsRes] = await Promise.all([
         supabase.from('pos_staff_evaluations').select('*, profiles!evaluator_id(display_name)').eq('staff_id', userId).order('period_year', { ascending: false }).order('period_month', { ascending: false }),
-        supabase.from('pos_staff_training_logs').select('*, pos_staff_skills(name, level, category)').eq('staff_id', userId).order('created_at', { ascending: false })
+        supabase.from('pos_staff_training_logs').select('*, pos_staff_skills(name, level, category)').eq('staff_id', userId).order('created_at', { ascending: false }),
+        supabase.from('pos_staff_sops').select('*').order('created_at', { ascending: false })
       ]);
 
       if (evalRes.data) setEvaluations(evalRes.data);
       if (trainRes.data) setTrainings(trainRes.data);
+      if (sopsRes.data) setSops(sopsRes.data);
     }
     setLoading(false);
   };
@@ -56,10 +60,16 @@ export default function StaffDevelopmentPage() {
             <TrendingUp size={18} /> ผลการประเมิน (KPI)
           </button>
           <button 
-            onClick={() => setActiveTab('training')}
+            onClick={() => { setActiveTab('training'); setSelectedSop(null); }}
             className={`px-6 py-4 flex items-center gap-3 text-sm font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'training' ? 'bg-black text-white' : 'bg-white text-gray-400 border border-gray-200 hover:border-black'}`}
           >
             <Award size={18} /> ประวัติการฝึกอบรม
+          </button>
+          <button 
+            onClick={() => { setActiveTab('sops'); setSelectedSop(null); }}
+            className={`px-6 py-4 flex items-center gap-3 text-sm font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'sops' ? 'bg-black text-white' : 'bg-white text-gray-400 border border-gray-200 hover:border-black'}`}
+          >
+            <FileText size={18} /> คู่มือ SOP
           </button>
         </div>
 
@@ -68,6 +78,53 @@ export default function StaffDevelopmentPage() {
            <div className="p-20 text-center text-gray-400 text-sm font-black uppercase">Loading...</div>
         ) : (
           <div className="bg-white border border-gray-100 shadow-xl overflow-hidden min-h-[400px]">
+            {activeTab === 'sops' && (
+              <div className="p-8">
+                <h2 className="text-xl font-black mb-8">คู่มือ SOP (Standard Operating Procedures)</h2>
+                {selectedSop ? (
+                  <div>
+                    <button 
+                      onClick={() => setSelectedSop(null)}
+                      className="mb-6 text-xs font-black uppercase tracking-widest text-gray-400 hover:text-black flex items-center gap-2"
+                    >
+                      &larr; กลับไปหน้ารวมคู่มือ
+                    </button>
+                    <div className="border border-gray-100 p-8 bg-gray-50">
+                      <span className="bg-white text-gray-500 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-sm mb-4 inline-block shadow-sm border border-gray-100">{selectedSop.category}</span>
+                      <h3 className="text-3xl font-black mb-2">{selectedSop.title}</h3>
+                      <p className="text-xs text-gray-400 uppercase tracking-widest mb-8">อัปเดตล่าสุด: {new Date(selectedSop.updated_at).toLocaleDateString()}</p>
+                      
+                      <div className="prose prose-sm md:prose-base max-w-none prose-headings:font-black prose-p:font-bold text-gray-600 bg-white p-6 border border-gray-100" dangerouslySetInnerHTML={{ __html: selectedSop.content }} />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {sops.length === 0 ? (
+                      <div className="col-span-full text-center text-gray-400 py-10">
+                        <FileText className="mx-auto mb-4 opacity-20" size={48} />
+                        <p className="text-sm font-black uppercase tracking-widest">ยังไม่มีเอกสาร SOP ในระบบ</p>
+                      </div>
+                    ) : (
+                      sops.map(sop => (
+                        <div 
+                          key={sop.id} 
+                          onClick={() => setSelectedSop(sop)}
+                          className="border border-gray-100 p-6 hover:border-black transition-all cursor-pointer group hover:shadow-lg bg-white"
+                        >
+                          <span className="bg-gray-100 text-gray-500 px-2 py-1 text-[10px] font-black uppercase tracking-widest rounded-sm mb-3 inline-block group-hover:bg-black group-hover:text-white transition-colors">{sop.category}</span>
+                          <h3 className="text-lg font-black group-hover:text-[#3A5A40] transition-colors line-clamp-2">{sop.title}</h3>
+                          <div className="mt-4 flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-gray-400">
+                            <span>อัปเดต: {new Date(sop.updated_at).toLocaleDateString()}</span>
+                            <span className="group-hover:text-black transition-colors flex items-center">เปิดอ่าน <ChevronRight size={14} /></span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             {activeTab === 'evaluations' && (
               <div className="p-8">
                 <h2 className="text-xl font-black mb-8">ประเมินผลรายเดือน (Monthly Evaluations)</h2>
