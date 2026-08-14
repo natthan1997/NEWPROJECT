@@ -2079,8 +2079,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       
       if (kickOnCash || kickOnCredit || kickOnCustom) {
         try {
-          const storedPrinters = localStorage.getItem('xyl_pos_printers');
-          const printers = storedPrinters ? JSON.parse(storedPrinters) : [];
+          const printers = shopSettings?.printers || [];
           const receiptPrinters = printers.filter((p: any) => p.type === 'receipt' || p.type === 'both');
           
           if (receiptPrinters.length > 0) {
