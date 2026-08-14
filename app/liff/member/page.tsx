@@ -917,13 +917,23 @@ function LiffMemberContent() {
 
   const totalAccumulated = memberInfo?.total_accumulated_points || memberInfo?.points || 0;
 
-  const isBirthdayMonth = (() => {
+  const isBirthdayMonth = useMemo(() => {
     const dobStr = memberInfo?.date_of_birth || memberInfo?.dateOfBirth;
     if (!dobStr) return false;
     const dob = new Date(dobStr);
     const today = new Date();
     return dob.getMonth() === today.getMonth();
-  })();
+  }, [memberInfo]);
+
+  const [showBirthdayReveal, setShowBirthdayReveal] = useState(false);
+  useEffect(() => {
+    if (isBirthdayMonth) {
+      setShowBirthdayReveal(true);
+      const timer = setTimeout(() => setShowBirthdayReveal(false), 4500);
+      return () => clearTimeout(timer);
+    }
+  }, [isBirthdayMonth]);
+
   let currentTierIndex = 0;
   
   // 1. Auto calculate by accumulated points
@@ -995,6 +1005,54 @@ function LiffMemberContent() {
           </Link>
         </div>
       </header>
+
+      {/* 🟡 Grand Birthday Reveal Overlay */}
+      <AnimatePresence>
+        {showBirthdayReveal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, scale: 1.1, filter: 'blur(10px)' }}
+            transition={{ duration: 0.8 }}
+            className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#1A1A18]/90 backdrop-blur-xl overflow-hidden"
+          >
+            {/* Spinning background rays */}
+            <div className="absolute inset-0 bg-[conic-gradient(from_0deg,transparent_0_340deg,rgba(245,158,11,0.4)_360deg)] animate-[spin_4s_linear_infinite] opacity-50"></div>
+            <div className="absolute inset-0 bg-[conic-gradient(from_180deg,transparent_0_340deg,rgba(236,72,153,0.4)_360deg)] animate-[spin_4s_linear_infinite] opacity-50"></div>
+            
+            {/* Confetti / Sparkles */}
+            {[...Array(20)].map((_, i) => (
+              <motion.div
+                key={i}
+                initial={{ y: '100vh', x: `${Math.random() * 100 - 50}vw`, scale: 0 }}
+                animate={{ y: '-100vh', x: `${Math.random() * 100 - 50}vw`, scale: [0, Math.random() * 1.5 + 0.5, 0], rotate: 360 }}
+                transition={{ duration: Math.random() * 2 + 2, repeat: Infinity, ease: 'linear', delay: Math.random() * 2 }}
+                className="absolute text-amber-300"
+              >
+                <Sparkles size={Math.random() * 20 + 10} />
+              </motion.div>
+            ))}
+
+            <motion.div
+              initial={{ scale: 0.5, y: 50, opacity: 0 }}
+              animate={{ scale: [1, 1.1, 1], y: 0, opacity: 1 }}
+              transition={{ duration: 1.5, type: 'spring', bounce: 0.5 }}
+              className="relative z-10 flex flex-col items-center text-center p-8"
+            >
+              <div className="text-[100px] leading-none mb-4 animate-bounce">🎁</div>
+              <h2 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-amber-300 to-pink-400 tracking-tight mb-2 filter drop-shadow-[0_0_20px_rgba(245,158,11,0.5)]">
+                HAPPY BIRTHDAY
+              </h2>
+              <div className="text-2xl font-semibold text-white mb-6">
+                {memberInfo?.nickname || memberInfo?.name || lineProfile?.displayName || 'Member'}!
+              </div>
+              <p className="text-white/80 text-sm max-w-[250px] leading-relaxed">
+                ขอให้มีความสุขมากๆ นะครับ!<br/>ขอบคุณที่ให้เราดูแลในเดือนเกิดสุดพิเศษนี้ ✨
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <main className="px-5 pt-6 relative z-10 max-w-lg mx-auto flex flex-col gap-8">
         
