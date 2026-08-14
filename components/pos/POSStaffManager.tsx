@@ -1698,6 +1698,12 @@ export default function POSStaffManager({
                                                         <span>- ฿{totalAdvanceAmount.toLocaleString()}</span>
                                                     </div>
                                                 )}
+                                                {socialSecurityDeduction > 0 && (
+                                                    <div className="flex justify-between items-center text-sm font-bold text-rose-600">
+                                                        <span>หักประกันสังคม (5%)</span>
+                                                        <span>- ฿{socialSecurityDeduction.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
+                                                    </div>
+                                                )}
                                                 <div className="pt-4 border-t border-neutral-100 flex justify-between items-center">
                                                     <span className="text-lg font-black text-neutral-900">ยอดสุทธิ (Net Pay)</span>
                                                     <span className="text-2xl font-black text-[#0F172A]">฿{netPay.toLocaleString()}</span>
