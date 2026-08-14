@@ -916,6 +916,14 @@ function LiffMemberContent() {
   }
 
   const totalAccumulated = memberInfo?.total_accumulated_points || memberInfo?.points || 0;
+
+  const isBirthdayMonth = (() => {
+    const dobStr = memberInfo?.date_of_birth || memberInfo?.dateOfBirth;
+    if (!dobStr) return false;
+    const dob = new Date(dobStr);
+    const today = new Date();
+    return dob.getMonth() === today.getMonth();
+  })();
   let currentTierIndex = 0;
   
   // 1. Auto calculate by accumulated points
@@ -1000,6 +1008,10 @@ function LiffMemberContent() {
             {/* Minimalist Accent */}
             <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-white/10 to-transparent pointer-events-none"></div>
             
+            {isBirthdayMonth && (
+              <div className="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-pink-500/30 to-amber-500/30 rounded-full blur-3xl pointer-events-none animate-pulse"></div>
+            )}
+            
             <div className="relative z-10 text-white flex flex-col h-full">
                 <div className="flex justify-between items-start mb-10">
                     <div className="flex flex-col">
@@ -1045,6 +1057,11 @@ function LiffMemberContent() {
                                 <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: currentTier.bgHex === '#F2ECE4' ? '#B89F89' : currentTier.textHex }}></span>
                                 <span className="text-[12px] font-medium tracking-wide text-white/90">{currentTier.name}</span>
                             </div>
+                            {isBirthdayMonth && (
+                                <div className="ml-1 px-1.5 py-0.5 bg-gradient-to-r from-pink-500 to-amber-500 rounded text-[9px] font-bold tracking-wider text-white flex items-center gap-1 animate-bounce">
+                                    🎂 HBD
+                                </div>
+                            )}
                             {!activeTitle && (
                                 <button onClick={() => setShowCatalog(true)} className="text-[11px] text-white/50 hover:text-white transition-colors ml-1">
                                     เลือกฉายา &rarr;
