@@ -1059,17 +1059,33 @@ function LiffMemberContent() {
         {/* 🟡 Hero Points Card */}
         <motion.section 
           id="tour-profile"
-          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
+          initial={{ opacity: 0, y: 20, scale: 0.95 }} 
+          animate={{ opacity: 1, y: 0, scale: 1 }} 
+          transition={{ duration: 0.6, ease: "easeOut" }}
           className={`w-full flex flex-col relative rounded-[32px] overflow-hidden ${isBirthdayMonth ? 'p-[2.5px] shadow-[0_0_20px_rgba(236,72,153,0.3)]' : ''}`}
+          style={{ perspective: 1000 }}
         >
           {/* Animated Birthday Border */}
           {isBirthdayMonth && (
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200%] h-[200%] bg-[conic-gradient(from_0deg,transparent_0_270deg,rgba(236,72,153,1)_315deg,rgba(245,158,11,1)_360deg)] animate-[spin_3s_linear_infinite]"></div>
           )}
 
-          <div className={`p-8 rounded-[30px] relative z-10 flex flex-col overflow-hidden shadow-xl h-full w-full ${currentTier.cardBg || 'bg-[#1A1A18]'}`}>
+          <motion.div 
+            animate={{ 
+              rotateX: [0, 3, -3, 0], 
+              rotateY: [0, -3, 3, 0],
+              y: [0, -4, 0]
+            }}
+            transition={{ 
+              duration: 6, 
+              repeat: Infinity, 
+              ease: "easeInOut" 
+            }}
+            className={`p-8 rounded-[30px] relative z-10 flex flex-col overflow-hidden shadow-xl h-full w-full ${currentTier.cardBg || 'bg-[#1A1A18]'}`}
+            style={{ transformStyle: "preserve-3d" }}
+          >
             {/* Minimalist Accent */}
-            <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-white/10 to-transparent pointer-events-none"></div>
+            <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-white/10 to-transparent pointer-events-none" style={{ transform: 'translateZ(-10px)' }}></div>
             
             {/* Special Birthday Effects Inside the Card */}
             {isBirthdayMonth && (
@@ -1100,7 +1116,8 @@ function LiffMemberContent() {
               </>
             )}
 
-            <div className="relative z-10 text-white flex flex-col h-full">
+            {/* Content Container with slight 3D pop */}
+            <div className="relative z-10 text-white flex flex-col h-full" style={{ transform: 'translateZ(20px)' }}>
                 <div className="flex justify-between items-start mb-10">
                     <div className="flex flex-col">
                         <span className="text-[11px] font-medium tracking-[0.15em] uppercase opacity-70 mb-1">{dict.points}</span>
