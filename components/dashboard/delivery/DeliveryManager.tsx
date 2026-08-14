@@ -283,10 +283,10 @@ export default function DeliveryManager({ unlockAudio, isAudioEnabled, variant =
                <div className="w-14 h-14 bg-orange-50 text-orange-500 flex items-center justify-center rounded-2xl border border-orange-100 shadow-sm">
                  <Truck size={isDrawer ? 28 : 28} />
                </div>
-               {isDrawer ? 'DELIVERY / TAKEAWAY' : 'DELIVERY MONITORING'}
+               {isDrawer ? 'เดลิเวอรี่ / สั่งกลับบ้าน' : 'ติดตามสถานะออเดอร์ (DELIVERY)'}
             </h1>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] mt-4">
-              {isDrawer ? 'จัดการออเดอร์เดลิเวอรี่และ Takeaway' : 'REAL-TIME ORDER STATUS'}
+            <p className="text-[10px] font-bold text-gray-400 uppercase mt-4">
+              {isDrawer ? 'จัดการออเดอร์เดลิเวอรี่และสั่งกลับบ้าน' : 'อัพเดทสถานะออเดอร์แบบเรียลไทม์'}
             </p>
           </div>
           <div className="flex gap-3">
@@ -315,7 +315,7 @@ export default function DeliveryManager({ unlockAudio, isAudioEnabled, variant =
            {orders.length === 0 ? (
              <div className="col-span-full h-full flex flex-col items-center justify-center text-gray-300">
                 <Package size={64} className="mb-4 opacity-20" />
-                <p className="text-xs font-black uppercase tracking-[0.3em] text-gray-400">NO ACTIVE ORDERS</p>
+                <p className="text-[13px] font-black uppercase text-gray-400">ไม่มีออเดอร์ในขณะนี้</p>
              </div>
            ) : orders.map(order => {
             const statusMeta = getStatusMeta(order.status)
@@ -478,14 +478,14 @@ export default function DeliveryManager({ unlockAudio, isAudioEnabled, variant =
                            onClick={() => handleStatus(order.id, 'preparing')}
                            className="w-full h-14 rounded-2xl bg-[#1A1A18] text-[12px] font-black uppercase tracking-[0.1em] text-white transition-all active:scale-[0.98] shadow-md flex items-center justify-center gap-2 hover:bg-black"
                          >
-                           <CheckCircle2 size={18} /> ACCEPT & PREPARE
+                           <CheckCircle2 size={18} /> รับออเดอร์ & เตรียมอาหาร
                          </button>
                        ) : order.status === 'preparing' ? (
                          <button
                            onClick={() => handleStatus(order.id, 'shipping')}
                            className="w-full h-14 rounded-2xl bg-blue-600 text-[12px] font-black uppercase tracking-[0.1em] text-white transition-all active:scale-[0.98] shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 hover:bg-blue-700"
                          >
-                           <Truck size={18} /> DISPATCH ORDER
+                           <Truck size={18} /> เริ่มจัดส่ง
                          </button>
                        ) : (
                          <div className="grid grid-cols-2 gap-3">
@@ -493,13 +493,13 @@ export default function DeliveryManager({ unlockAudio, isAudioEnabled, variant =
                              onClick={() => openGoogleMaps(order)}
                              className="flex h-14 items-center justify-center gap-2 rounded-2xl bg-gray-50 text-gray-700 text-[11px] font-black uppercase tracking-[0.1em] transition-all active:scale-[0.98] hover:bg-gray-100 border border-gray-200"
                            >
-                             <Navigation size={16} /> MAPS
+                             <Navigation size={16} /> แผนที่
                            </button>
                            <button
                              onClick={() => setFinishModalOrder(order)}
                              className="flex h-14 items-center justify-center gap-2 rounded-2xl bg-emerald-500 text-white text-[11px] font-black uppercase tracking-[0.1em] transition-all active:scale-[0.98] shadow-md shadow-emerald-500/20 hover:bg-emerald-600"
                            >
-                             <CheckCircle2 size={16} /> FINISH
+                             <CheckCircle2 size={16} /> เสร็จสิ้น
                            </button>
                          </div>
                        )}
@@ -532,7 +532,7 @@ export default function DeliveryManager({ unlockAudio, isAudioEnabled, variant =
                 </div>
 
                 <div className="flex-1 mb-5">
-                   <h2 className="text-[22px] font-black text-[#1A1A18] leading-tight mb-2 uppercase">{order.customer_name || 'Customer'}</h2>
+                   <h2 className="text-[22px] font-black text-[#1A1A18] leading-tight mb-2 uppercase">{order.customer_name || 'ลูกค้า'}</h2>
                    {order.reference_name && (
                      <div className="flex items-center gap-1.5 text-gray-500 mb-4">
                        <Phone size={14} />
@@ -542,15 +542,15 @@ export default function DeliveryManager({ unlockAudio, isAudioEnabled, variant =
                    <div className="flex items-start gap-2 text-gray-500 mb-4 bg-[#F5F5F7] p-3 rounded-2xl">
                       <MapPin size={16} className="mt-0.5 shrink-0 text-gray-400" />
                       <div>
-                        <p className="text-[13px] font-bold leading-snug">{order.delivery_address || 'No Address'}</p>
+                        <p className="text-[13px] font-bold leading-snug">{order.delivery_address || 'ไม่มีที่อยู่'}</p>
                         {getDisplayComment(order.comment) && (
                           <p className="mt-1.5 text-[11px] font-medium text-gray-500">
-                            Note: {getDisplayComment(order.comment)}
+                            หมายเหตุ: {getDisplayComment(order.comment)}
                           </p>
                         )}
                         {getNavigationTarget(order) && (
                           <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-blue-500">
-                            GPS READY
+                            มีตำแหน่ง GPS
                           </p>
                         )}
                       </div>
@@ -558,13 +558,13 @@ export default function DeliveryManager({ unlockAudio, isAudioEnabled, variant =
 
                    {/* 📝 ORDER ITEMS */}
                    <div className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
-                      <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Items</div>
+                      <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">รายการอาหาร</div>
                       {order.items?.map((item: any, idx: number) => (
                         <div key={idx} className="flex gap-3">
                            <span className="text-[13px] font-black text-[#1A1A18]">{item.quantity}x</span>
                            <div className="flex-1">
                               <p className="text-[13px] font-bold text-[#1A1A18] leading-tight">
-                                {item.item?.name || item.name || 'Unknown Item'}
+                                {item.item?.name || item.name || 'ไม่ทราบชื่อรายการ'}
                               </p>
                               {item.selected_modifiers?.length > 0 && (
                                 <div className="mt-1 flex flex-col gap-0.5">
@@ -588,14 +588,14 @@ export default function DeliveryManager({ unlockAudio, isAudioEnabled, variant =
                        onClick={() => handleStatus(order.id, 'preparing')}
                        className="w-full bg-[#1A1A18] text-white rounded-2xl font-black uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all shadow-md h-14 text-[12px] hover:bg-black"
                      >
-                        <CheckCircle2 size={18} /> ACCEPT & PREPARE
+                        <CheckCircle2 size={18} /> รับออเดอร์ & เตรียมอาหาร
                      </button>
                    ) : order.status === 'preparing' ? (
                      <button 
                        onClick={() => handleStatus(order.id, 'shipping')}
                        className="w-full bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all shadow-md shadow-blue-500/20 h-14 text-[12px] hover:bg-blue-700"
                      >
-                        <Truck size={18} /> START SHIPPING
+                        <Truck size={18} /> เริ่มจัดส่ง
                      </button>
                    ) : (
                      <div className="grid grid-cols-2 gap-3">
@@ -604,7 +604,7 @@ export default function DeliveryManager({ unlockAudio, isAudioEnabled, variant =
                           className="bg-gray-50 text-gray-700 border border-gray-200 rounded-2xl font-black uppercase tracking-widest flex flex-col items-center justify-center gap-1 active:scale-95 transition-all hover:bg-gray-100 h-14"
                         >
                            <Navigation size={16} />
-                           <span className="text-[9px]">G-MAPS</span>
+                           <span className="text-[9px]">แผนที่</span>
                         </button>
                         <button 
                           onClick={() => {
@@ -615,7 +615,7 @@ export default function DeliveryManager({ unlockAudio, isAudioEnabled, variant =
                           className="bg-emerald-500 text-white rounded-2xl font-black uppercase tracking-widest flex flex-col items-center justify-center gap-1 active:scale-95 transition-all shadow-md shadow-emerald-500/20 hover:bg-emerald-600 h-14"
                         >
                            <CheckCircle2 size={16} />
-                           <span className="text-[9px]">FINISH</span>
+                           <span className="text-[9px]">เสร็จสิ้น</span>
                         </button>
                      </div>
                    )}
