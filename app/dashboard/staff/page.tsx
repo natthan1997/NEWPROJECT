@@ -699,11 +699,9 @@ export default function StaffDashboard() {
       const lateDeduction = (hourlyRate / 60) * lateMinutes
       
       let socialSecurityDeduction = 0;
-      if (activeProfile?.has_social_security) {
-        const monthlyBaseEstimate = salaryType === 'monthly' ? dailyWage : (dailyWage * (activeProfile?.target_working_days || 26));
-        const ssfAmount = Math.round(monthlyBaseEstimate * 0.05);
-        socialSecurityDeduction = Math.min(750, Math.max(83, ssfAmount));
-        if (baseSalary === 0) socialSecurityDeduction = 0;
+      if (activeProfile?.has_social_security && baseSalary > 0) {
+        const ssfAmount = Math.round(baseSalary * 0.05);
+        socialSecurityDeduction = Math.min(750, ssfAmount);
       }
 
       const netSalary = Math.max(0, baseSalary + otPay + holidayPay - deductions - lateDeduction - socialSecurityDeduction)

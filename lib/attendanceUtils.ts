@@ -185,16 +185,12 @@ export function calculateSalary(stats: AttendanceStats, config: WageConfig, dedu
   // Late deduction formula: (hourlyRate / 60) * lateMinutes
   const lateDeduction = (hourlyRate / 60) * stats.lateMinutes;
 
-  // Calculate Social Security (5% of base salary, min 83, max 750)
+  // Calculate Social Security (5% of actual basePay)
   let socialSecurityDeduction = 0;
-  if (config.has_social_security) {
-    const monthlyBaseEstimate = config.salary_type === 'monthly' ? baseSalary : (baseSalary * (config.target_working_days || 26));
-    const ssfAmount = Math.round(monthlyBaseEstimate * 0.05);
-    socialSecurityDeduction = Math.min(750, Math.max(83, ssfAmount));
-    
-    if (basePay === 0) {
-      socialSecurityDeduction = 0;
-    }
+  if (config.has_social_security && basePay > 0) {
+    const ssfAmount = Math.round(basePay * 0.05);
+    // Cap at 750 per month. We assume basePay doesn't exceed a month's wage in normal queries.
+    socialSecurityDeduction = Math.min(750, ssfAmount);
   }
 
   const totalPay = Math.max(0, basePay - deductions - lateDeduction - socialSecurityDeduction) + otPay;

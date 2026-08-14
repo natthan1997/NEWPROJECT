@@ -1506,9 +1506,6 @@ export default function POSStaffManager({
                         </div>
                     )}
 
-                    {detailTab === 'payroll' && (
-                        <div className="space-y-6">
-                            <div className="bg-white p-6 border border-neutral-200 shadow-sm">
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-neutral-100 pb-4">
                                     <div>
                                         <h3 className="text-lg font-black text-neutral-900">
@@ -1554,11 +1551,9 @@ export default function POSStaffManager({
                                                 const diligenceBonus = isEligibleDiligence ? Number(selectedStaff?.diligence_allowance || 0) : 0;
                                                 
                                                 let socialSecurityDeduction = 0;
-                                                if (selectedStaff?.has_social_security) {
-                                                    const monthlyBaseEstimate = selectedStaff?.salary_type === 'monthly' ? wage : (wage * (selectedStaff?.target_working_days || 26));
-                                                    const ssfAmount = Math.round(monthlyBaseEstimate * 0.05);
-                                                    socialSecurityDeduction = Math.min(750, Math.max(83, ssfAmount));
-                                                    if (basePay === 0) socialSecurityDeduction = 0;
+                                                if (selectedStaff?.has_social_security && basePay > 0) {
+                                                    const ssfAmount = Math.round(basePay * 0.05);
+                                                    socialSecurityDeduction = Math.min(750, ssfAmount);
                                                 }
 
                                                 const netPay = basePay + otPay + diligenceBonus - lateDeduction - totalAdvanceAmount - socialSecurityDeduction;
@@ -1631,11 +1626,9 @@ export default function POSStaffManager({
                                     const diligenceBonus = isEligibleDiligence ? Number(selectedStaff?.diligence_allowance || 0) : 0;
 
                                     let socialSecurityDeduction = 0;
-                                    if (selectedStaff?.has_social_security) {
-                                        const monthlyBaseEstimate = selectedStaff?.salary_type === 'monthly' ? wage : (wage * (selectedStaff?.target_working_days || 26));
-                                        const ssfAmount = Math.round(monthlyBaseEstimate * 0.05);
-                                        socialSecurityDeduction = Math.min(750, Math.max(83, ssfAmount));
-                                        if (basePay === 0) socialSecurityDeduction = 0;
+                                    if (selectedStaff?.has_social_security && basePay > 0) {
+                                        const ssfAmount = Math.round(basePay * 0.05);
+                                        socialSecurityDeduction = Math.min(750, ssfAmount);
                                     }
 
                                     const netPay = basePay + otPay + diligenceBonus - lateDeduction - totalAdvanceAmount - socialSecurityDeduction;
