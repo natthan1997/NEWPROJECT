@@ -17,6 +17,7 @@ export default function RewardsPage() {
   const [rewards, setRewards] = useState<any[]>([]);
   const [loading, setLoading] = useState(!isDataReady);
   const [searchQuery, setSearchQuery] = useState('');
+  const [hasUsedBirthdayFree, setHasUsedBirthdayFree] = useState(false);
 
   useEffect(() => {
     if (ctxMemberInfo) {
@@ -43,6 +44,21 @@ export default function RewardsPage() {
       }
       const { data: rewardsData } = await supabase.from('pos_loyalty_coupons').select('*').eq('is_active', true).eq('is_gacha_only', false).order('cost_points', { ascending: true });
       if (rewardsData) setRewards(rewardsData);
+
+      // Check if they used birthday free this year
+      if (member) {
+        const currentYear = new Date().getFullYear();
+        const startOfYear = new Date(currentYear, 0, 1).toISOString();
+        const { data: history } = await supabase
+          .from('pos_points_history')
+          .select('id')
+          .eq('member_id', member.id)
+          .like('description', '[BIRTHDAY_FREE]%')
+          .gte('created_at', startOfYear)
+          .limit(1);
+        
+        setHasUsedBirthdayFree(!!history && history.length > 0);
+      }
       
     } catch (err) {
       console.error(err);
@@ -55,15 +71,20 @@ export default function RewardsPage() {
     if (!liffLoading) fetchData(isDataReady);
   }, [lineProfile, liffLoading, isDataReady]);
 
-  const handleRedeem = async (couponId: string) => {
-    if (!confirm('ยืนยันการแลกคูปองนี้ใช่หรือไม่?')) return;
+  const handleRedeem = async (couponId: string, isBirthdayFree = false) => {
+    const confirmMessage = isBirthdayFree 
+      ? 'ต้องการใช้สิทธิ์แลกฟรี 1 ครั้งสำหรับเดือนเกิดกับคูปองนี้ใช่หรือไม่? (สิทธิ์นี้ใช้ได้ปีละ 1 ครั้ง)' 
+      : 'ยืนยันการแลกคูปองนี้ใช่หรือไม่?';
+      
+    if (!confirm(confirmMessage)) return;
+    
     try {
       setLoading(true);
       const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
       const res = await fetch('/api/liff/member/redeem', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lineUserId: userId, couponId })
+        body: JSON.stringify({ lineUserId: userId, couponId, useBirthdayFree: isBirthdayFree })
       });
       const data = await res.json();
       if (data.success) {
@@ -82,9 +103,10 @@ export default function RewardsPage() {
   if ((liffLoading || loading) && !isDataReady) return <XYLLoader tagline="กำลังโหลดของรางวัล..." />;
 
   const filteredRewards = rewards.filter(r => r.name.toLowerCase().includes(searchQuery.toLowerCase()));
-  
   const birthdayRewards = filteredRewards.filter(r => r.is_birthday_only);
   const generalRewards = filteredRewards.filter(r => !r.is_birthday_only);
+
+  const isBirthdayFreeActive = isBirthdayMonth && !hasUsedBirthdayFree;
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-[#1A1A18] font-sans pb-24">
@@ -123,7 +145,8 @@ export default function RewardsPage() {
             </h2>
             <div className="grid grid-cols-2 gap-4">
               {birthdayRewards.map((reward) => {
-                const canRedeem = (memberInfo?.points || 0) >= reward.cost_points;
+                const isThisFree = isBirthdayFreeActive;
+                const canRedeem = isThisFree || (memberInfo?.points || 0) >= reward.cost_points;
                 return (
                   <motion.div 
                     whileTap={canRedeem ? { scale: 0.98 } : {}}
@@ -151,12 +174,22 @@ export default function RewardsPage() {
                         
                         <div className="mt-auto pt-2 border-t border-gray-50 flex items-center justify-between">
                             <span className={`text-[15px] font-black ${canRedeem ? 'text-[#1A1A18]' : 'text-gray-400'}`}>
-                                {reward.cost_points.toLocaleString()} <span className="text-[10px] font-medium">พอยท์</span>
+                                {isThisFree ? (
+                                    <div className="flex items-baseline gap-1">
+                                        <span className="line-through text-gray-300 text-xs font-normal">{reward.cost_points}</span>
+                                        <span className="text-pink-500">0</span>
+                                        <span className="text-[10px] font-bold text-pink-500">(ฟรี!)</span>
+                                    </div>
+                                ) : (
+                                    <>
+                                        {reward.cost_points.toLocaleString()} <span className="text-[10px] font-medium">พอยท์</span>
+                                    </>
+                                )}
                             </span>
                         </div>
                         
                         <button 
-                            onClick={() => handleRedeem(reward.id)}
+                            onClick={() => handleRedeem(reward.id, isThisFree)}
                             disabled={!canRedeem}
                             className={`w-full mt-3 py-2 rounded-xl text-[12px] font-bold transition-all ${
                                 canRedeem ? 'bg-gradient-to-r from-pink-500 to-amber-500 text-white shadow-lg shadow-pink-500/30' : 'bg-gray-100 text-gray-400 cursor-not-allowed'
@@ -173,10 +206,16 @@ export default function RewardsPage() {
         )}
 
         {/* General Rewards Grid */}
-        <h2 className="text-[14px] font-bold text-gray-900 mb-1">ของรางวัลทั้งหมด</h2>
+        <div className="flex items-end justify-between mb-1">
+            <h2 className="text-[14px] font-bold text-gray-900">ของรางวัลทั้งหมด</h2>
+            {isBirthdayFreeActive && (
+                <span className="text-[11px] font-bold text-pink-500 animate-pulse">🎉 เลือกฟรี 1 ชิ้น!</span>
+            )}
+        </div>
         <div className="grid grid-cols-2 gap-4">
           {generalRewards.length > 0 ? generalRewards.map((reward) => {
-            const canRedeem = (memberInfo?.points || 0) >= reward.cost_points;
+            const isThisFree = isBirthdayFreeActive;
+            const canRedeem = isThisFree || (memberInfo?.points || 0) >= reward.cost_points;
             return (
               <motion.div 
                 whileTap={canRedeem ? { scale: 0.98 } : {}}
@@ -204,12 +243,22 @@ export default function RewardsPage() {
                     
                     <div className="mt-auto pt-2 border-t border-gray-50 flex items-center justify-between">
                         <span className={`text-[15px] font-bold ${canRedeem ? 'text-[#1A1A18]' : 'text-gray-400'}`}>
-                            {reward.cost_points.toLocaleString()} <span className="text-[10px] font-medium">พอยท์</span>
+                            {isThisFree ? (
+                                <div className="flex items-baseline gap-1">
+                                    <span className="line-through text-gray-300 text-xs font-normal">{reward.cost_points}</span>
+                                    <span className="text-pink-500">0</span>
+                                    <span className="text-[10px] font-bold text-pink-500">(ฟรี!)</span>
+                                </div>
+                            ) : (
+                                <>
+                                    {reward.cost_points.toLocaleString()} <span className="text-[10px] font-medium">พอยท์</span>
+                                </>
+                            )}
                         </span>
                     </div>
                     
                     <button 
-                        onClick={() => handleRedeem(reward.id)}
+                        onClick={() => handleRedeem(reward.id, isThisFree)}
                         disabled={!canRedeem}
                         className={`w-full mt-3 py-2 rounded-xl text-[12px] font-medium transition-colors ${
                             canRedeem ? 'bg-[#1A1A18] text-white hover:bg-black' : 'bg-gray-100 text-gray-400 cursor-not-allowed'
