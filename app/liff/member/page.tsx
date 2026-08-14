@@ -961,12 +961,17 @@ function LiffMemberContent() {
 
   const [showBirthdayReveal, setShowBirthdayReveal] = useState(false);
   useEffect(() => {
-    if (isBirthdayMonth) {
-      setShowBirthdayReveal(true);
-      const timer = setTimeout(() => setShowBirthdayReveal(false), 4500);
-      return () => clearTimeout(timer);
+    if (isBirthdayMonth && memberInfo?.id) {
+      const currentYear = new Date().getFullYear();
+      const storageKey = `birthday_reveal_shown_${memberInfo.id}_${currentYear}`;
+      if (!localStorage.getItem(storageKey)) {
+        setShowBirthdayReveal(true);
+        localStorage.setItem(storageKey, 'true');
+        const timer = setTimeout(() => setShowBirthdayReveal(false), 4500);
+        return () => clearTimeout(timer);
+      }
     }
-  }, [isBirthdayMonth]);
+  }, [isBirthdayMonth, memberInfo?.id]);
 
   let currentTierIndex = 0;
   
