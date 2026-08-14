@@ -1002,15 +1002,16 @@ function LiffMemberContent() {
         <motion.section 
           id="tour-profile"
           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
-          className="w-full flex flex-col"
+          className={`w-full flex flex-col relative rounded-[32px] overflow-hidden ${isBirthdayMonth ? 'p-[2.5px] shadow-[0_0_20px_rgba(236,72,153,0.3)]' : ''}`}
         >
-          <div className={`p-8 rounded-[32px] relative flex flex-col overflow-hidden shadow-xl ${currentTier.cardBg || 'bg-[#1A1A18]'}`}>
+          {/* Animated Birthday Border */}
+          {isBirthdayMonth && (
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200%] h-[200%] bg-[conic-gradient(from_0deg,transparent_0_270deg,rgba(236,72,153,1)_315deg,rgba(245,158,11,1)_360deg)] animate-[spin_3s_linear_infinite]"></div>
+          )}
+
+          <div className={`p-8 rounded-[30px] relative z-10 flex flex-col overflow-hidden shadow-xl h-full w-full ${currentTier.cardBg || 'bg-[#1A1A18]'}`}>
             {/* Minimalist Accent */}
             <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-white/10 to-transparent pointer-events-none"></div>
-            
-            {isBirthdayMonth && (
-              <div className="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-pink-500/30 to-amber-500/30 rounded-full blur-3xl pointer-events-none animate-pulse"></div>
-            )}
             
             <div className="relative z-10 text-white flex flex-col h-full">
                 <div className="flex justify-between items-start mb-10">
