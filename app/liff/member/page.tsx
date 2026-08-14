@@ -1066,28 +1066,18 @@ function LiffMemberContent() {
             {/* Minimalist Accent */}
             <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-white/10 to-transparent pointer-events-none"></div>
             
-            {/* Special Birthday Effects Inside the Card */}
-            {isBirthdayMonth && (
-              <>
-                {/* Gold Shimmer Sweep */}
-                <motion.div 
-                  initial={{ x: '-100%' }} animate={{ x: '200%' }} transition={{ duration: 3, ease: 'easeInOut', repeat: Infinity, repeatDelay: 1 }}
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent skew-x-12 z-0 pointer-events-none"
-                />
-                
-                {/* Top Right Ribbon / Badge */}
-                <div className="absolute top-0 right-0 overflow-hidden w-28 h-28 pointer-events-none z-0">
-                   <div className="absolute top-6 -right-6 w-40 bg-gradient-to-r from-pink-500 to-amber-500 transform rotate-45 text-center text-white text-[8px] font-extrabold tracking-widest py-1 shadow-lg shadow-pink-500/20">
-                     BIRTHDAY MONTH
-                   </div>
-                </div>
-              </>
-            )}
-
             <div className="relative z-10 text-white flex flex-col h-full">
                 <div className="flex justify-between items-start mb-10">
                     <div className="flex flex-col">
-                        <span className="text-[11px] font-medium tracking-[0.15em] uppercase opacity-70 mb-1">{dict.points}</span>
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[11px] font-medium tracking-[0.15em] uppercase opacity-70">{dict.points}</span>
+                            {isBirthdayMonth && (
+                                <div className="flex items-center gap-1 text-amber-200 bg-amber-500/20 px-2 py-0.5 rounded-full border border-amber-500/30">
+                                    <Gift size={10} strokeWidth={2.5} />
+                                    <span className="text-[9px] font-bold tracking-wider">BIRTHDAY MONTH</span>
+                                </div>
+                            )}
+                        </div>
                         <div className="flex items-baseline gap-1.5">
                             <span className="text-[52px] leading-[1] font-medium tracking-tight">
                                 {(memberInfo?.points || 0).toLocaleString()}
@@ -1129,11 +1119,6 @@ function LiffMemberContent() {
                                 <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: currentTier.bgHex === '#F2ECE4' ? '#B89F89' : currentTier.textHex }}></span>
                                 <span className="text-[12px] font-medium tracking-wide text-white/90">{currentTier.name}</span>
                             </div>
-                            {isBirthdayMonth && (
-                                <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity }} className="ml-1 px-2 py-0.5 bg-gradient-to-r from-pink-500 to-amber-500 rounded text-[9px] font-bold tracking-wider text-white flex items-center gap-1 shadow-lg shadow-pink-500/20">
-                                    🎂 SPECIAL
-                                </motion.div>
-                            )}
                             {!activeTitle && (
                                 <button onClick={() => setShowCatalog(true)} className="text-[11px] text-white/50 hover:text-white transition-colors ml-1">
                                     เลือกฉายา &rarr;
