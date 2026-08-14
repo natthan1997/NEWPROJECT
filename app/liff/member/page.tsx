@@ -144,7 +144,6 @@ function LiffMemberContent() {
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [quickRewards, setQuickRewards] = useState<any[]>([]);
   const [hasUsedBirthdayFree, setHasUsedBirthdayFree] = useState(false);
-  const [suggestedReward, setSuggestedReward] = useState<any>(null);
   const [missionsLoading, setMissionsLoading] = useState(true);
 
   const [activeMissions, setActiveMissions] = useState<any[]>([]);
