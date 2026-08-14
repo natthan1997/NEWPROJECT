@@ -852,6 +852,15 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   }
 
   const executeNativePrint = async (type: 'receipt' | 'kitchen', openDrawer: boolean = false) => {
+    if (type === 'kitchen') {
+      const isLiff = String(currentPrintOrderData?.orderSource || currentPrintOrderData?.source || '').toLowerCase() === 'liff';
+      const isCod = ['cod', 'cash_on_delivery', 'cash-on-delivery'].includes(String(currentPrintOrderData?.paymentMethod || '').toLowerCase());
+      if (isLiff && isCod) {
+        logPOSPrintFlow('skip_kitchen_for_liff_cod_native', { orderId: currentPrintOrderData?.orderId });
+        return;
+      }
+    }
+
     const printers = shopSettings?.printers || [];
     let targetPrinters = printers.filter((p: any) => p.type === type || p.type === 'both');
     if (type === 'receipt' && targetPrinters.length === 0) {
