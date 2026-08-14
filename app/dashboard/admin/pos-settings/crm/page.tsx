@@ -104,9 +104,9 @@ export default function LoyaltySettingsPage() {
     const { id, ...data } = coupon;
     let res;
     if (id.startsWith('new-')) {
-      res = await supabase.from('pos_loyalty_coupons').insert([{ ...data, is_gacha_only: data.is_gacha_only || false, is_applicable_delivery: data.is_applicable_delivery ?? true }]);
+      res = await supabase.from('pos_loyalty_coupons').insert([{ ...data, is_gacha_only: data.is_gacha_only || false, is_applicable_delivery: data.is_applicable_delivery ?? true, is_birthday_only: data.is_birthday_only || false }]);
     } else {
-      res = await supabase.from('pos_loyalty_coupons').update({ ...data, is_gacha_only: data.is_gacha_only || false, is_applicable_delivery: data.is_applicable_delivery ?? true }).eq('id', id);
+      res = await supabase.from('pos_loyalty_coupons').update({ ...data, is_gacha_only: data.is_gacha_only || false, is_applicable_delivery: data.is_applicable_delivery ?? true, is_birthday_only: data.is_birthday_only || false }).eq('id', id);
     }
     
     if (res.error) {
@@ -472,6 +472,14 @@ export default function LoyaltySettingsPage() {
                   onChange={e => setCoupons(coupons.map(c => c.id === coupon.id ? { ...c, is_applicable_delivery: e.target.checked } : c))}
                   className="rounded text-blue-600" 
                 /> ใช้กับเดลิเวอรี่ได้
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-700 ml-2">
+                <input 
+                  type="checkbox" 
+                  checked={coupon.is_birthday_only || false} 
+                  onChange={e => setCoupons(coupons.map(c => c.id === coupon.id ? { ...c, is_birthday_only: e.target.checked } : c))}
+                  className="rounded text-pink-500" 
+                /> คูปองเดือนเกิด
               </label>
               <button onClick={() => handleSaveCoupon(coupon)} className="p-2 text-green-600 hover:bg-green-50 rounded-lg">
                 <Save className="w-5 h-5" />
