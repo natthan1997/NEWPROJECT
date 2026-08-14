@@ -2073,7 +2073,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       
       const shiftSettings = shopSettings?.opening_hours?.shift_settings || {};
       
-      const kickOnCash = method === 'cash' && shiftSettings?.drawer_kick_on_cash;
+      const kickOnCash = method === 'cash';
       const kickOnCredit = method === 'credit_card' && shiftSettings?.drawer_kick_on_credit;
       const kickOnCustom = method !== 'cash' && method !== 'credit_card' && shiftSettings?.drawer_kick_on_custom;
       
@@ -2086,7 +2086,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
           if (receiptPrinters.length > 0) {
             Promise.all(receiptPrinters.map((rp: any) => rp.ip ? printOpenDrawer(rp.ip) : Promise.resolve())).catch(console.error);
           } else {
-            const fallbackIp = localStorage.getItem('xyl_pos_printer_ip');
+            const fallbackIp = localStorage.getItem('xylem_printer_ip');
             if (fallbackIp) printOpenDrawer(fallbackIp).catch(console.error);
           }
         } catch (err) {
