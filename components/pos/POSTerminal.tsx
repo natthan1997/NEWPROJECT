@@ -2078,17 +2078,25 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       const kickOnCustom = method !== 'cash' && method !== 'credit_card' && shiftSettings?.drawer_kick_on_custom;
       
       if (kickOnCash || kickOnCredit || kickOnCustom) {
-        if (receiptPrinters.length > 0) {
-          Promise.all(receiptPrinters.map(rp => rp.ip ? printOpenDrawer(rp.ip) : Promise.resolve())).catch(console.error);
-        } else {
-          const fallbackIp = localStorage.getItem('xyl_pos_printer_ip');
-          if (fallbackIp) printOpenDrawer(fallbackIp).catch(console.error);
+        try {
+          const storedPrinters = localStorage.getItem('xyl_pos_printers');
+          const printers = storedPrinters ? JSON.parse(storedPrinters) : [];
+          const receiptPrinters = printers.filter((p: any) => p.type === 'receipt' || p.type === 'both');
+          
+          if (receiptPrinters.length > 0) {
+            Promise.all(receiptPrinters.map((rp: any) => rp.ip ? printOpenDrawer(rp.ip) : Promise.resolve())).catch(console.error);
+          } else {
+            const fallbackIp = localStorage.getItem('xyl_pos_printer_ip');
+            if (fallbackIp) printOpenDrawer(fallbackIp).catch(console.error);
+          }
+        } catch (err) {
+          console.error('Failed to parse printers for drawer kick', err);
         }
       }
     };
     window.addEventListener('kickPOSDrawer', handleKickDrawer);
     return () => window.removeEventListener('kickPOSDrawer', handleKickDrawer);
-  }, [shopSettings, receiptPrinters]);
+  }, [shopSettings]);
 
 
   useEffect(() => {
