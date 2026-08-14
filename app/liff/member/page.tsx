@@ -908,15 +908,6 @@ function LiffMemberContent() {
     };
   }, [activeCheckInId]);
 
-  if (liffLoading && !isDataReady && !claimToken) return <XYLLoader tagline={dict.loading} />;
-  if (loading && !isDataReady && !claimToken) return <XYLLoader tagline={dict.loading} />;
-
-  if (!memberInfo || !memberInfo.phone || !memberInfo.pdpa_consent) {
-    return <RegistrationForm key={memberInfo?.id || 'new'} lineProfile={lineProfile} onSubmit={handleRegistrationSubmit} isSubmitting={isLinkingPhone} initialData={memberInfo} />;
-  }
-
-  const totalAccumulated = memberInfo?.total_accumulated_points || memberInfo?.points || 0;
-
   const isBirthdayMonth = useMemo(() => {
     const dobStr = memberInfo?.date_of_birth || memberInfo?.dateOfBirth;
     if (!dobStr) return false;
@@ -933,6 +924,15 @@ function LiffMemberContent() {
       return () => clearTimeout(timer);
     }
   }, [isBirthdayMonth]);
+
+  if (liffLoading && !isDataReady && !claimToken) return <XYLLoader tagline={dict.loading} />;
+  if (loading && !isDataReady && !claimToken) return <XYLLoader tagline={dict.loading} />;
+
+  if (!memberInfo || !memberInfo.phone || !memberInfo.pdpa_consent) {
+    return <RegistrationForm key={memberInfo?.id || 'new'} lineProfile={lineProfile} onSubmit={handleRegistrationSubmit} isSubmitting={isLinkingPhone} initialData={memberInfo} />;
+  }
+
+  const totalAccumulated = memberInfo?.total_accumulated_points || memberInfo?.points || 0;
 
   let currentTierIndex = 0;
   
@@ -1201,7 +1201,7 @@ function LiffMemberContent() {
                   )}
                 </div>
             </div>
-          </div>
+          </motion.div>
         </motion.section>
 
 
