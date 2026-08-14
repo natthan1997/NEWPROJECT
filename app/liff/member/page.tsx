@@ -1013,6 +1013,35 @@ function LiffMemberContent() {
             {/* Minimalist Accent */}
             <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-white/10 to-transparent pointer-events-none"></div>
             
+            {/* Special Birthday Effects Inside the Card */}
+            {isBirthdayMonth && (
+              <>
+                {/* Gold Shimmer Sweep */}
+                <motion.div 
+                  initial={{ x: '-100%' }} animate={{ x: '200%' }} transition={{ duration: 3, ease: 'easeInOut', repeat: Infinity, repeatDelay: 1 }}
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12 z-0 pointer-events-none"
+                />
+                
+                {/* Top Right Ribbon / Badge */}
+                <div className="absolute top-0 right-0 overflow-hidden w-28 h-28 pointer-events-none z-0">
+                   <div className="absolute top-6 -right-6 w-40 bg-gradient-to-r from-pink-500 to-amber-500 transform rotate-45 text-center text-white text-[8px] font-extrabold tracking-widest py-1 shadow-lg shadow-pink-500/30">
+                     BIRTHDAY MONTH
+                   </div>
+                </div>
+
+                {/* Floating Sparkles */}
+                <motion.div animate={{ y: [0, -10, 0], opacity: [0.3, 0.8, 0.3], rotate: [0, 15, 0] }} transition={{ duration: 3, repeat: Infinity }} className="absolute top-6 left-1/2 text-amber-300 pointer-events-none">
+                  <Sparkles size={16} strokeWidth={1.5} />
+                </motion.div>
+                <motion.div animate={{ y: [0, 10, 0], opacity: [0.2, 0.6, 0.2], scale: [1, 1.2, 1] }} transition={{ duration: 2.5, repeat: Infinity, delay: 1 }} className="absolute bottom-10 right-6 text-pink-300 pointer-events-none">
+                  <Sparkles size={14} strokeWidth={1.5} />
+                </motion.div>
+                <motion.div animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.9, 0.3], rotate: [0, -20, 0] }} transition={{ duration: 2, repeat: Infinity, delay: 0.5 }} className="absolute top-20 right-20 text-yellow-200 pointer-events-none">
+                  <Sparkles size={18} strokeWidth={1.5} />
+                </motion.div>
+              </>
+            )}
+
             <div className="relative z-10 text-white flex flex-col h-full">
                 <div className="flex justify-between items-start mb-10">
                     <div className="flex flex-col">
@@ -1059,9 +1088,9 @@ function LiffMemberContent() {
                                 <span className="text-[12px] font-medium tracking-wide text-white/90">{currentTier.name}</span>
                             </div>
                             {isBirthdayMonth && (
-                                <div className="ml-1 px-1.5 py-0.5 bg-gradient-to-r from-pink-500 to-amber-500 rounded text-[9px] font-bold tracking-wider text-white flex items-center gap-1 animate-bounce">
-                                    🎂 HBD
-                                </div>
+                                <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity }} className="ml-1 px-2 py-0.5 bg-gradient-to-r from-pink-500 to-amber-500 rounded text-[9px] font-bold tracking-wider text-white flex items-center gap-1 shadow-lg shadow-pink-500/20">
+                                    🎂 SPECIAL
+                                </motion.div>
                             )}
                             {!activeTitle && (
                                 <button onClick={() => setShowCatalog(true)} className="text-[11px] text-white/50 hover:text-white transition-colors ml-1">
