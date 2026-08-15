@@ -419,7 +419,10 @@ export default function SOPStaticContent({ shopSettings, isAdmin, onSaveSuccess 
 
             <style jsx global>{`
                 @media print {
-                    @page { size: A4; margin: 15mm; }
+                    @page { 
+                        size: A4; 
+                        margin: 0 !important; /* Removes browser headers and footers */
+                    }
                     html, body {
                         background: white !important;
                         color: black !important;
@@ -442,7 +445,8 @@ export default function SOPStaticContent({ shopSettings, isAdmin, onSaveSuccess 
                         top: 0 !important;
                         width: 100% !important;
                         margin: 0 !important;
-                        padding: 0 !important;
+                        padding: 15mm 20mm !important; /* Add padding to simulate margins since @page margin is 0 */
+                        box-sizing: border-box !important;
                     }
                     .print\\:hidden { display: none !important; }
                     .print\\:shadow-none { box-shadow: none !important; }
