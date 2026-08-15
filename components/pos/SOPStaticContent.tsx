@@ -308,7 +308,7 @@ export default function SOPStaticContent({ shopSettings, isAdmin, onSaveSuccess 
             </div>
 
             {/* Evaluation Form Component */}
-            <div className="bg-white p-8 md:p-12 shadow-sm border border-gray-200 rounded-xl mt-8 print:shadow-none print:border-none print:p-0 print:rounded-none break-inside-avoid">
+            <div className="bg-white p-8 md:p-12 shadow-sm border border-gray-200 rounded-xl mt-8 print:shadow-none print:border-none print:p-0 print:rounded-none print:break-before-page">
                 <div className="flex flex-col items-center border-b border-gray-200 pb-6 mb-6 print:border-black">
                     <h2 className="text-xl font-bold text-gray-900 tracking-tight print:text-black">แบบฟอร์มประเมินการปฏิบัติงาน</h2>
                     <p className="text-[13px] text-gray-500 mt-1 print:text-black">ส่วนที่ 7: Performance Evaluation Form</p>
