@@ -160,8 +160,9 @@ export default function SOPStaticContent({ shopSettings, isAdmin, onSaveSuccess 
                                 page-break-inside: avoid !important;
                                 break-inside: avoid !important;
                             }
-                            .break-inside-avoid {
-                                display: block !important;
+                            h1, h2, h3, h4, h5 {
+                                page-break-after: avoid !important;
+                                break-after: avoid !important;
                             }
                             .print\\:break-before-page {
                                 page-break-before: always !important;
@@ -563,7 +564,7 @@ function InlineTextArea({ isEditing, value, onChange, className = "" }: { isEdit
 // Subcomponents for View
 function Section({ number, title, icon, children }: { number: string, title: string, icon: React.ReactNode, children: React.ReactNode }) {
     return (
-        <div className="break-inside-avoid">
+        <div className="section-container">
             <h3 className="text-[15px] font-bold text-gray-900 mb-4 flex items-center gap-2 print:text-black">
                 <span className="text-gray-400 print:hidden">{icon}</span>
                 หมวดที่ {number}: {title}
@@ -577,7 +578,7 @@ function Section({ number, title, icon, children }: { number: string, title: str
 
 function SubSection({ title, children }: { title: string, children: React.ReactNode }) {
     return (
-        <div className="break-inside-avoid">
+        <div className="subsection-container">
             <h4 className="text-[14px] font-bold text-gray-700 mb-3 border-b border-dashed border-gray-200 pb-2 inline-block print:text-black print:border-black">
                 {title}
             </h4>
