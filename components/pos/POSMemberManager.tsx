@@ -466,12 +466,30 @@ export default function POSMemberManager({
     
     const today = new Date();
     today.setHours(0,0,0,0);
+    const currentMonth = today.getMonth();
+
     let newCustomers = sortedByDate.filter(c => c.created_at && new Date(c.created_at) >= today);
     if (newCustomers.length === 0 && sortedByDate.length > 0) {
         newCustomers = sortedByDate.slice(0, 2); 
     }
     const newCustomerIds = new Set(newCustomers.map(c => c.id));
-    const otherCustomers = sortedByDate.filter(c => !newCustomerIds.has(c.id));
+
+    const birthdayCustomers = sortedByDate.filter(c => {
+        if (!c.date_of_birth) return false;
+        try {
+            const parts = c.date_of_birth.split('-');
+            if (parts.length >= 2) {
+                const month = parseInt(parts[1], 10) - 1;
+                return month === currentMonth;
+            }
+            return false;
+        } catch {
+            return false;
+        }
+    });
+    const birthdayCustomerIds = new Set(birthdayCustomers.map(c => c.id));
+
+    const otherCustomers = sortedByDate.filter(c => !newCustomerIds.has(c.id) && !birthdayCustomerIds.has(c.id));
 
     return (
         <div className="flex-1 flex flex-col h-full overflow-hidden bg-white font-noto">
@@ -603,6 +621,72 @@ export default function POSMemberManager({
                                     </div>
 
                                     <div className="flex flex-col">
+                                        {/* Birthday Customers Section */}
+                                        {birthdayCustomers.length > 0 && (
+                                            <>
+                                                <div className="px-2 pt-8 pb-2 text-[12px] font-bold text-amber-600 flex items-center gap-2">
+                                                    🎂 เกิดเดือนนี้
+                                                </div>
+                                                {birthdayCustomers.map(member => (
+                                                    <button 
+                                                        key={member.id} 
+                                                        onClick={() => handleSelectMember(member)} 
+                                                        className="w-full flex items-center gap-3 lg:gap-4 py-4 px-2 hover:bg-amber-50/50 rounded-2xl transition-colors text-left group"
+                                                    >
+                                                        <div className="flex-1 flex items-center gap-3 min-w-0">
+                                                            <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-900 overflow-hidden shrink-0 font-medium border border-amber-200">
+                                                                {member.avatar_url ? (
+                                                                    <img loading="lazy" src={member.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                                                                ) : (
+                                                                    (member.display_name || member.full_name || 'M').slice(0, 1)
+                                                                )}
+                                                            </div>
+                                                            <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                                                <div className="flex flex-wrap items-center gap-1.5">
+                                                                    <div className="text-[14px] lg:text-[15px] font-semibold text-black break-words leading-tight whitespace-normal">
+                                                                        {member.full_name || member.display_name || 'สมาชิก'}
+                                                                    </div>
+                                                                    {member.title && (
+                                                                        <span className="shrink-0 text-[9px] lg:text-[10px] font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{member.title}</span>
+                                                                    )}
+                                                                </div>
+                                                                <div className="text-[12px] lg:text-[13px] text-gray-500 truncate mt-0.5">
+                                                                    {member.phone ? member.phone.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3') : '-'}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        {/* Date hidden on small and medium screens to give name more space */}
+                                                        <div className="w-[90px] shrink-0 hidden lg:flex flex-col items-center justify-center text-[13px] text-gray-500">
+                                                            {member.created_at ? (
+                                                                <>
+                                                                    <span>{new Date(member.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })}</span>
+                                                                    <span className="text-[11px] text-gray-400">{new Date(member.created_at).getFullYear() + 543}</span>
+                                                                </>
+                                                            ) : '-'}
+                                                        </div>
+                                                        
+                                                        <div className="w-[60px] shrink-0 text-center">
+                                                            <span className="text-[14px] lg:text-[15px] font-medium text-black">{(member.points ?? 0).toLocaleString()}</span>
+                                                        </div>
+                                                        
+                                                        <div className="w-[100px] shrink-0 flex justify-end">
+                                                            {member.phone ? (
+                                                                <span className="text-[11px] lg:text-[12px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2.5 lg:px-3 py-1 rounded-full shrink-0">
+                                                                    ลงทะเบียนแล้ว
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-[11px] lg:text-[12px] font-semibold text-amber-700 bg-amber-50 border border-amber-200/60 px-2.5 lg:px-3 py-1 rounded-full shrink-0">
+                                                                    ยังไม่ลงทะเบียน
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                                <div className="my-2 border-b border-gray-100 mx-2"></div>
+                                            </>
+                                        )}
+
                                         {/* New Customers Section */}
                                         {newCustomers.length > 0 && (
                                             <>
