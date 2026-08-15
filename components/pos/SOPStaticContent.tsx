@@ -327,8 +327,8 @@ export default function SOPStaticContent({ shopSettings, isAdmin, onSaveSuccess 
                     {/* Section 3 */}
                     <Section number="3" title="พฤติกรรม มารยาท และข้อห้ามขณะปฏิบัติงาน" icon={<AlertTriangle size={16}/>}>
                         <SubSection title="กฎเหล็กพื้นที่บริการ (On-Duty Conduct)">
-                            <div className="bg-gray-50 border-l-4 border-gray-400 p-4 mb-4 text-sm print:bg-white print:border-black print:border-l-[3px]">
-                                <h4 className="font-bold text-gray-800 mb-1 flex items-center gap-2 print:text-black">
+                            <div className="bg-gray-50 border-l-4 border-gray-400 p-4 mb-4 text-sm print:bg-white print:border-gray-800 print:border-l-[3px]">
+                                <h4 className="font-bold text-gray-800 mb-1 print:text-black">
                                     กฎระเบียบเรื่องโทรศัพท์มือถือ:
                                 </h4>
                                 <div className="text-gray-600 print:text-black">
@@ -387,7 +387,7 @@ export default function SOPStaticContent({ shopSettings, isAdmin, onSaveSuccess 
                 <div className="overflow-x-auto pb-4">
                     <table className="w-full text-left border-collapse min-w-[600px]">
                         <thead>
-                            <tr className="border-b border-gray-300 print:border-black">
+                            <tr className="border-b border-gray-300 print:border-gray-800">
                                 <th className="py-3 px-2 font-bold text-gray-800 text-[13px] print:text-black">หัวข้อการประเมิน</th>
                                 <th className="py-3 px-2 text-center w-10 font-bold text-gray-500 text-[13px] print:text-black">5</th>
                                 <th className="py-3 px-2 text-center w-10 font-bold text-gray-500 text-[13px] print:text-black">4</th>
@@ -573,9 +573,9 @@ function InlineTextArea({ isEditing, value, onChange, className = "" }: { isEdit
 function Section({ number, title, icon, children }: { number: string, title: string, icon: React.ReactNode, children: React.ReactNode }) {
     return (
         <section className="mb-10 print:mb-8 section-container">
-            <h3 className="text-[16px] font-bold text-gray-900 mb-4 flex items-center gap-2 print:text-black print:text-[18px]">
-                <span className="text-gray-400 print:hidden">{icon}</span>
-                หมวดที่ {number}: {title}
+            <h3 className="text-[16px] font-bold text-gray-900 mb-4 print:text-black print:text-[18px]">
+                <span className="text-gray-400 print:hidden mr-2 align-middle">{icon}</span>
+                <span className="align-middle">หมวดที่ {number}: {title}</span>
             </h3>
             <div className="pl-6 space-y-6 print:pl-4 print:space-y-4">
                 {children}
@@ -587,8 +587,8 @@ function Section({ number, title, icon, children }: { number: string, title: str
 function SubSection({ title, children }: { title: string, children: React.ReactNode }) {
     return (
         <div className="subsection-container">
-            <h4 className="text-[14px] font-bold text-gray-700 mb-3 border-b border-dashed border-gray-200 pb-2 inline-block print:text-black print:border-black print:text-[16px] print:border-solid">
-                {title}
+            <h4 className="text-[14px] font-bold text-gray-700 mb-3 pb-2 print:text-black print:text-[16px]">
+                <span className="border-b border-dashed border-gray-300 pb-1 print:border-solid print:border-gray-800">{title}</span>
             </h4>
             <ul className="space-y-3 print:space-y-2">
                 {children}
@@ -612,7 +612,7 @@ function ListItem({ title, children }: { title?: string, children: React.ReactNo
 function EvaluationGroup({ title }: { title: string }) {
     return (
         <tr>
-            <td colSpan={6} className="py-4 px-2 font-bold text-[13px] text-gray-800 bg-gray-50 border-y border-gray-200 print:bg-white print:border-black print:text-black">
+            <td colSpan={6} className="py-4 px-2 font-bold text-[14px] text-gray-800 bg-gray-50 border-y border-gray-300 print:bg-gray-100 print:border-gray-400 print:text-black mt-4">
                 {title}
             </td>
         </tr>
@@ -621,14 +621,14 @@ function EvaluationGroup({ title }: { title: string }) {
 
 function EvaluationRow({ title, desc }: { title: string, desc: string }) {
     return (
-        <tr className="border-b border-gray-100 print:border-black break-inside-avoid hover:bg-gray-50 transition-colors">
+        <tr className="border-b border-gray-100 print:border-gray-300 break-inside-avoid hover:bg-gray-50 transition-colors">
             <td className="py-3 px-2">
                 <div className="font-bold text-[13px] text-gray-700 print:text-black">{title}</div>
-                <div className="text-[12px] text-gray-500 mt-1 print:text-black">{desc}</div>
+                <div className="text-[12px] text-gray-500 mt-1 print:text-gray-700">{desc}</div>
             </td>
             {[5,4,3,2,1].map(num => (
-                <td key={num} className="py-3 px-2 text-center align-middle print:border-l print:border-black">
-                    <div className="w-4 h-4 rounded-full border border-gray-400 mx-auto bg-white print:border-black"></div>
+                <td key={num} className="py-3 px-2 text-center align-middle">
+                    <div className="w-4 h-4 rounded-full border border-gray-400 mx-auto bg-white print:border-gray-600 print:border-[1.5px]"></div>
                 </td>
             ))}
         </tr>
