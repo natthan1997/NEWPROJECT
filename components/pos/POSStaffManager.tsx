@@ -2724,7 +2724,13 @@ export default function POSStaffManager({
             {/* VIEW: SOP MANUAL */}
             {internalTab === 'sop' && (
                 <div className="max-w-6xl mx-auto space-y-6 pt-4 pb-20">
-                    <SOPStaticContent />
+                    <SOPStaticContent 
+                        shopSettings={{...shopSettings, branch_id: shopSettings?.branch_id}} 
+                        isAdmin={true} 
+                        onSaveSuccess={() => {
+                            // If needed, refresh settings here, but usually local state is enough
+                        }}
+                    />
                 </div>
             )}
 
