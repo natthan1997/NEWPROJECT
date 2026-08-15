@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { AlertTriangle, Clock, Users, Sparkles, Star, Edit, Printer, X, Save } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
@@ -70,6 +70,7 @@ export default function SOPStaticContent({ shopSettings, isAdmin, onSaveSuccess 
             try {
                 const parsed = JSON.parse(shopSettings.opening_hours.sop_ui_data);
                 setData({ ...DEFAULT_DATA, ...parsed });
+                setEditData({ ...DEFAULT_DATA, ...parsed });
             } catch (e) {
                 console.error("Failed to parse SOP data", e);
             }
@@ -79,6 +80,11 @@ export default function SOPStaticContent({ shopSettings, isAdmin, onSaveSuccess 
     const handleEditClick = () => {
         setEditData(data);
         setIsEditing(true);
+    };
+
+    const handleCancelEdit = () => {
+        setEditData(data); // revert
+        setIsEditing(false);
     };
 
     const handleSave = async () => {
@@ -117,11 +123,15 @@ export default function SOPStaticContent({ shopSettings, isAdmin, onSaveSuccess 
         window.print();
     };
 
+    const updateField = (field: keyof SOPData, value: string) => {
+        setEditData(prev => ({ ...prev, [field]: value }));
+    };
+
     return (
         <div className="max-w-3xl mx-auto space-y-6 print-container relative">
             
             {/* Admin Actions */}
-            {isAdmin && (
+            {isAdmin && !isEditing && (
                 <div className="flex items-center justify-end gap-3 mb-4 print:hidden sticky top-4 z-50">
                     <button 
                         onClick={handleEditClick}
@@ -138,6 +148,30 @@ export default function SOPStaticContent({ shopSettings, isAdmin, onSaveSuccess 
                 </div>
             )}
 
+            {isAdmin && isEditing && (
+                <div className="flex items-center justify-between gap-3 mb-4 print:hidden sticky top-4 z-50 bg-blue-50/90 backdrop-blur-md p-4 rounded-2xl border border-blue-200 shadow-lg">
+                    <div className="text-blue-800 font-bold flex items-center gap-2">
+                        <Edit size={20} />
+                        โหมดแก้ไข (คลิกที่ข้อความเพื่อพิมพ์แก้ได้เลย)
+                    </div>
+                    <div className="flex gap-2">
+                        <button 
+                            onClick={handleCancelEdit}
+                            className="px-4 py-2 bg-white text-gray-500 rounded-xl font-bold shadow-sm hover:bg-gray-100 transition-colors"
+                        >
+                            ยกเลิก
+                        </button>
+                        <button 
+                            onClick={handleSave}
+                            disabled={isSaving}
+                            className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-xl font-bold shadow-sm hover:bg-blue-700 transition-colors disabled:opacity-50"
+                        >
+                            <Save size={16} /> {isSaving ? 'กำลังบันทึก...' : 'บันทึก'}
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Title Card */}
             <motion.div 
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
@@ -151,17 +185,23 @@ export default function SOPStaticContent({ shopSettings, isAdmin, onSaveSuccess 
                 </div>
 
                 <div className="bg-[#FFFAF0] border border-[#FDE6A6] rounded-2xl p-4 text-left max-w-sm mx-auto print:bg-white print:border-black print:rounded-none">
-                    <div className="flex justify-between border-b border-dashed border-[#E5E5DF] pb-2 mb-2 print:border-black">
-                        <span className="font-bold text-[#6B3E11] text-[13px] print:text-black">ชื่อร้าน:</span>
-                        <span className="text-gray-500 text-[13px] print:text-black">{data.shopName}</span>
+                    <div className="flex justify-between items-center border-b border-dashed border-[#E5E5DF] pb-2 mb-2 print:border-black">
+                        <span className="font-bold text-[#6B3E11] text-[13px] print:text-black w-1/3">ชื่อร้าน:</span>
+                        <span className="text-gray-500 text-[13px] print:text-black w-2/3 text-right">
+                            <InlineInput isEditing={isEditing} value={isEditing ? editData.shopName : data.shopName} onChange={(v) => updateField('shopName', v)} className="text-right w-full" />
+                        </span>
                     </div>
-                    <div className="flex justify-between border-b border-dashed border-[#E5E5DF] pb-2 mb-2 print:border-black">
-                        <span className="font-bold text-[#6B3E11] text-[13px] print:text-black">สาขา:</span>
-                        <span className="text-[#4A2C11] font-medium text-[13px] print:text-black">{data.branchName}</span>
+                    <div className="flex justify-between items-center border-b border-dashed border-[#E5E5DF] pb-2 mb-2 print:border-black">
+                        <span className="font-bold text-[#6B3E11] text-[13px] print:text-black w-1/3">สาขา:</span>
+                        <span className="text-[#4A2C11] font-medium text-[13px] print:text-black w-2/3 text-right">
+                            <InlineInput isEditing={isEditing} value={isEditing ? editData.branchName : data.branchName} onChange={(v) => updateField('branchName', v)} className="text-right w-full font-medium text-[#4A2C11]" />
+                        </span>
                     </div>
-                    <div className="flex justify-between">
-                        <span className="font-bold text-[#6B3E11] text-[13px] print:text-black">วันที่อัปเดต:</span>
-                        <span className="text-[#4A2C11] font-medium text-[13px] print:text-black">{data.updatedDate}</span>
+                    <div className="flex justify-between items-center">
+                        <span className="font-bold text-[#6B3E11] text-[13px] print:text-black w-1/3">วันที่อัปเดต:</span>
+                        <span className="text-[#4A2C11] font-medium text-[13px] print:text-black w-2/3 text-right">
+                            <InlineInput isEditing={isEditing} value={isEditing ? editData.updatedDate : data.updatedDate} onChange={(v) => updateField('updatedDate', v)} className="text-right w-full font-medium text-[#4A2C11]" />
+                        </span>
                     </div>
                 </div>
             </motion.div>
@@ -169,20 +209,20 @@ export default function SOPStaticContent({ shopSettings, isAdmin, onSaveSuccess 
             {/* Section 1 */}
             <Section title="หมวดที่ 1: มาตรฐานรูปลักษณ์ สุขอนามัย และการแต่งกาย" icon={<Sparkles size={20}/>}>
                 <SubSection title="1.1 เครื่องแบบและสุขอนามัย (Grooming & Hygiene)">
-                    <ListItem><strong>เครื่องแต่งกาย:</strong> {data.sec1_uniform}</ListItem>
-                    <ListItem><strong>ทรงผมและใบหน้า:</strong> {data.sec1_hair}</ListItem>
-                    <ListItem><strong>เล็บและเครื่องประดับ:</strong> {data.sec1_nails}</ListItem>
-                    <ListItem><strong>กลิ่นกาย:</strong> {data.sec1_scent}</ListItem>
+                    <ListItem><strong>เครื่องแต่งกาย:</strong> <InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec1_uniform : data.sec1_uniform} onChange={(v) => updateField('sec1_uniform', v)} /></ListItem>
+                    <ListItem><strong>ทรงผมและใบหน้า:</strong> <InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec1_hair : data.sec1_hair} onChange={(v) => updateField('sec1_hair', v)} /></ListItem>
+                    <ListItem><strong>เล็บและเครื่องประดับ:</strong> <InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec1_nails : data.sec1_nails} onChange={(v) => updateField('sec1_nails', v)} /></ListItem>
+                    <ListItem><strong>กลิ่นกาย:</strong> <InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec1_scent : data.sec1_scent} onChange={(v) => updateField('sec1_scent', v)} /></ListItem>
                 </SubSection>
             </Section>
 
             {/* Section 2 */}
             <Section title="หมวดที่ 2: การตรงต่อเวลา การเข้า-ออกงาน และการลางาน" icon={<Clock size={20}/>}>
                 <SubSection title="2.1 การลงเวลาและการลางาน (Attendance Standards)">
-                    <ListItem><strong>การเข้างาน:</strong> {data.sec2_arrive}</ListItem>
-                    <ListItem><strong>การลงเวลา:</strong> {data.sec2_clock}</ListItem>
-                    <ListItem><strong>การลาป่วย/ลากิจ:</strong> {data.sec2_leave}</ListItem>
-                    <ListItem><strong>การขาดงาน:</strong> {data.sec2_absent}</ListItem>
+                    <ListItem><strong>การเข้างาน:</strong> <InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec2_arrive : data.sec2_arrive} onChange={(v) => updateField('sec2_arrive', v)} /></ListItem>
+                    <ListItem><strong>การลงเวลา:</strong> <InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec2_clock : data.sec2_clock} onChange={(v) => updateField('sec2_clock', v)} /></ListItem>
+                    <ListItem><strong>การลาป่วย/ลากิจ:</strong> <InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec2_leave : data.sec2_leave} onChange={(v) => updateField('sec2_leave', v)} /></ListItem>
+                    <ListItem><strong>การขาดงาน:</strong> <InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec2_absent : data.sec2_absent} onChange={(v) => updateField('sec2_absent', v)} /></ListItem>
                 </SubSection>
             </Section>
 
@@ -191,19 +231,21 @@ export default function SOPStaticContent({ shopSettings, isAdmin, onSaveSuccess 
                 <SubSection title="3.1 กฎเหล็กพื้นที่บริการ (On-Duty Conduct)">
                     <div className="bg-[#FFF0F0] text-[#B02A2A] p-4 rounded-xl mb-4 border border-[#FAD2D2] print:bg-white print:border-black print:rounded-none print:text-black">
                         <h4 className="font-bold text-[14px] mb-1 print:text-black">กฎระเบียบเรื่องโทรศัพท์มือถือ:</h4>
-                        <p className="text-[13px] font-medium leading-relaxed print:text-black">{data.sec3_phone}</p>
+                        <div className="text-[13px] font-medium leading-relaxed print:text-black">
+                            <InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec3_phone : data.sec3_phone} onChange={(v) => updateField('sec3_phone', v)} />
+                        </div>
                     </div>
-                    <ListItem>{data.sec3_talk}</ListItem>
-                    <ListItem>{data.sec3_eat}</ListItem>
-                    <ListItem>{data.sec3_rude}</ListItem>
+                    <ListItem><InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec3_talk : data.sec3_talk} onChange={(v) => updateField('sec3_talk', v)} /></ListItem>
+                    <ListItem><InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec3_eat : data.sec3_eat} onChange={(v) => updateField('sec3_eat', v)} /></ListItem>
+                    <ListItem><InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec3_rude : data.sec3_rude} onChange={(v) => updateField('sec3_rude', v)} /></ListItem>
                 </SubSection>
             </Section>
 
             {/* Section 4 */}
             <Section title="หมวดที่ 4: มาตรฐานการบริการและการสื่อสารกับลูกค้า" icon={<Users size={20}/>}>
                 <SubSection title="4.1 ขั้นตอนบริการและการรับมือข้อร้องเรียน">
-                    <ListItem><strong>การต้อนรับ:</strong> {data.sec4_greet}</ListItem>
-                    <ListItem><strong>การรับ-เสิร์ฟออเดอร์:</strong> {data.sec4_order}</ListItem>
+                    <ListItem><strong>การต้อนรับ:</strong> <InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec4_greet : data.sec4_greet} onChange={(v) => updateField('sec4_greet', v)} /></ListItem>
+                    <ListItem><strong>การรับ-เสิร์ฟออเดอร์:</strong> <InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec4_order : data.sec4_order} onChange={(v) => updateField('sec4_order', v)} /></ListItem>
                     <ListItem>
                         <strong>หลัก LAST รับมือข้อร้องเรียน:</strong>
                         <div className="ml-4 mt-2 space-y-1 text-[13px]">
@@ -219,17 +261,17 @@ export default function SOPStaticContent({ shopSettings, isAdmin, onSaveSuccess 
             {/* Section 5 */}
             <Section title="หมวดที่ 5: มาตรฐานความสะอาดและการจัดการร้าน" icon={<Sparkles size={20}/>}>
                 <SubSection title="5.1 ความสะอาด (Clean as you go)">
-                    <ListItem><strong>สเตชันบาร์:</strong> {data.sec5_bar}</ListItem>
-                    <ListItem><strong>หน้าร้าน:</strong> {data.sec5_front}</ListItem>
-                    <ListItem><strong>การจัดการขยะ:</strong> {data.sec5_trash}</ListItem>
+                    <ListItem><strong>สเตชันบาร์:</strong> <InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec5_bar : data.sec5_bar} onChange={(v) => updateField('sec5_bar', v)} /></ListItem>
+                    <ListItem><strong>หน้าร้าน:</strong> <InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec5_front : data.sec5_front} onChange={(v) => updateField('sec5_front', v)} /></ListItem>
+                    <ListItem><strong>การจัดการขยะ:</strong> <InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec5_trash : data.sec5_trash} onChange={(v) => updateField('sec5_trash', v)} /></ListItem>
                 </SubSection>
             </Section>
 
             {/* Section 6 */}
             <Section title="หมวดที่ 6: ระเบียบวินัยและบทลงโทษ" icon={<AlertTriangle size={20}/>}>
                 <SubSection title="6.1 ลำดับขั้นบทลงโทษ (Disciplinary Action)">
-                    <ListItem><strong>ความผิดทั่วไป:</strong> {data.sec6_general}</ListItem>
-                    <ListItem><strong>ความผิดร้ายแรง (เลิกจ้างทันที):</strong> {data.sec6_severe}</ListItem>
+                    <ListItem><strong>ความผิดทั่วไป:</strong> <InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec6_general : data.sec6_general} onChange={(v) => updateField('sec6_general', v)} /></ListItem>
+                    <ListItem><strong>ความผิดร้ายแรง (เลิกจ้างทันที):</strong> <InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec6_severe : data.sec6_severe} onChange={(v) => updateField('sec6_severe', v)} /></ListItem>
                 </SubSection>
             </Section>
 
@@ -323,98 +365,44 @@ export default function SOPStaticContent({ shopSettings, isAdmin, onSaveSuccess 
                 </div>
             </div>
 
-            {/* Edit Modal */}
-            {isEditing && (
-                <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 print:hidden">
-                    <div className="bg-white rounded-3xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl">
-                        <div className="flex items-center justify-between p-6 border-b border-gray-100">
-                            <h2 className="text-xl font-black text-gray-900 flex items-center gap-2">
-                                <Edit size={24} className="text-blue-600" />
-                                แก้ไขคู่มือ SOP
-                            </h2>
-                            <button onClick={() => setIsEditing(false)} className="p-2 hover:bg-gray-100 rounded-full">
-                                <X size={20} className="text-gray-500" />
-                            </button>
-                        </div>
-                        
-                        <div className="flex-1 overflow-y-auto p-6 space-y-8">
-                            <FormGroup title="ข้อมูลทั่วไป">
-                                <InputField label="ชื่อร้าน" value={editData.shopName} onChange={v => setEditData({...editData, shopName: v})} />
-                                <InputField label="สาขา" value={editData.branchName} onChange={v => setEditData({...editData, branchName: v})} />
-                                <InputField label="วันที่อัปเดต" value={editData.updatedDate} onChange={v => setEditData({...editData, updatedDate: v})} />
-                            </FormGroup>
-
-                            <FormGroup title="หมวดที่ 1: มาตรฐานรูปลักษณ์">
-                                <TextAreaField label="เครื่องแต่งกาย" value={editData.sec1_uniform} onChange={v => setEditData({...editData, sec1_uniform: v})} />
-                                <TextAreaField label="ทรงผมและใบหน้า" value={editData.sec1_hair} onChange={v => setEditData({...editData, sec1_hair: v})} />
-                                <TextAreaField label="เล็บและเครื่องประดับ" value={editData.sec1_nails} onChange={v => setEditData({...editData, sec1_nails: v})} />
-                                <TextAreaField label="กลิ่นกาย" value={editData.sec1_scent} onChange={v => setEditData({...editData, sec1_scent: v})} />
-                            </FormGroup>
-
-                            <FormGroup title="หมวดที่ 2: การตรงต่อเวลา">
-                                <TextAreaField label="การเข้างาน" value={editData.sec2_arrive} onChange={v => setEditData({...editData, sec2_arrive: v})} />
-                                <TextAreaField label="การลงเวลา" value={editData.sec2_clock} onChange={v => setEditData({...editData, sec2_clock: v})} />
-                                <TextAreaField label="การลาป่วย/ลากิจ" value={editData.sec2_leave} onChange={v => setEditData({...editData, sec2_leave: v})} />
-                                <TextAreaField label="การขาดงาน" value={editData.sec2_absent} onChange={v => setEditData({...editData, sec2_absent: v})} />
-                            </FormGroup>
-
-                            <FormGroup title="หมวดที่ 3: พฤติกรรมและมารยาท">
-                                <TextAreaField label="กฎโทรศัพท์มือถือ" value={editData.sec3_phone} onChange={v => setEditData({...editData, sec3_phone: v})} />
-                                <TextAreaField label="การพูดคุยเล่น" value={editData.sec3_talk} onChange={v => setEditData({...editData, sec3_talk: v})} />
-                                <TextAreaField label="การรับประทานอาหาร" value={editData.sec3_eat} onChange={v => setEditData({...editData, sec3_eat: v})} />
-                                <TextAreaField label="คำหยาบคาย/นินทา" value={editData.sec3_rude} onChange={v => setEditData({...editData, sec3_rude: v})} />
-                            </FormGroup>
-
-                            <FormGroup title="หมวดที่ 4: การบริการลูกค้า">
-                                <TextAreaField label="การต้อนรับ" value={editData.sec4_greet} onChange={v => setEditData({...editData, sec4_greet: v})} />
-                                <TextAreaField label="การรับ-เสิร์ฟออเดอร์" value={editData.sec4_order} onChange={v => setEditData({...editData, sec4_order: v})} />
-                            </FormGroup>
-
-                            <FormGroup title="หมวดที่ 5: ความสะอาด">
-                                <TextAreaField label="สเตชันบาร์" value={editData.sec5_bar} onChange={v => setEditData({...editData, sec5_bar: v})} />
-                                <TextAreaField label="หน้าร้าน" value={editData.sec5_front} onChange={v => setEditData({...editData, sec5_front: v})} />
-                                <TextAreaField label="การจัดการขยะ" value={editData.sec5_trash} onChange={v => setEditData({...editData, sec5_trash: v})} />
-                            </FormGroup>
-
-                            <FormGroup title="หมวดที่ 6: บทลงโทษ">
-                                <TextAreaField label="ความผิดทั่วไป" value={editData.sec6_general} onChange={v => setEditData({...editData, sec6_general: v})} />
-                                <TextAreaField label="ความผิดร้ายแรง" value={editData.sec6_severe} onChange={v => setEditData({...editData, sec6_severe: v})} />
-                            </FormGroup>
-                        </div>
-
-                        <div className="p-6 border-t border-gray-100 flex justify-end gap-3">
-                            <button 
-                                onClick={() => setIsEditing(false)}
-                                className="px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-100"
-                            >
-                                ยกเลิก
-                            </button>
-                            <button 
-                                onClick={handleSave}
-                                disabled={isSaving}
-                                className="flex items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg hover:bg-blue-700 disabled:opacity-50"
-                            >
-                                <Save size={18} />
-                                {isSaving ? 'กำลังบันทึก...' : 'บันทึกการแก้ไข'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             <style jsx global>{`
                 @media print {
+                    @page {
+                        size: A4;
+                        margin: 15mm;
+                    }
+                    /* Force the body and html to stretch fully, eliminating scroll boundaries */
+                    html, body {
+                        height: max-content !important;
+                        overflow: visible !important;
+                        min-height: auto !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        background: white !important;
+                    }
+                    /* Force ALL elements that might wrap the content to allow overflow */
+                    #__next, main, div, section, article {
+                        height: max-content !important;
+                        min-height: auto !important;
+                        max-height: none !important;
+                        overflow: visible !important;
+                    }
+                    /* Hide everything by default */
                     body * {
                         visibility: hidden;
                     }
+                    /* Show only print-container and its children */
                     .print-container, .print-container * {
                         visibility: visible;
                     }
+                    /* Position print-container properly */
                     .print-container {
-                        position: absolute;
-                        left: 0;
-                        top: 0;
-                        width: 100%;
+                        position: absolute !important;
+                        left: 0 !important;
+                        top: 0 !important;
+                        width: 100% !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
                     }
                     .print\\:hidden {
                         display: none !important;
@@ -425,50 +413,40 @@ export default function SOPStaticContent({ shopSettings, isAdmin, onSaveSuccess 
     );
 }
 
-// Subcomponents for Modal
-function FormGroup({ title, children }: { title: string, children: React.ReactNode }) {
-    return (
-        <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100">
-            <h3 className="font-black text-gray-800 mb-4 text-[15px]">{title}</h3>
-            <div className="space-y-4">
-                {children}
-            </div>
-        </div>
-    );
-}
-
-function InputField({ label, value, onChange }: { label: string, value: string, onChange: (v: string) => void }) {
-    return (
-        <div>
-            <label className="block text-[13px] font-bold text-gray-600 mb-1">{label}</label>
+// Editable Inline Components
+function InlineInput({ isEditing, value, onChange, className = "" }: { isEditing: boolean, value: string, onChange: (v: string) => void, className?: string }) {
+    if (isEditing) {
+        return (
             <input 
                 type="text" 
                 value={value} 
-                onChange={e => onChange(e.target.value)}
-                className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none"
+                onChange={(e) => onChange(e.target.value)} 
+                className={`bg-blue-50 border-b-2 border-blue-400 focus:outline-none focus:border-blue-600 px-1 text-[#4A2C11] ${className}`} 
             />
-        </div>
-    );
+        );
+    }
+    return <span className={className}>{value}</span>;
 }
 
-function TextAreaField({ label, value, onChange }: { label: string, value: string, onChange: (v: string) => void }) {
-    return (
-        <div>
-            <label className="block text-[13px] font-bold text-gray-600 mb-1">{label}</label>
+function InlineTextArea({ isEditing, value, onChange, className = "" }: { isEditing: boolean, value: string, onChange: (v: string) => void, className?: string }) {
+    if (isEditing) {
+        return (
             <textarea 
                 value={value} 
-                onChange={e => onChange(e.target.value)}
-                rows={3}
-                className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none resize-y"
+                onChange={(e) => onChange(e.target.value)} 
+                rows={2}
+                className={`w-full bg-blue-50 border border-blue-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-[#4A2C11] resize-y ${className}`} 
             />
-        </div>
-    );
+        );
+    }
+    return <span className={className}>{value}</span>;
 }
+
 
 // Subcomponents for View
 function Section({ title, icon, children }: { title: string, icon: React.ReactNode, children: React.ReactNode }) {
     return (
-        <div className="bg-white rounded-3xl overflow-hidden border border-[#E5E5DF] shadow-sm print:rounded-none print:border-black break-inside-avoid">
+        <div className="bg-white rounded-3xl overflow-hidden border border-[#E5E5DF] shadow-sm print:rounded-none print:border-black break-inside-avoid print:break-inside-avoid">
             <div className="bg-[#965A27] text-white p-4 font-bold text-[16px] flex items-center gap-2 print:bg-gray-200 print:text-black">
                 <span className="print:hidden">{icon}</span>
                 {title}
@@ -482,7 +460,7 @@ function Section({ title, icon, children }: { title: string, icon: React.ReactNo
 
 function SubSection({ title, children }: { title: string, children: React.ReactNode }) {
     return (
-        <div>
+        <div className="break-inside-avoid">
             <h3 className="text-[14px] font-bold text-[#6B3E11] mb-3 pb-2 border-b border-dashed border-[#E5E5DF] inline-block print:text-black print:border-black">{title}</h3>
             <ul className="space-y-3">
                 {children}
@@ -493,10 +471,10 @@ function SubSection({ title, children }: { title: string, children: React.ReactN
 
 function ListItem({ children }: { children: React.ReactNode }) {
     return (
-        <li className="flex items-start gap-2 text-[14px] leading-relaxed text-[#4A2C11] print:text-black">
+        <li className="flex items-start gap-2 text-[14px] leading-relaxed text-[#4A2C11] print:text-black break-inside-avoid">
             <div className="min-w-[6px] h-[6px] rounded-full bg-[#965A27] mt-[8px] print:hidden"></div>
             <div className="hidden print:block mt-[6px] text-black">•</div>
-            <div>{children}</div>
+            <div className="w-full">{children}</div>
         </li>
     );
 }
@@ -513,7 +491,7 @@ function EvaluationGroup({ title, bg = "bg-[#FCF7E8]", text = "text-[#6B3E11]", 
 
 function EvaluationRow({ title, desc, bg = "bg-white" }: { title: string, desc: string, bg?: string }) {
     return (
-        <tr className={`border-b border-[#E5E5DF] ${bg} print:border-black print:bg-white`}>
+        <tr className={`border-b border-[#E5E5DF] ${bg} print:border-black print:bg-white break-inside-avoid`}>
             <td className="p-3 print:border-black">
                 <div className="font-bold text-[13px] text-[#4A2C11] print:text-black">{title}:</div>
                 <div className="text-[12px] text-gray-600 mt-1 print:text-black">{desc}</div>
