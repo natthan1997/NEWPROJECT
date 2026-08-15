@@ -147,14 +147,14 @@ export default function SOPStaticContent({ shopSettings, isAdmin, onSaveSuccess 
                         ${styles}
                         <style>
                             @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap');
-                            @page { size: A4; margin: 0; }
+                            @page { size: A4; margin: 20mm; }
                             * { font-family: 'Sarabun', sans-serif !important; }
                             body { background: white; color: black; padding: 0; margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                             .print-container { 
                                 position: static !important; 
                                 width: 100% !important; 
                                 margin: 0 !important; 
-                                padding: 20mm 20mm !important;
+                                padding: 0 !important;
                                 box-sizing: border-box !important;
                                 display: block !important;
                             }
