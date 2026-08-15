@@ -345,22 +345,77 @@ export default function SOPStaticContent({ shopSettings, isAdmin, onSaveSuccess 
                         </tbody>
                     </table>
                 </div>
+
+                {/* Evaluation Conclusion Box (New) */}
+                <div className="p-6 border-t border-[#E5E5DF] bg-[#FFFAF0] print:bg-white print:border-black">
+                    <h3 className="text-[16px] font-bold text-[#6B3E11] mb-4 print:text-black">สรุปผลการประเมิน (Evaluation Conclusion)</h3>
+                    
+                    <div className="bg-white border border-[#E5E5DF] rounded-xl p-4 mb-4 flex items-center gap-3 print:border-black">
+                        <span className="font-bold text-[#4A2C11] print:text-black">คะแนนรวมที่ได้:</span>
+                        <div className="text-gray-400 font-black text-2xl flex items-baseline gap-1 print:text-black">
+                            <span className="text-3xl text-gray-300 print:text-black">0</span> 
+                            <span className="text-sm font-medium text-gray-500 print:text-black">/ 75 คะแนน</span>
+                        </div>
+                    </div>
+
+                    <div className="mb-4">
+                        <label className="block text-[13px] font-bold text-[#6B3E11] mb-2 print:text-black">จุดเด่นที่ควรชื่นชม:</label>
+                        <div className="w-full min-h-[80px] bg-[#F9F9F9] border border-dashed border-[#CCCCCC] rounded-lg p-3 text-gray-400 text-[13px] print:border-black print:text-white">
+                            <span className="print:hidden">[คลิกเพื่อพิมพ์ข้อความแสดงความคิดเห็น...]</span>
+                        </div>
+                    </div>
+
+                    <div className="mb-6">
+                        <label className="block text-[13px] font-bold text-[#6B3E11] mb-2 print:text-black">จุดที่ต้องพัฒนา:</label>
+                        <div className="w-full min-h-[80px] bg-[#F9F9F9] border border-dashed border-[#CCCCCC] rounded-lg p-3 text-gray-400 text-[13px] print:border-black print:text-white">
+                            <span className="print:hidden">[คลิกเพื่อพิมพ์ข้อความแสดงความคิดเห็น...]</span>
+                        </div>
+                    </div>
+
+                    <div className="bg-[#FFFDF5] border border-[#FDE6A6] rounded-xl p-4 flex flex-wrap items-center gap-4 print:bg-white print:border-black">
+                        <span className="font-bold text-[#6B3E11] print:text-black">ผลการประเมิน:</span>
+                        <label className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-[#E5E5DF] print:border-none">
+                            <div className="w-4 h-4 rounded-full border border-gray-400 print:border-black"></div>
+                            <span className="text-[13px] text-[#4A2C11] font-medium print:text-black">ผ่านเกณฑ์</span>
+                        </label>
+                        <label className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-[#E5E5DF] print:border-none">
+                            <div className="w-4 h-4 rounded-full border border-gray-400 print:border-black"></div>
+                            <span className="text-[13px] text-[#4A2C11] font-medium print:text-black">ขยายเวลาทดลองงาน</span>
+                        </label>
+                        <label className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-[#E5E5DF] print:border-none">
+                            <div className="w-4 h-4 rounded-full border border-gray-400 print:border-black"></div>
+                            <span className="text-[13px] text-[#4A2C11] font-medium print:text-black">ไม่ผ่านเกณฑ์</span>
+                        </label>
+                    </div>
+                </div>
             </motion.div>
 
             <div className="h-8 print:hidden"></div>
 
-            {/* Signature Area (Only visible when printing) */}
-            <div className="hidden print:block mt-16 break-inside-avoid">
-                <div className="grid grid-cols-2 gap-12 text-center text-black pt-8">
+            {/* Signature Area (Visible on screen and print) */}
+            <div className="mt-12 mb-16 break-inside-avoid">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 text-center text-[#4A2C11] print:text-black pt-8">
                     <div>
-                        <div className="border-b border-black w-48 mx-auto mb-2"></div>
-                        <p className="text-[13px] font-bold">( ผู้จัดการสาขา / แอดมิน )</p>
-                        <p className="text-[13px] mt-1">วันที่: ....../....../......</p>
+                        <div className="flex items-end justify-center gap-2 mb-2">
+                            <span>(</span>
+                            <div className="border-b border-dashed border-gray-400 w-48 text-gray-300 text-[13px] pb-1 print:border-black print:text-white">พิมพ์ชื่อพนักงาน</div>
+                            <span>)</span>
+                        </div>
+                        <p className="text-[14px] font-black">พนักงานผู้รับการประเมิน</p>
+                        <p className="text-[13px] mt-2 text-gray-600 print:text-black flex items-center justify-center gap-2">
+                            วันที่: <span className="border-b border-gray-300 w-24 inline-block text-center pb-1 text-gray-500 print:text-black print:border-black">{new Date().toLocaleDateString('en-GB')}</span>
+                        </p>
                     </div>
                     <div>
-                        <div className="border-b border-black w-48 mx-auto mb-2"></div>
-                        <p className="text-[13px] font-bold">( พนักงาน / ผู้รับการประเมิน )</p>
-                        <p className="text-[13px] mt-1">วันที่: ....../....../......</p>
+                        <div className="flex items-end justify-center gap-2 mb-2">
+                            <span>(</span>
+                            <div className="border-b border-dashed border-gray-400 w-48 text-gray-300 text-[13px] pb-1 print:border-black print:text-white">พิมพ์ชื่อผู้จัดการ</div>
+                            <span>)</span>
+                        </div>
+                        <p className="text-[14px] font-black">ผู้จัดการร้าน / ผู้ประเมิน</p>
+                        <p className="text-[13px] mt-2 text-gray-600 print:text-black flex items-center justify-center gap-2">
+                            วันที่: <span className="border-b border-gray-300 w-24 inline-block text-center pb-1 text-gray-500 print:text-black print:border-black">{new Date().toLocaleDateString('en-GB')}</span>
+                        </p>
                     </div>
                 </div>
             </div>
