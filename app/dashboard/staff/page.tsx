@@ -1497,8 +1497,8 @@ export default function StaffDashboard() {
               </div>
             ) : (
               <div className="flex flex-col gap-4">
-                {/* Minimal 5 Cards Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-4">
+                {/* Minimal Cards Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
                     {/* Card 1: วันมาทำงาน */}
                     <Link href="/dashboard/staff/schedule" className="px-4 py-5 bg-white rounded-[24px] shadow-xs border border-gray-100 min-h-[100px] active:scale-95 transition-all flex flex-col justify-between group hover:border-gray-300">
                         <div className="flex items-center justify-between w-full mb-2">
@@ -1555,6 +1555,16 @@ export default function StaffDashboard() {
                           </div>
                       </Link>
                     )}
+                    {/* Card 6: คู่มือพนักงาน (SOP) */}
+                    <Link href="/dashboard/staff/sop" className="px-4 py-5 bg-[#FDF8F3] rounded-[24px] shadow-xs border border-[#FDE6A6] min-h-[100px] active:scale-95 transition-all flex flex-col justify-between group hover:border-[#965A27]/50">
+                        <div className="flex items-center justify-between w-full mb-2">
+                          <span className="text-[11px] font-bold text-[#965A27] uppercase tracking-wide">คู่มือ (SOP)</span>
+                          <DocumentTextIcon className="w-3.5 h-3.5 text-[#965A27] group-hover:text-[#6B3E11] transition-colors" />
+                        </div>
+                        <div className="text-[12px] font-semibold text-[#6B3E11] leading-tight mt-1">
+                            กฎระเบียบ
+                        </div>
+                    </Link>
                 </div>
 
                 {/* Request Status Section (Minimal) */}
