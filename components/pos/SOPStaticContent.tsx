@@ -161,8 +161,11 @@ export default function SOPStaticContent({ shopSettings, isAdmin, onSaveSuccess 
                                 break-inside: avoid !important;
                             }
                             .break-inside-avoid {
-                                display: inline-block !important;
-                                width: 100% !important;
+                                display: block !important;
+                            }
+                            .print\\:break-before-page {
+                                page-break-before: always !important;
+                                break-before: page !important;
                             }
                         </style>
                     </head>
