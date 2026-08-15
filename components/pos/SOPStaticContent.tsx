@@ -146,24 +146,32 @@ export default function SOPStaticContent({ shopSettings, isAdmin, onSaveSuccess 
                         <title>SOP Manual</title>
                         ${styles}
                         <style>
+                            @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap');
                             @page { size: A4; margin: 0; }
+                            * { font-family: 'Sarabun', sans-serif !important; }
                             body { background: white; color: black; padding: 0; margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                             .print-container { 
                                 position: static !important; 
                                 width: 100% !important; 
                                 margin: 0 !important; 
-                                padding: 15mm 20mm !important;
+                                padding: 20mm 20mm !important;
                                 box-sizing: border-box !important;
                                 display: block !important;
-                            }
-                            h1, h2, h3, h4, h5, p, li, .break-inside-avoid {
-                                page-break-inside: avoid !important;
-                                break-inside: avoid !important;
                             }
                             h1, h2, h3, h4, h5 {
                                 page-break-after: avoid !important;
                                 break-after: avoid !important;
+                                color: black !important;
                             }
+                            p, li, span, div {
+                                color: #111 !important;
+                                line-height: 1.6 !important;
+                            }
+                            .break-inside-avoid {
+                                page-break-inside: avoid !important;
+                                break-inside: avoid !important;
+                            }
+                            .print\\:hidden { display: none !important; }
                             .print\\:break-before-page {
                                 page-break-before: always !important;
                                 break-before: page !important;
@@ -564,25 +572,25 @@ function InlineTextArea({ isEditing, value, onChange, className = "" }: { isEdit
 // Subcomponents for View
 function Section({ number, title, icon, children }: { number: string, title: string, icon: React.ReactNode, children: React.ReactNode }) {
     return (
-        <div className="section-container">
-            <h3 className="text-[15px] font-bold text-gray-900 mb-4 flex items-center gap-2 print:text-black">
+        <section className="mb-10 print:mb-8 section-container">
+            <h3 className="text-[16px] font-bold text-gray-900 mb-4 flex items-center gap-2 print:text-black print:text-[18px]">
                 <span className="text-gray-400 print:hidden">{icon}</span>
                 หมวดที่ {number}: {title}
             </h3>
-            <div className="pl-6 space-y-6">
+            <div className="pl-6 space-y-6 print:pl-4 print:space-y-4">
                 {children}
             </div>
-        </div>
+        </section>
     );
 }
 
 function SubSection({ title, children }: { title: string, children: React.ReactNode }) {
     return (
         <div className="subsection-container">
-            <h4 className="text-[14px] font-bold text-gray-700 mb-3 border-b border-dashed border-gray-200 pb-2 inline-block print:text-black print:border-black">
+            <h4 className="text-[14px] font-bold text-gray-700 mb-3 border-b border-dashed border-gray-200 pb-2 inline-block print:text-black print:border-black print:text-[16px] print:border-solid">
                 {title}
             </h4>
-            <ul className="space-y-3">
+            <ul className="space-y-3 print:space-y-2">
                 {children}
             </ul>
         </div>
@@ -591,8 +599,8 @@ function SubSection({ title, children }: { title: string, children: React.ReactN
 
 function ListItem({ title, children }: { title?: string, children: React.ReactNode }) {
     return (
-        <li className="flex items-start gap-2 text-[14px] leading-relaxed text-gray-600 print:text-black break-inside-avoid">
-            <div className="mt-1 text-gray-400 print:text-black">-</div>
+        <li className="relative pl-4 text-[14px] leading-relaxed text-gray-600 print:text-black break-inside-avoid print:text-[14px] print:pl-5">
+            <span className="absolute left-0 top-0 text-blue-500 font-bold print:text-black">-</span>
             <div className="w-full">
                 {title && <span className="font-bold text-gray-800 mr-2 print:text-black">{title}:</span>}
                 {children}
