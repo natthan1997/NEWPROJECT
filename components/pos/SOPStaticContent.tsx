@@ -437,6 +437,15 @@ export default function SOPStaticContent({ shopSettings, isAdmin, onSaveSuccess 
                         overflow: visible !important;
                         position: static !important;
                     }
+                    /* Prevent text and containers from being sliced in half */
+                    h1, h2, h3, h4, h5, p, li, .break-inside-avoid {
+                        page-break-inside: avoid !important;
+                        break-inside: avoid !important;
+                    }
+                    .break-inside-avoid {
+                        display: inline-block !important;
+                        width: 100% !important;
+                    }
                     body * { visibility: hidden; }
                     .print-container, .print-container * { visibility: visible; }
                     .print-container {
