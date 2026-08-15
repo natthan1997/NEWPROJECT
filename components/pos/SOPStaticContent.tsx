@@ -176,9 +176,9 @@ export default function SOPStaticContent({ shopSettings, isAdmin, onSaveSuccess 
 <meta charset="UTF-8"><title>คู่มือปฏิบัติงาน - ${sop.shopName}</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-@page{size:A4 portrait;margin:0}
+@page{size:A4 portrait;margin:20mm}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
-body{font-family:'Sarabun','TH Sarabun New',sans-serif;font-size:13px;line-height:1.65;color:#111;background:#fff;padding:20mm}
+body{font-family:'Sarabun','TH Sarabun New',sans-serif;font-size:13px;line-height:1.65;color:#111;background:#fff}
 .hdr{text-align:center;border-bottom:2px solid #222;padding-bottom:12px;margin-bottom:12px}
 .badge{display:inline-block;border:1px solid #666;color:#666;font-size:10px;font-weight:700;padding:2px 10px;border-radius:99px;margin-bottom:6px}
 h1{font-size:20px;font-weight:900;color:#000;margin-bottom:2px}
