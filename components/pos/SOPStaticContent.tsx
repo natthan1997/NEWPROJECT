@@ -421,19 +421,18 @@ export default function SOPStaticContent({ shopSettings, isAdmin, onSaveSuccess 
                 @media print {
                     @page { size: A4; margin: 15mm; }
                     html, body {
-                        height: max-content !important;
-                        overflow: visible !important;
-                        min-height: auto !important;
-                        margin: 0 !important;
-                        padding: 0 !important;
                         background: white !important;
                         color: black !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
                     }
-                    #__next, main, div, section, article {
-                        height: max-content !important;
-                        min-height: auto !important;
+                    /* Reset ALL ancestors to allow full page printing, but leave internal layout intact! */
+                    html, body, #__next, div:not(.print-container):not(.print-container *) {
+                        height: auto !important;
+                        min-height: 0 !important;
                         max-height: none !important;
                         overflow: visible !important;
+                        position: static !important;
                     }
                     body * { visibility: hidden; }
                     .print-container, .print-container * { visibility: visible; }
