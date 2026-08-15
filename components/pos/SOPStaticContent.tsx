@@ -118,78 +118,145 @@ export default function SOPStaticContent({ shopSettings, isAdmin, onSaveSuccess 
         }
     };
 
+
     const handlePrint = () => {
-        const printContent = document.querySelector('.print-container');
-        if (!printContent) return;
+        const sop = data;
 
-        let iframe = document.getElementById('print-iframe') as HTMLIFrameElement;
-        if (!iframe) {
-            iframe = document.createElement('iframe');
-            iframe.id = 'print-iframe';
-            iframe.style.position = 'absolute';
-            iframe.style.width = '0px';
-            iframe.style.height = '0px';
-            iframe.style.border = 'none';
-            document.body.appendChild(iframe);
-        }
+        const row = (t: string, txt: string) => `<li><strong>${t}:</strong> ${txt}</li>`;
+        const plain = (txt: string) => `<li>${txt}</li>`;
+        const sub = (title: string, items: string) =>
+            `<div class="sub"><h4>${title}</h4><ul>${items}</ul></div>`;
+        const sec = (n: string, title: string, body: string) =>
+            `<div class="sec"><h3>หมวดที่ ${n}: ${title}</h3><div class="sec-body">${body}</div></div>`;
 
-        const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
-            .map(s => s.outerHTML)
-            .join('\n');
+        const sectionsHTML = [
+            sec('1','มาตรฐานรูปลักษณ์ สุขอนามัย และการแต่งกาย', sub('เครื่องแบบและสุขอนามัย (Grooming & Hygiene)', [row('เครื่องแต่งกาย',sop.sec1_uniform),row('ทรงผมและใบหน้า',sop.sec1_hair),row('เล็บและเครื่องประดับ',sop.sec1_nails),row('กลิ่นกาย',sop.sec1_scent)].join(''))),
+            sec('2','การตรงต่อเวลา การเข้า-ออกงาน และการลางาน', sub('การลงเวลาและการลางาน (Attendance Standards)', [row('การเข้างาน',sop.sec2_arrive),row('การลงเวลา',sop.sec2_clock),row('การลาป่วย/ลากิจ',sop.sec2_leave),row('การขาดงาน',sop.sec2_absent)].join(''))),
+            sec('3','พฤติกรรม มารยาท และข้อห้ามขณะปฏิบัติงาน', sub('กฎเหล็กพื้นที่บริการ (On-Duty Conduct)', `<div class="rule-box"><strong>กฎระเบียบเรื่องโทรศัพท์มือถือ:</strong><br>${sop.sec3_phone}</div>`+plain(sop.sec3_talk)+plain(sop.sec3_eat)+plain(sop.sec3_rude))),
+            sec('4','มาตรฐานการบริการและการสื่อสารกับลูกค้า', sub('ขั้นตอนบริการและการรับมือข้อร้องเรียน', [row('การต้อนรับ',sop.sec4_greet),row('การรับ-เสิร์ฟออเดอร์',sop.sec4_order),`<li><strong>หลัก LAST รับมือข้อร้องเรียน:</strong><div class="last-box"><div><strong>L-Listen:</strong> รับฟังอย่างตั้งใจ</div><div><strong>A-Apologize:</strong> กล่าวขอโทษด้วยความจริงใจ</div><div><strong>S-Solve:</strong> เสนอทางแก้ไขทันที</div><div><strong>T-Thank:</strong> ขอบคุณลูกค้าที่ช่วยติชม</div></div></li>`].join(''))),
+            sec('5','มาตรฐานความสะอาดและการจัดการร้าน', sub('ความสะอาด (Clean as you go)', [row('สเตชันบาร์',sop.sec5_bar),row('หน้าร้าน',sop.sec5_front),row('การจัดการขยะ',sop.sec5_trash)].join(''))),
+            sec('6','ระเบียบวินัยและบทลงโทษ', sub('ลำดับขั้นบทลงโทษ (Disciplinary Action)', [row('ความผิดทั่วไป',sop.sec6_general),row('ความผิดร้ายแรง',sop.sec6_severe)].join(''))),
+        ].join('');
 
-        const iframeDoc = iframe.contentWindow?.document;
-        if (iframeDoc) {
-            iframeDoc.open();
-            iframeDoc.write(`
-                <html>
-                    <head>
-                        <title>SOP Manual</title>
-                        ${styles}
-                        <style>
-                            @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap');
-                            @page { size: A4; margin: 20mm; }
-                            * { font-family: 'Sarabun', sans-serif !important; }
-                            body { background: white; color: black; padding: 0; margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                            .print-container { 
-                                position: static !important; 
-                                width: 100% !important; 
-                                margin: 0 !important; 
-                                padding: 0 !important;
-                                box-sizing: border-box !important;
-                                display: block !important;
-                            }
-                            h1, h2, h3, h4, h5 {
-                                page-break-after: avoid !important;
-                                break-after: avoid !important;
-                                color: black !important;
-                            }
-                            p, li, span, div {
-                                color: #111 !important;
-                                line-height: 1.6 !important;
-                            }
-                            .break-inside-avoid {
-                                page-break-inside: avoid !important;
-                                break-inside: avoid !important;
-                            }
-                            .print\\:hidden { display: none !important; }
-                            .print\\:break-before-page {
-                                page-break-before: always !important;
-                                break-before: page !important;
-                            }
-                        </style>
-                    </head>
-                    <body>
-                        ${printContent.outerHTML}
-                    </body>
-                </html>
-            `);
-            iframeDoc.close();
+        const evalData = [
+            {g:'1. ทักษะวิชาชีพและคุณภาพเครื่องดื่ม'},
+            {t:'1.1 การสกัดช็อต',d:'ตั้งค่าเครื่องบดแม่นยำ สกัดช็อตได้รสชาติและปริมาณตามมาตรฐานร้าน'},
+            {t:'1.2 การสตีมนม',d:'อุณหภูมินมถูกต้อง โฟมนมเนียนละเอียด เทลาเต้อาร์ตพื้นฐานได้'},
+            {t:'1.3 ความแม่นยำของสูตร',d:'ชงเครื่องดื่มได้รสชาติสม่ำเสมอ ไม่ลืมส่วนผสม ใส่ใจรายละเอียด'},
+            {t:'1.4 ความเร็วและความแม่นยำ',d:'จัดการออเดอร์ช่วงลูกค้าหนาแน่นได้รวดเร็ว ไม่ทำสลับคิว'},
+            {g:'2. งานบริการและการขาย'},
+            {t:'2.1 การต้อนรับ',d:'ทักทายลูกค้าอย่างอบอุ่น สุภาพ ยิ้มแย้ม และมี Service Mind เสมอ'},
+            {t:'2.2 ความรู้เรื่องเมนู',d:'อธิบายคาแรคเตอร์เมล็ดกาแฟ ส่วนผสม และแนะนำเมนูให้ตรงใจลูกค้าได้'},
+            {t:'2.3 การเสนอขาย',d:'มีทักษะเสนอขายขนม เบเกอรี่ หรือสินค้าเพิ่มเติมได้อย่างเป็นธรรมชาติ'},
+            {t:'2.4 การแก้ปัญหา',d:'รับมือข้อร้องเรียนของลูกค้าได้อย่างสุภาพและเป็นมืออาชีพ'},
+            {g:'3. การจัดการสเตชันและความสะอาด'},
+            {t:'3.1 Clean as you go',d:'เคาะกาก เช็ดหัวกรุ๊ป ล้างก้านนมทันที โต๊ะบาร์แห้งและสะอาดเสมอ'},
+            {t:'3.2 การจัดพื้นที่',d:'วัตถุดิบเรียงอย่างเป็นระบบ สต็อกครบก่อนเปิดร้าน ลิ้นชักสะอาดตลอด'},
+            {t:'3.3 ห้องน้ำและพื้นที่ส่วนกลาง',d:'ตรวจสอบและทำความสะอาดอย่างน้อยทุก 2 ชั่วโมง ในช่วงเวลาทำการ'},
+            {g:'4. การตรงต่อเวลาและความรับผิดชอบ'},
+            {t:'4.1 การมาตรงเวลา',d:'มาถึงครบถ้วนตามกะที่ได้รับมอบหมาย ไม่สายและไม่ขาดงานโดยไม่แจ้ง'},
+            {t:'4.2 การสวมเครื่องแบบ',d:'แต่งกายตามมาตรฐานร้านครบถ้วน สะอาด เรียบร้อยทุกวันทำงาน'},
+            {t:'4.3 ความรับผิดชอบงาน',d:'ทำงานที่ได้รับมอบหมายได้ครบถ้วน ไม่ต้องให้หัวหน้าตามบ่อยครั้ง'},
+            {g:'5. ทัศนคติและการทำงานร่วมกัน'},
+            {t:'5.1 ทัศนคติเชิงบวก',d:'มองโลกในแง่ดี พร้อมรับคำแนะนำ ปรับตัวเก่งเมื่อเกิดปัญหา'},
+            {t:'5.2 การทำงานเป็นทีม',d:'ช่วยเหลือเพื่อนร่วมงาน แบ่งปันงาน ไม่ปล่อยให้ใครทำคนเดียว'},
+            {t:'5.3 การรับและให้ Feedback',d:'รับฟังคำแนะนำอย่างเปิดใจ และสื่อสารปัญหาได้อย่างตรงไปตรงมา'},
+        ];
 
-            setTimeout(() => {
-                iframe.contentWindow?.focus();
-                iframe.contentWindow?.print();
-            }, 500);
-        }
+        const evalRows = evalData.map(r => {
+            if ('g' in r) return `<tr class="eg"><td colspan="6">${r.g}</td></tr>`;
+            const dots = [1,2,3,4,5].map(()=>`<td><span class="dot"></span></td>`).join('');
+            return `<tr class="er"><td><div class="rt">${(r as any).t}</div><div class="rd">${(r as any).d}</div></td>${dots}</tr>`;
+        }).join('');
+
+        const win = window.open('', '_blank', 'width=900,height=1200');
+        if (!win) { alert('กรุณาอนุญาต popup เพื่อสั่งพิมพ์'); return; }
+
+        win.document.write(`<!DOCTYPE html><html lang="th"><head>
+<meta charset="UTF-8"><title>คู่มือปฏิบัติงาน - ${sop.shopName}</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+@page{size:A4 portrait;margin:20mm}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+body{font-family:'Sarabun','TH Sarabun New',sans-serif;font-size:13px;line-height:1.65;color:#111;background:#fff}
+.hdr{text-align:center;border-bottom:2px solid #222;padding-bottom:12px;margin-bottom:12px}
+.badge{display:inline-block;border:1px solid #666;color:#666;font-size:10px;font-weight:700;padding:2px 10px;border-radius:99px;margin-bottom:6px}
+h1{font-size:20px;font-weight:900;color:#000;margin-bottom:2px}
+.sub1{font-size:11px;color:#666}
+.info{display:flex;justify-content:center;gap:36px;padding:8px 0 10px;border-bottom:1px solid #ccc;margin-bottom:14px}
+.info-item{text-align:center}
+.info-label{font-size:9px;font-weight:700;color:#888;display:block;margin-bottom:1px;text-transform:uppercase;letter-spacing:.5px}
+.info-value{font-size:13px;font-weight:700;color:#000}
+.sec{margin-bottom:14px}
+.sec h3{font-size:13px;font-weight:800;color:#000;border-bottom:1.5px solid #222;padding-bottom:3px;margin-bottom:8px;page-break-after:avoid}
+.sec-body{padding-left:8px}
+.sub{margin-bottom:8px}
+.sub h4{font-size:11.5px;font-weight:700;color:#333;border-bottom:1px dashed #bbb;padding-bottom:2px;margin-bottom:6px;page-break-after:avoid}
+ul{list-style:none;padding:0}
+li{position:relative;padding-left:12px;font-size:11.5px;line-height:1.6;color:#222;margin-bottom:4px;page-break-inside:avoid}
+li::before{content:"–";position:absolute;left:0;color:#555}
+li strong{font-weight:700}
+.rule-box{border-left:3px solid #666;padding:6px 10px;margin-bottom:7px;background:#f7f7f7;font-size:11.5px;line-height:1.6;color:#333}
+.last-box{border-left:2px solid #ccc;padding-left:10px;margin-top:4px}
+.last-box div{font-size:11px;line-height:1.55;color:#333}
+.eval{page-break-before:always}
+.eval-hdr{text-align:center;border-bottom:2px solid #222;padding-bottom:10px;margin-bottom:12px}
+.eval-hdr h2{font-size:16px;font-weight:900}
+.eval-hdr p{font-size:10px;color:#666;margin-top:2px}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{border-bottom:2px solid #222;padding:5px 6px;font-weight:800;font-size:11px}
+th:first-child{text-align:left}
+th:not(:first-child){text-align:center;width:32px}
+tr.eg td{background:#eee;font-weight:800;font-size:11.5px;padding:6px 8px;border-top:1px solid #aaa;border-bottom:1px solid #aaa}
+tr.er td{padding:5px 6px;border-bottom:1px solid #e0e0e0;vertical-align:top}
+tr.er td:not(:first-child){text-align:center;vertical-align:middle}
+.rt{font-weight:700;font-size:11px}
+.rd{font-size:10px;color:#666;margin-top:1px}
+.dot{width:12px;height:12px;border-radius:50%;border:1.5px solid #555;display:inline-block}
+tr{page-break-inside:avoid}
+.summary{margin-top:14px;border-top:2px solid #222;padding-top:12px}
+.summary h3{font-size:13px;font-weight:800;margin-bottom:10px}
+.sgrid{display:grid;grid-template-columns:1fr 2fr;gap:10px;margin-bottom:10px}
+.sbox{border:1px solid #bbb;padding:10px;text-align:center}
+.slabel{font-size:9px;font-weight:700;color:#777}
+.sval{font-size:24px;font-weight:900;line-height:1.2}
+.smax{font-size:10px;color:#777}
+.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cbox label{font-size:9px;font-weight:700;color:#666;display:block;margin-bottom:3px}
+.carea{border:1px solid #bbb;height:52px}
+.fgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px}
+.fbox{border:1px solid #bbb;padding:7px 10px}
+.fbox label{font-size:9px;font-weight:700;color:#666;display:block;margin-bottom:18px}
+.fline{border-top:1px solid #bbb;margin-bottom:3px}
+.fname{font-size:9px;color:#777;text-align:center}
+</style></head><body>
+<div class="hdr"><div class="badge">มาตรฐานการปฏิบัติงาน (SOP)</div><h1>คู่มือปฏิบัติงานและประเมินผล</h1><p class="sub1">Comprehensive Operations &amp; Evaluation Manual</p></div>
+<div class="info">
+<div class="info-item"><span class="info-label">ชื่อร้าน</span><span class="info-value">${sop.shopName}</span></div>
+<div class="info-item"><span class="info-label">สาขา</span><span class="info-value">${sop.branchName}</span></div>
+<div class="info-item"><span class="info-label">อัปเดตล่าสุด</span><span class="info-value">${sop.updatedDate}</span></div>
+</div>
+${sectionsHTML}
+<div class="eval">
+<div class="eval-hdr"><h2>แบบฟอร์มประเมินการปฏิบัติงาน</h2><p>ส่วนที่ 7: Performance Evaluation Form</p></div>
+<table><thead><tr><th>หัวข้อการประเมิน</th><th>5</th><th>4</th><th>3</th><th>2</th><th>1</th></tr></thead>
+<tbody>${evalRows}</tbody></table>
+<div class="summary">
+<h3>สรุปผลการประเมิน</h3>
+<div class="sgrid">
+<div class="sbox"><div class="slabel">คะแนนรวมที่ได้</div><div class="sval">____</div><div class="smax">/ 75 คะแนน</div></div>
+<div class="cgrid">
+<div class="cbox"><label>จุดเด่นที่ควรชื่นชม</label><div class="carea"></div></div>
+<div class="cbox"><label>จุดที่ต้องพัฒนา</label><div class="carea"></div></div>
+</div></div>
+<div class="fgrid">
+<div class="fbox"><label>ผลการประเมิน</label><div style="display:flex;gap:12px;font-size:11px"><span>☐ ผ่าน (≥60%)</span><span>☐ ต้องพัฒนา</span></div></div>
+<div class="fbox"><label>ลายมือชื่อพนักงาน</label><div class="fline"></div><div class="fname">(__________________)</div></div>
+<div class="fbox"><label>ลายมือชื่อผู้ประเมิน / วันที่</label><div class="fline"></div><div class="fname">(__________________)</div></div>
+</div></div></div>
+<script>document.fonts.ready.then(function(){setTimeout(function(){window.print()},300);window.onafterprint=function(){window.close()}})</script>
+</body></html>`);
+        win.document.close();
     };
 
     const updateField = (field: keyof SOPData, value: string) => {
