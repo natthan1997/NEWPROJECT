@@ -119,7 +119,65 @@ export default function SOPStaticContent({ shopSettings, isAdmin, onSaveSuccess 
     };
 
     const handlePrint = () => {
-        window.print();
+        const printContent = document.querySelector('.print-container');
+        if (!printContent) return;
+
+        let iframe = document.getElementById('print-iframe') as HTMLIFrameElement;
+        if (!iframe) {
+            iframe = document.createElement('iframe');
+            iframe.id = 'print-iframe';
+            iframe.style.position = 'absolute';
+            iframe.style.width = '0px';
+            iframe.style.height = '0px';
+            iframe.style.border = 'none';
+            document.body.appendChild(iframe);
+        }
+
+        const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+            .map(s => s.outerHTML)
+            .join('\n');
+
+        const iframeDoc = iframe.contentWindow?.document;
+        if (iframeDoc) {
+            iframeDoc.open();
+            iframeDoc.write(`
+                <html>
+                    <head>
+                        <title>SOP Manual</title>
+                        ${styles}
+                        <style>
+                            @page { size: A4; margin: 0; }
+                            body { background: white; color: black; padding: 0; margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                            .print-container { 
+                                position: static !important; 
+                                width: 100% !important; 
+                                margin: 0 !important; 
+                                padding: 15mm 20mm !important;
+                                box-sizing: border-box !important;
+                                display: block !important;
+                            }
+                            h1, h2, h3, h4, h5, p, li, .break-inside-avoid {
+                                page-break-inside: avoid !important;
+                                break-inside: avoid !important;
+                            }
+                            .break-inside-avoid {
+                                display: inline-block !important;
+                                width: 100% !important;
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        ${printContent.outerHTML}
+                    </body>
+                </html>
+            `);
+            iframeDoc.close();
+
+            setTimeout(() => {
+                iframe.contentWindow?.focus();
+                iframe.contentWindow?.print();
+            }, 500);
+        }
     };
 
     const updateField = (field: keyof SOPData, value: string) => {
@@ -232,12 +290,7 @@ export default function SOPStaticContent({ shopSettings, isAdmin, onSaveSuccess 
                 </div>
 
                 {/* Content Sections */}
-                <div className="block md:grid md:grid-cols-12 gap-10 print:block">
-                    <div className="md:col-span-12 print:block">
-                        <div className="space-y-10 print:space-y-0 print:block pb-8">
-                            
-                            {/* PAGE 1: Sections 1-3 */}
-                            <div className="print:break-after-page print:pb-8 space-y-10 print:space-y-8">
+                <div className="space-y-10 pb-8">
                     
                     {/* Section 1 */}
                     <Section number="1" title="มาตรฐานรูปลักษณ์ สุขอนามัย และการแต่งกาย" icon={<Sparkles size={16}/>}>
@@ -275,10 +328,6 @@ export default function SOPStaticContent({ shopSettings, isAdmin, onSaveSuccess 
                             <ListItem><InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec3_rude : data.sec3_rude} onChange={(v) => updateField('sec3_rude', v)} /></ListItem>
                         </SubSection>
                     </Section>
-                            </div>
-                            
-                            {/* PAGE 2: Sections 4-6 */}
-                            <div className="print:break-after-page print:pt-8 space-y-10 print:space-y-8">
 
                     {/* Section 4 */}
                     <Section number="4" title="มาตรฐานการบริการและการสื่อสารกับลูกค้า" icon={<Users size={16}/>}>
@@ -312,9 +361,7 @@ export default function SOPStaticContent({ shopSettings, isAdmin, onSaveSuccess 
                             <ListItem title="ความผิดร้ายแรง"><InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec6_severe : data.sec6_severe} onChange={(v) => updateField('sec6_severe', v)} /></ListItem>
                         </SubSection>
                     </Section>
-                            </div>
-                        </div>
-                    </div>
+
                 </div>
             </div>
 
@@ -454,7 +501,8 @@ export default function SOPStaticContent({ shopSettings, isAdmin, onSaveSuccess 
                         break-inside: avoid !important;
                     }
                     .break-inside-avoid {
-                        /* removed inline-block to allow proper grid/flex flow */
+                        display: inline-block !important;
+                        width: 100% !important;
                     }
                     body * { visibility: hidden; }
                     .print-container, .print-container * { visibility: visible; }
