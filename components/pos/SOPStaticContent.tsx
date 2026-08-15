@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { AlertTriangle, Clock, Users, Sparkles, Star, Edit, Printer, Save, CheckCircle2, XCircle, FileText, ChevronRight } from 'lucide-react';
+import { AlertTriangle, Clock, Users, Sparkles, Star, Edit, Printer, Save, FileText, ChevronRight } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 
 interface SOPData {
@@ -127,30 +127,30 @@ export default function SOPStaticContent({ shopSettings, isAdmin, onSaveSuccess 
     };
 
     return (
-        <div className="max-w-4xl mx-auto space-y-8 print-container relative pb-20">
+        <div className="max-w-4xl mx-auto space-y-8 print-container relative pb-20 font-sans text-gray-800">
             
             {/* Admin Actions */}
             {isAdmin && !isEditing && (
                 <motion.div 
                     initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center justify-between mb-6 print:hidden sticky top-4 z-50 bg-white/80 backdrop-blur-md px-6 py-4 rounded-2xl border border-slate-200 shadow-sm"
+                    className="flex items-center justify-between mb-6 print:hidden sticky top-4 z-50 bg-white/90 backdrop-blur-md px-6 py-4 rounded-xl border border-gray-200 shadow-sm"
                 >
-                    <div className="flex items-center gap-3 text-slate-800">
-                        <FileText size={20} className="text-amber-500" />
-                        <h2 className="font-bold text-sm tracking-wide uppercase">Document Management</h2>
+                    <div className="flex items-center gap-3 text-gray-800">
+                        <FileText size={20} className="text-gray-500" />
+                        <h2 className="font-bold text-[15px] tracking-wide">จัดการเอกสารคู่มือ</h2>
                     </div>
                     <div className="flex items-center gap-3">
                         <button 
                             onClick={handleEditClick}
-                            className="flex items-center gap-2 px-5 py-2.5 bg-white text-slate-700 border border-slate-200 rounded-xl font-bold shadow-sm hover:border-slate-300 hover:bg-slate-50 transition-all text-sm"
+                            className="flex items-center gap-2 px-5 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg font-bold shadow-sm hover:border-gray-400 hover:bg-gray-50 transition-all text-[14px]"
                         >
-                            <Edit size={16} className="text-slate-400" /> Edit Manual
+                            <Edit size={16} className="text-gray-500" /> แก้ไขคู่มือ
                         </button>
                         <button 
                             onClick={handlePrint}
-                            className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white rounded-xl font-bold shadow-md hover:bg-slate-800 hover:shadow-lg transition-all text-sm"
+                            className="flex items-center gap-2 px-5 py-2 bg-gray-900 text-white rounded-lg font-bold shadow-sm hover:bg-black transition-all text-[14px]"
                         >
-                            <Printer size={16} className="text-slate-400" /> Print Document
+                            <Printer size={16} className="text-gray-400" /> สั่งพิมพ์
                         </button>
                     </div>
                 </motion.div>
@@ -159,97 +159,83 @@ export default function SOPStaticContent({ shopSettings, isAdmin, onSaveSuccess 
             {isAdmin && isEditing && (
                 <motion.div 
                     initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center justify-between mb-6 print:hidden sticky top-4 z-50 bg-amber-500/10 backdrop-blur-xl px-6 py-4 rounded-2xl border border-amber-500/30 shadow-lg"
+                    className="flex items-center justify-between mb-6 print:hidden sticky top-4 z-50 bg-blue-50/90 backdrop-blur-md px-6 py-4 rounded-xl border border-blue-200 shadow-sm"
                 >
-                    <div className="text-amber-700 font-bold flex items-center gap-3">
-                        <div className="p-2 bg-amber-500 rounded-lg shadow-sm">
+                    <div className="text-blue-800 font-bold flex items-center gap-3">
+                        <div className="p-2 bg-blue-600 rounded-lg shadow-sm">
                             <Edit size={18} className="text-white" />
                         </div>
                         <div>
-                            <div className="text-sm">Edit Mode Active</div>
-                            <div className="text-[11px] font-medium opacity-80 mt-0.5">Click directly on any text below to edit</div>
+                            <div className="text-[15px]">โหมดแก้ไขเอกสาร</div>
+                            <div className="text-[12px] font-medium opacity-80 mt-0.5">คลิกที่ข้อความด้านล่างเพื่อทำการแก้ไขได้ทันที</div>
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
                         <button 
                             onClick={handleCancelEdit}
-                            className="px-5 py-2.5 bg-white/80 text-slate-600 rounded-xl font-bold hover:bg-white transition-all text-sm"
+                            className="px-5 py-2 bg-white text-gray-600 rounded-lg font-bold border border-gray-200 shadow-sm hover:bg-gray-50 transition-all text-[14px]"
                         >
-                            Cancel
+                            ยกเลิก
                         </button>
                         <button 
                             onClick={handleSave}
                             disabled={isSaving}
-                            className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold shadow-md hover:bg-slate-800 transition-all text-sm disabled:opacity-50"
+                            className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg font-bold shadow-sm hover:bg-blue-700 transition-all text-[14px] disabled:opacity-50"
                         >
                             {isSaving ? (
                                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                             ) : (
-                                <Save size={16} className="text-slate-400" />
+                                <Save size={16} className="text-blue-200" />
                             )}
-                            Save Changes
+                            บันทึกการแก้ไข
                         </button>
                     </div>
                 </motion.div>
             )}
 
-            {/* Premium Document Container */}
-            <div className="bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden print:shadow-none print:border-none print:rounded-none">
+            {/* Document Container */}
+            <div className="bg-white p-8 md:p-12 shadow-sm border border-gray-200 rounded-xl print:shadow-none print:border-none print:p-0 print:rounded-none">
                 
                 {/* Header Section */}
-                <div className="relative bg-slate-900 px-10 pt-12 pb-16 print:bg-white print:px-0 print:pt-4 print:pb-8">
-                    <div className="absolute inset-0 overflow-hidden print:hidden">
-                        <div className="absolute -top-[50%] -right-[10%] w-[70%] h-[150%] bg-gradient-to-b from-white/5 to-transparent rotate-12 blur-3xl pointer-events-none" />
+                <div className="border-b border-gray-200 pb-8 mb-8 text-center print:border-black">
+                    <div className="inline-block border border-gray-300 text-gray-500 text-[11px] font-bold px-3 py-1 rounded-full mb-6 print:border-black print:text-black">
+                        มาตรฐานการปฏิบัติงาน (SOP)
                     </div>
-                    
-                    <div className="relative z-10">
-                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full border border-white/10 mb-6 print:border-slate-800 print:bg-transparent">
-                            <Star size={12} className="text-amber-400 print:text-slate-800" fill="currentColor" />
-                            <span className="text-xs font-semibold text-white/90 tracking-widest uppercase print:text-slate-800">Standard Operating Procedure</span>
-                        </div>
-                        
-                        <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight leading-tight mb-2 print:text-slate-900">
-                            คู่มือปฏิบัติงานและประเมินผล
-                        </h1>
-                        <p className="text-amber-400 font-medium tracking-wide print:text-slate-600">
-                            Comprehensive Operations & Evaluation Manual
-                        </p>
-                    </div>
+                    <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight mb-2 print:text-black">
+                        คู่มือปฏิบัติงานและประเมินผล
+                    </h1>
+                    <p className="text-[14px] font-medium text-gray-500 print:text-black">
+                        Comprehensive Operations & Evaluation Manual
+                    </p>
                 </div>
 
-                {/* Info Bar (Floating Overlapping Layout) */}
-                <div className="px-6 md:px-10 -mt-8 relative z-20 mb-12 print:px-0 print:mt-0 print:mb-8">
-                    <div className="bg-white rounded-2xl p-6 shadow-lg shadow-slate-200/50 border border-slate-100 grid grid-cols-1 md:grid-cols-3 gap-6 print:shadow-none print:border-y print:border-slate-300 print:rounded-none print:gap-4 print:p-4 print:bg-transparent">
-                        
-                        <div className="flex flex-col gap-1">
-                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Shop Name</span>
-                            <span className="text-[15px] font-bold text-slate-800">
-                                <InlineInput isEditing={isEditing} value={isEditing ? editData.shopName : data.shopName} onChange={(v) => updateField('shopName', v)} className="font-bold text-slate-800" />
-                            </span>
-                        </div>
-                        
-                        <div className="flex flex-col gap-1 md:border-l border-slate-100 md:pl-6 print:border-slate-300">
-                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Branch</span>
-                            <span className="text-[15px] font-bold text-slate-800">
-                                <InlineInput isEditing={isEditing} value={isEditing ? editData.branchName : data.branchName} onChange={(v) => updateField('branchName', v)} className="font-bold text-slate-800" />
-                            </span>
-                        </div>
-                        
-                        <div className="flex flex-col gap-1 md:border-l border-slate-100 md:pl-6 print:border-slate-300">
-                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Last Updated</span>
-                            <span className="text-[15px] font-bold text-slate-800">
-                                <InlineInput isEditing={isEditing} value={isEditing ? editData.updatedDate : data.updatedDate} onChange={(v) => updateField('updatedDate', v)} className="font-bold text-slate-800" />
-                            </span>
-                        </div>
-
+                {/* Info Bar */}
+                <div className="flex flex-wrap justify-center gap-8 md:gap-16 mb-12">
+                    <div className="flex flex-col items-center">
+                        <span className="text-[11px] font-bold text-gray-400 mb-1 print:text-black">ชื่อร้าน</span>
+                        <span className="text-[15px] font-bold text-gray-800 print:text-black">
+                            <InlineInput isEditing={isEditing} value={isEditing ? editData.shopName : data.shopName} onChange={(v) => updateField('shopName', v)} className="text-center font-bold" />
+                        </span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                        <span className="text-[11px] font-bold text-gray-400 mb-1 print:text-black">สาขา</span>
+                        <span className="text-[15px] font-bold text-gray-800 print:text-black">
+                            <InlineInput isEditing={isEditing} value={isEditing ? editData.branchName : data.branchName} onChange={(v) => updateField('branchName', v)} className="text-center font-bold" />
+                        </span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                        <span className="text-[11px] font-bold text-gray-400 mb-1 print:text-black">อัปเดตล่าสุด</span>
+                        <span className="text-[15px] font-bold text-gray-800 print:text-black">
+                            <InlineInput isEditing={isEditing} value={isEditing ? editData.updatedDate : data.updatedDate} onChange={(v) => updateField('updatedDate', v)} className="text-center font-bold" />
+                        </span>
                     </div>
                 </div>
 
                 {/* Content Sections */}
-                <div className="px-6 md:px-10 space-y-12 pb-16 print:px-0 print:pb-8">
+                <div className="space-y-10 pb-8">
                     
                     {/* Section 1 */}
-                    <Section number="01" title="มาตรฐานรูปลักษณ์ สุขอนามัย และการแต่งกาย" icon={<Sparkles size={18}/>}>
+                    <Section number="1" title="มาตรฐานรูปลักษณ์ สุขอนามัย และการแต่งกาย" icon={<Sparkles size={16}/>}>
                         <SubSection title="เครื่องแบบและสุขอนามัย (Grooming & Hygiene)">
                             <ListItem title="เครื่องแต่งกาย"><InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec1_uniform : data.sec1_uniform} onChange={(v) => updateField('sec1_uniform', v)} /></ListItem>
                             <ListItem title="ทรงผมและใบหน้า"><InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec1_hair : data.sec1_hair} onChange={(v) => updateField('sec1_hair', v)} /></ListItem>
@@ -259,7 +245,7 @@ export default function SOPStaticContent({ shopSettings, isAdmin, onSaveSuccess 
                     </Section>
 
                     {/* Section 2 */}
-                    <Section number="02" title="การตรงต่อเวลา การเข้า-ออกงาน และการลางาน" icon={<Clock size={18}/>}>
+                    <Section number="2" title="การตรงต่อเวลา การเข้า-ออกงาน และการลางาน" icon={<Clock size={16}/>}>
                         <SubSection title="การลงเวลาและการลางาน (Attendance Standards)">
                             <ListItem title="การเข้างาน"><InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec2_arrive : data.sec2_arrive} onChange={(v) => updateField('sec2_arrive', v)} /></ListItem>
                             <ListItem title="การลงเวลา"><InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec2_clock : data.sec2_clock} onChange={(v) => updateField('sec2_clock', v)} /></ListItem>
@@ -269,14 +255,13 @@ export default function SOPStaticContent({ shopSettings, isAdmin, onSaveSuccess 
                     </Section>
 
                     {/* Section 3 */}
-                    <Section number="03" title="พฤติกรรม มารยาท และข้อห้ามขณะปฏิบัติงาน" icon={<AlertTriangle size={18}/>}>
+                    <Section number="3" title="พฤติกรรม มารยาท และข้อห้ามขณะปฏิบัติงาน" icon={<AlertTriangle size={16}/>}>
                         <SubSection title="กฎเหล็กพื้นที่บริการ (On-Duty Conduct)">
-                            <div className="bg-red-50/50 border border-red-100 rounded-xl p-5 mb-6 print:bg-white print:border-slate-300 print:rounded-none">
-                                <h4 className="font-bold text-sm text-red-800 mb-2 flex items-center gap-2 print:text-slate-900">
-                                    <AlertTriangle size={16} className="print:hidden" />
+                            <div className="bg-gray-50 border-l-4 border-gray-400 p-4 mb-4 text-sm print:bg-white print:border-black print:border-l-[3px]">
+                                <h4 className="font-bold text-gray-800 mb-1 flex items-center gap-2 print:text-black">
                                     กฎระเบียบเรื่องโทรศัพท์มือถือ:
                                 </h4>
-                                <div className="text-sm text-red-900/80 leading-relaxed print:text-slate-800">
+                                <div className="text-gray-600 print:text-black">
                                     <InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec3_phone : data.sec3_phone} onChange={(v) => updateField('sec3_phone', v)} />
                                 </div>
                             </div>
@@ -287,31 +272,23 @@ export default function SOPStaticContent({ shopSettings, isAdmin, onSaveSuccess 
                     </Section>
 
                     {/* Section 4 */}
-                    <Section number="04" title="มาตรฐานการบริการและการสื่อสารกับลูกค้า" icon={<Users size={18}/>}>
+                    <Section number="4" title="มาตรฐานการบริการและการสื่อสารกับลูกค้า" icon={<Users size={16}/>}>
                         <SubSection title="ขั้นตอนบริการและการรับมือข้อร้องเรียน">
                             <ListItem title="การต้อนรับ"><InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec4_greet : data.sec4_greet} onChange={(v) => updateField('sec4_greet', v)} /></ListItem>
                             <ListItem title="การรับ-เสิร์ฟออเดอร์"><InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec4_order : data.sec4_order} onChange={(v) => updateField('sec4_order', v)} /></ListItem>
                             <ListItem title="หลัก LAST รับมือข้อร้องเรียน">
-                                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <div className="bg-slate-50 border border-slate-100 p-3 rounded-lg text-sm print:bg-transparent print:border-slate-300">
-                                        <span className="font-bold text-slate-800">1. L-Listen:</span> รับฟังอย่างตั้งใจ
-                                    </div>
-                                    <div className="bg-slate-50 border border-slate-100 p-3 rounded-lg text-sm print:bg-transparent print:border-slate-300">
-                                        <span className="font-bold text-slate-800">2. A-Apologize:</span> กล่าวขอโทษด้วยความจริงใจ
-                                    </div>
-                                    <div className="bg-slate-50 border border-slate-100 p-3 rounded-lg text-sm print:bg-transparent print:border-slate-300">
-                                        <span className="font-bold text-slate-800">3. S-Solve:</span> เสนอทางแก้ไขทันที
-                                    </div>
-                                    <div className="bg-slate-50 border border-slate-100 p-3 rounded-lg text-sm print:bg-transparent print:border-slate-300">
-                                        <span className="font-bold text-slate-800">4. T-Thank:</span> ขอบคุณลูกค้าที่ช่วยติชม
-                                    </div>
+                                <div className="mt-2 ml-1 border-l-2 border-gray-200 pl-3 space-y-1 text-sm text-gray-600 print:border-black print:text-black">
+                                    <div><span className="font-bold text-gray-800 print:text-black">L-Listen:</span> รับฟังอย่างตั้งใจ</div>
+                                    <div><span className="font-bold text-gray-800 print:text-black">A-Apologize:</span> กล่าวขอโทษด้วยความจริงใจ</div>
+                                    <div><span className="font-bold text-gray-800 print:text-black">S-Solve:</span> เสนอทางแก้ไขทันที</div>
+                                    <div><span className="font-bold text-gray-800 print:text-black">T-Thank:</span> ขอบคุณลูกค้าที่ช่วยติชม</div>
                                 </div>
                             </ListItem>
                         </SubSection>
                     </Section>
 
                     {/* Section 5 */}
-                    <Section number="05" title="มาตรฐานความสะอาดและการจัดการร้าน" icon={<Sparkles size={18}/>}>
+                    <Section number="5" title="มาตรฐานความสะอาดและการจัดการร้าน" icon={<Sparkles size={16}/>}>
                         <SubSection title="ความสะอาด (Clean as you go)">
                             <ListItem title="สเตชันบาร์"><InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec5_bar : data.sec5_bar} onChange={(v) => updateField('sec5_bar', v)} /></ListItem>
                             <ListItem title="หน้าร้าน"><InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec5_front : data.sec5_front} onChange={(v) => updateField('sec5_front', v)} /></ListItem>
@@ -320,7 +297,7 @@ export default function SOPStaticContent({ shopSettings, isAdmin, onSaveSuccess 
                     </Section>
 
                     {/* Section 6 */}
-                    <Section number="06" title="ระเบียบวินัยและบทลงโทษ" icon={<AlertTriangle size={18}/>}>
+                    <Section number="6" title="ระเบียบวินัยและบทลงโทษ" icon={<AlertTriangle size={16}/>}>
                         <SubSection title="ลำดับขั้นบทลงโทษ (Disciplinary Action)">
                             <ListItem title="ความผิดทั่วไป"><InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec6_general : data.sec6_general} onChange={(v) => updateField('sec6_general', v)} /></ListItem>
                             <ListItem title="ความผิดร้ายแรง"><InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec6_severe : data.sec6_severe} onChange={(v) => updateField('sec6_severe', v)} /></ListItem>
@@ -331,118 +308,111 @@ export default function SOPStaticContent({ shopSettings, isAdmin, onSaveSuccess 
             </div>
 
             {/* Evaluation Form Component */}
-            <div className="bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden mt-8 print:shadow-none print:border-none print:rounded-none break-inside-avoid">
-                <div className="bg-slate-50 px-6 md:px-10 py-6 border-b border-slate-100 flex items-center gap-3 print:bg-transparent print:border-slate-300 print:px-0">
-                    <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center print:hidden">
-                        <Star size={20} className="text-amber-500" />
-                    </div>
-                    <div>
-                        <h2 className="text-lg font-bold text-slate-800 tracking-tight">แบบประเมินประสิทธิภาพการทำงาน</h2>
-                        <p className="text-xs font-medium text-slate-500 mt-1 uppercase tracking-wider">Performance Evaluation Form</p>
-                    </div>
+            <div className="bg-white p-8 md:p-12 shadow-sm border border-gray-200 rounded-xl mt-8 print:shadow-none print:border-none print:p-0 print:rounded-none break-inside-avoid">
+                <div className="flex flex-col items-center border-b border-gray-200 pb-6 mb-6 print:border-black">
+                    <h2 className="text-xl font-bold text-gray-900 tracking-tight print:text-black">แบบฟอร์มประเมินการปฏิบัติงาน</h2>
+                    <p className="text-[13px] text-gray-500 mt-1 print:text-black">ส่วนที่ 7: Performance Evaluation Form</p>
                 </div>
                 
-                <div className="overflow-x-auto p-6 md:p-10 print:p-0 print:pt-6">
+                <div className="overflow-x-auto pb-4">
                     <table className="w-full text-left border-collapse min-w-[600px]">
                         <thead>
-                            <tr className="border-b-2 border-slate-200 print:border-slate-400">
-                                <th className="py-4 px-2 font-bold text-slate-800 text-sm">หัวข้อการประเมิน (Criteria)</th>
-                                <th className="py-4 px-2 text-center w-12 font-bold text-slate-400 text-sm">5</th>
-                                <th className="py-4 px-2 text-center w-12 font-bold text-slate-400 text-sm">4</th>
-                                <th className="py-4 px-2 text-center w-12 font-bold text-slate-400 text-sm">3</th>
-                                <th className="py-4 px-2 text-center w-12 font-bold text-slate-400 text-sm">2</th>
-                                <th className="py-4 px-2 text-center w-12 font-bold text-slate-400 text-sm">1</th>
+                            <tr className="border-b border-gray-300 print:border-black">
+                                <th className="py-3 px-2 font-bold text-gray-800 text-[13px] print:text-black">หัวข้อการประเมิน</th>
+                                <th className="py-3 px-2 text-center w-10 font-bold text-gray-500 text-[13px] print:text-black">5</th>
+                                <th className="py-3 px-2 text-center w-10 font-bold text-gray-500 text-[13px] print:text-black">4</th>
+                                <th className="py-3 px-2 text-center w-10 font-bold text-gray-500 text-[13px] print:text-black">3</th>
+                                <th className="py-3 px-2 text-center w-10 font-bold text-gray-500 text-[13px] print:text-black">2</th>
+                                <th className="py-3 px-2 text-center w-10 font-bold text-gray-500 text-[13px] print:text-black">1</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <EvaluationGroup title="1. ทักษะวิชาชีพและคุณภาพเครื่องดื่ม (Barista Hard Skills)" />
-                            <EvaluationRow title="1.1 การสกัดช็อต (Extraction)" desc="ตั้งค่าเครื่องบดแม่นยำ สกัดช็อตได้รสชาติและปริมาณตามมาตรฐานร้าน" />
-                            <EvaluationRow title="1.2 การสตีมนม (Steaming)" desc="อุณหภูมินมถูกต้อง โฟมนมเนียนละเอียด เทลาเต้อาร์ตพื้นฐานได้" />
-                            <EvaluationRow title="1.3 ความแม่นยำของสูตร (Recipe Consistency)" desc="ชงเครื่องดื่มได้รสชาติสม่ำเสมอ ไม่ลืมส่วนผสม ใส่ใจรายละเอียด" />
-                            <EvaluationRow title="1.4 ความเร็วและความแม่นยำ (Speed)" desc="จัดการออเดอร์ช่วงลูกค้าหนาแน่นได้รวดเร็ว ไม่ทำสลับคิว" />
+                            <EvaluationGroup title="1. ทักษะวิชาชีพและคุณภาพเครื่องดื่ม" />
+                            <EvaluationRow title="1.1 การสกัดช็อต" desc="ตั้งค่าเครื่องบดแม่นยำ สกัดช็อตได้รสชาติและปริมาณตามมาตรฐานร้าน" />
+                            <EvaluationRow title="1.2 การสตีมนม" desc="อุณหภูมินมถูกต้อง โฟมนมเนียนละเอียด เทลาเต้อาร์ตพื้นฐานได้" />
+                            <EvaluationRow title="1.3 ความแม่นยำของสูตร" desc="ชงเครื่องดื่มได้รสชาติสม่ำเสมอ ไม่ลืมส่วนผสม ใส่ใจรายละเอียด" />
+                            <EvaluationRow title="1.4 ความเร็วและความแม่นยำ" desc="จัดการออเดอร์ช่วงลูกค้าหนาแน่นได้รวดเร็ว ไม่ทำสลับคิว" />
 
-                            <EvaluationGroup title="2. งานบริการและการขาย (Customer Service & Upselling)" bg="bg-slate-50/50" />
-                            <EvaluationRow title="2.1 การต้อนรับ" desc="ทักทายลูกค้าอย่างอบอุ่น สุภาพ ยิ้มแย้ม และมี Service Mind เสมอ" bg="bg-slate-50/50" />
-                            <EvaluationRow title="2.2 ความรู้เรื่องเมนู" desc="อธิบายคาแรคเตอร์เมล็ดกาแฟ ส่วนผสม และแนะนำเมนูให้ตรงใจลูกค้าได้" bg="bg-slate-50/50" />
-                            <EvaluationRow title="2.3 การเสนอขาย (Upsell)" desc="มีทักษะเสนอขายขนม เบเกอรี่ หรือสินค้าเพิ่มเติมได้อย่างเป็นธรรมชาติ" bg="bg-slate-50/50" />
-                            <EvaluationRow title="2.4 การแก้ปัญหา" desc="รับมือข้อร้องเรียนของลูกค้า (Complaint) ได้อย่างสุภาพและเป็นมืออาชีพ" bg="bg-slate-50/50" />
+                            <EvaluationGroup title="2. งานบริการและการขาย" />
+                            <EvaluationRow title="2.1 การต้อนรับ" desc="ทักทายลูกค้าอย่างอบอุ่น สุภาพ ยิ้มแย้ม และมี Service Mind เสมอ" />
+                            <EvaluationRow title="2.2 ความรู้เรื่องเมนู" desc="อธิบายคาแรคเตอร์เมล็ดกาแฟ ส่วนผสม และแนะนำเมนูให้ตรงใจลูกค้าได้" />
+                            <EvaluationRow title="2.3 การเสนอขาย" desc="มีทักษะเสนอขายขนม เบเกอรี่ หรือสินค้าเพิ่มเติมได้อย่างเป็นธรรมชาติ" />
+                            <EvaluationRow title="2.4 การแก้ปัญหา" desc="รับมือข้อร้องเรียนของลูกค้าได้อย่างสุภาพและเป็นมืออาชีพ" />
 
-                            <EvaluationGroup title="3. การจัดการสเตชันและความสะอาด (Station Management)" />
+                            <EvaluationGroup title="3. การจัดการสเตชันและความสะอาด" />
                             <EvaluationRow title="3.1 Clean as you go" desc="เคาะกาก เช็ดหัวกรุ๊ป ล้างก้านนมทันที โต๊ะบาร์แห้งและสะอาดเสมอ" />
                         </tbody>
                     </table>
                 </div>
 
                 {/* Evaluation Conclusion Box */}
-                <div className="bg-slate-50 border-t border-slate-100 p-6 md:p-10 print:bg-transparent print:border-t-2 print:border-slate-300 print:px-0">
-                    <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-6">สรุปผลการประเมิน (Conclusion)</h3>
+                <div className="mt-8 pt-8 border-t border-gray-200 print:border-black">
+                    <h3 className="text-[15px] font-bold text-gray-900 mb-6 print:text-black">สรุปผลการประเมิน</h3>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-8">
+                    <div className="flex flex-col md:flex-row gap-6 mb-6">
                         {/* Score Box */}
-                        <div className="md:col-span-4 bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-center items-center print:border-slate-300 print:shadow-none">
-                            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Total Score</span>
-                            <div className="flex items-baseline gap-2">
-                                <span className="text-4xl font-black text-slate-300 print:text-slate-800">0</span> 
-                                <span className="text-sm font-bold text-slate-400">/ 75</span>
+                        <div className="md:w-1/3 bg-gray-50 rounded-xl p-5 border border-gray-200 flex flex-col justify-center items-center print:bg-white print:border-black print:rounded-none">
+                            <span className="text-[12px] font-bold text-gray-500 mb-1 print:text-black">คะแนนรวมที่ได้</span>
+                            <div className="flex items-baseline gap-1">
+                                <span className="text-3xl font-black text-gray-800 print:text-black">0</span> 
+                                <span className="text-[13px] font-bold text-gray-500 print:text-black">/ 75</span>
                             </div>
                         </div>
 
                         {/* Comments */}
-                        <div className="md:col-span-8 space-y-4">
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">จุดเด่นที่ควรชื่นชม (Strengths)</label>
-                                <div className="w-full min-h-[70px] bg-white border border-slate-200 rounded-xl p-4 text-slate-400 text-sm print:border-slate-300">
-                                    <span className="print:hidden italic opacity-50">คลิกเพื่อพิมพ์ข้อความแสดงความคิดเห็น...</span>
+                        <div className="md:w-2/3 flex gap-4">
+                            <div className="w-1/2 flex flex-col">
+                                <label className="text-[12px] font-bold text-gray-600 mb-1 print:text-black">จุดเด่นที่ควรชื่นชม</label>
+                                <div className="flex-1 bg-white border border-gray-300 rounded-lg p-3 text-gray-400 text-[13px] print:border-black print:rounded-none">
+                                    <span className="print:hidden">คลิกเพื่อพิมพ์ข้อความแสดงความคิดเห็น...</span>
                                 </div>
                             </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">จุดที่ต้องพัฒนา (Areas for improvement)</label>
-                                <div className="w-full min-h-[70px] bg-white border border-slate-200 rounded-xl p-4 text-slate-400 text-sm print:border-slate-300">
-                                    <span className="print:hidden italic opacity-50">คลิกเพื่อพิมพ์ข้อความแสดงความคิดเห็น...</span>
+                            <div className="w-1/2 flex flex-col">
+                                <label className="text-[12px] font-bold text-gray-600 mb-1 print:text-black">จุดที่ต้องพัฒนา</label>
+                                <div className="flex-1 bg-white border border-gray-300 rounded-lg p-3 text-gray-400 text-[13px] print:border-black print:rounded-none">
+                                    <span className="print:hidden">คลิกเพื่อพิมพ์ข้อความแสดงความคิดเห็น...</span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     {/* Final Result */}
-                    <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-wrap items-center gap-6 print:border-slate-300 print:shadow-none">
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Result:</span>
-                        <div className="flex items-center gap-6">
-                            <label className="flex items-center gap-3 cursor-pointer group">
-                                <div className="w-5 h-5 rounded-full border-2 border-slate-300 group-hover:border-amber-500 transition-colors print:border-slate-800"></div>
-                                <span className="text-sm font-bold text-slate-700">ผ่านเกณฑ์</span>
+                    <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 flex flex-wrap items-center gap-6 print:bg-white print:border-black print:rounded-none">
+                        <span className="text-[13px] font-bold text-gray-800 print:text-black">ผลการประเมิน:</span>
+                        <div className="flex items-center gap-5">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <div className="w-4 h-4 rounded-full border border-gray-400 print:border-black"></div>
+                                <span className="text-[13px] text-gray-700 print:text-black">ผ่านเกณฑ์</span>
                             </label>
-                            <label className="flex items-center gap-3 cursor-pointer group">
-                                <div className="w-5 h-5 rounded-full border-2 border-slate-300 group-hover:border-amber-500 transition-colors print:border-slate-800"></div>
-                                <span className="text-sm font-bold text-slate-700">ขยายเวลาทดลองงาน</span>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <div className="w-4 h-4 rounded-full border border-gray-400 print:border-black"></div>
+                                <span className="text-[13px] text-gray-700 print:text-black">ขยายเวลาทดลองงาน</span>
                             </label>
-                            <label className="flex items-center gap-3 cursor-pointer group">
-                                <div className="w-5 h-5 rounded-full border-2 border-slate-300 group-hover:border-red-500 transition-colors print:border-slate-800"></div>
-                                <span className="text-sm font-bold text-slate-700">ไม่ผ่านเกณฑ์</span>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <div className="w-4 h-4 rounded-full border border-gray-400 print:border-black"></div>
+                                <span className="text-[13px] text-gray-700 print:text-black">ไม่ผ่านเกณฑ์</span>
                             </label>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Signature Area (Visible on screen and print) */}
-            <div className="mt-16 mb-24 break-inside-avoid px-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-16 text-center pt-8">
-                    <div className="flex flex-col items-center">
-                        <div className="w-64 border-b-2 border-dashed border-slate-300 mb-4 print:border-slate-800"></div>
-                        <p className="text-sm font-bold text-slate-800">พนักงานผู้รับการประเมิน</p>
-                        <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mt-1">Employee Signature</p>
-                        <p className="text-sm font-medium text-slate-500 mt-6 flex items-center justify-center gap-3">
-                            Date: <span className="border-b border-slate-300 w-32 inline-block print:border-slate-800"></span>
-                        </p>
-                    </div>
-                    <div className="flex flex-col items-center">
-                        <div className="w-64 border-b-2 border-dashed border-slate-300 mb-4 print:border-slate-800"></div>
-                        <p className="text-sm font-bold text-slate-800">ผู้จัดการร้าน / ผู้ประเมิน</p>
-                        <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mt-1">Manager Signature</p>
-                        <p className="text-sm font-medium text-slate-500 mt-6 flex items-center justify-center gap-3">
-                            Date: <span className="border-b border-slate-300 w-32 inline-block print:border-slate-800"></span>
-                        </p>
+                {/* Signature Area */}
+                <div className="mt-16 mb-4 break-inside-avoid">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12 text-center">
+                        <div className="flex flex-col items-center">
+                            <div className="w-56 border-b border-gray-400 mb-3 print:border-black"></div>
+                            <p className="text-[13px] font-bold text-gray-800 print:text-black">พนักงานผู้รับการประเมิน</p>
+                            <p className="text-[12px] text-gray-500 mt-3 flex items-center justify-center gap-2 print:text-black">
+                                วันที่ <span className="border-b border-gray-300 w-24 inline-block print:border-black"></span>
+                            </p>
+                        </div>
+                        <div className="flex flex-col items-center">
+                            <div className="w-56 border-b border-gray-400 mb-3 print:border-black"></div>
+                            <p className="text-[13px] font-bold text-gray-800 print:text-black">ผู้จัดการร้าน / ผู้ประเมิน</p>
+                            <p className="text-[12px] text-gray-500 mt-3 flex items-center justify-center gap-2 print:text-black">
+                                วันที่ <span className="border-b border-gray-300 w-24 inline-block print:border-black"></span>
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -480,10 +450,8 @@ export default function SOPStaticContent({ shopSettings, isAdmin, onSaveSuccess 
                     .print\\:border-none { border: none !important; }
                     .print\\:bg-white { background-color: white !important; }
                     .print\\:bg-transparent { background-color: transparent !important; }
-                    .print\\:text-slate-800 { color: #1e293b !important; }
-                    .print\\:text-slate-900 { color: #0f172a !important; }
-                    .print\\:border-slate-300 { border-color: #cbd5e1 !important; }
-                    .print\\:border-slate-800 { border-color: #1e293b !important; }
+                    .print\\:text-black { color: #000 !important; }
+                    .print\\:border-black { border-color: #000 !important; }
                 }
             `}</style>
         </div>
@@ -498,7 +466,7 @@ function InlineInput({ isEditing, value, onChange, className = "" }: { isEditing
                 type="text" 
                 value={value} 
                 onChange={(e) => onChange(e.target.value)} 
-                className={`bg-amber-50/50 border-b-2 border-amber-400 focus:outline-none focus:border-amber-600 px-2 py-0.5 rounded-t text-slate-900 transition-colors ${className}`} 
+                className={`bg-blue-50 border-b-2 border-blue-400 focus:outline-none focus:border-blue-600 px-1 py-0.5 w-full text-center text-gray-900 transition-colors ${className}`} 
             />
         );
     }
@@ -512,7 +480,7 @@ function InlineTextArea({ isEditing, value, onChange, className = "" }: { isEdit
                 value={value} 
                 onChange={(e) => onChange(e.target.value)} 
                 rows={2}
-                className={`w-full bg-amber-50/30 border border-amber-200 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-slate-800 resize-y transition-all ${className}`} 
+                className={`w-full bg-blue-50/50 border border-blue-200 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-gray-800 resize-y transition-all ${className}`} 
             />
         );
     }
@@ -522,21 +490,13 @@ function InlineTextArea({ isEditing, value, onChange, className = "" }: { isEdit
 // Subcomponents for View
 function Section({ number, title, icon, children }: { number: string, title: string, icon: React.ReactNode, children: React.ReactNode }) {
     return (
-        <div className="relative break-inside-avoid group">
-            <div className="absolute left-0 top-0 bottom-0 w-1 bg-slate-100 rounded-full group-hover:bg-amber-400 transition-colors print:bg-slate-300"></div>
-            <div className="pl-6 md:pl-8">
-                <div className="flex items-center gap-4 mb-6">
-                    <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 group-hover:text-amber-500 group-hover:bg-amber-50 group-hover:border-amber-100 transition-all print:border-slate-300 print:text-slate-800">
-                        {icon}
-                    </div>
-                    <div>
-                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5 print:text-slate-500">Section {number}</div>
-                        <h2 className="text-base font-bold text-slate-800 tracking-tight print:text-slate-900">{title}</h2>
-                    </div>
-                </div>
-                <div className="space-y-8">
-                    {children}
-                </div>
+        <div className="break-inside-avoid">
+            <h3 className="text-[15px] font-bold text-gray-900 mb-4 flex items-center gap-2 print:text-black">
+                <span className="text-gray-400 print:hidden">{icon}</span>
+                หมวดที่ {number}: {title}
+            </h3>
+            <div className="pl-6 space-y-6">
+                {children}
             </div>
         </div>
     );
@@ -545,10 +505,10 @@ function Section({ number, title, icon, children }: { number: string, title: str
 function SubSection({ title, children }: { title: string, children: React.ReactNode }) {
     return (
         <div className="break-inside-avoid">
-            <h3 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2 print:text-slate-800">
+            <h4 className="text-[14px] font-bold text-gray-700 mb-3 border-b border-dashed border-gray-200 pb-2 inline-block print:text-black print:border-black">
                 {title}
-            </h3>
-            <ul className="space-y-4">
+            </h4>
+            <ul className="space-y-3">
                 {children}
             </ul>
         </div>
@@ -557,39 +517,36 @@ function SubSection({ title, children }: { title: string, children: React.ReactN
 
 function ListItem({ title, children }: { title?: string, children: React.ReactNode }) {
     return (
-        <li className="flex items-start gap-3 text-sm leading-relaxed text-slate-600 print:text-slate-700 break-inside-avoid">
-            <div className="mt-[6px] print:hidden">
-                <ChevronRight size={14} className="text-amber-500" />
-            </div>
-            <div className="hidden print:block mt-1 font-bold text-slate-400">-</div>
+        <li className="flex items-start gap-2 text-[14px] leading-relaxed text-gray-600 print:text-black break-inside-avoid">
+            <div className="mt-1 text-gray-400 print:text-black">-</div>
             <div className="w-full">
-                {title && <span className="font-bold text-slate-800 mr-2 print:text-slate-900">{title}:</span>}
+                {title && <span className="font-bold text-gray-800 mr-2 print:text-black">{title}:</span>}
                 {children}
             </div>
         </li>
     );
 }
 
-function EvaluationGroup({ title, bg = "bg-white" }: { title: string, bg?: string }) {
+function EvaluationGroup({ title }: { title: string }) {
     return (
-        <tr className={bg}>
-            <td colSpan={6} className="py-4 px-2 font-bold text-sm text-slate-800 border-b border-slate-100 print:border-slate-300 print:text-slate-900">
+        <tr>
+            <td colSpan={6} className="py-4 px-2 font-bold text-[13px] text-gray-800 bg-gray-50 border-y border-gray-200 print:bg-white print:border-black print:text-black">
                 {title}
             </td>
         </tr>
     );
 }
 
-function EvaluationRow({ title, desc, bg = "bg-white" }: { title: string, desc: string, bg?: string }) {
+function EvaluationRow({ title, desc }: { title: string, desc: string }) {
     return (
-        <tr className={`border-b border-slate-100 print:border-slate-300 break-inside-avoid hover:bg-slate-50 transition-colors ${bg}`}>
+        <tr className="border-b border-gray-100 print:border-black break-inside-avoid hover:bg-gray-50 transition-colors">
             <td className="py-3 px-2">
-                <div className="font-bold text-sm text-slate-700 print:text-slate-800">{title}</div>
-                <div className="text-xs text-slate-500 mt-1 print:text-slate-600">{desc}</div>
+                <div className="font-bold text-[13px] text-gray-700 print:text-black">{title}</div>
+                <div className="text-[12px] text-gray-500 mt-1 print:text-black">{desc}</div>
             </td>
             {[5,4,3,2,1].map(num => (
-                <td key={num} className="py-3 px-2 text-center align-middle">
-                    <div className="w-5 h-5 rounded-full border-2 border-slate-200 mx-auto bg-white print:border-slate-400"></div>
+                <td key={num} className="py-3 px-2 text-center align-middle print:border-l print:border-black">
+                    <div className="w-4 h-4 rounded-full border border-gray-400 mx-auto bg-white print:border-black"></div>
                 </td>
             ))}
         </tr>
