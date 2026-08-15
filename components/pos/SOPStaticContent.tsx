@@ -282,28 +282,90 @@ export default function SOPStaticContent({ shopSettings, isAdmin, onSaveSuccess 
                                     <div><span className="font-bold text-gray-800 print:text-black">A-Apologize:</span> กล่าวขอโทษด้วยความจริงใจ</div>
                                     <div><span className="font-bold text-gray-800 print:text-black">S-Solve:</span> เสนอทางแก้ไขทันที</div>
                                     <div><span className="font-bold text-gray-800 print:text-black">T-Thank:</span> ขอบคุณลูกค้าที่ช่วยติชม</div>
-                                </div>
-                            </ListItem>
-                        </SubSection>
-                    </Section>
+                {/* Content Body */}
+                <div className="block md:grid md:grid-cols-12 gap-10 print:block">
+                    <div className="md:col-span-12 print:block">
+                        
+                        <div className="space-y-10 print:space-y-0 print:block">
+                            
+                            {/* PAGE 1: Sections 1-3 */}
+                            <div className="print:break-after-page print:pb-8 space-y-10 print:space-y-8">
+                                {/* Section 1 */}
+                                <Section number="1" title="มาตรฐานรูปลักษณ์ สุขอนามัย และการแต่งกาย" icon={<Sparkles size={16}/>}>
+                                    <SubSection title="เครื่องแบบและสุขอนามัย (Grooming & Hygiene)">
+                                        <ListItem title="เครื่องแต่งกาย"><InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec1_uniform : data.sec1_uniform} onChange={(v) => updateField('sec1_uniform', v)} /></ListItem>
+                                        <ListItem title="ทรงผมและใบหน้า"><InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec1_hair : data.sec1_hair} onChange={(v) => updateField('sec1_hair', v)} /></ListItem>
+                                        <ListItem title="เล็บและเครื่องประดับ"><InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec1_nails : data.sec1_nails} onChange={(v) => updateField('sec1_nails', v)} /></ListItem>
+                                        <ListItem title="กลิ่นกาย"><InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec1_scent : data.sec1_scent} onChange={(v) => updateField('sec1_scent', v)} /></ListItem>
+                                    </SubSection>
+                                </Section>
 
-                    {/* Section 5 */}
-                    <Section number="5" title="มาตรฐานความสะอาดและการจัดการร้าน" icon={<Sparkles size={16}/>}>
-                        <SubSection title="ความสะอาด (Clean as you go)">
-                            <ListItem title="สเตชันบาร์"><InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec5_bar : data.sec5_bar} onChange={(v) => updateField('sec5_bar', v)} /></ListItem>
-                            <ListItem title="หน้าร้าน"><InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec5_front : data.sec5_front} onChange={(v) => updateField('sec5_front', v)} /></ListItem>
-                            <ListItem title="การจัดการขยะ"><InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec5_trash : data.sec5_trash} onChange={(v) => updateField('sec5_trash', v)} /></ListItem>
-                        </SubSection>
-                    </Section>
+                                {/* Section 2 */}
+                                <Section number="2" title="การตรงต่อเวลา การเข้า-ออกงาน และการลางาน" icon={<Clock size={16}/>}>
+                                    <SubSection title="การลงเวลาและการลางาน (Attendance Standards)">
+                                        <ListItem title="การเข้างาน"><InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec2_arrive : data.sec2_arrive} onChange={(v) => updateField('sec2_arrive', v)} /></ListItem>
+                                        <ListItem title="การลงเวลา"><InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec2_clock : data.sec2_clock} onChange={(v) => updateField('sec2_clock', v)} /></ListItem>
+                                        <ListItem title="การลาป่วย/ลากิจ"><InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec2_leave : data.sec2_leave} onChange={(v) => updateField('sec2_leave', v)} /></ListItem>
+                                        <ListItem title="การขาดงาน"><InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec2_absent : data.sec2_absent} onChange={(v) => updateField('sec2_absent', v)} /></ListItem>
+                                    </SubSection>
+                                </Section>
 
-                    {/* Section 6 */}
-                    <Section number="6" title="ระเบียบวินัยและบทลงโทษ" icon={<AlertTriangle size={16}/>}>
-                        <SubSection title="ลำดับขั้นบทลงโทษ (Disciplinary Action)">
-                            <ListItem title="ความผิดทั่วไป"><InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec6_general : data.sec6_general} onChange={(v) => updateField('sec6_general', v)} /></ListItem>
-                            <ListItem title="ความผิดร้ายแรง"><InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec6_severe : data.sec6_severe} onChange={(v) => updateField('sec6_severe', v)} /></ListItem>
-                        </SubSection>
-                    </Section>
+                                {/* Section 3 */}
+                                <Section number="3" title="พฤติกรรม มารยาท และข้อห้ามขณะปฏิบัติงาน" icon={<AlertTriangle size={16}/>}>
+                                    <SubSection title="กฎเหล็กพื้นที่บริการ (On-Duty Conduct)">
+                                        <div className="bg-gray-50 border-l-4 border-gray-400 p-4 mb-4 text-sm print:bg-white print:border-black print:border-l-[3px]">
+                                            <h4 className="font-bold text-gray-800 mb-1 flex items-center gap-2 print:text-black">
+                                                กฎระเบียบเรื่องโทรศัพท์มือถือ:
+                                            </h4>
+                                            <div className="text-gray-600 print:text-black">
+                                                <InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec3_phone : data.sec3_phone} onChange={(v) => updateField('sec3_phone', v)} />
+                                            </div>
+                                        </div>
+                                        <ListItem><InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec3_talk : data.sec3_talk} onChange={(v) => updateField('sec3_talk', v)} /></ListItem>
+                                        <ListItem><InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec3_eat : data.sec3_eat} onChange={(v) => updateField('sec3_eat', v)} /></ListItem>
+                                        <ListItem><InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec3_rude : data.sec3_rude} onChange={(v) => updateField('sec3_rude', v)} /></ListItem>
+                                    </SubSection>
+                                </Section>
+                            </div>
 
+                            {/* PAGE 2: Sections 4-6 */}
+                            <div className="print:break-after-page print:pt-8 space-y-10 print:space-y-8">
+                                {/* Section 4 */}
+                                <Section number="4" title="มาตรฐานการบริการและการสื่อสารกับลูกค้า" icon={<Users size={16}/>}>
+                                    <SubSection title="ขั้นตอนบริการและการรับมือข้อร้องเรียน">
+                                        <ListItem title="การต้อนรับ"><InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec4_greet : data.sec4_greet} onChange={(v) => updateField('sec4_greet', v)} /></ListItem>
+                                        <ListItem title="การรับ-เสิร์ฟออเดอร์"><InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec4_order : data.sec4_order} onChange={(v) => updateField('sec4_order', v)} /></ListItem>
+                                        <ListItem title="หลัก LAST รับมือข้อร้องเรียน">
+                                            <div className="mt-2 ml-1 border-l-2 border-gray-200 pl-3 space-y-1 text-sm text-gray-600 print:border-black print:text-black">
+                                                <div><span className="font-bold text-gray-800 print:text-black">L-Listen:</span> รับฟังอย่างตั้งใจ</div>
+                                                <div><span className="font-bold text-gray-800 print:text-black">A-Apologize:</span> กล่าวขอโทษด้วยความจริงใจ</div>
+                                                <div><span className="font-bold text-gray-800 print:text-black">S-Solve:</span> เสนอทางแก้ไขทันที</div>
+                                                <div><span className="font-bold text-gray-800 print:text-black">T-Thank:</span> ขอบคุณลูกค้าที่ช่วยติชม</div>
+                                            </div>
+                                        </ListItem>
+                                    </SubSection>
+                                </Section>
+
+                                {/* Section 5 */}
+                                <Section number="5" title="มาตรฐานความสะอาดและการจัดการร้าน" icon={<Sparkles size={16}/>}>
+                                    <SubSection title="ความสะอาด (Clean as you go)">
+                                        <ListItem title="สเตชันบาร์"><InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec5_bar : data.sec5_bar} onChange={(v) => updateField('sec5_bar', v)} /></ListItem>
+                                        <ListItem title="หน้าร้าน"><InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec5_front : data.sec5_front} onChange={(v) => updateField('sec5_front', v)} /></ListItem>
+                                        <ListItem title="การจัดการขยะ"><InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec5_trash : data.sec5_trash} onChange={(v) => updateField('sec5_trash', v)} /></ListItem>
+                                    </SubSection>
+                                </Section>
+
+                                {/* Section 6 */}
+                                <Section number="6" title="ระเบียบวินัยและบทลงโทษ" icon={<AlertTriangle size={16}/>}>
+                                    <SubSection title="ลำดับขั้นบทลงโทษ (Disciplinary Action)">
+                                        <ListItem title="ความผิดทั่วไป"><InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec6_general : data.sec6_general} onChange={(v) => updateField('sec6_general', v)} /></ListItem>
+                                        <ListItem title="ความผิดร้ายแรง"><InlineTextArea isEditing={isEditing} value={isEditing ? editData.sec6_severe : data.sec6_severe} onChange={(v) => updateField('sec6_severe', v)} /></ListItem>
+                                    </SubSection>
+                                </Section>
+                            </div>
+
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -441,10 +503,6 @@ export default function SOPStaticContent({ shopSettings, isAdmin, onSaveSuccess 
                     h1, h2, h3, h4, h5, p, li, .break-inside-avoid {
                         page-break-inside: avoid !important;
                         break-inside: avoid !important;
-                    }
-                    .break-inside-avoid {
-                        display: inline-block !important;
-                        width: 100% !important;
                     }
                     body * { visibility: hidden; }
                     .print-container, .print-container * { visibility: visible; }
