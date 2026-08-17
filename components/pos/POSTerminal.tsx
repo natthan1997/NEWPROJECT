@@ -4687,6 +4687,8 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                   </div>
                 </div>
 
+              </div>
+
               <div className="flex gap-4 pt-2">
                 <button
                   onClick={handleSendOrder}
