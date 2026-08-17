@@ -70,7 +70,7 @@ export default function POSLayout({
                 
                 {/* Staff Profile Quick View */}
                 <div className={`flex items-center gap-3 sm:gap-4 p-3 sm:p-4 border font-bold ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-[#E5E5DF]'}`}>
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#1A1A18] text-white flex items-center justify-center font-black text-sm sm:text-base font-bold flex-shrink-0">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#D3202B] text-white flex items-center justify-center font-black text-sm sm:text-base font-bold flex-shrink-0">
                         {profile?.full_name?.slice(0,1) || 'A'}
                     </div>
                     <div className="flex flex-col font-bold overflow-hidden">
@@ -152,7 +152,7 @@ export default function POSLayout({
                 {!profile?.is_pos_account ? (
                     <Link 
                         href={getDashboardPath()}
-                        className={`w-full h-16 rounded-none text-[12px] font-black uppercase tracking-[0.3em] flex items-center justify-center gap-4 transition-all font-bold ${isDark ? 'bg-white text-black hover:bg-gray-100' : 'bg-[#1A1A18] text-white hover:bg-black shadow-xl'}`}
+                        className={`w-full h-16 rounded-none text-[12px] font-black uppercase tracking-[0.3em] flex items-center justify-center gap-4 transition-all font-bold ${isDark ? 'bg-white text-black hover:bg-gray-100' : 'bg-[#D3202B] text-white hover:bg-[#B91C1C] shadow-xl'}`}
                     >
                         <ArrowLeft size={16} /> {locale === 'en' ? ' กลับสู่ Dashboard                 ' : locale === 'zh' ? ' กลับสู่ Dashboard                 ' : ' กลับสู่ Dashboard                 '}
                     </Link>
@@ -169,7 +169,7 @@ export default function POSLayout({
                 )}
                 <div className="mt-8 text-center opacity-10 pointer-events-none font-bold">
                     <p className={`text-[8px] font-black uppercase tracking-[0.4em] ${isDark ? 'text-white' : 'text-[#1A1A18]'}`}>
-                        Designed by XYL STUDIO • v1.0.35
+                        Designed by RUSH UP • v1.0.35
                     </p>
                 </div>
             </footer>
@@ -207,7 +207,7 @@ export default function POSLayout({
     }
 
     return (
-        <div className={`print:block print:h-auto print:overflow-visible rushup-pos-scale h-screen h-[100dvh] flex overflow-hidden font-sans ${isDark ? 'bg-[#1A1A18] text-white' : 'bg-[#FDFDFB] text-[#1A1A18]'} selection:bg-sage-600/10 font-bold`}>
+        <div className={`print:block print:h-auto print:overflow-visible rushup-pos-scale h-screen h-[100dvh] flex overflow-hidden font-sans ${isDark ? 'bg-[#1A1A18] text-white' : 'bg-white text-[#1A1A18]'} selection:bg-sage-600/10 font-bold`}>
             
             {/* PERSISTENT SIDEBAR FOR LG SCREENS */}
             <AnimatePresence mode="wait">
@@ -217,7 +217,7 @@ export default function POSLayout({
                     animate={{ x: 0, opacity: 1 }}
                     exit={{ x: -300, opacity: 0 }}
                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                    className={`print:hidden hidden xl:flex w-[280px] 2xl:w-[320px] h-full flex-col flex-shrink-0 font-bold border-r ${isDark ? 'bg-[#1A1A18] border-white/5' : 'bg-[#F5F4F0] border-[#E5E5DF]'}`}
+                    className={`print:hidden hidden xl:flex w-[280px] 2xl:w-[320px] h-full flex-col flex-shrink-0 font-bold border-r ${isDark ? 'bg-[#1A1A18] border-white/5' : 'bg-white border-[#E5E5DF]'}`}
                 >
                     {renderSidebarContent()}
                 </motion.aside>
@@ -230,7 +230,7 @@ export default function POSLayout({
                         className={`absolute inset-0 backdrop-blur-md transition-all ${isDark ? 'bg-black/80' : 'bg-[#3a3a38]/40'}`} 
                         onClick={() => setIsSidebarOpen(false)}
                     ></div>
-                    <aside className={`relative w-[320px] max-w-[85vw] h-full shadow-2xl animate-in slide-in-from-left duration-700 flex flex-col font-bold ${isDark ? 'bg-[#1A1A18] border-r border-white/5' : 'bg-[#F5F4F0]'}`}>
+                    <aside className={`relative w-[320px] max-w-[85vw] h-full shadow-2xl animate-in slide-in-from-left duration-700 flex flex-col font-bold ${isDark ? 'bg-[#1A1A18] border-r border-white/5' : 'bg-white'}`}>
                         {renderSidebarContent()}
                     </aside>
                 </div>

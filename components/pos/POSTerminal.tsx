@@ -720,7 +720,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     
     let result = encoder.initialize().codepage(encoding as any).align('center');
     
-    result = result.bold(true).size(2, 2).line(shopSettings?.shop_name || 'XYLEM LANDSCAPE').size(1, 1).bold(false);
+    result = result.bold(true).size(2, 2).line(shopSettings?.shop_name || 'RUSH UP').size(1, 1).bold(false);
     result = result.newline();
     result = result.bold(true).line('BILL / ใบแจ้งยอด').bold(false).newline();
     
@@ -950,7 +950,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         }
 
         const printShopData = {
-          name: shopSettings?.name || shopSettings?.shop_name || 'XYL STUDIO',
+          name: shopSettings?.name || shopSettings?.shop_name || 'RUSH UP',
           branch: shopSettings?.branch_name,
           taxId: shopSettings?.tax_id,
           address: shopSettings?.address,
@@ -1083,7 +1083,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 
     // 3. Map shop settings exactly like POSHistory
     const shopData = {
-      name: shopSettings?.name || shopSettings?.branch_name || 'XYL STUDIO',
+      name: shopSettings?.name || shopSettings?.branch_name || 'RUSH UP',
       branch: shopSettings?.branch_name || '',
       taxId: shopSettings?.tax_id || '',
       address: shopSettings?.address || '',
@@ -2412,7 +2412,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         }
       }
     } catch (e) {
-      console.error('XYL STUDIO POS Data Error:', e)
+      console.error('RUSH UP POS Data Error:', e)
     } finally {
       setIsInitialLoading(false)
     }
@@ -3706,7 +3706,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
           }
           
           const printShopData = {
-            name: shopSettings?.name || 'XYL STUDIO',
+            name: shopSettings?.name || 'RUSH UP',
             branch: shopSettings?.branch_name,
             taxId: shopSettings?.tax_id,
             address: shopSettings?.address,
@@ -3822,7 +3822,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         editingOrderId && pendingOrders.find(o => o.id === editingOrderId)?.order_source === 'liff'
       ) && (
         <div className="flex flex-shrink-0 flex-col bg-white font-bold shadow-sm z-10 relative">
-          <div className="flex flex-col sm:flex-row items-center gap-3 bg-[#FDFDFB] px-4 sm:px-6 xl:px-8 py-3 sm:py-4 border-b border-[#F0F0E8]">
+          <div className="flex flex-col sm:flex-row items-center gap-3 bg-white px-4 sm:px-6 xl:px-8 py-3 sm:py-4 border-b border-[#F0F0E8]">
             <div className="flex items-center gap-2 w-full sm:w-auto font-bold shrink-0">
               <button
                 onClick={() => {
@@ -3878,21 +3878,21 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             </div>
           </div>
 
-          <div className="relative flex items-center h-[60px] sm:h-[70px] border-b border-[#F0F0E8] bg-[#FDFDFB] font-bold">
+          <div className="relative flex items-center h-[60px] sm:h-[70px] border-b border-[#F0F0E8] bg-white font-bold">
             <div
               ref={categoryScrollRef}
               className="no-scrollbar flex flex-1 items-center gap-2 sm:gap-3 overflow-x-auto px-4 sm:px-6 xl:px-8 font-bold"
             >
               <button
                 onClick={() => setActiveCategoryId(null)}
-                className={`flex-shrink-0 h-9 sm:h-10 px-5 sm:px-6 text-[10px] sm:text-[11px] font-black uppercase tracking-widest transition-all rounded-full shadow-sm border ${!activeCategoryId || activeCategoryId === 'all' ? 'bg-[#1A1A18] text-white border-black shadow-md' : 'bg-white text-gray-500 border-[#E5E5DF] hover:border-gray-300 hover:text-black hover:bg-gray-50'}`}
+                className={`flex-shrink-0 h-9 sm:h-10 px-5 sm:px-6 text-[10px] sm:text-[11px] font-black uppercase tracking-widest transition-all rounded-full shadow-sm border ${!activeCategoryId || activeCategoryId === 'all' ? 'bg-[#D3202B] text-white border-[#D3202B] shadow-md' : 'bg-white text-gray-500 border-[#E5E5DF] hover:border-gray-300 hover:text-black hover:bg-gray-50'}`}
               >
                 {locale === 'en' ? '                 ทั้งหมด               ' : locale === 'zh' ? '                 ทั้งหมด               ' : '                 ทั้งหมด               '}</button>
               {categories.map(cat => (
                 <button
                   key={cat.id}
                   onClick={() => setActiveCategoryId(cat.id)}
-                  className={`flex-shrink-0 h-9 sm:h-10 px-5 sm:px-6 text-[10px] sm:text-[11px] font-black uppercase tracking-widest transition-all rounded-full shadow-sm border ${activeCategoryId === cat.id ? 'bg-[#1A1A18] text-white border-black shadow-md' : 'bg-white text-gray-500 border-[#E5E5DF] hover:border-gray-300 hover:text-black hover:bg-gray-50'}`}
+                  className={`flex-shrink-0 h-9 sm:h-10 px-5 sm:px-6 text-[10px] sm:text-[11px] font-black uppercase tracking-widest transition-all rounded-full shadow-sm border ${activeCategoryId === cat.id ? 'bg-[#D3202B] text-white border-[#D3202B] shadow-md' : 'bg-white text-gray-500 border-[#E5E5DF] hover:border-gray-300 hover:text-black hover:bg-gray-50'}`}
                 >
                   {cat.name}
                 </button>
@@ -3951,7 +3951,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       )}
 
       {/* 3. MAIN TERMINAL GRID */}
-      <main className="custom-scrollbar flex-1 overflow-y-auto bg-[#FDFDFB] p-4 sm:p-6 xl:p-8 font-bold min-h-0">
+      <main className="custom-scrollbar flex-1 overflow-y-auto bg-white p-4 sm:p-6 xl:p-8 font-bold min-h-0">
         <div className="mx-auto font-bold min-h-full pb-32">
           {filteredItems.length > 0 ? (
             <div
@@ -4106,7 +4106,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             transition={{ duration: 0.2 }}
             className="flex h-full w-full flex-col bg-white absolute inset-0"
           >
-            <header className="flex items-center gap-4 border-b border-gray-100 bg-[#FDFDFB] p-6 sm:p-8 shrink-0">
+            <header className="flex items-center gap-4 border-b border-gray-100 bg-white p-6 sm:p-8 shrink-0">
               <button
                 onClick={() => setShowBillDiscountModal(false)}
                 className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-900"
@@ -4208,7 +4208,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
               </div>
             </div>
 
-            <footer className="border-t border-gray-100 bg-[#FDFDFB] p-6 sm:p-8 shrink-0">
+            <footer className="border-t border-gray-100 bg-white p-6 sm:p-8 shrink-0">
               <button
                 onClick={applyBillDiscount}
                 disabled={!billDiscountInput || Number(billDiscountInput) <= 0}
@@ -4231,7 +4231,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             transition={{ duration: 0.2 }}
             className="flex h-full w-full flex-col bg-white absolute inset-0"
           >
-            <header className="flex items-center gap-4 border-b border-gray-100 bg-[#FDFDFB] p-6 sm:p-8 shrink-0">
+            <header className="flex items-center gap-4 border-b border-gray-100 bg-white p-6 sm:p-8 shrink-0">
               <button
                 onClick={() => setItemDiscountModalItem(null)}
                 className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-900"
@@ -4333,7 +4333,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
               </div>
             </div>
 
-            <footer className="border-t border-gray-100 bg-[#FDFDFB] p-6 sm:p-8 shrink-0">
+            <footer className="border-t border-gray-100 bg-white p-6 sm:p-8 shrink-0">
               <button
                 onClick={applyItemDiscount}
                 disabled={!itemDiscountValue || Number(itemDiscountValue) <= 0}
@@ -4356,7 +4356,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             transition={{ duration: 0.2 }}
             className="flex h-full w-full flex-col bg-white absolute inset-0"
           >
-          <header className="flex flex-col gap-6 pt-[calc(1.5rem+env(safe-area-inset-top))] lg:pt-6 border-b border-gray-50 bg-[#FDFDFB] p-6 pt-[calc(1.5rem+env(safe-area-inset-top))] lg:pt-6 sm:p-8 xl:p-10">
+          <header className="flex flex-col gap-6 pt-[calc(1.5rem+env(safe-area-inset-top))] lg:pt-6 border-b border-gray-50 bg-white p-6 pt-[calc(1.5rem+env(safe-area-inset-top))] lg:pt-6 sm:p-8 xl:p-10">
             <div className="flex w-full items-center justify-between">
               <motion.h3 
                 animate={isCartBumping ? { x: [-3, 3, -3, 3, 0], scale: [1, 1.02, 1] } : {}}
@@ -4626,7 +4626,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
               )}
             </div>
 
-            <footer className="space-y-6 border-t border-gray-100 bg-[#FDFDFB] p-8 sm:p-10">
+            <footer className="space-y-6 border-t border-gray-100 bg-white p-8 sm:p-10">
               <div className="overflow-hidden border-t border-gray-100 pt-4 transition-all duration-300">
                 {/* COLLAPSIBLE TOGGLE */}
                 <div
@@ -4881,7 +4881,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setShowTableModal(false)}
           ></div>
-          <div className="animate-in zoom-in-95 relative flex max-h-[90vh] w-full max-w-4xl flex-col bg-[#FDFDFB] font-bold shadow-2xl duration-200">
+          <div className="animate-in zoom-in-95 relative flex max-h-[90vh] w-full max-w-4xl flex-col bg-white font-bold shadow-2xl duration-200">
             
             <header className="flex flex-col border-b border-gray-100 bg-white">
               <div className="flex items-center justify-between p-6 sm:p-8 pb-4">
@@ -5097,7 +5097,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                 className="absolute inset-0 bg-black/40 backdrop-blur-sm"
                 onClick={() => setTableActionTarget(null)}
               ></div>
-              <div className="animate-in slide-in-from-bottom relative flex w-full max-w-sm flex-col bg-[#FDFDFB] shadow-2xl duration-300 rounded-[2rem] overflow-hidden">
+              <div className="animate-in slide-in-from-bottom relative flex w-full max-w-sm flex-col bg-white shadow-2xl duration-300 rounded-[2rem] overflow-hidden">
                 <div className="p-6 text-center border-b border-gray-100">
                   <h3 className="text-lg font-black tracking-tight text-[#1A1A18]">
                     จัดการบิล: โต๊ะ {selectedTable?.table_number} <ArrowRight className="inline-block mx-1 w-4 h-4" /> โต๊ะ {tableActionTarget.table_number}
@@ -5256,7 +5256,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setShowPendingModal(false)}
           ></div>
-          <div className="animate-in slide-in-from-bottom relative flex max-h-[90vh] w-full max-w-4xl flex-col bg-[#FDFDFB] font-bold shadow-2xl duration-300 rounded-[2rem] overflow-hidden">
+          <div className="animate-in slide-in-from-bottom relative flex max-h-[90vh] w-full max-w-4xl flex-col bg-white font-bold shadow-2xl duration-300 rounded-[2rem] overflow-hidden">
             <header className="flex flex-col border-b border-gray-100 bg-white p-6 sm:p-8">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -5604,7 +5604,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                         toggleItemStock(optionsModalItem)
                         setOptionsModalItem(null)
                       }}
-                      className="w-full py-4 rounded-2xl flex items-center justify-center gap-2.5 font-bold transition-all bg-[#1A1A18] text-white hover:bg-black shadow-[0_8px_20px_-8px_rgba(0,0,0,0.5)]"
+                      className="w-full py-4 rounded-2xl flex items-center justify-center gap-2.5 font-bold transition-all bg-[#D3202B] text-white hover:bg-[#B91C1C] shadow-[0_8px_20px_-8px_rgba(0,0,0,0.5)]"
                     >
                       <Power size={20} strokeWidth={2.5} />
                       <span className="text-[15px]">{locale === 'en' ? 'Mark as Available' : locale === 'zh' ? '标记为有货' : 'เปิดขายเมนูนี้'}</span>
@@ -5690,7 +5690,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
               </button>
             </header>
 
-            <div className="custom-scrollbar flex-1 space-y-8 overflow-y-auto bg-[#FDFDFB] p-6 sm:p-8">
+            <div className="custom-scrollbar flex-1 space-y-8 overflow-y-auto bg-white p-6 sm:p-8">
               {modifierGroups.map((group, gIdx) => {
                 const minReq = group.min_selection || group.min_select || 0
                 const maxAllowed = group.max_selection || group.max_select || 99
@@ -5906,7 +5906,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                       }}
                       className={`relative flex h-[60px] w-full sm:w-auto sm:min-w-[200px] flex-1 items-center justify-center gap-3 rounded-[1.25rem] px-6 text-[14px] font-black uppercase tracking-widest transition-all overflow-hidden ${
                         canConfirm 
-                          ? 'bg-[#1A1A18] text-white hover:bg-black hover:shadow-xl active:scale-95' 
+                          ? 'bg-[#D3202B] text-white hover:bg-[#B91C1C] hover:shadow-xl active:scale-95' 
                           : 'cursor-not-allowed bg-gray-100 text-gray-400'
                       }`}
                     >
@@ -5938,7 +5938,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
               )}
             </div>
 
-            <div className="flex justify-between items-center p-5 bg-[#FDFDFB] rounded-[1.25rem] border border-gray-100 mb-6 shadow-sm">
+            <div className="flex justify-between items-center p-5 bg-white rounded-[1.25rem] border border-gray-100 mb-6 shadow-sm">
               <span className="text-sm font-black text-gray-500 uppercase tracking-widest">{locale === 'en' ? 'ยอดที่ต้องชำระ' : locale === 'zh' ? 'ยอดที่ต้องชำระ' : 'ยอดที่ต้องชำระ'}</span>
               <span className="text-3xl font-black text-emerald-600 tracking-tighter">{locale === 'en' ? '฿' : locale === 'zh' ? '฿' : '฿'}{cartTotal.toLocaleString()}</span>
             </div>
@@ -5967,16 +5967,16 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             </div>
 
             <div className="grid grid-cols-4 gap-2 mb-8">
-              <button onClick={() => setCashReceived(cartTotal.toString())} className="h-14 bg-[#FDFDFB] hover:bg-black hover:text-white text-[#1A1A18] rounded-[1rem] font-black transition-all border border-gray-100 active:scale-95 flex flex-col items-center justify-center">
+              <button onClick={() => setCashReceived(cartTotal.toString())} className="h-14 bg-white hover:bg-black hover:text-white text-[#1A1A18] rounded-[1rem] font-black transition-all border border-gray-100 active:scale-95 flex flex-col items-center justify-center">
                 <span className="text-xs uppercase">{locale === 'en' ? 'พอดี' : 'พอดี'}</span>
               </button>
-              <button onClick={() => setCashReceived(prev => (Number(prev || 0) + 100).toString())} className="h-14 bg-[#FDFDFB] hover:bg-[#1A1A18] hover:text-white text-[#1A1A18] rounded-[1rem] font-black transition-all border border-gray-100 active:scale-95 flex flex-col items-center justify-center">
+              <button onClick={() => setCashReceived(prev => (Number(prev || 0) + 100).toString())} className="h-14 bg-white hover:bg-[#1A1A18] hover:text-white text-[#1A1A18] rounded-[1rem] font-black transition-all border border-gray-100 active:scale-95 flex flex-col items-center justify-center">
                 <span className="text-sm">+100</span>
               </button>
-              <button onClick={() => setCashReceived(prev => (Number(prev || 0) + 500).toString())} className="h-14 bg-[#FDFDFB] hover:bg-[#1A1A18] hover:text-white text-[#1A1A18] rounded-[1rem] font-black transition-all border border-gray-100 active:scale-95 flex flex-col items-center justify-center">
+              <button onClick={() => setCashReceived(prev => (Number(prev || 0) + 500).toString())} className="h-14 bg-white hover:bg-[#1A1A18] hover:text-white text-[#1A1A18] rounded-[1rem] font-black transition-all border border-gray-100 active:scale-95 flex flex-col items-center justify-center">
                 <span className="text-sm">+500</span>
               </button>
-              <button onClick={() => setCashReceived(prev => (Number(prev || 0) + 1000).toString())} className="h-14 bg-[#FDFDFB] hover:bg-[#1A1A18] hover:text-white text-[#1A1A18] rounded-[1rem] font-black transition-all border border-gray-100 active:scale-95 flex flex-col items-center justify-center">
+              <button onClick={() => setCashReceived(prev => (Number(prev || 0) + 1000).toString())} className="h-14 bg-white hover:bg-[#1A1A18] hover:text-white text-[#1A1A18] rounded-[1rem] font-black transition-all border border-gray-100 active:scale-95 flex flex-col items-center justify-center">
                 <span className="text-sm">+1000</span>
               </button>
             </div>
@@ -6144,7 +6144,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                   type="button"
                   disabled={!draftPlatformOrderId}
                   onClick={saveDeliveryPlatformDetails}
-                  className={`flex-1 rounded-[1.5rem] py-5 text-[12px] font-black uppercase tracking-[0.2em] transition-all ${draftPlatformOrderId ? 'bg-[#1A1A18] text-white hover:bg-black hover:shadow-xl hover:scale-[1.02]' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+                  className={`flex-1 rounded-[1.5rem] py-5 text-[12px] font-black uppercase tracking-[0.2em] transition-all ${draftPlatformOrderId ? 'bg-[#D3202B] text-white hover:bg-[#B91C1C] hover:shadow-xl hover:scale-[1.02]' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
                 >
                   ยืนยัน (Confirm)
                 </button>
