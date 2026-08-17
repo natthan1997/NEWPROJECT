@@ -4361,14 +4361,22 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
               <motion.h3 
                 animate={isCartBumping ? { x: [-3, 3, -3, 3, 0], scale: [1, 1.02, 1] } : {}}
                 transition={{ duration: 0.3 }}
-                className="flex flex-wrap items-center gap-2 sm:gap-4 text-xl sm:text-2xl font-black uppercase tracking-tighter text-black"
+                className="flex flex-col gap-2"
               >
-                <span>{locale === 'en' ? 'Order list' : locale === 'zh' ? '订单清单' : 'รายการสั่งซื้อ'}</span>
-                {editingOrderNumber && (
-                  <span className="bg-[#1A1A18] px-3 py-1 font-mono text-[10px] text-white">
-                    {editingOrderNumber}
+                <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-black">
+                  <span className={`bg-[#D3202B] text-white px-3 sm:px-4 py-1.5 rounded-full text-[14px] sm:text-[16px] font-black tracking-widest inline-flex items-center gap-2 shadow-sm`}>
+                    <Plus size={16} strokeWidth={3} />
+                    {locale === 'en' ? 'New Bill' : locale === 'zh' ? '新账单' : 'บิลใหม่'} ({cartItemCount})
                   </span>
-                )}
+                  {editingOrderNumber && (
+                    <span className="bg-[#1A1A18] px-3 py-1 font-mono text-[10px] text-white rounded-md">
+                      {editingOrderNumber}
+                    </span>
+                  )}
+                </div>
+                <div className="text-[12px] text-gray-500 font-bold uppercase tracking-widest">
+                  {locale === 'en' ? 'Booking Code: -' : 'รหัสการจอง: -'}
+                </div>
               </motion.h3>
               <div className="flex items-center gap-2">
                 {editingOrderId && (
@@ -4660,102 +4668,24 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                   </div>
                 </div>
 
-                {/* EXPANDABLE SECTION */}
-                <div
-                  className={`space-y-6 transition-all duration-500 ease-in-out ${isSummaryExpanded ? 'mb-6 max-h-[500px] opacity-100' : 'pointer-events-none max-h-0 opacity-0'}`}
-                >
-                  {/* DISCOUNT SELECTOR */}
-                  <div className="flex items-center justify-between border border-gray-100 bg-white p-3 shadow-sm">
-                    <div className="flex flex-col">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-black">
-                        {locale === 'en' ? 'discount' : locale === 'zh' ? '折扣' : '                         ส่วนลด                       '}</label>
-                      <span className="text-[8px] font-bold uppercase tracking-tighter text-gray-400">
-                        Discount
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => {
-                          setBillDiscountInput(discountType === 'percent' ? String(discountRate) : String(discountValue))
-                          setBillDiscountModalType(discountType)
-                          setBillDiscountReason(discountName || 'โปรโมชั่น/ส่วนลด')
-                          setShowBillDiscountModal(true)
-                        }}
-                        className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-widest text-[#1A1A18] transition-all hover:bg-gray-50"
-                      >
-                        <Tag size={12} className={discountTotalValue > 0 ? "text-emerald-500" : "text-gray-400"} />
-                        {discountTotalValue > 0 ? (
-                           <span className="text-emerald-600">แก้ไขส่วนลดทั้งบิล</span>
-                        ) : (
-                           <span>เพิ่มส่วนลดทั้งบิล</span>
-                        )}
-                      </button>
-                      
-                      {discountTotalValue > 0 && (
-                        <button
-                          onClick={() => {
-                            setDiscountRate(0)
-                            setDiscountValue(0)
-                            setDiscountName('')
-                          }}
-                          className="flex h-8 w-8 items-center justify-center rounded-xl bg-red-50 text-red-500 transition-all hover:bg-red-500 hover:text-white"
-                        >
-                          <X size={14} />
-                        </button>
-                      )}
-                    </div>
+                <div className="flex flex-col gap-3 pt-4 border-t border-gray-100 px-2 pb-6">
+                  <div className="flex justify-between items-center text-sm font-bold text-gray-500">
+                    <span>{locale === 'en' ? 'Subtotal' : 'รวมทั้งสิ้น'}</span>
+                    <span>{locale === 'en' ? '฿ ' : '฿ '}{cartSubTotal.toLocaleString()}</span>
                   </div>
-
-                  {/* BREAKDOWN */}
-                  <div className="flex flex-col items-end gap-3 border-t border-black/[0.03] pt-4">
-                    <div className="flex w-full justify-between text-xs">
-                      <span className="text-[9px] font-black uppercase tracking-widest text-gray-400">
-                        {locale === 'en' ? '                         ยอดรวมสินค้า (Subtotal)                       ' : locale === 'zh' ? '                         ยอดรวมสินค้า (Subtotal)                       ' : '                         ยอดรวมสินค้า (Subtotal)                       '}</span>
-                      <span className="font-black text-black">
-                        {locale === 'en' ? '                         ฿ ' : locale === 'zh' ? '                         ฿ ' : '                         ฿ '}{cartSubTotal.toLocaleString()}
-                      </span>
-                    </div>
-
-                    {discountTotalValue > 0 && (
-                      <div className="flex w-full justify-between text-xs text-red-500">
-                        <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest">
-                          {locale === 'en' ? '                           ส่วนลด (' : locale === 'zh' ? '                           ส่วนลด (' : '                           ส่วนลด ('}{discountRate}%)
-                        </span>
-                        <span className="font-black">
-                          {locale === 'en' ? '                           - ฿ ' : locale === 'zh' ? '                           - ฿ ' : '                           - ฿ '}{discountTotalValue.toLocaleString()}
-                        </span>
-                      </div>
-                    )}
-
-                    {hasVat && (
-                      <div className="flex w-full justify-between text-xs">
-                        <span className="text-[9px] font-black uppercase tracking-widest text-gray-400">
-                          {locale === 'en' ? '                           ภาษีมูลค่าเพิ่ม (VAT 7%)                         ' : locale === 'zh' ? '                           ภาษีมูลค่าเพิ่ม (VAT 7%)                         ' : '                           ภาษีมูลค่าเพิ่ม (VAT 7%)                         '}</span>
-                        <span className="font-black text-black">
-                          {locale === 'en' ? '                           ฿ ' : locale === 'zh' ? '                           ฿ ' : '                           ฿ '}{Math.round(vatAmount).toLocaleString()}
-                        </span>
-                      </div>
-                    )}
+                  <div className="flex justify-between items-center text-sm font-bold text-gray-500">
+                    <span>{locale === 'en' ? 'Discount' : 'ส่วนลด'}</span>
+                    <span>{locale === 'en' ? '฿ ' : '฿ '}{discountTotalValue.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm font-bold text-gray-500">
+                    <span>{locale === 'en' ? 'Vat 7%' : 'Vat 7%'}</span>
+                    <span>{locale === 'en' ? '฿ ' : '฿ '}{Math.round(vatAmount).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-lg font-black text-black pt-2">
+                    <span>{locale === 'en' ? 'Net Total' : 'ยอดสุทธิ'}</span>
+                    <span className="text-red-600">{locale === 'en' ? '฿ ' : '฿ '}{cartTotal.toLocaleString()}</span>
                   </div>
                 </div>
-
-                {/* FINAL TOTAL (ALWAYS VISIBLE) */}
-                <div className="flex items-end justify-between border-t border-black/[0.05] pt-6">
-                  <div className="flex flex-col">
-                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">
-                      {locale === 'en' ? '                       ยอดรวมสุทธิ                     ' : locale === 'zh' ? '                       ยอดรวมสุทธิ                     ' : '                       ยอดรวมสุทธิ                     '}</span>
-                    <span className="text-[9px] font-black uppercase tracking-widest text-emerald-500">
-                      {hasVat ? 'รวมภาษีมูลค่าเพิ่มแล้ว' : 'ยังไม่รวมภาษี'}
-                    </span>
-                  </div>
-                  <div className="flex items-baseline gap-1 text-right">
-                    <span className="text-[10px] font-black text-black">THB</span>
-                    <span className="text-4xl font-black leading-none tracking-tighter text-black">
-                      {cartTotal.toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-              </div>
 
               <div className="flex gap-4 pt-2">
                 <button
@@ -4796,8 +4726,8 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
                       }
                     }}
                     disabled={isAutoCreatingOrder || cart.length === 0}
-                    className={`flex h-16 flex-[2] items-center justify-center gap-4 text-[11px] font-black uppercase tracking-[0.4em] text-white shadow-xl transition-all ${
-                      (isAutoCreatingOrder || cart.length === 0) ? 'bg-gray-400 cursor-not-allowed' : orderType === 'delivery' ? 'bg-orange-500 hover:bg-orange-600' : 'bg-[#1A1A18] hover:bg-black'
+                    className={`flex h-16 flex-[2] items-center justify-center gap-4 text-[13px] font-black uppercase tracking-[0.2em] text-white shadow-xl rounded-xl transition-all ${
+                      (isAutoCreatingOrder || cart.length === 0) ? 'bg-gray-400 cursor-not-allowed' : orderType === 'delivery' ? 'bg-orange-500 hover:bg-orange-600' : 'bg-[#D3202B] hover:bg-red-700'
                     }`}
                   >
                     <span>{orderType === 'delivery' ? 'ยืนยันส่งออเดอร์' : locale === 'en' ? 'Checkout' : locale === 'zh' ? '结账' : 'ชำระเงิน'}</span>

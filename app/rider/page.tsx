@@ -19,7 +19,7 @@ export default function RiderPage() {
       if (authLoading) return
 
       if (!user) {
-        router.replace('/login')
+        router.replace('/rider/login')
         return
       }
 
@@ -69,10 +69,10 @@ export default function RiderPage() {
           หน้านี้จัดทำขึ้นสำหรับพนักงานส่งอาหาร (Rider) เท่านั้น บัญชีของคุณไม่มีสิทธิ์ในการเข้าใช้งานระบบนี้
         </p>
         <button
-          onClick={() => router.replace('/login')}
+          onClick={() => router.replace('/rider/login')}
           className="px-6 py-2.5 bg-[#C62229] hover:bg-red-700 text-white rounded-full font-bold text-xs uppercase tracking-wider active:scale-95 transition-all"
         >
-          กลับหน้าล็อกอิน
+          กลับหน้าล็อกอินไรเดอร์
         </button>
       </div>
     )
