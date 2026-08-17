@@ -54,61 +54,42 @@ export default function POSLayout({
     const renderSidebarContent = () => (
         <>
             {/* Sidebar Header */}
-            <header className={`p-6 sm:p-10 border-b space-y-4 sm:space-y-8 font-bold flex-shrink-0 ${isDark ? 'border-white/5' : 'border-[#E5E5DF]'} pt-[calc(1.5rem+env(safe-area-inset-top))] sm:pt-[calc(2.5rem+env(safe-area-inset-top))]`}>
+            <header className={`p-6 sm:px-8 sm:py-8 border-b-0 space-y-4 sm:space-y-8 font-bold flex-shrink-0 pt-[calc(1.5rem+env(safe-area-inset-top))] sm:pt-[calc(2.5rem+env(safe-area-inset-top))]`}>
                 <div className="flex justify-between items-center font-bold">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                         <img src={isDark ? "/logo-white.png" : "/logo-red.png"} alt="RUSH UP Logo" className="h-10 w-auto object-contain shrink-0" />
                         <div className="text-left font-bold">
-                            <h1 className={`text-[15px] font-black uppercase tracking-[0.15em] leading-none ${isDark ? 'text-white' : 'text-zinc-900'}`}>
+                            <h1 className={`text-[16px] font-black uppercase tracking-[0.1em] leading-none ${isDark ? 'text-white' : 'text-zinc-900'}`}>
                                 RUSH <span className={`font-light ${isDark ? 'text-white/60' : 'text-[#C62229]'}`}>UP</span>
                             </h1>
-                            <p className="text-[8px] uppercase tracking-widest text-zinc-400 mt-0.5 font-bold">POS System</p>
+                            <p className="text-[8px] uppercase tracking-widest text-zinc-400 mt-1 font-bold">POS System</p>
                         </div>
                     </div>
                     <button onClick={() => setIsSidebarOpen(false)} className={`p-2 hover:opacity-50 font-bold lg:hidden ${isDark ? 'text-white' : 'text-black'}`}><X size={20} /></button>
                 </div>
-                
-                {/* Staff Profile Quick View */}
-                <div className={`flex items-center gap-3 sm:gap-4 p-3 sm:p-4 border font-bold ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-[#E5E5DF]'}`}>
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#D3202B] text-white flex items-center justify-center font-black text-sm sm:text-base font-bold flex-shrink-0">
-                        {profile?.full_name?.slice(0,1) || 'A'}
-                    </div>
-                    <div className="flex flex-col font-bold overflow-hidden">
-                        <span className={`text-[11px] sm:text-[13px] font-black uppercase tracking-tight truncate ${isDark ? 'text-white' : 'text-black'}`}>{profile?.full_name}</span>
-                        <span className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mt-0.5">{locale === 'en' ? 'สาขา: ' : locale === 'zh' ? 'สาขา: ' : 'สาขา: '}{branchName || profile?.branch_code || 'MAIN'}</span>
-                        <div className="mt-2 -ml-1">
-                            <POSOfflineSync isDark={isDark} />
-                        </div>
-                    </div>
-                </div>
             </header>
 
             {/* Navigation Items */}
-            <nav className="flex-1 overflow-y-auto px-6 py-10 space-y-6 no-scrollbar font-bold custom-scrollbar">
+            <nav className="flex-1 overflow-y-auto px-6 py-2 space-y-8 no-scrollbar font-bold custom-scrollbar">
                 {/* Operations Group */}
                 {allowedNav.filter(item => item.group === 'operations').length > 0 && (
                     <div className="space-y-2">
-                        <div className={`text-[11px] uppercase tracking-[0.2em] px-4 mb-4 ${isDark ? 'text-white/40' : 'text-gray-400'}`}>
-                            {locale === 'en' ? '                             --- ใช้งานประจำวัน ---                         ' : locale === 'zh' ? '                             --- ใช้งานประจำวัน ---                         ' : '                             --- ใช้งานประจำวัน ---                         '}</div>
+                        <div className={`text-[10px] font-bold px-4 mb-4 ${isDark ? 'text-white/40' : 'text-gray-400'}`}>
+                            {locale === 'en' ? 'ใช้งานประจำวัน' : locale === 'zh' ? 'ใช้งานประจำวัน' : 'ใช้งานประจำวัน'}
+                        </div>
                         {allowedNav.filter(item => item.group === 'operations').map((item, idx) => {
                             const isActive = activeView === item.id;
-                            const itemNumber = String(idx + 1).padStart(2, '0');
+                            const Icon = item.icon;
                             return (
                                 <button 
                                     key={item.id}
                                     onClick={() => { onSetView(item.id); setIsSidebarOpen(false); }}
-                                    className={`w-full group flex items-center gap-4 py-4 px-4 text-left transition-all duration-300 font-bold ${isActive ? 'translate-x-2' : ''}`}
+                                    className={`w-full flex items-center gap-4 py-3.5 px-4 text-left transition-all duration-200 font-bold rounded-xl ${isActive ? (isDark ? 'bg-red-500/10 text-red-400' : 'bg-red-50 text-red-600') : (isDark ? 'text-white/70 hover:bg-white/5' : 'text-gray-500 hover:bg-gray-50')}`}
                                 >
-                                    <div className="w-4 flex items-center justify-center font-bold">
-                                        <span className={`h-[1px] transition-all duration-500 ${isActive ? 'w-4 opacity-100 bg-current' : 'w-0 opacity-0 group-hover:w-2 group-hover:opacity-30 bg-current'}`}></span>
-                                    </div>
-                                    <span className={`text-[12px] font-mono transition-colors duration-300 font-bold ${isActive ? (isDark ? 'text-white' : 'text-[#1A1A18]') : 'text-gray-400 group-hover:text-gray-400'}`}>
-                                        {itemNumber}.
-                                    </span>
-                                    <span className={`text-[13px] uppercase tracking-widest transition-colors duration-300 font-black truncate ${isActive ? (isDark ? 'text-white' : 'text-[#1A1A18]') : 'text-gray-400 group-hover:text-gray-400'}`}>
+                                    {Icon && <Icon size={18} className={`flex-shrink-0 ${isActive ? '' : 'opacity-70'}`} />}
+                                    <span className="text-[13px] font-bold">
                                         {item.label}
                                     </span>
-                                    {isActive && <ChevronRight size={14} className={`ml-auto flex-shrink-0 ${isDark ? 'text-white' : 'text-[#1A1A18]'}`} />}
                                 </button>
                             );
                         })}
@@ -117,29 +98,23 @@ export default function POSLayout({
 
                 {/* Management Group */}
                 {allowedNav.filter(item => item.group === 'management').length > 0 && (
-                    <div className={`space-y-2 pt-6 border-t ${isDark ? 'border-white/5' : 'border-[#E5E5DF]'}`}>
-                        <div className={`text-[11px] uppercase tracking-[0.2em] px-4 mb-4 ${isDark ? 'text-white/40' : 'text-gray-400'}`}>
-                            {locale === 'en' ? '                             --- จัดการหลังบ้าน ---                         ' : locale === 'zh' ? '                             --- จัดการหลังบ้าน ---                         ' : '                             --- จัดการหลังบ้าน ---                         '}</div>
+                    <div className={`space-y-2 pt-4`}>
+                        <div className={`text-[10px] font-bold px-4 mb-4 ${isDark ? 'text-white/40' : 'text-gray-400'}`}>
+                            {locale === 'en' ? 'จัดการระบบหลังบ้าน' : locale === 'zh' ? 'จัดการระบบหลังบ้าน' : 'จัดการระบบหลังบ้าน'}
+                        </div>
                         {allowedNav.filter(item => item.group === 'management').map((item, idx) => {
                             const isActive = activeView === item.id;
-                            const opsCount = allowedNav.filter(i => i.group === 'operations').length;
-                            const itemNumber = String(opsCount + idx + 1).padStart(2, '0');
+                            const Icon = item.icon;
                             return (
                                 <button 
                                     key={item.id}
                                     onClick={() => { onSetView(item.id); setIsSidebarOpen(false); }}
-                                    className={`w-full group flex items-center gap-4 py-4 px-4 text-left transition-all duration-300 font-bold ${isActive ? 'translate-x-2' : ''}`}
+                                    className={`w-full flex items-center gap-4 py-3.5 px-4 text-left transition-all duration-200 font-bold rounded-xl ${isActive ? (isDark ? 'bg-red-500/10 text-red-400' : 'bg-red-50 text-red-600') : (isDark ? 'text-white/70 hover:bg-white/5' : 'text-gray-500 hover:bg-gray-50')}`}
                                 >
-                                    <div className="w-4 flex items-center justify-center font-bold">
-                                        <span className={`h-[1px] transition-all duration-500 ${isActive ? 'w-4 opacity-100 bg-current' : 'w-0 opacity-0 group-hover:w-2 group-hover:opacity-30 bg-current'}`}></span>
-                                    </div>
-                                    <span className={`text-[12px] font-mono transition-colors duration-300 font-bold ${isActive ? (isDark ? 'text-white' : 'text-[#1A1A18]') : 'text-gray-400 group-hover:text-gray-400'}`}>
-                                        {itemNumber}.
-                                    </span>
-                                    <span className={`text-[13px] uppercase tracking-widest transition-colors duration-300 font-black truncate ${isActive ? (isDark ? 'text-white' : 'text-[#1A1A18]') : 'text-gray-400 group-hover:text-gray-400'}`}>
+                                    {Icon && <Icon size={18} className={`flex-shrink-0 ${isActive ? '' : 'opacity-70'}`} />}
+                                    <span className="text-[13px] font-bold">
                                         {item.label}
                                     </span>
-                                    {isActive && <ChevronRight size={14} className={`ml-auto flex-shrink-0 ${isDark ? 'text-white' : 'text-[#1A1A18]'}`} />}
                                 </button>
                             );
                         })}
@@ -148,13 +123,13 @@ export default function POSLayout({
             </nav>
 
             {/* Sidebar Footer */}
-            <footer className={`p-8 border-t font-bold flex-shrink-0 ${isDark ? 'border-white/5' : 'border-[#E5E5DF]'}`}>
+            <footer className={`p-6 flex-shrink-0`}>
                 {!profile?.is_pos_account ? (
                     <Link 
                         href={getDashboardPath()}
-                        className={`w-full h-16 rounded-none text-[12px] font-black uppercase tracking-[0.3em] flex items-center justify-center gap-4 transition-all font-bold ${isDark ? 'bg-white text-black hover:bg-gray-100' : 'bg-[#D3202B] text-white hover:bg-[#B91C1C] shadow-xl'}`}
+                        className={`w-full py-4 rounded-xl text-[12px] font-black flex items-center justify-center gap-3 transition-all ${isDark ? 'bg-white text-black hover:bg-gray-200' : 'bg-[#0A0A0A] text-white hover:bg-black shadow-lg'}`}
                     >
-                        <ArrowLeft size={16} /> {locale === 'en' ? ' กลับสู่ Dashboard                 ' : locale === 'zh' ? ' กลับสู่ Dashboard                 ' : ' กลับสู่ Dashboard                 '}
+                        <ArrowLeft size={16} /> {locale === 'en' ? 'กลับสู่ DASHBOARD' : locale === 'zh' ? 'กลับสู่ DASHBOARD' : 'กลับสู่ DASHBOARD'}
                     </Link>
                 ) : (
                     <button 
@@ -162,16 +137,11 @@ export default function POSLayout({
                             await supabase.auth.signOut()
                             window.location.href = '/login'
                         }}
-                        className={`w-full h-16 rounded-none text-[12px] font-black uppercase tracking-[0.3em] flex items-center justify-center gap-4 transition-all font-bold ${isDark ? 'bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white' : 'bg-red-50 text-red-600 hover:bg-red-600 hover:text-white shadow-xl'}`}
+                        className={`w-full py-4 rounded-xl text-[12px] font-black flex items-center justify-center gap-3 transition-all ${isDark ? 'bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white' : 'bg-red-50 text-red-600 hover:bg-red-600 hover:text-white shadow-lg'}`}
                     >
-                        <LogOut size={16} /> LOGOUT
+                        <LogOut size={16} /> {locale === 'en' ? 'ออกจากระบบ' : locale === 'zh' ? 'ออกจากระบบ' : 'ออกจากระบบ'}
                     </button>
                 )}
-                <div className="mt-8 text-center opacity-10 pointer-events-none font-bold">
-                    <p className={`text-[8px] font-black uppercase tracking-[0.4em] ${isDark ? 'text-white' : 'text-[#1A1A18]'}`}>
-                        Designed by RUSH UP • v1.0.35
-                    </p>
-                </div>
             </footer>
         </>
     );

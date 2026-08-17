@@ -3885,14 +3885,14 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             >
               <button
                 onClick={() => setActiveCategoryId(null)}
-                className={`flex-shrink-0 h-9 sm:h-10 px-5 sm:px-6 text-[10px] sm:text-[11px] font-black uppercase tracking-widest transition-all rounded-full shadow-sm border ${!activeCategoryId || activeCategoryId === 'all' ? 'bg-[#D3202B] text-white border-[#D3202B] shadow-md' : 'bg-white text-gray-500 border-[#E5E5DF] hover:border-gray-300 hover:text-black hover:bg-gray-50'}`}
+                className={`flex-shrink-0 h-9 sm:h-10 px-5 sm:px-6 text-[10px] sm:text-[11px] font-black uppercase tracking-widest transition-all rounded-full shadow-sm border ${!activeCategoryId || activeCategoryId === 'all' ? 'bg-[#1A1A18] text-white border-[#1A1A18] shadow-md' : 'bg-white text-gray-500 border-[#E5E5DF] hover:border-gray-300 hover:text-black hover:bg-gray-50'}`}
               >
                 {locale === 'en' ? '                 ทั้งหมด               ' : locale === 'zh' ? '                 ทั้งหมด               ' : '                 ทั้งหมด               '}</button>
               {categories.map(cat => (
                 <button
                   key={cat.id}
                   onClick={() => setActiveCategoryId(cat.id)}
-                  className={`flex-shrink-0 h-9 sm:h-10 px-5 sm:px-6 text-[10px] sm:text-[11px] font-black uppercase tracking-widest transition-all rounded-full shadow-sm border ${activeCategoryId === cat.id ? 'bg-[#D3202B] text-white border-[#D3202B] shadow-md' : 'bg-white text-gray-500 border-[#E5E5DF] hover:border-gray-300 hover:text-black hover:bg-gray-50'}`}
+                  className={`flex-shrink-0 h-9 sm:h-10 px-5 sm:px-6 text-[10px] sm:text-[11px] font-black uppercase tracking-widest transition-all rounded-full shadow-sm border ${activeCategoryId === cat.id ? 'bg-[#1A1A18] text-white border-[#1A1A18] shadow-md' : 'bg-white text-gray-500 border-[#E5E5DF] hover:border-gray-300 hover:text-black hover:bg-gray-50'}`}
                 >
                   {cat.name}
                 </button>
