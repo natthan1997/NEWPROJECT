@@ -1,15 +1,27 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Plus_Jakarta_Sans, Playfair_Display } from 'next/font/google';
 import '../styles/globals.css';
 import ClientProviders from './client-providers';
 import AppChrome from '../components/AppChrome';
 
-const inter = Inter({ subsets: ['latin'] });
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700', '800'],
+  variable: '--font-plus-jakarta-sans',
+});
+
+const playfairDisplay = Playfair_Display({
+  subsets: ['latin'],
+  weight: ['400', '700'],
+  style: ['normal', 'italic'],
+  variable: '--font-playfair-display',
+});
+
 const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
 export const metadata: Metadata = {
   metadataBase: new URL(appUrl),
-  title: 'XYL STUDIO',
+  title: 'RUSH UP',
   description: 'Premium landscape design, estate care, workshops, and customer portal experiences for residences, estates, and enterprise properties.',
   keywords: [
     'landscape design',
@@ -20,7 +32,7 @@ export const metadata: Metadata = {
     'workshops',
   ],
   openGraph: {
-    title: 'XYL STUDIO',
+    title: 'RUSH UP',
     description: 'Premium landscape services with customer reporting, multi-property management, and trusted service operations.',
     images: ['/og-image.jpg'],
     type: 'website',
@@ -28,15 +40,12 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'XYL STUDIO',
+    title: 'RUSH UP',
   },
   formatDetection: {
     telephone: false,
   },
-  icons: {
-    icon: '/favicon.ico',
-    apple: '/logo.png',
-  },
+
   manifest: '/manifest.json',
 };
 
@@ -76,9 +85,9 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${inter.className} h-full overflow-x-hidden antialiased`}>
+      <body className={`${plusJakartaSans.variable} ${playfairDisplay.variable} font-sans h-full overflow-x-hidden antialiased`}>
         <ClientProviders>
-          <div className="xyl-shell min-h-screen w-full pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] bg-white">
+          <div className="rushup-shell min-h-screen w-full pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] bg-white">
             <AppChrome>{children}</AppChrome>
           </div>
         </ClientProviders>

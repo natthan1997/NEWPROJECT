@@ -175,7 +175,7 @@ export async function GET(request: NextRequest) {
       },
     })
 
-    const mockEmail = `${lineProfile.userId}@line.xylemlandscape.com`
+    const mockEmail = `${lineProfile.userId}@line.rushupcafe.com`
     const generatedPassword = buildDeterministicPassword(lineProfile.userId, linePasswordSecret)
 
     if (linkVerification?.valid && linkVerification.payload?.userId) {

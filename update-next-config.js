@@ -9,7 +9,7 @@ if (!config.includes('images: {')) {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'xyl-images.*.workers.dev',
+        hostname: 'rushup-images.*.workers.dev',
       },
       {
         protocol: 'https',

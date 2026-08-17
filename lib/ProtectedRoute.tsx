@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from './AuthContext'
-import { LuxuryLoader } from '@/components/customer/LuxuryLoader'
+import RUSHUPLoader from '@/components/loaders/RUSHUPLoader'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -51,13 +51,13 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
           return
         }
         if (profile.role === 'customer' && (isStaffPath || isAdminPath)) {
-          router.push('/dashboard/customer')
+          router.push('/liff/member')
           return
         }
 
         // Standard Authorization Check
         if (allowedRoles && !allowedRoles.includes(profile.role)) {
-          if (profile.role === 'customer') router.push('/dashboard/customer')
+          if (profile.role === 'customer') router.push('/liff/member')
           else if (profile.role === 'staff') router.push('/dashboard/staff')
           else if (profile.role === 'admin') router.push('/dashboard/admin')
           else router.push('/login')
@@ -68,7 +68,7 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
 
   // Show loading spinner while checking authentication
   if (loading) {
-    return <LuxuryLoader tagline="กำลังตรวจสอบสิทธิ์..." />
+    return <RUSHUPLoader tagline="กำลังตรวจสอบสิทธิ์..." />
   }
 
   // Redirect to login if not authenticated

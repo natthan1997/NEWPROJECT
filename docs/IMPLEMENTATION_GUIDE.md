@@ -2,7 +2,7 @@
 
 ## 📋 Overview
 
-This document comprehensive guide for all new features added to the Xylem Landscape project.
+This document comprehensive guide for all new features added to the RUSH UP project.
 
 ### What Was Added
 
@@ -132,7 +132,7 @@ import {
 
 ### Style System
 
-All components follow Xylem design system:
+All components follow RUSH UP design system:
 - **Colors**: #FDFDFB, #1A1A1A, #2A4532
 - **Buttons**: uppercase, tracking-wider, rounded-2xl
 - **Inputs**: rounded-2xl, border-[#E5E5DF], focus on brand color
@@ -400,7 +400,7 @@ const { data = [], isLoading, error } = useServices()
 
 ### UI Components
 - ✅ 4 base components (Button, Input, Select, Textarea)
-- ✅ Xylem design system integrated
+- ✅ RUSH UP design system integrated
 - ✅ Error states included
 - ✅ Label support
 - ✅ Helper text support

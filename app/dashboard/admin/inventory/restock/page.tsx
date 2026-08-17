@@ -173,7 +173,7 @@ export default function RestockListPage() {
       {/* Footer Disclaimer */}
       <div className="mt-20 pt-10 border-t border-[#F1F1EB] text-center">
          <p className="text-[9px] font-bold text-[#A3A3A3] uppercase tracking-[0.5em]">
-           Xylem Landscape Inventory Management System • Generated at {new Date().toLocaleString('th-TH')}
+           RUSH UP Inventory Management System • Generated at {new Date().toLocaleString('th-TH')}
          </p>
       </div>
     </div>

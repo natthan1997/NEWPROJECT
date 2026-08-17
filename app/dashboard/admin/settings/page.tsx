@@ -53,11 +53,11 @@ function inferBankOption(bankName: string) {
 const DEFAULTS = {
   company_info: {
     name_th: 'บริษัท เอ็กซ์วายแอล แลนด์สเคป จำกัด',
-    name_en: 'XYLEM LANDSCAPE CO., LTD.',
+    name_en: 'RUSH UP CO., LTD.',
     address: '158/13-14 หมู่บ้าน บ้านสวนพรีเมียร์ หมู่ที่ 6 ต.หนองจ๊อม อ.สันทราย จ.เชียงใหม่',
     tax_id: '0505567008779',
     phone: '02-xxx-xxxx',
-    email: 'contact@xylem.co.th',
+    email: 'contact@rushupcafe.com',
         logo_url: '',
         contract_company_name: 'บริษัท เอ็กซ์วายแอล สตูดิโอ จำกัด',
         contract_company_address: '158/13-14 หมู่บ้านบ้านสวนธาร หมู่ที่ 6 ซอย 1 ถนนเชียงใหม่-เชียงราย ตำบลเชิงดอย อำเภอดอยสะเก็ด จังหวัดเชียงใหม่ 50220',
@@ -254,8 +254,8 @@ export default function AdminSettingsPage() {
 
             if (typeof window !== 'undefined') {
                 const stamp = String(Date.now())
-                window.localStorage.setItem('xylem_features_updated_at', stamp)
-                window.dispatchEvent(new CustomEvent('xylem:features-updated', { detail: { at: stamp } }))
+                window.localStorage.setItem('rushup_features_updated_at', stamp)
+                window.dispatchEvent(new CustomEvent('rushup:features-updated', { detail: { at: stamp } }))
             }
 
       // Auto hide success msg after 3s
@@ -461,7 +461,7 @@ export default function AdminSettingsPage() {
                                         value={companyInfo.name_en}
                                         onChange={(e) => handleCompanyChange('name_en', e.target.value)}
                                         className="w-full p-4 border border-[#E5E5E5] bg-white focus:border-[#111111] outline-none text-sm transition-colors font-mono"
-                                        placeholder="e.g. XYLEM LANDSCAPE CO., LTD."
+                                        placeholder="e.g. RUSH UP CO., LTD."
                                     />
                                 </div>
                                 <div className="space-y-2">

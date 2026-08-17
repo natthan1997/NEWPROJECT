@@ -10,7 +10,7 @@ import { createClient } from '@/utils/supabase/client';
 import { useLiff } from '@/components/liff/LiffProvider';
 import { MemberOnboardingGuide } from '@/components/liff/MemberOnboardingGuide';
 import { HistoryListSkeleton } from '@/components/liff/LiffSkeleton';
-import XYLLoader from '@/components/loaders/XYLLoader';
+import RUSHUPLoader from '@/components/loaders/RUSHUPLoader';
 import { useI18n } from "@/lib/I18nContext";
 import RegistrationForm from './RegistrationForm';
 import Link from 'next/link';
@@ -118,7 +118,7 @@ function LiffMemberContent() {
     }
     
     // Instantly load missions from cache without waiting for waterfall
-    const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
+    const userId = lineProfile?.userId || localStorage.getItem('rushup_line_user_id');
     if (userId) {
       try {
         const cacheKey = `member-missions-preview-${ctxMemberInfo?.id || userId}`;
@@ -211,7 +211,7 @@ function LiffMemberContent() {
   }, [claimToken]);
 
   useEffect(() => {
-    const userId = lineProfile?.userId || (typeof window !== 'undefined' ? localStorage.getItem('xylem_line_user_id') : null);
+    const userId = lineProfile?.userId || (typeof window !== 'undefined' ? localStorage.getItem('rushup_line_user_id') : null);
     console.log('[Claim Effect Triggered]', { isDataReady, claimToken, isProcessing: processingClaimRef.current, userId });
     if (claimToken && !processingClaimRef.current) {
       console.log('[Claim Effect] Entering processClaim with userId:', userId);
@@ -301,7 +301,7 @@ function LiffMemberContent() {
     },
     en: {
       loading: 'Loading data...',
-      title: 'XYL STUDIO',
+      title: 'RUSH UP',
       points: 'Current Points',
       pts: 'pts',
       benefitsTitle: 'Benefits',
@@ -357,7 +357,7 @@ function LiffMemberContent() {
   }, [dbTiers, earnRate]);
   
   const handleRegistrationSubmit = async (data: any) => {
-    let userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
+    let userId = lineProfile?.userId || localStorage.getItem('rushup_line_user_id');
     if (!userId && typeof window !== 'undefined' && (window as any).liff) {
       try {
         const decoded = (window as any).liff.getDecodedIDToken();
@@ -419,7 +419,7 @@ function LiffMemberContent() {
   };
   
   const fetchData = async (isBackgroundSync = false) => {
-    const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
+    const userId = lineProfile?.userId || localStorage.getItem('rushup_line_user_id');
     if (!userId) return;
     try {
       if (!isBackgroundSync) setLoading(true);
@@ -645,7 +645,7 @@ function LiffMemberContent() {
     
     // --- Background API Request ---
     try {
-      const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
+      const userId = lineProfile?.userId || localStorage.getItem('rushup_line_user_id');
       const res = await fetch('/api/liff/member/redeem', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -942,8 +942,8 @@ function LiffMemberContent() {
     };
   }, [activeCheckInId]);
 
-  if (liffLoading && !isDataReady && !claimToken) return <XYLLoader tagline={dict.loading} />;
-  if (loading && !isDataReady && !claimToken) return <XYLLoader tagline={dict.loading} />;
+  if (liffLoading && !isDataReady && !claimToken) return <RUSHUPLoader tagline={dict.loading} />;
+  if (loading && !isDataReady && !claimToken) return <RUSHUPLoader tagline={dict.loading} />;
 
   if (!memberInfo || !memberInfo.phone || !memberInfo.pdpa_consent) {
     return <RegistrationForm key={memberInfo?.id || 'new'} lineProfile={lineProfile} onSubmit={handleRegistrationSubmit} isSubmitting={isLinkingPhone} initialData={memberInfo} />;
@@ -1943,7 +1943,7 @@ function LiffMemberContent() {
           >
             {claimState === 'loading' && (
               <div className="flex flex-col items-center space-y-4 relative z-10">
-                <XYLLoader />
+                <RUSHUPLoader />
                 <motion.p 
                   animate={{ opacity: [0.3, 1, 0.3] }}
                   transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}

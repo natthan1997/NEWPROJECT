@@ -1,5 +1,5 @@
 /**
- * Zod Validation Schemas for Xylem Project
+ * Zod Validation Schemas for RUSH UP Project
  * 
  * Type-safe form validation using Zod.
  * Used with React Hook Form for automatic validation and error handling.

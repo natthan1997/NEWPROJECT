@@ -43,7 +43,7 @@
 
 ## Runtime Transport (v1)
 - Utility: `lib/analytics/events.ts`
-- ส่งผ่าน `window.dispatchEvent(new CustomEvent('xylem:product-event', ...))`
+- ส่งผ่าน `window.dispatchEvent(new CustomEvent('rushup:product-event', ...))`
 - ยิงเข้า API: `POST /api/analytics/events`
 - เก็บลงตาราง: `product_events`
 - ใน `development` จะ log console เพื่อ debug

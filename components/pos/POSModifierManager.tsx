@@ -356,20 +356,20 @@ export default function POSModifierManager({
         <div className="flex items-center gap-1 border border-gray-100 bg-gray-50 p-1">
           <button
             onClick={() => setViewMode('grid')}
-            className={`flex h-10 w-10 items-center justify-center transition-all ${viewMode === 'grid' ? 'bg-[#1A1A18] text-white shadow-lg' : 'font-bold text-gray-300 hover:text-black'}`}
+            className={`flex h-10 w-10 items-center justify-center transition-all ${viewMode === 'grid' ? 'bg-[#D3202B] text-white shadow-lg' : 'font-bold text-gray-300 hover:text-black'}`}
           >
             <LayoutGrid size={18} />
           </button>
           <button
             onClick={() => setViewMode('table')}
-            className={`flex h-10 w-10 items-center justify-center transition-all ${viewMode === 'table' ? 'bg-[#1A1A18] text-white shadow-lg' : 'font-bold text-gray-300 hover:text-black'}`}
+            className={`flex h-10 w-10 items-center justify-center transition-all ${viewMode === 'table' ? 'bg-[#D3202B] text-white shadow-lg' : 'font-bold text-gray-300 hover:text-black'}`}
           >
             <List size={18} />
           </button>
         </div>
         <button
           onClick={() => openGroupEditor()}
-          className="flex h-10 items-center justify-center gap-3 whitespace-nowrap bg-[#1A1A18] px-8 font-bold text-white shadow-xl transition-all hover:bg-black"
+          className="flex h-10 items-center justify-center gap-3 whitespace-nowrap bg-[#D3202B] px-8 font-bold text-white shadow-xl transition-all hover:bg-red-700"
         >
           <Plus size={16} />{' '}
           <span className="text-[10px] font-black font-bold uppercase tracking-widest">
@@ -693,7 +693,7 @@ export default function POSModifierManager({
               <button
                 onClick={handleSaveGroup}
                 disabled={isSaving}
-                className="flex-1 h-14 rounded-full bg-[#1A1A18] text-white font-black tracking-wide hover:bg-black disabled:opacity-50 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-black/10"
+                className="flex-1 h-14 rounded-full bg-[#D3202B] text-white font-black tracking-wide hover:bg-red-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-black/10"
               >
                 {isSaving ? <Loader2 size={18} className="animate-spin" /> : null}
                 บันทึกกลุ่ม
@@ -771,7 +771,7 @@ export default function POSModifierManager({
               <button
                 onClick={handleSaveOption}
                 disabled={isSaving}
-                className="flex-1 h-14 rounded-full bg-[#1A1A18] text-white font-black tracking-wide hover:bg-black disabled:opacity-50 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-black/10"
+                className="flex-1 h-14 rounded-full bg-[#D3202B] text-white font-black tracking-wide hover:bg-red-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-black/10"
               >
                 {isSaving ? <Loader2 size={18} className="animate-spin" /> : null}
                 บันทึกตัวเลือก

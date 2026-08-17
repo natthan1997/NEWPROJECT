@@ -293,7 +293,7 @@ export default function POSSplitPaymentModal({
                 <button onClick={() => { if (typeof window !== 'undefined') window.print(); }} className="flex-1 h-14 rounded-2xl border border-gray-200 text-black hover:bg-gray-50 font-medium text-sm transition-all flex items-center justify-center gap-2">
                   {locale === 'en' ? 'Print Receipt' : 'พิมพ์ใบเสร็จ'}
                 </button>
-                <button onClick={onFinishOrder} className="flex-1 h-14 rounded-2xl bg-black text-white hover:bg-gray-900 font-medium text-sm transition-all flex items-center justify-center gap-2">
+                <button onClick={onFinishOrder} className="flex-1 h-14 rounded-2xl bg-black text-white hover:bg-[#D3202B] font-medium text-sm transition-all flex items-center justify-center gap-2">
                   {locale === 'en' ? 'Finish Order' : 'เสร็จสิ้นบิล'}
                 </button>
               </div>
@@ -350,7 +350,7 @@ export default function POSSplitPaymentModal({
                   <button
                     disabled={targetPartialAmount <= 0 || isSubmitting || !isCashValid}
                     onClick={handleConfirmCurrentSplit}
-                    className="w-full h-16 rounded-2xl bg-black hover:bg-gray-900 text-white font-medium text-lg transition-all flex items-center justify-center gap-2 disabled:opacity-30"
+                    className="w-full h-16 rounded-2xl bg-black hover:bg-[#D3202B] text-white font-medium text-lg transition-all flex items-center justify-center gap-2 disabled:opacity-30"
                   >
                     {isSubmitting ? (locale === 'en' ? 'Processing...' : 'กำลังบันทึก...') : (locale === 'en' ? 'Pay' : 'ชำระเงิน')}
                   </button>

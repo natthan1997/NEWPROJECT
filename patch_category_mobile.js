@@ -1,5 +1,5 @@
 const fs = require('fs');
-const file = '/Users/natthanchaimongkol/Downloads/XYLPROJECT-main สำเนา 3/components/pos/POSInventoryManager.tsx';
+const file = '/Users/natthanchaimongkol/Downloads/rushupproject-main สำเนา 3/components/pos/POSInventoryManager.tsx';
 let content = fs.readFileSync(file, 'utf8');
 
 const regex = /{isAuditTypeModalOpen && \([\s\S]*?<\/AnimatePresence>/;

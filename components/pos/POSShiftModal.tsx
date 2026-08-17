@@ -1,7 +1,7 @@
 'use client';
 import React, { useState } from 'react'
 import { Wallet, X, ArrowRight, AlertTriangle, Printer } from 'lucide-react'
-import XYLLoader from '@/components/loaders/XYLLoader'
+import RUSHUPLoader from '@/components/loaders/RUSHUPLoader'
 import { motion, AnimatePresence } from 'framer-motion'
 import { printOpenDrawer } from '@/lib/printerUtils'
 import { useI18n } from "@/lib/I18nContext";
@@ -108,7 +108,7 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
       let receiptPrinters = printers.filter((p: any) => p.type === 'receipt' || p.type === 'both')
 
       if (receiptPrinters.length === 0 && typeof window !== 'undefined') {
-        const ip = localStorage.getItem('xylem_printer_ip')
+        const ip = localStorage.getItem('rushup_printer_ip')
         if (ip) {
           receiptPrinters = [{ ip, type: 'receipt', model: 'xprinter-xp-n160ii' }]
         }
@@ -165,7 +165,7 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-neutral-900/40 backdrop-blur-sm"
+            className="absolute inset-0 bg-[#D3202B]/40 backdrop-blur-sm"
           />
 
           <motion.div
@@ -177,7 +177,7 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
             {/* Loading Gate State */}
             {checkingEligibility && !eligibilityData && (
               <div className="p-8 flex flex-col items-center justify-center space-y-3 text-center min-h-[280px]">
-                <XYLLoader mini />
+                <RUSHUPLoader mini />
                 <p className="text-xs font-bold text-neutral-500">กำลังตรวจสอบการลงเวลาพนักงาน...</p>
               </div>
             )}
@@ -222,7 +222,7 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
                         type="text"
                         value={leaveReason}
                         onChange={(e) => setLeaveReason(e.target.value)}
-                        className="w-full bg-neutral-50 border border-neutral-200 focus:border-neutral-900 rounded-xl p-3 text-xs font-bold text-neutral-900 outline-none transition-all"
+                        className="w-full bg-neutral-50 border border-neutral-200 focus:border-[#D3202B] rounded-xl p-3 text-xs font-bold text-neutral-900 outline-none transition-all"
                         placeholder="ระบุเหตุผลการลา"
                       />
                     </div>
@@ -236,7 +236,7 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
                       disabled={isSubmittingLeave}
                       className={`w-full h-11 text-white font-bold rounded-2xl text-xs transition-all flex items-center justify-center gap-2 active:scale-98 shadow-sm ${leaveType === 'late' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-amber-500 hover:bg-amber-600'}`}
                     >
-                      {isSubmittingLeave ? <XYLLoader mini /> : (leaveType === 'late' ? 'ยืนยันแจ้งมาสาย' : 'ยืนยันแจ้งลา')}
+                      {isSubmittingLeave ? <RUSHUPLoader mini /> : (leaveType === 'late' ? 'ยืนยันแจ้งมาสาย' : 'ยืนยันแจ้งลา')}
                     </button>
                   </div>
                 </motion.div>
@@ -318,9 +318,9 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
                     type="button"
                     onClick={() => checkEligibility()}
                     disabled={checkingEligibility}
-                    className="w-full h-11 bg-neutral-900 hover:bg-black text-white font-bold rounded-2xl text-xs transition-all flex items-center justify-center gap-2 active:scale-98 shadow-sm"
+                    className="w-full h-11 bg-[#D3202B] hover:bg-red-700 text-white font-bold rounded-2xl text-xs transition-all flex items-center justify-center gap-2 active:scale-98 shadow-sm"
                   >
-                    {checkingEligibility ? <XYLLoader mini /> : 'ตรวจสอบการลงเวลาอีกครั้ง'}
+                    {checkingEligibility ? <RUSHUPLoader mini /> : 'ตรวจสอบการลงเวลาอีกครั้ง'}
                   </button>
                 </div>
               </motion.div>
@@ -337,7 +337,7 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
                 {/* Header */}
                 <div className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between bg-white">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 bg-neutral-900 text-white rounded-xl flex items-center justify-center">
+                    <div className="w-8 h-8 bg-[#D3202B] text-white rounded-xl flex items-center justify-center">
                       <Wallet size={17} />
                     </div>
                     <h3 className="text-sm font-black text-neutral-900 tracking-tight">
@@ -365,9 +365,9 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
                     type="button"
                     onClick={handleConfirmedOpen}
                     disabled={isSubmitting}
-                    className="w-full h-11 bg-neutral-900 hover:bg-black text-white font-bold text-xs rounded-2xl transition-all flex items-center justify-center gap-2 active:scale-98 shadow-sm"
+                    className="w-full h-11 bg-[#D3202B] hover:bg-red-700 text-white font-bold text-xs rounded-2xl transition-all flex items-center justify-center gap-2 active:scale-98 shadow-sm"
                   >
-                    {isSubmitting ? <XYLLoader mini /> : 'ยืนยันและเริ่มงาน'}
+                    {isSubmitting ? <RUSHUPLoader mini /> : 'ยืนยันและเริ่มงาน'}
                   </button>
                 </div>
               </motion.div>
@@ -379,7 +379,7 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
                 {/* Clean Modal Header */}
                 <div className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between bg-white">
                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 bg-neutral-900 text-white rounded-xl flex items-center justify-center">
+                      <div className="w-9 h-9 bg-[#D3202B] text-white rounded-xl flex items-center justify-center">
                         <Wallet size={18} />
                       </div>
                       <h2 className="text-base font-black text-neutral-900">
@@ -403,7 +403,7 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
                      disabled={isOpeningDrawer}
                      className="w-full py-2.5 px-3 bg-neutral-50 hover:bg-neutral-100 border border-neutral-200/60 text-neutral-700 rounded-xl flex items-center justify-center gap-2 font-bold text-xs transition-all disabled:opacity-50"
                    >
-                     {isOpeningDrawer ? <XYLLoader mini /> : <Printer size={15} className="text-neutral-500" />}
+                     {isOpeningDrawer ? <RUSHUPLoader mini /> : <Printer size={15} className="text-neutral-500" />}
                      <span>เปิดลิ้นชักทดสอบ</span>
                    </button>
 
@@ -422,7 +422,7 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
                         )}
                       </div>
 
-                      <div className="bg-neutral-50 border border-neutral-200 focus-within:border-neutral-900 focus-within:bg-white rounded-2xl px-4 py-3 flex items-center transition-all">
+                      <div className="bg-neutral-50 border border-neutral-200 focus-within:border-[#D3202B] focus-within:bg-white rounded-2xl px-4 py-3 flex items-center transition-all">
                         <span className="text-xl font-extrabold text-neutral-400 mr-2 select-none">฿</span>
                         <input 
                           autoFocus
@@ -446,10 +446,10 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
                    <button 
                      type="submit"
                      disabled={isSubmitting}
-                     className="w-full h-12 bg-neutral-900 hover:bg-black text-white rounded-2xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-sm active:scale-98 disabled:opacity-50 mt-2"
+                     className="w-full h-12 bg-[#D3202B] hover:bg-red-700 text-white rounded-2xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-sm active:scale-98 disabled:opacity-50 mt-2"
                    >
                      {isSubmitting ? (
-                       <XYLLoader mini />
+                       <RUSHUPLoader mini />
                      ) : (
                        <>
                         <span>เปิดกะทำงาน</span>

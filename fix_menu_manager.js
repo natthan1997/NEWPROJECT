@@ -1,6 +1,6 @@
 const fs = require('fs');
 
-const path = '/Users/natthanchaimongkol/Downloads/XYLPROJECT-main/components/pos/POSMenuManager.tsx';
+const path = '/Users/natthanchaimongkol/Downloads/rushupproject-main/components/pos/POSMenuManager.tsx';
 let content = fs.readFileSync(path, 'utf8');
 
 const replacement = `  onSetView: (view: any) => void

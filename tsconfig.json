@@ -29,6 +29,10 @@
     "examples",
     "tests",
     "vitest.config.ts",
-    "playwright.config.ts"
+    "playwright.config.ts",
+    "scratch",
+    "fix-urls.ts",
+    "translate_ast.ts",
+    "translate_ast_offline.ts"
   ]
 } 

@@ -4356,7 +4356,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             transition={{ duration: 0.2 }}
             className="flex h-full w-full flex-col bg-white absolute inset-0"
           >
-          <header className="flex flex-col gap-6 border-b border-gray-50 bg-[#FDFDFB] p-6 sm:p-8 xl:p-10">
+          <header className="flex flex-col gap-6 pt-[calc(1.5rem+env(safe-area-inset-top))] lg:pt-6 border-b border-gray-50 bg-[#FDFDFB] p-6 pt-[calc(1.5rem+env(safe-area-inset-top))] lg:pt-6 sm:p-8 xl:p-10">
             <div className="flex w-full items-center justify-between">
               <motion.h3 
                 animate={isCartBumping ? { x: [-3, 3, -3, 3, 0], scale: [1, 1.02, 1] } : {}}

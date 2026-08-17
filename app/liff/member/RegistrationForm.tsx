@@ -84,7 +84,7 @@ export default function RegistrationForm({ lineProfile, onSubmit, isSubmitting, 
         <button onClick={() => router.push('/liff/menu')} className="text-gray-400 hover:text-gray-900 transition-colors p-1 -ml-1">
           <ChevronLeft size={24} strokeWidth={2} />
         </button>
-        <h1 className="text-[14px] font-bold tracking-[0.2em] text-gray-900 uppercase">XYL STUDIO</h1>
+        <h1 className="text-[14px] font-bold tracking-[0.2em] text-gray-900 uppercase">RUSH UP</h1>
         <div className="w-6"></div>
       </header>
 
@@ -212,7 +212,7 @@ export default function RegistrationForm({ lineProfile, onSubmit, isSubmitting, 
               <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowTerms(true); }} className="text-gray-900 font-medium underline decoration-gray-300 underline-offset-4 hover:decoration-gray-900 transition-colors">ข้อกำหนดการใช้บริการ</button>
               <span> และ </span>
               <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowPrivacy(true); }} className="text-gray-900 font-medium underline decoration-gray-300 underline-offset-4 hover:decoration-gray-900 transition-colors">นโยบายความเป็นส่วนตัว</button>
-              <span> ของ XYL Studio และตกลงเพิ่มบัญชีทางการเป็นเพื่อน เพื่อสะสมแต้ม</span>
+              <span> ของ RUSH UP และตกลงเพิ่มบัญชีทางการเป็นเพื่อน เพื่อสะสมแต้ม</span>
             </div>
             <input 
               type="checkbox" 
@@ -246,10 +246,10 @@ export default function RegistrationForm({ lineProfile, onSubmit, isSubmitting, 
               <button onClick={() => setShowTerms(false)} className="p-2 bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
             </div>
             <div className="p-5 overflow-y-auto flex-1 text-[14px] text-gray-600 leading-relaxed space-y-4">
-              <p>ยินดีต้อนรับสู่ XYL Studio</p>
-              <p>ข้อกำหนดนี้ใช้กับการสมัครสมาชิก การใช้บริการ การจองบริการดูแลสวน การสั่งซื้อสินค้าจาก XYL Studio ทั้งหมด</p>
+              <p>ยินดีต้อนรับสู่ RUSH UP</p>
+              <p>ข้อกำหนดนี้ใช้กับการสมัครสมาชิก การใช้บริการ การจองบริการดูแลสวน การสั่งซื้อสินค้าจาก RUSH UP ทั้งหมด</p>
               <h4 className="font-bold text-gray-900 mt-4">1. การเป็นสมาชิกและการให้ข้อมูล</h4>
-              <p>ผู้ใช้ต้องให้ข้อมูลที่ถูกต้อง ครบถ้วน เพื่อการสะสมคะแนนและการรับสิทธิประโยชน์จาก XYL Studio</p>
+              <p>ผู้ใช้ต้องให้ข้อมูลที่ถูกต้อง ครบถ้วน เพื่อการสะสมคะแนนและการรับสิทธิประโยชน์จาก RUSH UP</p>
               <h4 className="font-bold text-gray-900 mt-4">2. การสะสมคะแนน</h4>
               <p>คะแนนสะสมไม่สามารถแลกเปลี่ยนหรือทอนเป็นเงินสดได้ และมีอายุการใช้งานตามที่บริษัทกำหนด</p>
               <h4 className="font-bold text-gray-900 mt-4">3. การติดต่อ</h4>
@@ -270,11 +270,11 @@ export default function RegistrationForm({ lineProfile, onSubmit, isSubmitting, 
               <button onClick={() => setShowPrivacy(false)} className="p-2 bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
             </div>
             <div className="p-5 overflow-y-auto flex-1 text-[14px] text-gray-600 leading-relaxed space-y-4">
-              <p>ที่ XYL Studio เราให้ความสำคัญกับความเป็นส่วนตัวของข้อมูลลูกค้า</p>
+              <p>ที่ RUSH UP เราให้ความสำคัญกับความเป็นส่วนตัวของข้อมูลลูกค้า</p>
               <h4 className="font-bold text-gray-900 mt-4">1. การเก็บรวบรวมข้อมูล</h4>
               <p>เราจะเก็บข้อมูลชื่อ เบอร์โทรศัพท์ วันเกิด เพศ และข้อมูลโปรไฟล์ LINE ของท่าน เพื่อใช้ในการลงทะเบียนสมาชิกและจัดการสะสมคะแนน</p>
               <h4 className="font-bold text-gray-900 mt-4">2. การนำข้อมูลไปใช้</h4>
-              <p>ข้อมูลของท่านจะถูกนำไปใช้วิเคราะห์เพื่อนำเสนอสิทธิประโยชน์ และบริการที่ตรงใจท่านที่สุดจาก XYL Studio เท่านั้น</p>
+              <p>ข้อมูลของท่านจะถูกนำไปใช้วิเคราะห์เพื่อนำเสนอสิทธิประโยชน์ และบริการที่ตรงใจท่านที่สุดจาก RUSH UP เท่านั้น</p>
               <h4 className="font-bold text-gray-900 mt-4">3. ความปลอดภัยของข้อมูล</h4>
               <p>เรามีมาตรการป้องกันและรักษาความปลอดภัยของข้อมูลส่วนบุคคลของท่าน เพื่อมิให้ข้อมูลรั่วไหลหรือถูกเข้าถึงโดยไม่ได้รับอนุญาต</p>
             </div>

@@ -15,8 +15,8 @@ export default function Stepper({ steps }: { steps: Step[] }) {
       <ol role="list" className="flex items-center gap-2 md:gap-4">
         {steps.map((step, idx) => (
           <li key={step.key} className="flex items-center">
-            <div className={`flex items-center gap-2 ${step.current ? 'text-xylem-dark' : step.done ? 'text-xylem-medium' : 'text-gray-700'}`}>
-              <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold border ${step.current ? 'bg-xylem-bg border-xylem-dark' : step.done ? 'bg-xylem-bg border-xylem-medium' : 'bg-gray-200 border-gray-400'}`}>
+            <div className={`flex items-center gap-2 ${step.current ? 'text-rushup-dark' : step.done ? 'text-rushup-medium' : 'text-gray-700'}`}>
+              <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold border ${step.current ? 'bg-rushup-bg border-rushup-dark' : step.done ? 'bg-rushup-bg border-rushup-medium' : 'bg-gray-200 border-gray-400'}`}>
                 {idx + 1}
               </span>
               <span className="hidden sm:inline text-xs md:text-sm font-medium">{step.title}</span>

@@ -198,7 +198,7 @@ export default function POSInventoryCategoryManager({ shopSettings, onCategories
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.9 }}
             className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-full flex items-center gap-3 shadow-2xl ${
-              toast.type === 'error' ? 'bg-rose-500 text-white' : 'bg-[#1A1A18] text-white'
+              toast.type === 'error' ? 'bg-rose-500 text-white' : 'bg-[#D3202B] text-white'
             }`}
           >
             {toast.type === 'error' ? <AlertTriangle size={18} /> : <CheckCircle2 size={18} />}
@@ -225,7 +225,7 @@ export default function POSInventoryCategoryManager({ shopSettings, onCategories
           )}
           <button
             onClick={openAdd}
-            className="h-10 px-6 rounded-full bg-[#1A1A18] text-white flex items-center justify-center gap-2 shadow-md shadow-black/10 font-black uppercase tracking-widest text-[11px] hover:bg-black transition-all active:scale-95"
+            className="h-10 px-6 rounded-full bg-[#D3202B] text-white flex items-center justify-center gap-2 shadow-md shadow-black/10 font-black uppercase tracking-widest text-[11px] hover:bg-red-700 transition-all active:scale-95"
           >
             <Plus size={16} />
             เพิ่มหมวดหมู่
@@ -247,7 +247,7 @@ export default function POSInventoryCategoryManager({ shopSettings, onCategories
           <p className="text-sm text-gray-500 mb-6 font-medium">เพิ่มหมวดหมู่เพื่อจัดระเบียบเมนูของคุณ</p>
           <button
             onClick={openAdd}
-            className="h-10 px-8 rounded-full bg-[#1A1A18] text-white font-black uppercase tracking-widest text-[11px] hover:bg-black transition-all active:scale-95 shadow-md"
+            className="h-10 px-8 rounded-full bg-[#D3202B] text-white font-black uppercase tracking-widest text-[11px] hover:bg-red-700 transition-all active:scale-95 shadow-md"
           >
             สร้างหมวดหมู่แรก
           </button>
@@ -383,7 +383,7 @@ export default function POSInventoryCategoryManager({ shopSettings, onCategories
                   <button
                     onClick={handleSave}
                     disabled={saving || !formName.trim()}
-                    className="flex-1 h-12 rounded-full bg-[#1A1A18] text-white font-black tracking-wide hover:bg-black disabled:opacity-50 transition-colors flex items-center justify-center gap-2 shadow-md shadow-black/10"
+                    className="flex-1 h-12 rounded-full bg-[#D3202B] text-white font-black tracking-wide hover:bg-red-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2 shadow-md shadow-black/10"
                   >
                     {saving ? <Loader2 size={18} className="animate-spin" /> : null}
                     {editingCat ? 'บันทึก' : 'เพิ่ม'}

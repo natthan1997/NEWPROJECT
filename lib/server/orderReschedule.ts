@@ -114,7 +114,7 @@ export const ensureLineOwnsOrder = async (supabase: SupabaseClient, orderId: str
   }
 
   const linkedLineUserId = (order.profiles?.line_user_id || '').trim()
-  const emailDerivedLineUserId = (order.profiles?.email || '').endsWith('@line.xylemlandscape.com')
+  const emailDerivedLineUserId = (order.profiles?.email || '').endsWith('@line.rushupcafe.com')
     ? String(order.profiles?.email).split('@')[0]
     : ''
 

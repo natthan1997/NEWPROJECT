@@ -1,5 +1,5 @@
 const fs = require('fs');
-const content = fs.readFileSync('/Users/natthanchaimongkol/Downloads/XYLPROJECT-main/ui_replacement.txt', 'utf8');
+const content = fs.readFileSync('/Users/natthanchaimongkol/Downloads/rushupproject-main/ui_replacement.txt', 'utf8');
 
 let open = 0;
 for (let i = 0; i < content.length; i++) {

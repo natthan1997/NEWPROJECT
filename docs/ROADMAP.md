@@ -1,4 +1,4 @@
-# Xylem Landscape – Product Roadmap
+# RUSH UP – Product Roadmap
 
 This roadmap outlines pragmatic, high‑impact features to elevate the customer, staff, and admin experience. Items are grouped by phase and include suggested data structures and acceptance criteria highlights.
 

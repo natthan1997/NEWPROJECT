@@ -14,10 +14,10 @@ export default function Navbar(props: NavbarProps) {
           </Link>
 
           <div className="flex items-center gap-2">
-            <Link href="/login" className="xyl-btn-soft px-4 py-2 text-[9px]">
+            <Link href="/login" className="rushup-btn-soft px-4 py-2 text-[9px]">
               Login
             </Link>
-            <Link href="/register" className="xyl-btn-primary px-4 py-2 text-[9px]">
+            <Link href="/register" className="rushup-btn-primary px-4 py-2 text-[9px]">
               Register
             </Link>
           </div>

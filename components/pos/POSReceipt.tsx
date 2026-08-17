@@ -88,7 +88,7 @@ export const POSReceipt = forwardRef<HTMLDivElement, ReceiptProps>(({
   return (
     <div ref={ref} className="bg-white text-black p-5 text-[17px] w-[326px] font-sans mx-auto shadow-sm border border-gray-200" style={{ fontFamily: "'Sarabun', 'Noto Sans Thai', 'Tahoma', 'Arial', sans-serif", lineHeight: 1.38, letterSpacing: 0 }}>
       <div className="text-center mb-4">
-        <h2 className="text-[34px] font-extrabold mb-1 leading-none">XYLEM</h2>
+        <h2 className="text-[34px] font-extrabold mb-1 leading-none">RUSH UP</h2>
         <p className="text-[17px] leading-tight font-semibold">Cafe & Landscape</p>
         <p className="text-[17px] leading-tight font-bold">{locale === 'en' ? 'ใบเสร็จรับเงิน / Receipt' : locale === 'zh' ? 'ใบเสร็จรับเงิน / Receipt' : 'ใบเสร็จรับเงิน / Receipt'}</p>
         {orderType === 'delivery' && queueNumber && queueNumber !== '0' && queueNumber !== 'null' ? (
@@ -182,7 +182,7 @@ export const POSReceipt = forwardRef<HTMLDivElement, ReceiptProps>(({
           <div className="whitespace-pre-wrap">{receiptFooter}</div>
         ) : (
           <>
-            <p>Thank you for visiting Xylem!</p>
+            <p>Thank you for visiting RUSH UP!</p>
             <p>Please come again.</p>
           </>
         )}
@@ -200,7 +200,7 @@ export const POSReceipt = forwardRef<HTMLDivElement, ReceiptProps>(({
             </div>
           </div>
         )}
-        <p className="text-[12px] mt-4 text-gray-400">Powered by Xylem POS</p>
+        <p className="text-[12px] mt-4 text-gray-400">Powered by RUSH UP POS</p>
       </div>
     </div>
   )

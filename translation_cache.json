@@ -211,8 +211,8 @@
     "en": "Create an administrator account",
     "zh": "创建管理员帐户"
   },
-  "สำหรับผู้ดูแลระบบ Xylem Landscape เท่านั้น": {
-    "en": "For Xylem Landscape administrators only.",
+  "สำหรับผู้ดูแลระบบ RUSH UP เท่านั้น": {
+    "en": "For RUSH UP administrators only.",
     "zh": "仅适用于赛莱默景观管理员。"
   },
   "ชื่อ-นามสกุล": {
@@ -2391,9 +2391,9 @@
     "en": "Want a team to measure the area",
     "zh": "想要一个团队来测量面积"
   },
-  "ทาง XYL STUDIO จะจัดส่งทีมงานเข้าไปประเมินและวัดพื้นที่หน้างานให้ครับ": {
-    "en": "XYL STUDIO will send a team to evaluate and measure the area at the work site.",
-    "zh": "XYL STUDIO 将派出一个团队来评估和测量工作现场的面积。"
+  "ทาง RUSH UP จะจัดส่งทีมงานเข้าไปประเมินและวัดพื้นที่หน้างานให้ครับ": {
+    "en": "RUSH UP will send a team to evaluate and measure the area at the work site.",
+    "zh": "RUSH UP 将派出一个团队来评估和测量工作现场的面积。"
   },
   "ชื่อผู้ติดต่อ (Coordinator Name)": {
     "en": "Contact Name (Coordinator Name)",

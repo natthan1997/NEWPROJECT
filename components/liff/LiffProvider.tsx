@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { sortMenuItemsByOrder } from '@/lib/posMenuOrder';
-import XYLLoader from '@/components/loaders/XYLLoader';
+import RUSHUPLoader from '@/components/loaders/RUSHUPLoader';
 
 declare global {
   interface Window {
@@ -192,7 +192,7 @@ export const LiffProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const refreshActiveOrders = useCallback(async () => {
-    const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
+    const userId = lineProfile?.userId || localStorage.getItem('rushup_line_user_id');
     if (!userId) return;
     const { data: orders } = await supabase
       .from('pos_orders')
@@ -286,13 +286,13 @@ export const LiffProvider = ({ children }: { children: React.ReactNode }) => {
         let userId: string | undefined;
         let initResponseData: any = null;
 
-        const cachedUserId = localStorage.getItem('xylem_line_user_id');
+        const cachedUserId = localStorage.getItem('rushup_line_user_id');
 
         if (liff.isLoggedIn()) {
           sessionStorage.removeItem('liff_redirect_path');
           const profile = await liff.getProfile();
           setLineProfile(profile);
-          localStorage.setItem('xylem_line_user_id', profile.userId);
+          localStorage.setItem('rushup_line_user_id', profile.userId);
           userId = profile.userId;
 
           const res = await fetch('/api/liff/member/init', {
@@ -342,7 +342,7 @@ export const LiffProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     const runOptimisticLoad = async () => {
-      const cachedUserId = typeof window !== 'undefined' ? localStorage.getItem('xylem_line_user_id') : null;
+      const cachedUserId = typeof window !== 'undefined' ? localStorage.getItem('rushup_line_user_id') : null;
       if (cachedUserId) {
         try {
           const res = await fetch('/api/liff/member/init', {
@@ -380,7 +380,7 @@ export const LiffProvider = ({ children }: { children: React.ReactNode }) => {
   }, [liffId]);
 
   const updateMemberInDB = async (updates: { phone?: string; address?: string }) => {
-    const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
+    const userId = lineProfile?.userId || localStorage.getItem('rushup_line_user_id');
     if (!userId) return;
     try {
       const { error } = await supabase.from('pos_members').update(updates).eq('line_user_id', userId);
@@ -428,7 +428,7 @@ export const LiffProvider = ({ children }: { children: React.ReactNode }) => {
   return (
     <LiffContext.Provider value={value}>
       {showLoader ? (
-        <XYLLoader
+        <RUSHUPLoader
           posterUrl={currentPoster}
           tagline="กำลังดาวน์โหลดข้อมูล..."
         />

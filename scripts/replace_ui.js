@@ -1,6 +1,6 @@
 import fs from 'fs'
 
-const targetPath = '/Users/chenchirawongpothisan/Desktop/xylproject-pr-copilot-swe-agent-3/xylem-landscape/app/dashboard/customer/orders/[orderId]/page.tsx'
+const targetPath = '/Users/chenchirawongpothisan/Desktop/rushupproject-pr-copilot-swe-agent-3/xylem-landscape/app/dashboard/customer/orders/[orderId]/page.tsx'
 
 let content = fs.readFileSync(targetPath, 'utf-8')
 

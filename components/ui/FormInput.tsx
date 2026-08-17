@@ -77,14 +77,14 @@ const FormInput = forwardRef<HTMLInputElement | HTMLTextAreaElement, FormInputPr
       
       // ใน edit mode: ใช้ style พื้นฐานเสมอ
       if (isEdit) {
-        if (isFocused) return 'border-xylem-dark bg-white ring-xylem-light';
-        return 'border-gray-300 bg-white hover:border-gray-400 focus:border-xylem-dark focus:ring-xylem-light';
+        if (isFocused) return 'border-rushup-dark bg-white ring-rushup-light';
+        return 'border-gray-300 bg-white hover:border-gray-400 focus:border-rushup-dark focus:ring-rushup-light';
       }
       
       // Add mode: แสดง visual states
-      if (isValid) return 'border-xylem-dark bg-xylem-dark/5 text-xylem-dark ring-xylem-light focus:border-xylem-dark focus:ring-xylem-light';
-      if (isFocused) return 'border-xylem-dark bg-white ring-xylem-light';
-      return 'border-gray-300 bg-white hover:border-gray-400 focus:border-xylem-dark focus:ring-xylem-light';
+      if (isValid) return 'border-rushup-dark bg-rushup-dark/5 text-rushup-dark ring-rushup-light focus:border-rushup-dark focus:ring-rushup-light';
+      if (isFocused) return 'border-rushup-dark bg-white ring-rushup-light';
+      return 'border-gray-300 bg-white hover:border-gray-400 focus:border-rushup-dark focus:ring-rushup-light';
     };
 
     // Label classes
@@ -93,7 +93,7 @@ const FormInput = forwardRef<HTMLInputElement | HTMLTextAreaElement, FormInputPr
       if (disabled) return `${baseClasses} text-gray-400`;
       if (hasError && !isWarning) return `${baseClasses} text-red-700`;
       if (isWarning) return `${baseClasses} text-amber-700`;
-      if (isValid && !isEdit) return `${baseClasses} text-xylem-dark`; // ไม่แสดงสีเขียวใน edit mode
+      if (isValid && !isEdit) return `${baseClasses} text-rushup-dark`; // ไม่แสดงสีเขียวใน edit mode
       return `${baseClasses} text-gray-700`;
     };
 
@@ -115,7 +115,7 @@ const FormInput = forwardRef<HTMLInputElement | HTMLTextAreaElement, FormInputPr
       // ใน add mode: แสดง check icon
       if (isValid && !isEdit) {
         return (
-          <CheckCircleIcon className="h-5 w-5 text-xylem-dark transition-opacity duration-200" />
+          <CheckCircleIcon className="h-5 w-5 text-rushup-dark transition-opacity duration-200" />
         );
       }
       

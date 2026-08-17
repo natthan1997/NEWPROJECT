@@ -8,7 +8,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function run() {
   const oldUrl = 'https://pub-a6469596238f4a58a3a44fb4bbecd952.r2.dev';
-  const newUrl = 'https://xyl-images.fragrant-disk-47c5.workers.dev';
+  const newUrl = 'https://rushup-images.fragrant-disk-47c5.workers.dev';
   
   // pos_menu_items
   const { data: menus } = await supabase.from('pos_menu_items').select('id, image_url').like('image_url', `${oldUrl}%`);

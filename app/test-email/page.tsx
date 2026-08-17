@@ -8,7 +8,7 @@ export default function EmailTestPage() {
     EMAIL_USER: '',
     EMAIL_PASS: '',
     EMAIL_FROM: '',
-    EMAIL_FROM_NAME: 'XYL Studio'
+    EMAIL_FROM_NAME: 'RUSH UP'
   })
   const [testResult, setTestResult] = useState<any>(null)
   const [loading, setLoading] = useState(false)
@@ -97,7 +97,7 @@ export default function EmailTestPage() {
                   type="text"
                   value={emailConfig.EMAIL_FROM_NAME}
                   onChange={(e) => handleConfigChange('EMAIL_FROM_NAME', e.target.value)}
-                  placeholder="XYL Studio"
+                  placeholder="RUSH UP"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
@@ -181,7 +181,7 @@ EMAIL_FROM_NAME=${emailConfig.EMAIL_FROM_NAME}`}
             
             <div className="bg-white border rounded-lg p-4 max-w-2xl">
               <div className="bg-gradient-to-r from-slate-800 to-slate-600 text-white p-4 rounded-t-lg text-center">
-                <h2 className="text-xl font-bold">🌿 XYL Studio</h2>
+                <h2 className="text-xl font-bold">🌿 RUSH UP</h2>
                 <h3 className="text-lg">{locale === 'en' ? 'ยืนยันการจอง Workshop' : locale === 'zh' ? 'ยืนยันการจอง Workshop' : 'ยืนยันการจอง Workshop'}</h3>
               </div>
               

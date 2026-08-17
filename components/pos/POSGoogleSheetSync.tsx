@@ -482,7 +482,7 @@ export default function POSGoogleSheetSync({ categories = [], onSyncComplete }: 
             
             {/* HERO SECTION */}
             <header className="text-center space-y-4">
-                <div className="w-20 h-20 bg-[#1A1A18] text-white flex items-center justify-center mx-auto shadow-2xl">
+                <div className="w-20 h-20 bg-[#D3202B] text-white flex items-center justify-center mx-auto shadow-2xl">
                     <Database size={40} />
                 </div>
                 <h2 className="text-4xl font-black uppercase tracking-tighter text-[#1A1A18]">
@@ -634,7 +634,7 @@ export default function POSGoogleSheetSync({ categories = [], onSyncComplete }: 
                         </div>
 
                         {/* TERMINAL MINI */}
-                        <div className="w-full md:w-1/2 bg-[#1A1A18] text-emerald-400 p-8 font-mono text-[10px] flex flex-col shadow-2xl min-h-[300px]">
+                        <div className="w-full md:w-1/2 bg-[#D3202B] text-emerald-400 p-8 font-mono text-[10px] flex flex-col shadow-2xl min-h-[300px]">
                             <div className="flex items-center justify-between mb-4 opacity-40">
                                 <span className="uppercase tracking-[0.3em] font-black">Sync Terminal v1.0</span>
                                 <div className="flex gap-1">

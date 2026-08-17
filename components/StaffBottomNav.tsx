@@ -11,18 +11,9 @@ export default function StaffBottomNav() {
   const pathname = rawPathname || ''
   const { profile } = useAuth()
 
-  // Define tabs based on role
-  const isCafe = profile?.staff_type === 'cafe'
-
-  const tabs = isCafe ? [
+  const tabs = [
     { id: 'home', href: '/dashboard/staff', label: 'หน้าแรก', icon: Home },
     { id: 'pos', href: '/dashboard/pos', label: 'POS', icon: MonitorSmartphone },
-    { id: 'profile', href: '/dashboard/staff/profile', label: 'โปรไฟล์', icon: User },
-  ] : [
-    { id: 'home', href: '/dashboard/staff', label: 'หน้าแรก', icon: Home },
-    { id: 'tasks', href: '/dashboard/staff/tasks', label: 'งานของฉัน', icon: ClipboardList },
-    { id: 'reports', href: '/dashboard/staff/reports', label: 'รายงาน', icon: TrendingUp },
-    { id: 'customers', href: '/dashboard/staff/customers', label: 'ลูกค้า', icon: Users },
     { id: 'profile', href: '/dashboard/staff/profile', label: 'โปรไฟล์', icon: User },
   ]
 

@@ -477,7 +477,7 @@ export function buildCustomerReportFlexMessage(args: {
 }): LineFlexMessage {
   const baseUrl = resolveAppBaseUrl(args.appBaseUrl)
   const houseName = (args.lineReport.houseName || 'บ้านของคุณ').trim()
-  const staffName = (args.lineReport.staffName || 'ทีมงาน Xylem').trim()
+  const staffName = (args.lineReport.staffName || 'ทีมงาน RUSH UP').trim()
   
   // Create secure auto-login URL
   const detailUrl = (() => {
@@ -536,7 +536,7 @@ export function buildCustomerReportFlexMessage(args: {
         paddingStart: '20px',
         paddingEnd: '20px',
         contents: [
-          { type: 'text', text: 'XYLEM LANDSCAPE', color: '#A3A39C', size: 'xxs', weight: 'bold' },
+          { type: 'text', text: 'RUSH UP', color: '#A3A39C', size: 'xxs', weight: 'bold' },
           {
             type: 'box',
             layout: 'horizontal',
@@ -782,7 +782,7 @@ export function buildCustomerReportFlexMessage(args: {
           }] : []),
           {
             type: 'text',
-            text: 'ขอบคุณที่ไว้วางใจ Xylem Landscape ครับ',
+            text: 'ขอบคุณที่ไว้วางใจ RUSH UP ครับ',
             size: 'xxs',
             color: '#A3A39C',
             align: 'center',
@@ -823,7 +823,7 @@ export function buildSystemFlexMessage(args: {
         spacing: 'md',
         paddingAll: '20px',
         contents: [
-          { type: 'text', text: 'XYLEM LANDSCAPE', color: '#10B981', size: 'xs', weight: 'bold' },
+          { type: 'text', text: 'RUSH UP', color: '#10B981', size: 'xs', weight: 'bold' },
           {
             type: 'text',
             text: title,
@@ -913,9 +913,9 @@ export const resolveLineUserIdBySupabaseUserId = async (
   
   if (dbEntry?.line_user_id) return dbEntry.line_user_id
 
-  // Fallback 2: Check if email is in deterministic format: {lineUserId}@line.xylemlandscape.com
+  // Fallback 2: Check if email is in deterministic format: {lineUserId}@line.rushupcafe.com
   const email = data.user.email || ''
-  if (email && email.endsWith('@line.xylemlandscape.com')) {
+  if (email && email.endsWith('@line.rushupcafe.com')) {
     const extracted = email.split('@')[0]
     const normalized = normalizeLineUserId(extracted)
     if (normalized) return normalized
@@ -989,7 +989,7 @@ export const verifyLineLinkDelivery = async (args: {
   const friendship = await checkLineFriendshipStatus(args.lineAccessToken)
   const messagingCheckedAt = new Date().toISOString()
   const verificationText = normalizeText(
-    `เชื่อมต่อ LINE กับ Xylem สำเร็จแล้ว${args.displayName?.trim() ? ` คุณ ${args.displayName.trim()}` : ''}\nข้อความนี้ใช้ยืนยันว่าบัญชีนี้รับการแจ้งเตือนจากระบบได้จริง`
+    `เชื่อมต่อ LINE กับ RUSH UP สำเร็จแล้ว${args.displayName?.trim() ? ` คุณ ${args.displayName.trim()}` : ''}\nข้อความนี้ใช้ยืนยันว่าบัญชีนี้รับการแจ้งเตือนจากระบบได้จริง`
   )
 
   const flexMessage: LineFlexMessage = {
@@ -1008,7 +1008,7 @@ export const verifyLineLinkDelivery = async (args: {
         paddingTop: '24px',
         paddingBottom: '0px',
         contents: [
-          { type: 'text', text: 'XYL STUDIO', color: '#8C8C85', size: 'xxs', weight: 'bold', align: 'center' },
+          { type: 'text', text: 'RUSH UP', color: '#8C8C85', size: 'xxs', weight: 'bold', align: 'center' },
           {
             type: 'box',
             layout: 'vertical',
@@ -1044,7 +1044,7 @@ export const verifyLineLinkDelivery = async (args: {
           },
           {
             type: 'text',
-            text: 'บัญชี LINE ของคุณได้รับการเชื่อมต่อเข้ากับระบบของ XYL STUDIO เรียบร้อยแล้ว',
+            text: 'บัญชี LINE ของคุณได้รับการเชื่อมต่อเข้ากับระบบของ RUSH UP เรียบร้อยแล้ว',
             size: 'sm',
             color: '#70706B',
             wrap: true,
@@ -1314,7 +1314,7 @@ export const buildRescheduleFlexMessage = (args: {
         contents: [
           {
             type: 'text',
-            text: 'XYLEM LANDSCAPE',
+            text: 'RUSH UP',
             color: '#A3A39C',
             size: 'xxs',
             weight: 'bold',
@@ -1391,7 +1391,7 @@ export const buildRescheduleFlexMessage = (args: {
             contents: [
               {
                 type: 'text',
-                text: 'ทีมงาน Xylem จะเข้าดูแลสวนให้ตามวันและเวลาที่นัดหมายครับ หากมีข้อสงสัยสามารถติดต่อผ่านช่องทางนี้ได้ทันที',
+                text: 'ทีมงาน RUSH UP จะเข้าดูแลสวนให้ตามวันและเวลาที่นัดหมายครับ หากมีข้อสงสัยสามารถติดต่อผ่านช่องทางนี้ได้ทันที',
                 size: 'xs',
                 color: '#70706B',
                 wrap: true,
@@ -1486,7 +1486,7 @@ export const buildNewServicePlanFlexMessage = (args: {
         contents: [
           {
             type: 'text',
-            text: 'XYLEM LANDSCAPE',
+            text: 'RUSH UP',
             color: '#A3A39C',
             size: 'xxs',
             weight: 'bold',
@@ -1563,7 +1563,7 @@ export const buildNewServicePlanFlexMessage = (args: {
             contents: [
               {
                 type: 'text',
-                text: 'ทีมงาน Xylem จะเข้าดูแลสวนให้ตามวันและเวลาที่นัดหมายครับ หากมีข้อสงสัยสามารถติดต่อผ่านช่องทางนี้ได้ทันที',
+                text: 'ทีมงาน RUSH UP จะเข้าดูแลสวนให้ตามวันและเวลาที่นัดหมายครับ หากมีข้อสงสัยสามารถติดต่อผ่านช่องทางนี้ได้ทันที',
                 size: 'xs',
                 color: '#70706B',
                 wrap: true,
@@ -1619,7 +1619,7 @@ export const buildCustomerBatchReportCarouselFlexMessage = (args: {
   appBaseUrl?: string | null
 }): LineFlexMessage => {
   const baseUrl = resolveAppBaseUrl(args.appBaseUrl)
-  const staffName = (args.batchReports.staffName || 'ทีมงาน Xylem').trim()
+  const staffName = (args.batchReports.staffName || 'ทีมงาน RUSH UP').trim()
   
   const houseCount = args.batchReports.reports.length
   const altText = `รายงานการดูแลสวน (${houseCount} หลัง)`
@@ -1663,7 +1663,7 @@ export const buildCustomerBatchReportCarouselFlexMessage = (args: {
         type: 'box',
         layout: 'vertical',
         contents: [
-          { type: 'text', text: 'XYLEM LANDSCAPE', color: '#A3A39C', size: 'xxs', weight: 'bold' },
+          { type: 'text', text: 'RUSH UP', color: '#A3A39C', size: 'xxs', weight: 'bold' },
           {
             type: 'box',
             layout: 'horizontal',

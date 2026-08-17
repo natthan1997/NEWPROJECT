@@ -73,7 +73,7 @@ const copyByLocale: Record<Locale, Record<string, string>> = {
     manageRecipes: 'สูตรอาหารและต้นทุน',
     inventory: 'คลังวัตถุดิบและพัสดุ',
     manageMenu: 'จัดการเมนูอาหาร & สูตร',
-    catRestaurant: 'XYL STUDIO',
+    catRestaurant: 'RUSH UP',
     catSystem: 'System Core',
     catEstate: 'Estate & Design',
     catDocuments: 'Orders & Docs',
@@ -121,7 +121,7 @@ const copyByLocale: Record<Locale, Record<string, string>> = {
     manageRecipes: 'Manage Recipes & Costs',
     inventory: 'Inventory & Supplies',
     manageMenu: 'Menu & Recipe Manager',
-    catRestaurant: 'XYL STUDIO',
+    catRestaurant: 'RUSH UP',
     catSystem: 'System Core',
     catEstate: 'Estate & Design',
     catDocuments: 'Orders & Docs',
@@ -169,7 +169,7 @@ const copyByLocale: Record<Locale, Record<string, string>> = {
     manageRecipes: '管理食谱与成本',
     inventory: '库存与进货',
     manageMenu: '菜单与食谱管理',
-    catRestaurant: 'XYL STUDIO',
+    catRestaurant: 'RUSH UP',
     catSystem: '系统核心',
     catEstate: '地产与设计',
     catDocuments: '订单与文档',
@@ -213,14 +213,14 @@ export default function Sidebar({ isOpen, onMenuClick, isLocked, onLockToggle, o
 
     void loadFeatures()
     window.addEventListener('focus', handleRefresh)
-    window.addEventListener('xylem:features-updated', handleRefresh as EventListener)
+    window.addEventListener('rushup:features-updated', handleRefresh as EventListener)
     window.addEventListener('storage', handleRefresh)
     document.addEventListener('visibilitychange', handleVisibility)
 
     return () => {
       mounted = false
       window.removeEventListener('focus', handleRefresh)
-      window.removeEventListener('xylem:features-updated', handleRefresh as EventListener)
+      window.removeEventListener('rushup:features-updated', handleRefresh as EventListener)
       window.removeEventListener('storage', handleRefresh)
       document.removeEventListener('visibilitychange', handleVisibility)
     }
@@ -320,32 +320,7 @@ export default function Sidebar({ isOpen, onMenuClick, isLocked, onLockToggle, o
       return [{
         items: [
           dashboardItem,
-          profileItem,
-          ...(features.service_booking_enabled ? [{
-            name: copy.customerServices,
-            href: '/dashboard/customer/services',
-            current: pathname.startsWith('/dashboard/customer/services'),
-          }] : []),
-          ...(features.marketplace_enabled ? [{
-            name: copy.marketplace || 'Marketplace',
-            href: '/dashboard/customer/marketplace',
-            current: pathname.startsWith('/dashboard/customer/marketplace'),
-          }] : []),
-          {
-            name: copy.documents,
-            href: '/dashboard/customer/documents',
-            current: pathname.startsWith('/dashboard/customer/documents'),
-          },
-          {
-            name: copy.reports,
-            href: '/dashboard/customer/reports',
-            current: pathname.startsWith('/dashboard/customer/reports'),
-          },
-          {
-            name: copy.houses,
-            href: '/dashboard/customer/houses',
-            current: pathname.startsWith('/dashboard/customer/houses'),
-          },
+          profileItem
         ]
       }]
     }
@@ -356,41 +331,11 @@ export default function Sidebar({ isOpen, onMenuClick, isLocked, onLockToggle, o
           dashboardItem,
           profileItem,
           {
-            name: copy.reports,
-            href: '/dashboard/staff/reports',
-            current: pathname.startsWith('/dashboard/staff/reports'),
-            hidden: profile.staff_type === 'cafe'
-          },
-          {
-            name: copy.staffDevelopment || 'Staff Development',
-            href: '/dashboard/staff/development',
-            current: pathname.startsWith('/dashboard/staff/development'),
-          },
-          {
-            name: copy.myTasks,
-            href: '/dashboard/staff/tasks',
-            current: pathname.startsWith('/dashboard/staff/tasks'),
-            hidden: profile.staff_type === 'cafe'
-          },
-          {
-            name: copy.measurements,
-            href: '/dashboard/staff/measurements',
-            current: pathname.startsWith('/dashboard/staff/measurements'),
-            hidden: profile.staff_type === 'cafe'
-          },
-          {
             name: copy.pos,
             href: '/dashboard/pos',
             current: pathname === '/dashboard/pos',
-            hidden: profile.staff_type !== 'cafe'
-          },
-          {
-            name: copy.customers,
-            href: '/dashboard/staff/customers',
-            current: pathname.startsWith('/dashboard/staff/customers'),
-            hidden: (profile as any).staff_type === 'cafe'
-          } as MenuItem,
-        ].filter(i => !(i as MenuItem).hidden) as MenuItem[]
+          }
+        ]
       }]
     }
 
@@ -431,11 +376,6 @@ export default function Sidebar({ isOpen, onMenuClick, isLocked, onLockToggle, o
               href: '/dashboard/admin/settings',
               current: pathname.startsWith('/dashboard/admin/settings'),
             },
-            {
-              name: copy.customers,
-              href: '/dashboard/admin/customers',
-              current: pathname.startsWith('/dashboard/admin/customers'),
-            },
           ]
         },
         {
@@ -465,76 +405,6 @@ export default function Sidebar({ isOpen, onMenuClick, isLocked, onLockToggle, o
               name: (copy as any).gamification || 'Gamification & Gacha',
               href: '/dashboard/admin/gamification',
               current: pathname.startsWith('/dashboard/admin/gamification'),
-            },
-          ]
-        },
-        {
-          title: copy.catEstate,
-          items: [
-            {
-              name: copy.housePlans,
-              href: '/dashboard/admin/house-plans',
-              current: pathname.startsWith('/dashboard/admin/house-plans'),
-            },
-            {
-              name: copy.manageServices,
-              href: '/dashboard/admin/services',
-              current: pathname.startsWith('/dashboard/admin/services'),
-            },
-            {
-              name: copy.manageMarketplace,
-              href: '/dashboard/admin/marketplace',
-              current: pathname.startsWith('/dashboard/admin/marketplace'),
-            },
-            {
-              name: copy.manageItemLibrary,
-              href: '/dashboard/admin/item-library',
-              current: pathname.startsWith('/dashboard/admin/item-library'),
-            },
-            {
-              name: copy.assignments,
-              href: '/dashboard/admin/job-assignment',
-              current: pathname.startsWith('/dashboard/admin/job-assignment'),
-            },
-            {
-              name: copy.measurementRequests,
-              href: '/dashboard/admin/measurements',
-              current: pathname.startsWith('/dashboard/admin/measurements'),
-            },
-          ]
-        },
-        {
-          title: copy.catDocuments,
-          items: [
-            {
-              name: copy.orders,
-              href: '/dashboard/admin/orders',
-              current: pathname.startsWith('/dashboard/admin/orders'),
-            },
-            {
-              name: copy.createOrder,
-              href: '/dashboard/admin/orders/create',
-              current: pathname === '/dashboard/admin/orders/create',
-            },
-            {
-              name: copy.reports,
-              href: '/dashboard/admin/reports',
-              current: pathname.startsWith('/dashboard/admin/reports'),
-            },
-            {
-              name: copy.createReport,
-              href: '/dashboard/admin/reports/create',
-              current: pathname === '/dashboard/admin/reports/create',
-            },
-            {
-              name: copy.feedback,
-              href: '/dashboard/admin/customer-feedback',
-              current: pathname.startsWith('/dashboard/admin/customer-feedback'),
-            },
-            {
-              name: copy.pricingDocs,
-              href: '/dashboard/admin/documents',
-              current: pathname.startsWith('/dashboard/admin/documents'),
             },
           ]
         }
@@ -620,7 +490,7 @@ export default function Sidebar({ isOpen, onMenuClick, isLocked, onLockToggle, o
                           setProfileDropdownOpen(false)
                           handleSignOut()
                         }}
-                        className="flex w-full items-center border-t border-[#F5F5F5] px-4 py-3 text-xs uppercase tracking-wider xyl-btn-danger rounded-none"
+                        className="flex w-full items-center border-t border-[#F5F5F5] px-4 py-3 text-xs uppercase tracking-wider rushup-btn-danger rounded-none"
                       >
                         <ArrowRightOnRectangleIcon className="mr-3 h-4 w-4" />
                         {copy.signOut}
@@ -686,7 +556,7 @@ export default function Sidebar({ isOpen, onMenuClick, isLocked, onLockToggle, o
             </nav>
 
             <div className="border-t border-[#E5E5E5] px-6 py-4 bg-[#FAFAFA]">
-              <p className="text-center text-[8px] uppercase tracking-[0.3em] text-[#D4D4D4]">XYL STUDIO</p>
+              <p className="text-center text-[8px] uppercase tracking-[0.3em] text-[#D4D4D4]">RUSH UP</p>
             </div>
           </motion.aside>
         </>

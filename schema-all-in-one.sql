@@ -1,4 +1,4 @@
--- XYLEM LANDSCAPE: ALL-IN-ONE DATABASE SCHEMA / MIGRATION
+-- RUSH UP: ALL-IN-ONE DATABASE SCHEMA / MIGRATION
 -- Safe to run multiple times in Supabase SQL Editor
 --
 -- Scope consolidated from:
@@ -3390,11 +3390,11 @@ VALUES
   'company_info', 
   '{
     "name_th": "บริษัท เอ็กซ์วายแอล แลนด์สเคป จำกัด",
-    "name_en": "XYLEM LANDSCAPE CO., LTD.",
+    "name_en": "RUSH UP CO., LTD.",
     "address": "158/13-14 หมู่บ้าน บ้านสวนพรีเมียร์ หมู่ที่ 6 ต.หนองจ๊อม อ.สันทราย จ.เชียงใหม่",
     "tax_id": "0505567008779",
     "phone": "02-123-4567",
-    "email": "contact@xylem.co.th",
+    "email": "contact@rushupcafe.com",
     "logo_url": ""
   }',
   'Basic company information for documents'
@@ -5630,7 +5630,7 @@ COMMIT;
 -- DROP TABLE IF EXISTS product_events;
 
 -- =========================================================
--- 12) XYL STUDIO POS SYSTEM (PRO-OPS & SYNCED)
+-- 12) RUSH UP POS SYSTEM (PRO-OPS & SYNCED)
 -- =========================================================
 
 -- STAFF PROFILES ENHANCEMENT
@@ -6616,7 +6616,7 @@ NOTIFY pgrst, 'reload schema';
 -- FINAL VERIFICATION
 SELECT 'schema-all-in-one.sql is now the canonical active schema' AS message;
 
--- XYL Digital Garden & Coupons Update
+-- RUSH UP Digital Garden & Coupons Update
 ALTER TABLE public.pos_members ADD COLUMN IF NOT EXISTS title TEXT;
 
 CREATE TABLE IF NOT EXISTS public.pos_member_coupons (

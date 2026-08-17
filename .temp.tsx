@@ -8,7 +8,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
 import { useLiff } from '@/components/liff/LiffProvider';
-import XYLLoader from '@/components/loaders/XYLLoader';
+import RUSHUPLoader from '@/components/loaders/RUSHUPLoader';
 import { useI18n } from "@/lib/I18nContext";
 import RegistrationForm from './RegistrationForm';
 import Link from 'next/link';
@@ -31,7 +31,7 @@ export default function LiffMemberPage() {
   const t = {
     th: {
       loading: 'กำลังโหลดข้อมูล...',
-      title: 'XYL STUDIO',
+      title: 'RUSH UP',
       points: 'พอยท์ปัจจุบัน',
       pts: 'พอยท์',
       benefitsTitle: 'สิทธิประโยชน์',
@@ -40,7 +40,7 @@ export default function LiffMemberPage() {
     },
     en: {
       loading: 'Loading data...',
-      title: 'XYL STUDIO',
+      title: 'RUSH UP',
       points: 'Current Points',
       pts: 'pts',
       benefitsTitle: 'Benefits',
@@ -60,7 +60,7 @@ export default function LiffMemberPage() {
   ], [earnRate]);
   
   const handleRegistrationSubmit = async (data: any) => {
-    const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
+    const userId = lineProfile?.userId || localStorage.getItem('rushup_line_user_id');
     if (!userId) return;
 
     setIsLinkingPhone(true);
@@ -94,7 +94,7 @@ export default function LiffMemberPage() {
   };
   
   const fetchData = async () => {
-    const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
+    const userId = lineProfile?.userId || localStorage.getItem('rushup_line_user_id');
     if (!userId) return;
     try {
       setLoading(true);
@@ -157,8 +157,8 @@ export default function LiffMemberPage() {
     };
   }, [lineProfile, liffLoading]);
 
-  if (liffLoading && !hasSeenLoader) return <XYLLoader tagline={dict.loading} />;
-  if (loading) return <XYLLoader tagline={dict.loading} />;
+  if (liffLoading && !hasSeenLoader) return <RUSHUPLoader tagline={dict.loading} />;
+  if (loading) return <RUSHUPLoader tagline={dict.loading} />;
 
   if (!memberInfo || !memberInfo.phone || !memberInfo.pdpa_consent) {
     return <RegistrationForm lineProfile={lineProfile} onSubmit={handleRegistrationSubmit} isSubmitting={isLinkingPhone} />;

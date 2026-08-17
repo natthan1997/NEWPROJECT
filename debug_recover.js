@@ -29,7 +29,7 @@ for (let i = lines.length - 1; i >= 0; i--) {
                                        }
                                        console.log('Found backup with lines:', restoredLines.length);
                                        if (restoredLines.length === 683) {
-                                            fs.writeFileSync('/Users/natthanchaimongkol/Downloads/XYLPROJECT-main/components/pos/POSMenuManager.tsx', restoredLines.join('\n'));
+                                            fs.writeFileSync('/Users/natthanchaimongkol/Downloads/rushupproject-main/components/pos/POSMenuManager.tsx', restoredLines.join('\n'));
                                             console.log('Restored exactly 683 lines!');
                                             process.exit(0);
                                        }

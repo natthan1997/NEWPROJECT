@@ -769,7 +769,7 @@ export const printCustomerReceipt = async (
       b.lf()
     }
 
-    b.bold(true).size(2, 2).line(shop.name || 'XYL STUDIO').size(1, 1).bold(false)
+    b.bold(true).size(2, 2).line(shop.name || 'RUSH UP').size(1, 1).bold(false)
 
     if (shop.branch) b.line(`สาขา: ${shop.branch}`)
     if (shop.taxId) b.line(`TAX ID: ${shop.taxId}`)
@@ -823,7 +823,7 @@ export const printCustomerReceipt = async (
       shop.receiptFooter.split('\n').forEach(l => b.line(l))
       b.lf()
     } else {
-      b.line('Thank you').lf().line('Powered by XYL STUDIO').lf()
+      b.line('Thank you').lf().line('Powered by RUSH UP').lf()
     }
 
     b.cut()
@@ -1054,9 +1054,9 @@ export const printPreReceipt = async (
     b.align('center')
     const isLarge = shop.receiptFontSize === 'large'
     if (isLarge) {
-      b.bold(true).size(2, 2).line(shop.name || 'XYL STUDIO').size(1, 1).bold(false)
+      b.bold(true).size(2, 2).line(shop.name || 'RUSH UP').size(1, 1).bold(false)
     } else {
-      b.bold(true).line(shop.name || 'XYL STUDIO').bold(false)
+      b.bold(true).line(shop.name || 'RUSH UP').bold(false)
     }
 
     b.lf().bold(true).line('BILL / ใบแจงยอด').bold(false).lf()

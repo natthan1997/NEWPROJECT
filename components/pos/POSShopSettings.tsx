@@ -348,7 +348,7 @@ export default function POSShopSettings({
                     { id: 'manager', label: 'ผู้จัดการสาขา (Manager)', is_system: true },
                     { id: 'staff', label: 'พนักงานทั่วไป (Staff)', is_system: true }
                 ],
-                printers: (data.printers && data.printers.length > 0) ? data.printers : (typeof window !== 'undefined' && localStorage.getItem('xylem_printer_ip') ? [{ ip: localStorage.getItem('xylem_printer_ip'), type: 'receipt', name: 'Printer 1', encoding: 'cp874', categories: ['all'] }] : []),
+                printers: (data.printers && data.printers.length > 0) ? data.printers : (typeof window !== 'undefined' && localStorage.getItem('rushup_printer_ip') ? [{ ip: localStorage.getItem('rushup_printer_ip'), type: 'receipt', name: 'Printer 1', encoding: 'cp874', categories: ['all'] }] : []),
                 receipt_header: data.opening_hours?.receipt_header || '',
                 receipt_story_mode: data.opening_hours?.receipt_story_mode || false,
                 show_story_selection_at_checkout: data.opening_hours?.show_story_selection_at_checkout ?? false,
@@ -1297,7 +1297,7 @@ const handleSave = async () => {
 
                                     <div className="flex flex-col gap-4">
                                         <label className="inline-flex items-center justify-center gap-2 cursor-pointer w-fit">
-                                            <span className="inline-flex items-center justify-center gap-2 rounded-lg bg-gray-900 text-white hover:bg-gray-800 px-4 py-2 text-[13px] font-medium transition-colors">
+                                            <span className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#D3202B] text-white hover:bg-gray-800 px-4 py-2 text-[13px] font-medium transition-colors">
                                                 {isUploadingPoster ? <Loader2 size={16} className="animate-spin" /> : <Upload size={14} />}
                                                 {isUploadingPoster ? 'กำลังอัปโหลด...' : 'อัปโหลดรูปภาพ'}
                                             </span>
@@ -1327,7 +1327,7 @@ const handleSave = async () => {
                                         {settings.liff_splash_poster_url && (
                                             <div className="bg-gray-50 rounded-xl p-4 flex flex-col items-center border border-black/5">
                                                 <div className="text-[12px] font-medium text-gray-500 mb-4 self-start">ตัวอย่าง (Preview)</div>
-                                                <div className="w-[200px] h-[355px] rounded-2xl border-4 border-gray-900 bg-black overflow-hidden shadow-lg relative">
+                                                <div className="w-[200px] h-[355px] rounded-2xl border-4 border-[#D3202B] bg-black overflow-hidden shadow-lg relative">
                                                     <img loading="lazy" src={settings.liff_splash_poster_url} alt="Poster preview" className="w-full h-full object-cover" />
                                                 </div>
                                             </div>
@@ -1693,7 +1693,7 @@ const handleSave = async () => {
                                                 {settings.receipt_header && (
                                                     <div className="mb-[14px] whitespace-pre-wrap text-[12px] font-bold leading-[1.45] text-center">{settings.receipt_header}</div>
                                                 )}
-                                                <div className={`font-bold text-center mb-2 leading-[1.04] ${settings.receipt_font_size === 'large' ? 'text-[20px]' : 'text-[17px]'}`}>{settings.name || 'XYLEM LANDSCAPE'}</div>
+                                                <div className={`font-bold text-center mb-2 leading-[1.04] ${settings.receipt_font_size === 'large' ? 'text-[20px]' : 'text-[17px]'}`}>{settings.name || 'RUSH UP'}</div>
                                                 {settings.branch_name && <div className="text-[11px] font-bold mb-1 text-center">{locale === 'en' ? 'Branch: ' : 'สาขา: '}{settings.branch_name}</div>}
                                                 {settings.tax_id && <div className="text-[10px] font-bold mb-1 text-center">TAX ID: {settings.tax_id}</div>}
                                                 {settings.phone && <div className="text-[11px] font-bold mb-[14px] text-center">{locale === 'en' ? 'Tel: ' : 'โทร: '}{settings.phone}</div>}
@@ -1760,7 +1760,7 @@ const handleSave = async () => {
 
                                                 <div className="border-t-[3px] border-dashed border-black my-[14px]"></div>
                                                 <div className="mt-6 whitespace-pre-wrap font-bold leading-[1.35] text-[10px] text-center">
-                                                    {settings.receipt_footer || 'Thank you\nPowered by XYL STUDIO'}
+                                                    {settings.receipt_footer || 'Thank you\nPowered by RUSH UP'}
                                                 </div>
                                             </div>
 
@@ -1785,7 +1785,7 @@ const handleSave = async () => {
                                         {previewTab === 'kitchen' && (
                                         <div className="bg-[#111111] p-6 sm:p-8 flex flex-col items-center overflow-hidden rounded-2xl shadow-xl relative group border border-black/20">
                                             <div className="text-[10px] font-medium text-white/50 mb-6 uppercase tracking-widest flex items-center gap-2">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></div>
+                                                <div className="w-1.5 h-1.5 rounded-full bg-[#D3202B] animate-pulse"></div>
                                                 {locale === 'en' ? 'Kitchen Order' : 'ใบออเดอร์ (Kitchen)'}
                                             </div>
                                             <div id="kitchen-preview-capture" className="bg-[#FDFDFB] shadow-2xl p-6 sm:p-8 w-full max-w-[340px] font-sans text-left text-black relative">
@@ -2339,7 +2339,7 @@ const handleSave = async () => {
                                                 </p>
                                             </div>
                                             <div className="flex flex-wrap items-center gap-3 bg-white px-4 py-3 rounded-xl shadow-sm border border-gray-100 shrink-0 self-stretch lg:self-auto justify-center">
-                                                <span className="text-[12px] font-medium text-orange-600 bg-orange-50 px-2.5 py-1.5 rounded-lg whitespace-nowrap">ใช้</span>
+                                                <span className="text-[12px] font-medium text-red-700 bg-red-50 px-2.5 py-1.5 rounded-lg whitespace-nowrap">ใช้</span>
                                                 <div className="relative w-20">
                                                     <input 
                                                         type="number" 
@@ -2834,6 +2834,37 @@ const handleSave = async () => {
                         {activeTab === 'hardware' && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                                 
+                                {/* Audio & Sound Settings Card */}
+                                <div className="bg-white rounded-2xl shadow-sm border border-black/5 p-6 sm:p-8">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                        <div>
+                                            <h3 className="text-[17px] font-semibold mb-1">
+                                                {locale === 'en' ? 'System Sound Effects' : 'ระบบเสียงการทำงาน (Sound Effects)'}
+                                            </h3>
+                                            <p className="text-[13px] text-gray-500">
+                                                {locale === 'en' ? 'Enable or disable sound effects on POS terminal interactions' : 'เปิด/ปิด เสียงเอฟเฟกต์การกดปุ่มและเสียงแจ้งเตือนออเดอร์ใหม่'}
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const isCurrentlyMuted = localStorage.getItem('pos_mute_sounds') === 'true';
+                                                const newMutedState = !isCurrentlyMuted;
+                                                localStorage.setItem('pos_mute_sounds', String(newMutedState));
+                                                window.dispatchEvent(new Event('pos_mute_changed'));
+                                                setSettings((prev: any) => ({ ...prev, _mute_force_update: Date.now() }));
+                                            }}
+                                            className={`px-4 py-2.5 rounded-xl font-bold text-[13px] flex items-center gap-2 transition-all border shadow-sm ${
+                                                (typeof window !== 'undefined' && localStorage.getItem('pos_mute_sounds') === 'true')
+                                                    ? 'bg-red-50 border-red-100 text-red-500 hover:bg-red-100'
+                                                    : 'bg-emerald-50 border-emerald-100 text-emerald-600 hover:bg-emerald-100'
+                                            }`}
+                                        >
+                                            { (typeof window !== 'undefined' && localStorage.getItem('pos_mute_sounds') === 'true') ? '🔇 ปิดเสียงระบบอยู่' : '🔊 เปิดเสียงระบบอยู่' }
+                                        </button>
+                                    </div>
+                                </div>
+
                                 <div className="bg-white rounded-2xl shadow-sm border border-black/5 p-6 sm:p-8">
                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-6 border-b border-black/5">
                                         <div>

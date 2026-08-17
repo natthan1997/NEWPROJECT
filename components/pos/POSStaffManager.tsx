@@ -155,7 +155,7 @@ function CalendarGrid({ logsList, monthStr, publicHolidays = [] }: { logsList: a
                                         {l.override ? (
                                             <span className={`text-[10px] font-bold block text-center mt-1 ${l.override.reason.includes('มาสาย') ? 'text-blue-600' : 'text-amber-600'}`}>{l.override.reason}</span>
                                         ) : l.leave ? (
-                                            <span className="text-[10px] font-bold block text-center mt-1 text-orange-600">ลา</span>
+                                            <span className="text-[10px] font-bold block text-center mt-1 text-red-700">ลา</span>
                                         ) : l.late_minutes > 0 ? (
                                             <span className="text-[10px] text-rose-600 font-bold block text-center mt-1">สาย {l.late_minutes} นาที</span>
                                         ) : l.ot_hours > 0 ? (
@@ -1299,7 +1299,7 @@ export default function POSStaffManager({
                             <div className="bg-white rounded-2xl p-5 border border-neutral-200 shadow-sm grid grid-cols-2 sm:grid-cols-4 gap-4">
                                 {[
                                     { label: 'ลาป่วย', used: staffLeaves.filter(l => l.leave_type === 'sick').length, quota: selectedStaff.quota_sick_leave ?? 30, color: 'text-rose-600', bg: 'bg-rose-50' },
-                                    { label: 'ลากิจ', used: staffLeaves.filter(l => l.leave_type === 'personal').length, quota: selectedStaff.quota_personal_leave ?? 3, color: 'text-orange-600', bg: 'bg-orange-50' },
+                                    { label: 'ลากิจ', used: staffLeaves.filter(l => l.leave_type === 'personal').length, quota: selectedStaff.quota_personal_leave ?? 3, color: 'text-red-700', bg: 'bg-red-50' },
                                     { label: 'ลาพักร้อน', used: staffLeaves.filter(l => l.leave_type === 'vacation').length, quota: selectedStaff.quota_annual_leave ?? 6, color: 'text-amber-600', bg: 'bg-amber-50' },
                                 ].map(q => (
                                     <div key={q.label} className="flex flex-col p-3 rounded-xl bg-neutral-50 border border-neutral-100">
@@ -1309,7 +1309,7 @@ export default function POSStaffManager({
                                             <span className="text-xs font-bold text-neutral-400 mb-0.5">/ {q.quota}</span>
                                         </div>
                                         <div className="w-full bg-neutral-200 rounded-full h-1.5 mt-2">
-                                            <div className={`h-1.5 rounded-full ${q.used >= q.quota ? 'bg-red-500' : 'bg-[#1A1A18]'}`} style={{ width: `${Math.min(100, (q.used / q.quota) * 100)}%` }}></div>
+                                            <div className={`h-1.5 rounded-full ${q.used >= q.quota ? 'bg-red-500' : 'bg-[#D3202B]'}`} style={{ width: `${Math.min(100, (q.used / q.quota) * 100)}%` }}></div>
                                         </div>
                                     </div>
                                 ))}
@@ -1385,7 +1385,7 @@ export default function POSStaffManager({
                                                     <td className="px-6 py-5 text-sm font-bold text-gray-500">{a.clock_out ? new Date(a.clock_out).toLocaleTimeString() : '-'}</td>
                                                     <td className="px-6 py-5">
                                                         {a.leave ? (
-                                                            <span className="text-[9px] font-black uppercase tracking-widest text-orange-600 bg-orange-50 px-2 py-1 w-max block">
+                                                            <span className="text-[9px] font-black uppercase tracking-widest text-red-700 bg-red-50 px-2 py-1 w-max block">
                                                                 ลา{a.leave.leave_type === 'sick' ? 'ป่วย' : a.leave.leave_type === 'personal' ? 'กิจ' : 'พักร้อน'} {a.leave.is_paid ? '(ได้ค่าจ้าง)' : '(ไม่ได้ค่าจ้าง)'}
                                                             </span>
                                                         ) : a.late_minutes > 0 ? (
@@ -1418,7 +1418,7 @@ export default function POSStaffManager({
                                                                     <div className="flex flex-col gap-1.5 mt-1">
                                                                         <button
                                                                             onClick={(e) => { e.stopPropagation(); handleApproveHolidayPay(a.checkout_log_id || a.checkin_log_id); }}
-                                                                            className="text-[10px] font-bold text-white px-2.5 py-1.5 rounded-md transition-colors w-full text-left flex justify-between items-center bg-[#1A1A18] hover:bg-neutral-800 ring-2 ring-neutral-300"
+                                                                            className="text-[10px] font-bold text-white px-2.5 py-1.5 rounded-md transition-colors w-full text-left flex justify-between items-center bg-[#D3202B] hover:bg-neutral-800 ring-2 ring-neutral-300"
                                                                         >
                                                                             อนุมัติ (ตามการตั้งค่า) <span>+</span>
                                                                         </button>
@@ -1838,7 +1838,7 @@ export default function POSStaffManager({
                                             <tr key={person.id} onClick={() => { setSelectedStaff(person); setIsDetailOpen(true); setDetailTab('info'); }} className="hover:bg-neutral-50 transition-colors cursor-pointer group">
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="w-10 h-10 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-600 group-hover:bg-[#1A1A18] group-hover:text-white transition-all text-sm font-black shrink-0">
+                                                        <div className="w-10 h-10 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-600 group-hover:bg-[#D3202B] group-hover:text-white transition-all text-sm font-black shrink-0">
                                                             {(person.display_name || person.full_name || 'S').slice(0, 1).toUpperCase()}
                                                         </div>
                                                         <div className="text-sm font-black text-[#1A1A18] truncate max-w-[150px] sm:max-w-[200px]">
@@ -2044,7 +2044,7 @@ export default function POSStaffManager({
                                                             {a.override.reason}
                                                         </span>
                                                     ) : a.leave ? (
-                                                        <span className="text-[9px] font-black uppercase tracking-widest text-orange-600 bg-orange-50 px-2 py-1 w-max block">
+                                                        <span className="text-[9px] font-black uppercase tracking-widest text-red-700 bg-red-50 px-2 py-1 w-max block">
                                                             ลา{a.leave.leave_type === 'sick' ? 'ป่วย' : a.leave.leave_type === 'personal' ? 'กิจ' : 'พักร้อน'} {a.leave.is_paid ? '(ได้ค่าจ้าง)' : '(ไม่ได้ค่าจ้าง)'}
                                                         </span>
                                                     ) : a.late_minutes > 0 ? (
@@ -2077,7 +2077,7 @@ export default function POSStaffManager({
                                                                 <div className="flex flex-col gap-1.5 mt-1">
                                                                     <button
                                                                         onClick={(e) => { e.stopPropagation(); handleApproveHolidayPay(a.checkout_log_id || a.checkin_log_id); }}
-                                                                        className="text-[10px] font-bold text-white px-2.5 py-1.5 rounded-md transition-colors w-full text-left flex justify-between items-center bg-[#1A1A18] hover:bg-neutral-800 ring-2 ring-neutral-300"
+                                                                        className="text-[10px] font-bold text-white px-2.5 py-1.5 rounded-md transition-colors w-full text-left flex justify-between items-center bg-[#D3202B] hover:bg-neutral-800 ring-2 ring-neutral-300"
                                                                     >
                                                                         อนุมัติ (ตามการตั้งค่า) <span>+</span>
                                                                     </button>
@@ -2448,7 +2448,7 @@ export default function POSStaffManager({
             {printData && (
                 <div className="print-area fixed inset-0 z-[999] bg-white p-8 overflow-y-auto font-sans text-black">
                     {/* Screen Close Button & Top Action Bar */}
-                    <div className="no-print mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-neutral-900 text-white p-4 rounded-2xl shadow-xl">
+                    <div className="no-print mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#D3202B] text-white p-4 rounded-2xl shadow-xl">
                         <div>
                             <span className="text-sm font-black tracking-wide block">📄 ตัวอย่างเอกสารพร้อมพิมพ์ / บันทึก PDF (Print & PDF Export)</span>
                             <span className="text-xs text-neutral-400 font-bold block mt-0.5">กดปุ่มสีเขียวด้านขวาเพื่อเปิดหน้าต่างพิมพ์ และเลือก "Save as PDF" เพื่อโหลดไฟล์เก็บไว้ในเครื่อง</span>
@@ -2476,7 +2476,7 @@ export default function POSStaffManager({
                             <div className="border-b-2 border-black pb-4 flex justify-between items-start">
                                 <div>
                                     <h1 className="text-lg font-black text-black tracking-tight uppercase">บริษัท ไซเล็ม สตูดิโอ แอนด์ คาเฟ่ จำกัด</h1>
-                                    <p className="text-[10px] font-bold text-gray-700 mt-0.5">XYLEM STUDIO & CAFE CO., LTD.</p>
+                                    <p className="text-[10px] font-bold text-gray-700 mt-0.5">RUSH UP STUDIO & CAFE CO., LTD.</p>
                                     <p className="text-[10px] text-gray-600 mt-1">123/45 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพมหานคร 10110</p>
                                     <p className="text-[10px] text-gray-600">เลขประจำตัวผู้เสียภาษี (TAX ID): 0105565000000 | สำนักงานใหญ่</p>
                                 </div>
@@ -2612,7 +2612,7 @@ export default function POSStaffManager({
                             <div className="border-b-2 border-black pb-4 flex justify-between items-start">
                                 <div>
                                     <h1 className="text-xl font-black text-black tracking-tight uppercase">บริษัท ไซเล็ม สตูดิโอ แอนด์ คาเฟ่ จำกัด</h1>
-                                    <p className="text-xs font-bold text-gray-700">XYLEM STUDIO & CAFE CO., LTD.</p>
+                                    <p className="text-xs font-bold text-gray-700">RUSH UP STUDIO & CAFE CO., LTD.</p>
                                     <p className="text-[10px] text-gray-600">เลขประจำตัวผู้เสียภาษี (TAX ID): 0105565000000 | สำนักงานใหญ่</p>
                                 </div>
                                 <div className="text-right border-2 border-black p-2 bg-gray-50">

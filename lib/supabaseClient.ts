@@ -1,9 +1,21 @@
 import { createClient } from '@supabase/supabase-js'
-import {
-  type DocumentCatalogMainCategory,
-  type DocumentCatalogSubcategory,
-  getDocumentCategoryDefaults,
-} from './documentItemCatalog'
+
+export type DocumentCatalogMainCategory = string;
+export type DocumentCatalogSubcategory = string;
+
+export function getDocumentCategoryDefaults(
+  mainCategory: any,
+  subcategory: any,
+  itemName: any,
+  itemCategory: any,
+  sizeMode: any
+) {
+  return {
+    mainCategory: mainCategory || 'other',
+    subcategory: subcategory || 'other',
+    defaultUnit: 'หน่วย'
+  };
+}
 
 // ============================================================================
 // COMPLETE TYPESCRIPT INTERFACES - 100% MATCHING SCHEMA

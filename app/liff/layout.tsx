@@ -1,7 +1,7 @@
 'use client';
 
 import { LiffProvider } from '@/components/liff/LiffProvider';
-import XYLLoader from '@/components/loaders/XYLLoader';
+import RUSHUPLoader from '@/components/loaders/RUSHUPLoader';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { Suspense, useEffect } from 'react';

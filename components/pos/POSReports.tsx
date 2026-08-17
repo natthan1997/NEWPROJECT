@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import {
     Plus, Search, Edit3, Trash2, Loader2,
-    ChevronRight, Save, LayoutGrid, X,
+    ChevronRight, ChevronLeft, Save, LayoutGrid, X,
     Menu as MenuIcon, LogOut, Settings, BarChart3,
     PieChart, FileText, Download, Calendar,
     ArrowUpRight, ArrowDownRight, Printer, RefreshCcw,
@@ -142,43 +142,209 @@ function getComparisonRange(timeRange: TimeRange, startDate: Date, endDate: Date
 
 function TimeRangeSelector({ timeRange, setTimeRange, customRange, setCustomRange }: any) {
     const [isOpen, setIsOpen] = useState(false)
+    const [isCustomPicking, setIsCustomPicking] = useState(false)
+    const [currentMonth, setCurrentMonth] = useState(new Date())
+
+    const [tempStart, setTempStart] = useState<Date | null>(null)
+    const [tempEnd, setTempEnd] = useState<Date | null>(null)
+
+    // Sync temp selection with customRange
+    useEffect(() => {
+        if (customRange.start) setTempStart(new Date(customRange.start))
+        if (customRange.end) setTempEnd(new Date(customRange.end))
+    }, [customRange])
+
     const selectedLabel = TIME_RANGE_OPTIONS.find(o => o.value === timeRange)?.label || 'เลือกช่วงเวลา'
+
+    const handleSelectOption = (value: string) => {
+        if (value === 'custom') {
+            setIsCustomPicking(true)
+        } else {
+            setTimeRange(value)
+            setIsOpen(false)
+            setIsCustomPicking(false)
+        }
+    }
+
+    // Calendar generation
+    const year = currentMonth.getFullYear()
+    const month = currentMonth.getMonth()
+    const firstDay = new Date(year, month, 1)
+    const startDayOfWeek = firstDay.getDay()
+    const totalDays = new Date(year, month + 1, 0).getDate()
+
+    const daysArray: (Date | null)[] = []
+    for (let i = 0; i < startDayOfWeek; i++) {
+        daysArray.push(null)
+    }
+    for (let d = 1; d <= totalDays; d++) {
+        daysArray.push(new Date(year, month, d))
+    }
+
+    const monthNames = [
+        'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+        'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+    ]
+
+    const handlePrevMonth = (e: React.MouseEvent) => {
+        e.stopPropagation()
+        setCurrentMonth(new Date(year, month - 1, 1))
+    }
+
+    const handleNextMonth = (e: React.MouseEvent) => {
+        e.stopPropagation()
+        setCurrentMonth(new Date(year, month + 1, 1))
+    }
+
+    const handleDayClick = (day: Date, e: React.MouseEvent) => {
+        e.stopPropagation()
+        if (!tempStart || (tempStart && tempEnd)) {
+            setTempStart(day)
+            setTempEnd(null)
+        } else {
+            if (day < tempStart) {
+                setTempStart(day)
+                setTempEnd(null)
+            } else {
+                setTempEnd(day)
+            }
+        }
+    }
+
+    const handleApplyCustomRange = (e: React.MouseEvent) => {
+        e.stopPropagation()
+        if (tempStart && tempEnd) {
+            const startStr = tempStart.toISOString().split('T')[0]
+            const endStr = tempEnd.toISOString().split('T')[0]
+            setCustomRange({ start: startStr, end: endStr })
+            setTimeRange('custom')
+            setIsOpen(false)
+            setIsCustomPicking(false)
+        }
+    }
+
+    const handleCancelCustom = (e: React.MouseEvent) => {
+        e.stopPropagation()
+        setIsCustomPicking(false)
+    }
+
+    const formattedCustomRange = (customRange.start && customRange.end)
+        ? `${new Date(customRange.start).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })} - ${new Date(customRange.end).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })}`
+        : ''
 
     return (
         <div className="flex items-center gap-4">
-            {timeRange === 'custom' && (
-                <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-4">
-                    <input type="date" value={customRange.start} onChange={e => setCustomRange((prev: any) => ({ ...prev, start: e.target.value }))} className="px-3 py-1.5 text-[10px] font-black uppercase border border-gray-200 rounded-sm outline-none focus:border-black" />
-                    <span className="text-[10px] font-black text-gray-400">-</span>
-                    <input type="date" value={customRange.end} onChange={e => setCustomRange((prev: any) => ({ ...prev, end: e.target.value }))} className="px-3 py-1.5 text-[10px] font-black uppercase border border-gray-200 rounded-sm outline-none focus:border-black" />
+            {timeRange === 'custom' && formattedCustomRange && (
+                <div className="text-[11px] font-black text-gray-500 bg-gray-100/80 px-3 py-1.5 rounded-full animate-in fade-in">
+                    {formattedCustomRange}
                 </div>
             )}
             <div className="relative group">
                 <button
-                    onClick={() => setIsOpen(!isOpen)}
+                    onClick={() => {
+                        setIsOpen(!isOpen)
+                        if (!isOpen) {
+                            setIsCustomPicking(timeRange === 'custom')
+                        }
+                    }}
                     className="flex items-center gap-2 px-4 py-2.5 text-[11px] font-black uppercase tracking-widest bg-white border border-neutral-100 rounded-full hover:bg-neutral-50 transition-all text-neutral-800 focus:outline-none shadow-sm"
                 >
                     <Calendar size={14} className="text-neutral-400 group-hover:text-black transition-colors" />
-                    <span>{selectedLabel}</span>
+                    <span>{timeRange === 'custom' ? 'กำหนดเอง' : selectedLabel}</span>
                     <ChevronDown size={14} className={`text-neutral-400 group-hover:text-black transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 {isOpen && (
                     <>
-                        <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>
-                        <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-neutral-100 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] z-50 overflow-hidden py-1 animate-in fade-in slide-in-from-top-2">
-                            {TIME_RANGE_OPTIONS.map(opt => (
-                                <button
-                                    key={opt.value}
-                                    onClick={() => {
-                                        setTimeRange(opt.value)
-                                        setIsOpen(false)
-                                    }}
-                                    className={`w-full text-left px-4 py-2.5 text-[11px] font-black uppercase tracking-widest transition-colors ${timeRange === opt.value ? 'bg-gray-50 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'}`}
-                                >
-                                    {opt.label}
-                                </button>
-                            ))}
+                        <div className="fixed inset-0 z-40" onClick={() => { setIsOpen(false); setIsCustomPicking(false); }}></div>
+                        <div className="absolute right-0 top-full mt-2 w-72 bg-white border border-neutral-100 rounded-3xl shadow-[0_12px_40px_rgba(0,0,0,0.16)] z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 p-4">
+                            {!isCustomPicking ? (
+                                <div className="space-y-1">
+                                    {TIME_RANGE_OPTIONS.map(opt => (
+                                        <button
+                                            key={opt.value}
+                                            onClick={() => handleSelectOption(opt.value)}
+                                            className={`w-full text-left px-4 py-3 text-xs font-black uppercase tracking-widest rounded-2xl transition-colors ${timeRange === opt.value ? 'bg-red-50 text-[#C62229]' : 'text-gray-500 hover:bg-gray-50 hover:text-black'}`}
+                                        >
+                                            {opt.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="animate-in fade-in duration-300">
+                                    {/* Calendar Header */}
+                                    <div className="flex justify-between items-center mb-4">
+                                        <button onClick={handlePrevMonth} className="p-1 hover:bg-gray-100 rounded-lg text-gray-500">
+                                            <ChevronLeft size={16} />
+                                        </button>
+                                        <span className="text-xs font-black text-black">
+                                            {monthNames[month]} {year + 543}
+                                        </span>
+                                        <button onClick={handleNextMonth} className="p-1 hover:bg-gray-100 rounded-lg text-gray-500">
+                                            <ChevronRight size={16} />
+                                        </button>
+                                    </div>
+
+                                    {/* Weekdays */}
+                                    <div className="grid grid-cols-7 gap-1 text-center text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                                        <span>อา</span>
+                                        <span>จ</span>
+                                        <span>อ</span>
+                                        <span>พ</span>
+                                        <span>พฤ</span>
+                                        <span>ศ</span>
+                                        <span>ส</span>
+                                    </div>
+
+                                    {/* Days Grid */}
+                                    <div className="grid grid-cols-7 gap-1">
+                                        {daysArray.map((day, idx) => {
+                                            if (!day) return <div key={idx} />;
+
+                                            const isSelectedStart = tempStart && day.toDateString() === tempStart.toDateString();
+                                            const isSelectedEnd = tempEnd && day.toDateString() === tempEnd.toDateString();
+                                            const isInRange = tempStart && tempEnd && day > tempStart && day < tempEnd;
+
+                                            return (
+                                                <button
+                                                    key={idx}
+                                                    onClick={(e) => handleDayClick(day, e)}
+                                                    className={`h-8 w-8 text-xs font-bold rounded-full flex items-center justify-center transition-all ${
+                                                        isSelectedStart || isSelectedEnd
+                                                            ? 'bg-[#C62229] text-white shadow-md shadow-red-500/20'
+                                                            : isInRange
+                                                            ? 'bg-red-50 text-[#C62229]'
+                                                            : 'text-gray-700 hover:bg-gray-100'
+                                                    }`}
+                                                >
+                                                    {day.getDate()}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* Actions */}
+                                    <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between gap-2">
+                                        <button
+                                            onClick={handleCancelCustom}
+                                            className="flex-1 py-2 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:bg-gray-50 rounded-xl"
+                                        >
+                                            ย้อนกลับ
+                                        </button>
+                                        <button
+                                            onClick={handleApplyCustomRange}
+                                            disabled={!tempStart || !tempEnd}
+                                            className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl text-white shadow-md transition-all ${
+                                                tempStart && tempEnd
+                                                    ? 'bg-[#C62229] hover:bg-red-700 shadow-red-500/10'
+                                                    : 'bg-gray-200 cursor-not-allowed text-gray-400 shadow-none'
+                                            }`}
+                                        >
+                                            ยืนยัน
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </>
                 )}
@@ -196,6 +362,8 @@ export default function POSReports({
     const [activeTab, setActiveTab] = useState<ReportTab>('overview')
     const [customRange, setCustomRange] = useState({ start: '', end: '' })
     const [showAddExpense, setShowAddExpense] = useState(false)
+    const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false)
+    const [reportSearchTerm, setReportSearchTerm] = useState('')
 
     const role = profile?.role === 'admin' ? 'admin' : (profile?.staff_level || 'staff')
     const hasProfitPermission = role === 'admin' || (shopSettings?.role_permissions?.[role] || []).includes('reports:profit')
@@ -320,6 +488,11 @@ export default function POSReports({
             let comparisonDirection: 'up' | 'down' | 'neutral' = 'neutral'
             const comparisonLabel = comparisonRange?.label || 'ไม่มีช่วงเปรียบเทียบ'
 
+            let comparisonOrdersPct = 0
+            let comparisonOrdersDirection: 'up' | 'down' | 'neutral' = 'neutral'
+            let comparisonAvgTicketPct = 0
+            let comparisonAvgTicketDirection: 'up' | 'down' | 'neutral' = 'neutral'
+
             if (comparisonRange) {
                 const compareStartISO = comparisonRange.startDate.toISOString()
                 const compareEndISO = comparisonRange.endDate.toISOString()
@@ -343,6 +516,26 @@ export default function POSReports({
 
                 if (comparisonPct > 0.01) comparisonDirection = 'up'
                 else if (comparisonPct < -0.01) comparisonDirection = 'down'
+
+                // Orders Comparison
+                const previousOrdersCount = branchPreviousOrders.length
+                if (previousOrdersCount === 0) {
+                    comparisonOrdersPct = totalOrders > 0 ? 100 : 0
+                } else {
+                    comparisonOrdersPct = ((totalOrders - previousOrdersCount) / previousOrdersCount) * 100
+                }
+                if (comparisonOrdersPct > 0.01) comparisonOrdersDirection = 'up'
+                else if (comparisonOrdersPct < -0.01) comparisonOrdersDirection = 'down'
+
+                // Avg Ticket Comparison
+                const previousAvgTicket = previousOrdersCount > 0 ? (previousRevenue / previousOrdersCount) : 0
+                if (previousAvgTicket === 0) {
+                    comparisonAvgTicketPct = averageTicketSize > 0 ? 100 : 0
+                } else {
+                    comparisonAvgTicketPct = ((averageTicketSize - previousAvgTicket) / previousAvgTicket) * 100
+                }
+                if (comparisonAvgTicketPct > 0.01) comparisonAvgTicketDirection = 'up'
+                else if (comparisonAvgTicketPct < -0.01) comparisonAvgTicketDirection = 'down'
             }
 
             const trendMap: Record<string, number> = {}
@@ -458,11 +651,11 @@ export default function POSReports({
             let topModifiers: any[] = []
             let actualCogs = 0
 
-            const { data: menuList } = await supabase.from('pos_menu_items').select('id, name, recipe_data, category_id, status').eq('status', 'active')
+            const { data: menuList } = await supabase.from('pos_menu_items').select('id, name, recipe_data, category_id, status, image_url').eq('status', 'active')
             const { data: modifierList } = await supabase.from('pos_menu_modifiers').select('id, name, recipe_data')
             const { data: categories } = await supabase.from('pos_menu_categories').select('id, name')
             
-            const menuMap = new Map(menuList?.map(m => [m.id, { name: m.name, category_id: m.category_id, recipe_data: m.recipe_data }]))
+            const menuMap = new Map(menuList?.map(m => [m.id, { name: m.name, category_id: m.category_id, recipe_data: m.recipe_data, image_url: m.image_url }]))
             const catMap = new Map(categories?.map(c => [c.id, c.name]))
             const itemAggr: Record<string, any> = {}
             const catAggr: Record<string, any> = {}
@@ -470,7 +663,7 @@ export default function POSReports({
 
             // Initialize itemAggr with all active menus to catch 0 sales
             menuList?.forEach(m => {
-                itemAggr[m.name] = { name: m.name, quantity: 0, revenue: 0 }
+                itemAggr[m.name] = { name: m.name, quantity: 0, revenue: 0, image_url: m.image_url }
             })
 
             if (orderIds.length > 0) {
@@ -487,7 +680,7 @@ export default function POSReports({
                     const itemName = mInfo?.name || 'Unknown'
                     const catName = catMap.get(mInfo?.category_id) || 'ไม่มีหมวดหมู่'
 
-                    if (!itemAggr[itemName]) itemAggr[itemName] = { name: itemName, quantity: 0, revenue: 0 }
+                    if (!itemAggr[itemName]) itemAggr[itemName] = { name: itemName, quantity: 0, revenue: 0, image_url: mInfo?.image_url }
                     itemAggr[itemName].quantity += item.quantity || 0; itemAggr[itemName].revenue += Number(item.subtotal) || 0
 
                     if (!catAggr[catName]) catAggr[catName] = { name: catName, quantity: 0, revenue: 0 }
@@ -609,7 +802,8 @@ export default function POSReports({
                 menuPerformance: menuPerf, categoryPerformance: categoryPerf, worstPerformance: worstPerf, expenseList: validExpenses || [],
                 staffList: branchStaff, workedStaff: workedStaffList,
                 paymentData, varianceCost, platformGpData, totalGpFee, netAfterGp: netRevenue - totalGpFee,
-                comparisonPct, comparisonLabel, comparisonBaseNetRevenue, comparisonDirection
+                comparisonPct, comparisonLabel, comparisonBaseNetRevenue, comparisonDirection,
+                comparisonOrdersPct, comparisonOrdersDirection, comparisonAvgTicketPct, comparisonAvgTicketDirection
             })
         } catch (err) {
             console.error(err)
@@ -619,14 +813,14 @@ export default function POSReports({
     }
 
     return (
-        <div className="p-4 sm:p-6 lg:p-10 font-sans overflow-y-auto no-scrollbar bg-white min-h-screen pb-32">
-            <div className="flex overflow-x-auto no-scrollbar gap-6 sm:gap-8 mb-8 border-b border-neutral-100">
+        <div className="p-4 sm:p-6 lg:p-10 font-sans overflow-y-auto no-scrollbar bg-[#F9F9F6] h-full pb-32">
+            {/* Category tabs list in original style (underline style) */}
+            <div className="flex overflow-x-auto no-scrollbar mb-8 border-b border-neutral-200 w-full">
                 {(['overview', 'menu', 'payment', 'inventory', 'expenses', 'discounts_voids'] as ReportTab[]).map((tab) => (
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
-                        className={`whitespace-nowrap pb-3 text-[13px] font-bold transition-all relative ${activeTab === tab ? 'text-[#0F172A]' : 'text-[#9CA3AF] hover:text-neutral-700'
-                            }`}
+                        className={`flex-1 text-center whitespace-nowrap pb-3 text-[13px] font-bold transition-all relative ${activeTab === tab ? 'text-[#0F172A]' : 'text-[#9CA3AF] hover:text-neutral-700'}`}
                     >
                         {tab === 'overview' ? 'ภาพรวม' : tab === 'menu' ? 'อันดับขายดี' : tab === 'payment' ? 'การเงิน' : tab === 'inventory' ? 'สต็อกสินค้า' : tab === 'expenses' ? 'ค่าใช้จ่าย' : 'ส่วนลด/ยกเลิก'}
                         {activeTab === tab && (
@@ -636,19 +830,67 @@ export default function POSReports({
                 ))}
             </div>
 
+            {/* Title & Export Button */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                <h1 className="text-xl font-black text-black">รายงานยอดขาย</h1>
+                <button className="flex items-center justify-center gap-2 bg-[#C62229] hover:bg-red-700 text-white px-5 py-3 rounded-2xl text-xs font-black shadow-md transition-all">
+                    <Download size={14} />
+                    <span>ส่งออกรายงาน</span>
+                </button>
+            </div>
+
+
             {loading ? (
-                <div className="h-[60vh] flex flex-col items-center justify-center opacity-20 font-bold gap-6">
-                    <Loader2 className="animate-spin" size={64} />
-                    <p className="text-[10px] font-black uppercase tracking-[0.4em]">{locale === 'en' ? 'กำลังคัดกรองพนักงานคาเฟ่เฉพาะสาขา...' : locale === 'zh' ? 'กำลังคัดกรองพนักงานคาเฟ่เฉพาะสาขา...' : 'กำลังคัดกรองพนักงานคาเฟ่เฉพาะสาขา...'}</p>
+                <div className="h-[40vh] flex flex-col items-center justify-center opacity-30 font-bold gap-6">
+                    <Loader2 className="animate-spin text-[#C62229]" size={48} />
+                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-black">กำลังคำนวณและประมวลผลข้อมูล...</p>
                 </div>
             ) : (
-                <div className="space-y-12 animate-in fade-in duration-700">
-                    {activeTab === 'overview' && <OverviewReport financials={financials} hasProfitPermission={hasProfitPermission} />}
-                    {activeTab === 'menu' && <MenuReport menuPerformance={financials.menuPerformance} categoryPerformance={financials.categoryPerformance} worstPerformance={financials.worstPerformance} topModifiers={financials.topModifiers} />}
-                    {activeTab === 'payment' && <PaymentReport paymentData={financials.paymentData} totalRevenue={financials.netRevenue} platformGpData={financials.platformGpData} totalGpFee={financials.totalGpFee} hasProfitPermission={hasProfitPermission} />}
-                    {activeTab === 'inventory' && <InventoryReport varianceCost={financials.varianceCost} />}
-                    {activeTab === 'expenses' && <ExpensesTab expenseList={financials.expenseList} total={financials.otherExpenses} onDelete={() => fetchData()} onAdd={() => setShowAddExpense(true)} />}
-                    {activeTab === 'discounts_voids' && <DiscountsVoidsReport discountTotal={financials.discountTotal} voidedOrders={financials.voidedOrders} />}
+                <div className="animate-in fade-in duration-500">
+                    {activeTab === 'overview' && (
+                        <OverviewReport
+                            financials={financials}
+                            hasProfitPermission={hasProfitPermission}
+                            menuPerformance={financials.menuPerformance}
+                            setActiveTab={setActiveTab}
+                        />
+                    )}
+                    {activeTab === 'menu' && (
+                        <MenuReport
+                            menuPerformance={financials.menuPerformance}
+                            categoryPerformance={financials.categoryPerformance}
+                            worstPerformance={financials.worstPerformance}
+                            topModifiers={financials.topModifiers}
+                        />
+                    )}
+                    {activeTab === 'payment' && (
+                        <PaymentReport
+                            paymentData={financials.paymentData}
+                            totalRevenue={financials.netRevenue}
+                            platformGpData={financials.platformGpData}
+                            totalGpFee={financials.totalGpFee}
+                            hasProfitPermission={hasProfitPermission}
+                        />
+                    )}
+                    {activeTab === 'inventory' && (
+                        <InventoryReport
+                            varianceCost={financials.varianceCost}
+                        />
+                    )}
+                    {activeTab === 'expenses' && (
+                        <ExpensesTab
+                            expenseList={financials.expenseList}
+                            total={financials.otherExpenses}
+                            onDelete={() => fetchData()}
+                            onAdd={() => setShowAddExpense(true)}
+                        />
+                    )}
+                    {activeTab === 'discounts_voids' && (
+                        <DiscountsVoidsReport
+                            discountTotal={financials.discountTotal}
+                            voidedOrders={financials.voidedOrders}
+                        />
+                    )}
                 </div>
             )}
 
@@ -689,417 +931,296 @@ export default function POSReports({
     )
 }
 
-function OverviewReport({ financials, hasProfitPermission }: any) {
+function OverviewReport({ financials, hasProfitPermission, menuPerformance, setActiveTab }: any) {
     const { locale } = useI18n();
     const [expandLabor, setExpandLabor] = useState(false)
     const [expandExpenses, setExpandExpenses] = useState(false)
-    const totalCosts = financials.theoreticalCogs + financials.laborCost + financials.otherExpenses + (financials.totalGpFee || 0)
+
+    const comparisonLabel = financials.comparisonLabel || 'เทียบช่วงก่อนหน้า'
+
     const comparisonPct = Number(financials.comparisonPct || 0)
     const comparisonDirection = financials.comparisonDirection || 'neutral'
-    const comparisonLabel = financials.comparisonLabel || 'เทียบช่วงก่อนหน้า'
-    const comparisonText = `${comparisonPct >= 0 ? '+' : ''}${comparisonPct.toFixed(1)}% ${comparisonLabel}`
-    const comparisonTone = comparisonDirection === 'up'
-        ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
-        : comparisonDirection === 'down'
-            ? 'bg-red-50 text-red-700 border-red-100'
-            : 'bg-gray-50 text-gray-500 border-gray-100'
+    const isUp = comparisonDirection === 'up'
+    const displayPct = Math.abs(comparisonPct).toFixed(1)
 
-    const mobileCharts = [
-        {
-            key: 'sales-trend',
-            title: 'แนวโน้มรายได้',
-            subtitle: 'ยอดขายตามช่วงเวลาที่เลือก',
-            badge: comparisonText,
-            badgeTone: comparisonTone,
-            content: (
-                <div className="h-[190px]">
+    const comparisonOrdersPct = Number(financials.comparisonOrdersPct || 0)
+    const comparisonOrdersDirection = financials.comparisonOrdersDirection || 'neutral'
+    const isOrdersUp = comparisonOrdersDirection === 'up'
+    const displayOrdersPct = Math.abs(comparisonOrdersPct).toFixed(1)
+
+    const comparisonAvgTicketPct = Number(financials.comparisonAvgTicketPct || 0)
+    const comparisonAvgTicketDirection = financials.comparisonAvgTicketDirection || 'neutral'
+    const isAvgTicketUp = comparisonAvgTicketDirection === 'up'
+    const displayAvgTicketPct = Math.abs(comparisonAvgTicketPct).toFixed(1)
+
+    // Helper for units
+    const getItemUnit = (name: string) => {
+        const lower = name.toLowerCase();
+        if (lower.includes('ข้าว') || lower.includes('ไข่') || lower.includes('กะเพรา') || lower.includes('แกง')) return 'จาน';
+        if (lower.includes('เค้ก') || lower.includes('พาย') || lower.includes('ครัวซอง') || lower.includes('ทาร์ต') || lower.includes('โดนัท') || lower.includes('ชีสพาย')) return 'ชิ้น';
+        return 'แก้ว';
+    }
+
+    const netProfit = financials.netProfit || 0
+    const isProfit = netProfit >= 0
+
+    return (
+        <div className="space-y-6 sm:space-y-8">
+            {/* Metric Cards Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+                {/* 1. Gross Revenue */}
+                <div className="bg-white border border-gray-200/60 rounded-3xl p-6 flex items-start gap-4 shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
+                    <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center shrink-0">
+                        <BarChart3 size={20} className="text-[#C62229]" />
+                    </div>
+                    <div>
+                        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">ยอดขายรวม</span>
+                        <h3 className="text-2xl font-black text-black mt-1">฿{Math.floor(financials.netRevenue || 0).toLocaleString()}</h3>
+                        <div className="mt-2 flex items-center gap-1 text-[10px] text-gray-400 font-bold">
+                            <span>{comparisonLabel}</span>
+                            {comparisonDirection !== 'neutral' && (
+                                <span className={`flex items-center gap-0.5 font-black ${isUp ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                    {isUp ? '▲' : '▼'} {displayPct}%
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* 2. Total Orders */}
+                <div className="bg-white border border-gray-200/60 rounded-3xl p-6 flex items-start gap-4 shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
+                    <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center shrink-0">
+                        <ShoppingBag size={20} className="text-[#C62229]" />
+                    </div>
+                    <div>
+                        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">ออเดอร์ทั้งหมด</span>
+                        <h3 className="text-2xl font-black text-black mt-1">
+                            {financials.totalOrders || 0} <span className="text-sm font-bold text-gray-450 ml-1">ออเดอร์</span>
+                        </h3>
+                        <div className="mt-2 flex items-center gap-1 text-[10px] text-gray-400 font-bold">
+                            <span>{comparisonLabel}</span>
+                            {comparisonOrdersDirection !== 'neutral' && (
+                                <span className={`flex items-center gap-0.5 font-black ${isOrdersUp ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                    {isOrdersUp ? '▲' : '▼'} {displayOrdersPct}%
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* 3. Average Order Value */}
+                <div className="bg-white border border-gray-200/60 rounded-3xl p-6 flex items-start gap-4 shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
+                    <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center shrink-0">
+                        <CreditCard size={20} className="text-[#C62229]" />
+                    </div>
+                    <div>
+                        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">ค่าเฉลี่ยต่อออเดอร์</span>
+                        <h3 className="text-2xl font-black text-black mt-1">฿{Math.floor(financials.averageTicketSize || 0).toLocaleString()}</h3>
+                        <div className="mt-2 flex items-center gap-1 text-[10px] text-gray-400 font-bold">
+                            <span>{comparisonLabel}</span>
+                            {comparisonAvgTicketDirection !== 'neutral' && (
+                                <span className={`flex items-center gap-0.5 font-black ${isAvgTicketUp ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                    {isAvgTicketUp ? '▲' : '▼'} {displayAvgTicketPct}%
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Sales Trend Chart Card */}
+            <div className="bg-white border border-gray-200/60 rounded-3xl p-6 sm:p-8 shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-[15px] font-black text-black">ยอดขายตามช่วงเวลา</h3>
+                    <div className="flex items-center gap-1 text-xs font-bold text-gray-500 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-xl cursor-pointer hover:bg-gray-100">
+                        <span>รายชั่วโมง</span>
+                        <ChevronDown size={12} />
+                    </div>
+                </div>
+                <div className="h-[280px] w-full -ml-4">
                     <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={financials.salesTrend}>
-                            <CartesianGrid strokeDasharray="0" vertical={false} stroke="#ecebe8" />
-                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 800, fill: '#a3a3a3' }} />
-                            <YAxis hide />
-                            <Tooltip contentStyle={{ backgroundColor: '#1A1A18', border: 'none', color: '#fff' }} />
-                            <Area type="monotone" dataKey="value" stroke="#111111" strokeWidth={3} fillOpacity={0.06} fill="#111111" />
+                        <AreaChart data={financials.hourlyHeatmap} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                            <defs>
+                                <linearGradient id="colorRedGradient" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#C62229" stopOpacity={0.2}/>
+                                    <stop offset="95%" stopColor="#C62229" stopOpacity={0}/>
+                                </linearGradient>
+                            </defs>
+                            <XAxis dataKey="hour" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9CA3AF', fontWeight: 600 }} dy={8} />
+                            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9CA3AF', fontWeight: 600 }} dx={-8} />
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
+                            <Tooltip
+                                contentStyle={{ backgroundColor: '#1E293B', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '12px', padding: '10px 14px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
+                                itemStyle={{ color: '#fff', fontSize: '14px', fontWeight: '900' }}
+                                labelStyle={{ color: '#9CA3AF', fontSize: '10px', marginBottom: '4px' }}
+                                formatter={(value: any) => [`฿${Number(value).toLocaleString()}`, 'ยอดขาย']}
+                            />
+                            <Area type="monotone" dataKey="revenue" stroke="#C62229" strokeWidth={3} fillOpacity={1} fill="url(#colorRedGradient)" activeDot={{ r: 6, fill: '#C62229', stroke: '#fff', strokeWidth: 2 }} dot={{ r: 4, fill: '#C62229', strokeWidth: 0 }} />
                         </AreaChart>
                     </ResponsiveContainer>
                 </div>
-            )
-        },
-        {
-            key: 'hourly',
-            title: 'ช่วงเวลาขายดี',
-            subtitle: 'ดูยอดและจำนวนออเดอร์รายช่วงเวลา',
-            badge: `${financials.hourlyHeatmap?.reduce((sum: number, item: any) => sum + (item.orders || 0), 0) || 0} ออเดอร์`,
-            badgeTone: 'bg-[#F4F4F1] text-gray-600 border-gray-200',
-            content: (
-                <div className="h-[190px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={financials.hourlyHeatmap}>
-                            <CartesianGrid strokeDasharray="0" vertical={false} stroke="#ecebe8" />
-                            <XAxis dataKey="hour" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 800, fill: '#a3a3a3' }} />
-                            <YAxis hide />
-                            <Tooltip contentStyle={{ backgroundColor: '#1A1A18', border: 'none', color: '#fff' }} cursor={{ fill: '#f5f5f5' }} />
-                            <Bar dataKey="revenue" fill="#1A1A18" radius={[6, 6, 0, 0]} />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </div>
-            )
-        },
-        ...(hasProfitPermission ? [{
-            key: 'cost-breakdown',
-            title: 'ต้นทุนและกำไร',
-            subtitle: 'ดูสัดส่วนเงินที่ออกจากยอดขาย',
-            badge: financials.netProfit >= 0 ? 'กำไรสุทธิ' : 'ผลลัพธ์ติดลบ',
-            badgeTone: financials.netProfit >= 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-red-50 text-red-700 border-red-100',
-            content: (
-                <div className="space-y-3">
-                    {[
-                        { label: 'วัตถุดิบ', value: Number(financials.theoreticalCogs || 0), tone: 'bg-red-400' },
-                        { label: 'ค่าแรง', value: Number(financials.laborCost || 0), tone: 'bg-orange-400' },
-                        { label: 'ค่าใช้จ่ายอื่น', value: Number(financials.otherExpenses || 0), tone: 'bg-amber-300' },
-                        { label: 'GP Delivery', value: Number(financials.totalGpFee || 0), tone: 'bg-pink-300' },
-                        { label: 'กำไรสุทธิ', value: Math.max(Number(financials.netProfit || 0), 0), tone: 'bg-emerald-400' }
-                    ].filter(item => item.value > 0).map((item) => {
-                        const percent = financials.totalRevenue > 0 ? (item.value / financials.totalRevenue) * 100 : 0
-                        return (
-                            <div key={item.label} className="space-y-1.5">
-                                <div className="flex items-center justify-between text-[11px] font-black">
-                                    <span className="text-[#1A1A18]">{item.label}</span>
-                                    <span className="text-gray-500">{percent.toFixed(1)}%</span>
-                                </div>
-                                <div className="h-2.5 overflow-hidden rounded-full bg-[#F4F4F1]">
-                                    <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(percent, 100)}%` }} transition={{ duration: 1, ease: 'easeOut' }} className={`h-full rounded-full ${item.tone}`} />
-                                </div>
-                            </div>
-                        )
-                    })}
-                    <div className="grid grid-cols-2 gap-3 pt-2">
-                        <div className="rounded-[1.25rem] bg-[#F8F8F6] px-4 py-3">
-                            <div className="text-[10px] font-black text-gray-400">ต้นทุนรวม</div>
-                            <div className="mt-1 text-[18px] font-black text-[#1A1A18]">฿{Number(totalCosts || 0).toLocaleString()}</div>
-                        </div>
-                        <div className="rounded-[1.25rem] bg-[#F8F8F6] px-4 py-3">
-                            <div className="text-[10px] font-black text-gray-400">กำไรสุทธิ</div>
-                            <div className={`mt-1 text-[18px] font-black ${financials.netProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                                ฿{Number(financials.netProfit || 0).toLocaleString()}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )
-        }] : [])
-    ]
-    const activeHours = financials.hourlyHeatmap?.filter((h: any) => h.revenue > 0 || h.orders > 0) || []
-    const firstActiveHour = activeHours.length > 0 ? activeHours[0].hour : '08:00'
-    const lastActiveHour = activeHours.length > 0 ? activeHours[activeHours.length - 1].hour.replace(':00', ':59') : '15:59'
-    const displayTimeRange = `${firstActiveHour} - ${lastActiveHour}`
-
-    return (
-        <div className="space-y-6 sm:space-y-12">
-            <div className="sm:hidden space-y-8 pb-8">
-                <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1, duration: 0.5 }}>
-                    <div className="flex items-center gap-3">
-                        <h2 className="text-[13px] font-bold text-[#6B7280]">ยอดขายรวมวันนี้</h2>
-                        <div className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${comparisonTone}`}>{comparisonText}</div>
-                    </div>
-                    
-                    <div className="mt-2 flex items-baseline gap-1">
-                        <span className="text-[20px] font-bold text-[#9CA3AF] mb-1">฿</span>
-                        <span className="text-[44px] leading-none font-black tracking-tight text-[#0F172A]">{Math.floor(financials.netRevenue || 0).toLocaleString()}</span>
-                        <span className="text-[18px] font-bold text-[#6B7280]">.{((financials.netRevenue % 1).toFixed(2).split('.')[1]) || '00'}</span>
-                    </div>
-                    
-                    <div className="mt-2 text-[11px] font-medium text-[#9CA3AF]">
-                        {financials.comparisonDirection === 'up' ? 'เพิ่มขึ้นจาก' : financials.comparisonDirection === 'down' ? 'ลดลงจาก' : 'เท่ากับ'} ฿{Number(financials.comparisonBaseNetRevenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {financials.comparisonLabel.replace('เทียบช่วง', '').replace('เทียบ', '')}
-                    </div>
-
-                    <div className="mt-8 grid grid-cols-2 gap-4">
-                        <div>
-                            <div className="text-[11px] font-bold text-[#9CA3AF]">บิลที่ปิด</div>
-                            <div className="mt-1.5 flex items-baseline gap-1.5">
-                                <span className="text-[20px] font-black text-[#0F172A]">{financials.totalOrders || 0}</span>
-                                <span className="text-[11px] text-[#6B7280]">รายการ</span>
-                            </div>
-                        </div>
-                        <div>
-                            <div className="text-[11px] font-bold text-[#9CA3AF]">ยอดต่อบิล</div>
-                            <div className="mt-1.5 flex items-baseline gap-1">
-                                <span className="text-[11px] font-bold text-[#9CA3AF]">฿</span>
-                                <span className="text-[20px] font-black text-[#0F172A]">{Math.floor(financials.averageTicketSize || 0).toLocaleString()}</span>
-                                <span className="text-[11px] font-bold text-[#6B7280]">.{((financials.averageTicketSize % 1).toFixed(2).split('.')[1]) || '00'}</span>
-                            </div>
-                        </div>
-                    </div>
-                </motion.div>
-
-                <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2, duration: 0.5 }}>
-                    <div className="flex justify-between items-end mb-4">
-                        <h3 className="text-[14px] font-black text-[#0F172A]">ยอดขายระหว่างวัน</h3>
-                    </div>
-                    <div className="h-[180px] -mx-2">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={financials.salesTrend} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
-                                <defs>
-                                    <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#0F172A" stopOpacity={0.2}/>
-                                        <stop offset="95%" stopColor="#0F172A" stopOpacity={0}/>
-                                    </linearGradient>
-                                </defs>
-                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9CA3AF', fontWeight: 500 }} dy={10} />
-                                <YAxis hide={true} />
-                                <Tooltip 
-                                    contentStyle={{ backgroundColor: '#0F172A', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '12px', padding: '10px 14px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
-                                    itemStyle={{ color: '#fff', fontSize: '16px', fontWeight: '900' }}
-                                    labelStyle={{ color: '#9CA3AF', fontSize: '11px', marginBottom: '4px' }}
-                                    formatter={(value: any) => [`฿${Number(value).toLocaleString()}`, 'ยอดขาย']}
-                                />
-                                <Area type="natural" dataKey="value" stroke="#0F172A" strokeWidth={3} fillOpacity={1} fill="url(#colorSales)" activeDot={{ r: 5, fill: '#0F172A', stroke: '#fff', strokeWidth: 2 }} />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </div>
-                </motion.div>
-                <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.25, duration: 0.5 }} className="pt-4">
-                    <div className="flex justify-between items-end mb-4">
-                        <h3 className="text-[14px] font-black text-[#0F172A]">ช่วงเวลาที่ขายดีที่สุด</h3>
-                    </div>
-                    <div className="h-[180px] -mx-2">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={financials.hourlyHeatmap} margin={{ top: 15, right: 0, left: 0, bottom: 0 }} barCategoryGap="20%">
-                                <defs>
-                                    <linearGradient id="colorBarMobile" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0%" stopColor="#0F172A" stopOpacity={1} />
-                                        <stop offset="100%" stopColor="#475569" stopOpacity={0.9} />
-                                    </linearGradient>
-                                </defs>
-                                <XAxis dataKey="hour" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9CA3AF', fontWeight: 500 }} dy={10} />
-                                <YAxis hide={true} />
-                                <Tooltip 
-                                    contentStyle={{ backgroundColor: '#0F172A', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '12px', padding: '10px 14px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
-                                    itemStyle={{ color: '#fff', fontSize: '16px', fontWeight: '900' }}
-                                    labelStyle={{ color: '#9CA3AF', fontSize: '11px', marginBottom: '4px' }}
-                                    cursor={{ fill: '#F8FAFC' }}
-                                    formatter={(value: any) => [`฿${Number(value).toLocaleString()}`, 'ยอดขาย']}
-                                />
-                                <Bar dataKey="revenue" fill="url(#colorBarMobile)" radius={[6, 6, 0, 0]}>
-                                    <LabelList dataKey="orders" position="top" style={{ fontSize: '10px', fontWeight: '800', fill: '#0F172A' }} formatter={(val: number) => val > 0 ? `${val}` : ''} />
-                                </Bar>
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-                </motion.div>
-
-                <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3, duration: 0.5 }}>
-                    <div className="h-4"></div>
-
-                    <div className="space-y-7">
-                        <div className="flex justify-between items-center pb-5 border-b border-neutral-100">
-                            <span className="text-[13px] font-bold text-[#374151]">รายได้ยอดขาย (Gross)</span>
-                            <span className="text-[15px] font-black text-[#0F172A]">฿{Number(financials.totalRevenue || 0).toLocaleString()}</span>
-                        </div>
-
-                        {financials.discountTotal > 0 && (
-                            <div>
-                                <div className="flex justify-between items-center mb-2.5">
-                                    <div className="flex items-center gap-2.5">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-[#EAB308]"></span>
-                                        <span className="text-[12px] font-medium text-[#4B5563]">ส่วนลดที่ให้ลูกค้า</span>
-                                    </div>
-                                    <span className="text-[13px] font-black text-[#1F2937]">-฿{Number(financials.discountTotal || 0).toLocaleString()}</span>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <div className="flex-1 bg-neutral-100 h-[3px] rounded-full overflow-hidden">
-                                        <div className="bg-[#EAB308] h-full rounded-full" style={{ width: financials.totalRevenue > 0 ? `${(financials.discountTotal / financials.totalRevenue) * 100}%` : '0%' }}></div>
-                                    </div>
-                                    <span className="text-[10px] font-medium text-[#9CA3AF] w-8 text-right">{financials.totalRevenue > 0 ? ((financials.discountTotal / financials.totalRevenue) * 100).toFixed(1) : '0'}%</span>
-                                </div>
-                            </div>
-                        )}
-
-                        <div>
-                            <div className="flex justify-between items-center mb-2.5">
-                                <div className="flex items-center gap-2.5">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-[#F97316]"></span>
-                                    <span className="text-[12px] font-medium text-[#4B5563]">ต้นทุนวัตถุดิบ</span>
-                                </div>
-                                <span className="text-[13px] font-black text-[#1F2937]">-฿{Number(financials.theoreticalCogs || 0).toLocaleString()}</span>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <div className="flex-1 bg-neutral-100 h-[3px] rounded-full overflow-hidden">
-                                    <div className="bg-[#F97316] h-full rounded-full" style={{ width: financials.totalRevenue > 0 ? `${(financials.theoreticalCogs / financials.totalRevenue) * 100}%` : '0%' }}></div>
-                                </div>
-                                <span className="text-[10px] font-medium text-[#9CA3AF] w-8 text-right">{financials.totalRevenue > 0 ? ((financials.theoreticalCogs / financials.totalRevenue) * 100).toFixed(1) : '0'}%</span>
-                            </div>
-                        </div>
-
-                        <div>
-                            <button onClick={() => setExpandLabor(!expandLabor)} className="w-full flex justify-between items-center mb-2.5">
-                                <div className="flex items-center gap-2.5">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-[#3B82F6]"></span>
-                                    <span className="text-[12px] font-medium text-[#4B5563]">ค่าแรงพนักงาน {expandLabor ? <ChevronUp size={12} className="inline ml-1 text-gray-400" /> : <ChevronDown size={12} className="inline ml-1 text-gray-400" />}</span>
-                                </div>
-                                <span className="text-[13px] font-black text-[#1F2937]">-฿{Number(financials.laborCost || 0).toLocaleString()}</span>
-                            </button>
-                            {expandLabor && (
-                                <div className="pl-6 mb-2.5 space-y-1.5">
-                                    {financials.workedStaff?.map((s: any, idx: number) => (
-                                        <div key={idx} className="flex justify-between text-[11px] text-gray-500 font-medium">
-                                            <span>{s.name}</span>
-                                            <span>฿{Number(s.wage).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                            <div className="flex items-center gap-3">
-                                <div className="flex-1 bg-neutral-100 h-[3px] rounded-full overflow-hidden">
-                                    <div className="bg-[#3B82F6] h-full rounded-full" style={{ width: financials.totalRevenue > 0 ? `${(financials.laborCost / financials.totalRevenue) * 100}%` : '0%' }}></div>
-                                </div>
-                                <span className="text-[10px] font-medium text-[#9CA3AF] w-8 text-right">{financials.totalRevenue > 0 ? ((financials.laborCost / financials.totalRevenue) * 100).toFixed(1) : '0'}%</span>
-                            </div>
-                        </div>
-
-                        <div>
-                            <button onClick={() => setExpandExpenses(!expandExpenses)} className="w-full flex justify-between items-center mb-2.5">
-                                <div className="flex items-center gap-2.5">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-[#A855F7]"></span>
-                                    <span className="text-[12px] font-medium text-[#4B5563]">ค่าใช้จ่ายอื่นๆ {expandExpenses ? <ChevronUp size={12} className="inline ml-1 text-gray-400" /> : <ChevronDown size={12} className="inline ml-1 text-gray-400" />}</span>
-                                </div>
-                                <span className="text-[13px] font-black text-[#1F2937]">-฿{Number(financials.otherExpenses || 0).toLocaleString()}</span>
-                            </button>
-                            {expandExpenses && (
-                                <div className="pl-6 mb-2.5 space-y-1.5">
-                                    {financials.expenseList?.map((e: any, idx: number) => (
-                                        <div key={idx} className="flex justify-between text-[11px] text-gray-500 font-medium">
-                                            <span>{e.name}</span>
-                                            <span>฿{Number(e.amount).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                            <div className="flex items-center gap-3">
-                                <div className="flex-1 bg-neutral-100 h-[3px] rounded-full overflow-hidden">
-                                    <div className="bg-[#A855F7] h-full rounded-full" style={{ width: financials.totalRevenue > 0 ? `${(financials.otherExpenses / financials.totalRevenue) * 100}%` : '0%' }}></div>
-                                </div>
-                                <span className="text-[10px] font-medium text-[#9CA3AF] w-8 text-right">{financials.totalRevenue > 0 ? ((financials.otherExpenses / financials.totalRevenue) * 100).toFixed(1) : '0'}%</span>
-                            </div>
-                        </div>
-
-
-
-                        {financials.totalGpFee > 0 && (
-                            <div>
-                                <div className="flex justify-between items-center mb-2.5">
-                                    <div className="flex items-center gap-2.5">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-[#F43F5E]"></span>
-                                        <span className="text-[12px] font-medium text-[#4B5563]">GP Delivery</span>
-                                    </div>
-                                    <span className="text-[13px] font-black text-[#1F2937]">-฿{Number(financials.totalGpFee || 0).toLocaleString()}</span>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <div className="flex-1 bg-neutral-100 h-[3px] rounded-full overflow-hidden">
-                                        <div className="bg-[#F43F5E] h-full rounded-full" style={{ width: financials.totalRevenue > 0 ? `${(financials.totalGpFee / financials.totalRevenue) * 100}%` : '0%' }}></div>
-                                    </div>
-                                    <span className="text-[10px] font-medium text-[#9CA3AF] w-8 text-right">{financials.totalRevenue > 0 ? ((financials.totalGpFee / financials.totalRevenue) * 100).toFixed(1) : '0'}%</span>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </motion.div>
-
-                <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4, duration: 0.5 }} className={`relative overflow-hidden rounded-[24px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mt-8 ${financials.netProfit >= 0 ? 'bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-100' : 'bg-gradient-to-br from-rose-50 to-rose-100/50 border border-rose-100'}`}>
-                    <div className="absolute -top-4 -right-4 p-4 opacity-10">
-                        {financials.netProfit >= 0 ? <TrendingUp size={120} className="text-emerald-500" /> : <TrendingDown size={120} className="text-rose-500" />}
-                    </div>
-                    <div className="relative z-10">
-                        <div className="flex justify-between items-start">
-                            <span className={`text-[13px] font-bold ${financials.netProfit >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>กำไรสุทธิ (Net Profit)</span>
-                            <span className={`px-3 py-1 rounded-full text-[10px] font-bold ${financials.netProfit >= 0 ? 'bg-emerald-200/50 text-emerald-800' : 'bg-rose-200/50 text-rose-800'}`}>
-                                {financials.netProfit >= 0 ? '+ กำไร' : '- ขาดทุน'}
-                            </span>
-                        </div>
-                        <div className={`mt-2 flex items-baseline gap-1 ${financials.netProfit >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
-                            {financials.netProfit < 0 && <span className="text-[24px] font-bold">-</span>}
-                            <span className="text-[24px] font-black">฿</span>
-                            <span className="text-[44px] leading-none font-black tracking-tighter">{Math.floor(Math.abs(financials.netProfit)).toLocaleString()}</span>
-                            <span className="text-[18px] font-bold">.{((Math.abs(financials.netProfit) % 1).toFixed(2).split('.')[1]) || '00'}</span>
-                        </div>
-                    </div>
-                </motion.div>
             </div>
 
-            <div className="hidden sm:block space-y-10">
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-                    <MetricCard title={locale === 'en' ? 'รายได้สุทธิ (Net Sales)' : locale === 'zh' ? 'รายได้สุทธิ (Net Sales)' : 'รายได้สุทธิ (Net Sales)'} value={financials.netRevenue} icon={<DollarSign size={20} />} color="bg-emerald-50/50 text-emerald-700 ring-emerald-100" iconColor="bg-emerald-100 text-emerald-600" noAbs={true} />
-                    <MetricCard title={locale === 'en' ? 'จำนวนบิล (ออเดอร์)' : locale === 'zh' ? 'จำนวนบิล' : 'จำนวนบิล (ออเดอร์)'} value={financials.totalOrders} icon={<FileText size={20} />} color="bg-blue-50/50 text-blue-700 ring-blue-100" iconColor="bg-blue-100 text-blue-600" noAbs={true} unit="บิล" />
-                    <MetricCard title={locale === 'en' ? 'ยอดต่อบิลเฉลี่ย' : locale === 'zh' ? 'ยอดต่อบิลเฉลี่ย' : 'ยอดต่อบิลเฉลี่ย'} value={financials.averageTicketSize} icon={<ShoppingBag size={20} />} color="bg-indigo-50/50 text-indigo-700 ring-indigo-100" iconColor="bg-indigo-100 text-indigo-600" noAbs={true} />
-                    <MetricCard title={locale === 'en' ? 'ส่วนลดที่ให้ลูกค้า' : locale === 'zh' ? 'ส่วนลด' : 'ส่วนลดที่ให้ลูกค้า'} value={financials.discountTotal} icon={<Wallet size={20} />} color="bg-rose-50/50 text-rose-700 ring-rose-100" iconColor="bg-rose-100 text-rose-600" noAbs={true} />
-                </div>
-
-                <div className="grid lg:grid-cols-2 gap-4 lg:gap-6">
-                    <div className="bg-white p-8 rounded-3xl ring-1 ring-black/5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] h-[400px]">
-                        <div className="flex justify-between items-center mb-10"><h3 className="text-[12px] font-black uppercase tracking-widest text-[#1A1A18]">{locale === 'en' ? 'แนวโน้มรายได้ (รายวัน/รายชั่วโมง)' : locale === 'zh' ? 'แนวโน้มรายได้' : 'แนวโน้มรายได้'}</h3><TrendingUp size={16} className="text-neutral-300" /></div>
-                        <div className="h-[280px]"><ResponsiveContainer width="100%" height="100%"><AreaChart data={financials.salesTrend}><defs><linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#10b981" stopOpacity={0.3} /><stop offset="95%" stopColor="#10b981" stopOpacity={0} /></linearGradient></defs><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" /><XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: '#94a3b8' }} dy={10} /><YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: '#94a3b8' }} dx={-10} /><Tooltip contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.9)', backdropFilter: 'blur(8px)', border: 'none', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', color: '#0f172a', fontWeight: 'bold' }} itemStyle={{ color: '#10b981' }} /><Area type="monotone" dataKey="value" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" activeDot={{ r: 6, fill: '#10b981', stroke: '#fff', strokeWidth: 2 }} /></AreaChart></ResponsiveContainer></div>
-                    </div>
-
-                    <div className="bg-white p-8 rounded-3xl ring-1 ring-black/5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] h-[400px]">
-                        <div className="flex justify-between items-center mb-10"><h3 className="text-[12px] font-black uppercase tracking-widest text-[#1A1A18]">{locale === 'en' ? 'ยอดขายตามช่วงเวลา (Heatmap)' : locale === 'zh' ? 'ยอดขายตามช่วงเวลา' : 'ยอดขายตามช่วงเวลา (Heatmap)'}</h3><Clock size={16} className="text-neutral-300" /></div>
-                        <div className="h-[280px]"><ResponsiveContainer width="100%" height="100%"><BarChart data={financials.hourlyHeatmap}><defs><linearGradient id="colorBar" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#3b82f6" stopOpacity={1} /><stop offset="100%" stopColor="#60a5fa" stopOpacity={0.8} /></linearGradient></defs><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" /><XAxis dataKey="hour" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: '#94a3b8' }} dy={10} /><YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: '#94a3b8' }} dx={-10} /><Tooltip contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.9)', backdropFilter: 'blur(8px)', border: 'none', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', color: '#0f172a', fontWeight: 'bold' }} cursor={{ fill: '#f8fafc' }} /><Bar dataKey="revenue" fill="url(#colorBar)" radius={[6, 6, 0, 0]}><LabelList dataKey="orders" position="top" style={{ fontSize: '10px', fontWeight: 'bold', fill: '#64748b' }} /></Bar></BarChart></ResponsiveContainer></div>
-                    </div>
-                </div>
-
-                {hasProfitPermission && (
-                <div className="bg-white p-8 rounded-3xl ring-1 ring-black/5 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-                    <h3 className="text-[12px] font-black uppercase tracking-widest mb-8 border-b border-neutral-100 pb-6 text-[#1A1A18]">{locale === 'en' ? 'งบกำไรขาดทุน (P&L)' : locale === 'zh' ? 'งบกำไรขาดทุน (P&L)' : 'งบกำไรขาดทุน (P&L)'}</h3>
-                    <div className="space-y-6">
-                        <PLRow label={locale === 'en' ? 'รายได้ยอดขาย (Gross)' : locale === 'zh' ? 'รายได้ยอดขาย (Gross)' : 'รายได้ยอดขาย (Gross)'} value={financials.totalRevenue} color="text-black" />
-                        <div className="pl-6 space-y-4 border-l-2 border-gray-50">
-                            {financials.discountTotal > 0 && (
-                                <PLRow label={locale === 'en' ? '(-) ส่วนลดที่ให้ลูกค้า' : locale === 'zh' ? '(-) ส่วนลดที่ให้ลูกค้า' : '(-) ส่วนลดที่ให้ลูกค้า'} value={-financials.discountTotal} color="text-orange-500" />
-                            )}
-                            <PLRow label={locale === 'en' ? '(-) ต้นทุนวัตถุดิบ (ตามจริง)' : locale === 'zh' ? '(-) ต้นทุนวัตถุดิบ' : '(-) ต้นทุนวัตถุดิบ (ตามจริง)'} value={-financials.theoreticalCogs} color="text-red-500" />
-                            <div className="space-y-2">
-                                <button onClick={() => setExpandLabor(!expandLabor)} className="flex items-center justify-between w-full hover:bg-gray-50 p-2 -ml-2 transition-all">
-                                    <div className="flex items-center gap-2"><span className="text-[10px] font-bold text-gray-400">{locale === 'en' ? '(-) ค่าแรงพนักงานคาเฟ่ (ตามจริง)' : locale === 'zh' ? '(-) ค่าแรงพนักงานคาเฟ่ (ตามจริง)' : '(-) ค่าแรงพนักงานคาเฟ่ (ตามจริง)'}</span>{expandLabor ? <ChevronUp size={10} /> : <ChevronDown size={10} />}</div>
-                                    <span className="text-[12px] font-black text-red-500">{locale === 'en' ? '฿ ' : locale === 'zh' ? '฿ ' : '฿ '}{(-financials.laborCost).toLocaleString()}</span>
-                                </button>
-                                {expandLabor && (
-                                    <div className="pl-4 space-y-2">
-                                        {financials.workedStaff.map((s: any, idx: number) => (
-                                            <div key={idx} className="flex justify-between text-[9px] font-bold text-gray-500 bg-gray-50/50 p-2">
-                                                <span>{s.name} ({s.days} {locale === 'en' ? ' วัน)' : locale === 'zh' ? ' วัน)' : ' วัน)'}</span>
-                                                <span>{locale === 'en' ? '฿ ' : locale === 'zh' ? '฿ ' : '฿ '}{s.wage.toLocaleString()}</span>
-                                            </div>
-                                        ))}
-                                        {financials.workedStaff.length === 0 && <div className="text-[8px] italic text-gray-300">{locale === 'en' ? 'ไม่มีข้อมูลการลงเวลา' : locale === 'zh' ? 'ไม่มีข้อมูลการลงเวลา' : 'ไม่มีข้อมูลการลงเวลา'}</div>}
-                                    </div>
-                                )}
-                            </div>
-                            <div className="space-y-2">
-                                <button onClick={() => setExpandExpenses(!expandExpenses)} className="flex items-center justify-between w-full hover:bg-gray-50 p-2 -ml-2 transition-all">
-                                    <div className="flex items-center gap-2"><span className="text-[10px] font-bold text-gray-400">{locale === 'en' ? '(-) ค่าใช้จ่ายอื่นๆ' : locale === 'zh' ? '(-) ค่าใช้จ่ายอื่นๆ' : '(-) ค่าใช้จ่ายอื่นๆ'}</span>{expandExpenses ? <ChevronUp size={10} /> : <ChevronDown size={10} />}</div>
-                                    <span className="text-[12px] font-black text-red-500">{locale === 'en' ? '฿ ' : locale === 'zh' ? '฿ ' : '฿ '}{(-financials.otherExpenses).toLocaleString()}</span>
-                                </button>
-                                {expandExpenses && (
-                                    <div className="pl-4 space-y-2">
-                                        {financials.expenseList.map((e: any, idx: number) => (
-                                            <div key={idx} className="flex justify-between text-[9px] font-bold text-gray-500 bg-gray-50/50 p-2">
-                                                <span>{e.name}</span>
-                                                <span>{locale === 'en' ? '฿ ' : locale === 'zh' ? '฿ ' : '฿ '}{Number(e.amount).toLocaleString()}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                            {financials.totalGpFee > 0 && (
-                                <PLRow
-                                    label={`(-) หัก GP Delivery (${financials.platformGpData.map((p: any) => p.platform.toUpperCase()).join(', ')})`}
-                                    value={-financials.totalGpFee}
-                                    color="text-red-500"
-                                />
-                            )}
+            {/* Bottom Grid: Best Sellers & P&L Breakdown */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+                {/* Best Sellers Card */}
+                <div className="bg-white border border-gray-200/60 rounded-3xl p-6 sm:p-8 shadow-[0_4px_20px_rgba(0,0,0,0.02)] flex flex-col justify-between">
+                    <div>
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-[15px] font-black text-black">สินค้าขายดี</h3>
+                            <button onClick={() => setActiveTab('menu')} className="text-sm font-black text-[#C62229] hover:underline">
+                                ดูรายละเอียด
+                            </button>
                         </div>
-                        <div className="pt-6 border-t border-black/5 flex justify-between items-end"><span className="text-[11px] font-black uppercase tracking-[0.2em]">{locale === 'en' ? 'กำไรสุทธิ' : locale === 'zh' ? 'กำไรสุทธิ' : 'กำไรสุทธิ'}</span><span className={`text-3xl font-black ${financials.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{locale === 'en' ? '฿ ' : locale === 'zh' ? '฿ ' : '฿ '}{financials.netProfit.toLocaleString()}</span></div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="border-b border-gray-150 text-[10px] font-black uppercase tracking-widest text-gray-400">
+                                        <th className="pb-3 w-12">#</th>
+                                        <th className="pb-3">สินค้า</th>
+                                        <th className="pb-3">จำนวนที่ขาย</th>
+                                        <th className="pb-3 text-right">ยอดขาย</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {menuPerformance?.slice(0, 5).map((item: any, idx: number) => {
+                                        const unit = getItemUnit(item.name);
+                                        return (
+                                            <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors">
+                                                <td className="py-4 text-sm font-black text-gray-400 w-12">{idx + 1}</td>
+                                                <td className="py-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <img
+                                                            src={item.image_url || '/logo-splash.png'}
+                                                            alt={item.name}
+                                                            onError={(e: any) => { e.target.src = '/logo-splash.png' }}
+                                                            className="w-10 h-10 rounded-lg object-cover bg-gray-50 border border-gray-100 shrink-0"
+                                                        />
+                                                        <span className="font-bold text-sm text-black">{item.name}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="py-4 text-sm font-bold text-black">{item.quantity} {unit}</td>
+                                                <td className="py-4 text-sm font-black text-black text-right">฿{item.revenue.toLocaleString()}</td>
+                                            </tr>
+                                        )
+                                    })}
+                                    {(!menuPerformance || menuPerformance.length === 0) && (
+                                        <tr>
+                                            <td colSpan={4} className="py-12 text-center text-sm font-semibold text-gray-400">
+                                                ไม่มีข้อมูลยอดขายสำหรับเมนูในช่วงเวลานี้
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
+
+                {/* Profit & Loss Breakdown Card */}
+                {hasProfitPermission && (
+                    <div className="bg-white border border-gray-200/60 rounded-3xl p-6 sm:p-8 shadow-[0_4px_20px_rgba(0,0,0,0.02)] flex flex-col justify-between">
+                        <div>
+                            <h3 className="text-[15px] font-black text-black mb-6">โครงสร้างต้นทุนและกำไรสุทธิ (P&L)</h3>
+                            <div className="space-y-4">
+                                {/* Gross revenue */}
+                                <div className="flex justify-between items-center py-2.5 border-b border-gray-100">
+                                    <span className="text-xs font-bold text-gray-500">รายได้ยอดขาย (Gross)</span>
+                                    <span className="text-sm font-black text-black">฿{Number(financials.totalRevenue || 0).toLocaleString()}</span>
+                                </div>
+
+                                {/* Customer discount */}
+                                {financials.discountTotal > 0 && (
+                                    <div className="flex justify-between items-center py-2.5 border-b border-gray-100">
+                                        <span className="text-xs font-bold text-gray-500">(-) ส่วนลดที่ให้ลูกค้า</span>
+                                        <span className="text-sm font-black text-red-500">-฿{Number(financials.discountTotal || 0).toLocaleString()}</span>
+                                    </div>
+                                )}
+
+                                {/* Net Sales / Net Revenue */}
+                                <div className="flex justify-between items-center py-2.5 border-b border-gray-100 font-bold bg-zinc-55/20 -mx-2 px-2 rounded-xl">
+                                    <span className="text-xs text-gray-700">รายได้สุทธิ (Net Sales)</span>
+                                    <span className="text-sm text-black font-black">฿{Number(financials.netRevenue || 0).toLocaleString()}</span>
+                                </div>
+
+                                {/* Material cogs */}
+                                <div className="flex justify-between items-center py-2.5 border-b border-gray-100">
+                                    <span className="text-xs font-bold text-gray-500">(-) ต้นทุนวัตถุดิบ</span>
+                                    <span className="text-sm font-black text-red-500">-฿{Number(financials.theoreticalCogs || 0).toLocaleString()}</span>
+                                </div>
+
+                                {/* Labor Cost */}
+                                <div>
+                                    <button onClick={() => setExpandLabor(!expandLabor)} className="w-full flex justify-between items-center py-2.5 border-b border-gray-100 focus:outline-none">
+                                        <span className="text-xs font-bold text-gray-500 flex items-center gap-1">
+                                            (-) ค่าแรงพนักงาน {expandLabor ? <ChevronUp size={12} className="text-gray-400" /> : <ChevronDown size={12} className="text-gray-400" />}
+                                        </span>
+                                        <span className="text-sm font-black text-red-500">-฿{Number(financials.laborCost || 0).toLocaleString()}</span>
+                                    </button>
+                                    {expandLabor && (
+                                        <div className="pl-4 mt-2 mb-2 space-y-2 border-l border-gray-100">
+                                            {financials.workedStaff?.map((s: any, idx: number) => (
+                                                <div key={idx} className="flex justify-between text-[11px] text-gray-400 font-bold">
+                                                    <span>{s.name}</span>
+                                                    <span>฿{Number(s.wage || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                                                </div>
+                                            ))}
+                                            {(!financials.workedStaff || financials.workedStaff.length === 0) && (
+                                                <div className="text-[11px] text-gray-300 italic">ไม่มีข้อมูลการลงเวลา</div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Expenses */}
+                                <div>
+                                    <button onClick={() => setExpandExpenses(!expandExpenses)} className="w-full flex justify-between items-center py-2.5 border-b border-gray-100 focus:outline-none">
+                                        <span className="text-xs font-bold text-gray-500 flex items-center gap-1">
+                                            (-) ค่าใช้จ่ายอื่นๆ {expandExpenses ? <ChevronUp size={12} className="text-gray-400" /> : <ChevronDown size={12} className="text-gray-400" />}
+                                        </span>
+                                        <span className="text-sm font-black text-red-500">-฿{Number(financials.otherExpenses || 0).toLocaleString()}</span>
+                                    </button>
+                                    {expandExpenses && (
+                                        <div className="pl-4 mt-2 mb-2 space-y-2 border-l border-gray-100">
+                                            {financials.expenseList?.map((e: any, idx: number) => (
+                                                <div key={idx} className="flex justify-between text-[11px] text-gray-400 font-bold">
+                                                    <span>{e.name}</span>
+                                                    <span>฿{Number(e.amount || 0).toLocaleString()}</span>
+                                                </div>
+                                            ))}
+                                            {(!financials.expenseList || financials.expenseList.length === 0) && (
+                                                <div className="text-[11px] text-gray-300 italic">ไม่มีบันทึกรายการค่าใช้จ่าย</div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* GP delivery fee */}
+                                {financials.totalGpFee > 0 && (
+                                    <div className="flex justify-between items-center py-2.5 border-b border-gray-100">
+                                        <span className="text-xs font-bold text-gray-500">(-) หัก GP Delivery</span>
+                                        <span className="text-sm font-black text-red-500">-฿{Number(financials.totalGpFee || 0).toLocaleString()}</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Net profit segment */}
+                        <div 
+                            className="mt-6 p-4 rounded-2xl flex justify-between items-center transition-all duration-300"
+                            style={{
+                                backgroundColor: isProfit ? '#F0FDF4' : '#FEF2F2', // green-50, red-50
+                                color: isProfit ? '#15803D' : '#B91C1C'          // green-700, red-700
+                            }}
+                        >
+                            <span className="text-xs font-black uppercase tracking-wider">
+                                {isProfit ? 'กำไรสุทธิ (Net Profit)' : 'ขาดทุนสุทธิ (Net Loss)'}
+                            </span>
+                            <span className="text-xl font-black">
+                                {isProfit ? '' : '-'}฿{Number(Math.abs(netProfit)).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 3 })}
+                            </span>
+                        </div>
+                    </div>
                 )}
             </div>
         </div>
@@ -1151,7 +1272,7 @@ function MenuReport({ menuPerformance, categoryPerformance, worstPerformance, to
                         {activeView === 'menu' && menuPerformance?.map((item: any, idx: number) => (
                             <div key={idx} className="flex items-center justify-between px-6 py-5 hover:bg-neutral-50/50 transition-colors">
                                 <div className="min-w-0 pr-4 flex items-center gap-4">
-                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black ${idx === 0 ? 'bg-amber-100 text-amber-600' : idx === 1 ? 'bg-slate-100 text-slate-500' : idx === 2 ? 'bg-orange-100 text-orange-600' : 'bg-neutral-50 text-neutral-400'}`}>{idx + 1}</div>
+                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black ${idx === 0 ? 'bg-amber-100 text-amber-600' : idx === 1 ? 'bg-slate-100 text-slate-500' : idx === 2 ? 'bg-red-100 text-red-700' : 'bg-neutral-50 text-neutral-400'}`}>{idx + 1}</div>
                                     <div>
                                         <div className="truncate text-[14px] font-bold text-[#1A1A18]">{item.name}</div>
                                         <div className="mt-1 text-[11px] font-semibold text-neutral-400">{item.quantity} รายการ</div>
@@ -1190,7 +1311,7 @@ function MenuReport({ menuPerformance, categoryPerformance, worstPerformance, to
                         {activeView === 'modifier' && topModifiers?.map((item: any, idx: number) => (
                             <div key={idx} className="flex items-center justify-between px-6 py-5 hover:bg-neutral-50/50 transition-colors">
                                 <div className="flex items-center gap-4">
-                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black ${idx === 0 ? 'bg-amber-100 text-amber-600' : idx === 1 ? 'bg-slate-100 text-slate-500' : idx === 2 ? 'bg-orange-100 text-orange-600' : 'bg-neutral-50 text-neutral-400'}`}>{idx + 1}</div>
+                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black ${idx === 0 ? 'bg-amber-100 text-amber-600' : idx === 1 ? 'bg-slate-100 text-slate-500' : idx === 2 ? 'bg-red-100 text-red-700' : 'bg-neutral-50 text-neutral-400'}`}>{idx + 1}</div>
                                     <div className="text-[14px] font-bold text-[#1A1A18]">{item.name}</div>
                                 </div>
                                 <div className="text-[15px] font-black tracking-tight text-neutral-600">{item.count} ครั้ง</div>
@@ -1370,7 +1491,7 @@ function PaymentReport({ paymentData, totalRevenue, platformGpData, totalGpFee, 
                                 {platformGpData.map((p: any, idx: number) => (
                                     <tr key={idx} className="hover:bg-gray-50">
                                         <td className="px-6 py-4">
-                                            <span className="text-[11px] font-black uppercase bg-orange-100 text-orange-700 px-2 py-1">{p.platform}</span>
+                                            <span className="text-[11px] font-black uppercase bg-red-100 text-red-800 px-2 py-1">{p.platform}</span>
                                         </td>
                                         <td className="px-6 py-4 text-center text-[11px] font-black text-gray-500">{p.orders}</td>
                                         <td className="px-6 py-4 text-right text-[11px] font-black text-emerald-600">฿{p.revenue.toLocaleString()}</td>
@@ -1399,7 +1520,7 @@ function ExpensesTab({ expenseList, total, onDelete, onAdd }: any) {
     return (
         <div className="space-y-8">
             <div className="sm:hidden space-y-4">
-                <div className="rounded-3xl bg-[#1A1A18] p-5 text-white shadow-sm">
+                <div className="rounded-3xl bg-[#D3202B] p-5 text-white shadow-sm">
                     <div className="text-[11px] font-black text-white/60 tracking-wider">รวมค่าใช้จ่าย</div>
                     <div className="mt-3 text-[32px] leading-none font-black tracking-tight">฿{total.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
                     <button onClick={onAdd} className="mt-5 rounded-full bg-white px-5 py-3 text-[11px] font-black uppercase tracking-widest text-[#1A1A18] hover:bg-neutral-100 transition-colors">เพิ่มรายการ</button>
@@ -1433,10 +1554,10 @@ function ExpensesTab({ expenseList, total, onDelete, onAdd }: any) {
             <div className="hidden sm:block space-y-8">
                 <div className="flex justify-between items-end">
                     <div><h3 className="text-[14px] font-black uppercase tracking-widest text-[#1A1A18]">{locale === 'en' ? 'การจัดการค่าใช้จ่ายอื่นๆ' : locale === 'zh' ? 'การจัดการค่าใช้จ่ายอื่นๆ' : 'การจัดการค่าใช้จ่ายอื่นๆ'}</h3></div>
-                    <button onClick={onAdd} className="px-6 py-3 rounded-full bg-[#1A1A18] text-white text-[10px] font-black uppercase tracking-widest hover:bg-neutral-800 transition-colors">{locale === 'en' ? 'Add item' : locale === 'zh' ? '添加项目' : 'เพิ่มรายการ'}</button>
+                    <button onClick={onAdd} className="px-6 py-3 rounded-full bg-[#D3202B] text-white text-[10px] font-black uppercase tracking-widest hover:bg-neutral-800 transition-colors">{locale === 'en' ? 'Add item' : locale === 'zh' ? '添加项目' : 'เพิ่มรายการ'}</button>
                 </div>
                 <div className="grid lg:grid-cols-4 gap-6">
-                    <div className="p-8 bg-[#1A1A18] text-white rounded-3xl shadow-[0_8px_30px_rgba(26,26,24,0.3)] flex flex-col justify-center items-center h-full">
+                    <div className="p-8 bg-[#D3202B] text-white rounded-3xl shadow-[0_8px_30px_rgba(26,26,24,0.3)] flex flex-col justify-center items-center h-full">
                         <div className="text-[10px] font-bold mb-2 opacity-60 tracking-widest uppercase">{locale === 'en' ? 'รวมช่วงเวลานี้' : locale === 'zh' ? 'รวมช่วงเวลานี้' : 'รวมค่าใช้จ่ายเฉลี่ย (ตามช่วงเวลา)'}</div>
                         <div className="text-3xl font-black tracking-tight">{locale === 'en' ? '฿ ' : locale === 'zh' ? '฿ ' : '฿ '}{total.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
                     </div>

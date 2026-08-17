@@ -6,7 +6,7 @@ import { ChevronLeft, Gift, Target, CheckCircle2, Ticket } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
 import { useLiff } from '@/components/liff/LiffProvider';
-import XYLLoader from '@/components/loaders/XYLLoader';
+import RUSHUPLoader from '@/components/loaders/RUSHUPLoader';
 import Swal from 'sweetalert2';
 
 export default function MissionsPage() {
@@ -83,7 +83,7 @@ export default function MissionsPage() {
     }
   };
 
-  if (!isDataReady) return <XYLLoader tagline="กำลังโหลดข้อมูล..." />;
+  if (!isDataReady) return <RUSHUPLoader tagline="กำลังโหลดข้อมูล..." />;
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-[#1A1A18] font-sans pb-24">

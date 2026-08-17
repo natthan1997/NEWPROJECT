@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the API endpoints available in the Xylem Landscape application.
+This document describes the API endpoints available in the RUSH UP application.
 
 ## Base URL
 
@@ -332,5 +332,5 @@ try {
 ## Support
 
 For issues or questions:
-- GitHub Issues: [github.com/natthan1997/xylproject/issues](https://github.com/natthan1997/xylproject/issues)
-- Email: support@xylem.com
+- GitHub Issues: [github.com/natthan1997/rushupproject/issues](https://github.com/natthan1997/rushupproject/issues)
+- Email: support@rushupcafe.comm

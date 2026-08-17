@@ -1,5 +1,5 @@
 const fs = require('fs');
-const path = '/Users/chenchirawongpothisan/Downloads/XYL to .com/components/pos/POSTerminal.tsx';
+const path = '/Users/chenchirawongpothisan/Downloads/RUSH UP to .com/components/pos/POSTerminal.tsx';
 let content = fs.readFileSync(path, 'utf8');
 
 // Replace the bill discount wrapper

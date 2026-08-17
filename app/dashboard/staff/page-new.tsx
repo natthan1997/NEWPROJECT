@@ -247,7 +247,7 @@ export default function StaffDashboard() {
         </div>
         <Link
           href="/dashboard/staff/jobs"
-          className="bg-xylem-dark text-white px-4 py-2 rounded-lg hover:bg-xylem-medium transition-colors shadow-md"
+          className="bg-rushup-dark text-white px-4 py-2 rounded-lg hover:bg-rushup-medium transition-colors shadow-md"
         >
           {locale === 'en' ? '           ดูงานทั้งหมด         ' : locale === 'zh' ? '           ดูงานทั้งหมด         ' : '           ดูงานทั้งหมด         '}</Link>
       </div>

@@ -169,9 +169,9 @@ export default function POSDrawerManager({
       fetchShiftStats(activeShift.id)
     }
 
-    window.addEventListener('xyl-pos-shift-refresh', handleShiftRefresh as EventListener)
+    window.addEventListener('rushup-pos-shift-refresh', handleShiftRefresh as EventListener)
     return () => {
-      window.removeEventListener('xyl-pos-shift-refresh', handleShiftRefresh as EventListener)
+      window.removeEventListener('rushup-pos-shift-refresh', handleShiftRefresh as EventListener)
     }
   }, [activeShift?.id, fetchShiftStats])
 
@@ -183,7 +183,7 @@ export default function POSDrawerManager({
             onClick={() => setViewMode('current')}
             className={`px-3 py-1.5 sm:px-4 sm:py-2 text-[10px] sm:text-[11px] font-black uppercase tracking-widest rounded-lg transition-colors ${
               viewMode === 'current' 
-                ? 'bg-neutral-900 text-white shadow-sm' 
+                ? 'bg-[#D3202B] text-white shadow-sm' 
                 : 'text-neutral-500 hover:text-neutral-900 hover:bg-neutral-50'
             }`}
           >
@@ -193,7 +193,7 @@ export default function POSDrawerManager({
             onClick={() => setViewMode('history')}
             className={`px-3 py-1.5 sm:px-4 sm:py-2 text-[10px] sm:text-[11px] font-black uppercase tracking-widest rounded-lg transition-colors flex items-center gap-2 ${
               viewMode === 'history' 
-                ? 'bg-neutral-900 text-white shadow-sm' 
+                ? 'bg-[#D3202B] text-white shadow-sm' 
                 : 'text-neutral-500 hover:text-neutral-900 hover:bg-neutral-50'
             }`}
           >
@@ -377,7 +377,7 @@ export default function POSDrawerManager({
       let receiptPrinters = printers.filter((p: any) => p.type === 'receipt' || p.type === 'both')
 
       if (receiptPrinters.length === 0 && typeof window !== 'undefined') {
-        const ip = localStorage.getItem('xylem_printer_ip')
+        const ip = localStorage.getItem('rushup_printer_ip')
         if (ip) {
           receiptPrinters = [{ ip, type: 'receipt', model: 'xprinter-xp-n160ii' }]
         }
@@ -524,7 +524,7 @@ export default function POSDrawerManager({
       let receiptPrinters = printers.filter((p: any) => p.type === 'receipt' || p.type === 'both')
       
       if (receiptPrinters.length === 0) {
-        let ip = localStorage.getItem('xylem_printer_ip')
+        let ip = localStorage.getItem('rushup_printer_ip')
         if (ip) {
           receiptPrinters = [{ ip, type: 'receipt', model: 'xprinter-xp-n160ii' }]
         }
@@ -632,7 +632,7 @@ export default function POSDrawerManager({
               : 'เงินนับจริงมากกว่ายอดคาดหวัง'
         }
         const printShopData = {
-          name: shopSettings?.name || 'XYL STUDIO',
+          name: shopSettings?.name || 'RUSH UP',
           branch: shopSettings?.branch_name
         }
         try {
@@ -694,7 +694,7 @@ export default function POSDrawerManager({
     let receiptPrinters = printers.filter((p: any) => p.type === 'receipt' || p.type === 'both')
     
     if (receiptPrinters.length === 0) {
-      let ip = localStorage.getItem('xylem_printer_ip')
+      let ip = localStorage.getItem('rushup_printer_ip')
       if (ip) {
         receiptPrinters = [{ ip, type: 'receipt', model: 'xprinter-xp-n160ii' }]
       }
@@ -719,7 +719,7 @@ export default function POSDrawerManager({
     let receiptPrinters = printers.filter((p: any) => p.type === 'receipt' || p.type === 'both')
     
     if (receiptPrinters.length === 0) {
-      let ip = localStorage.getItem('xylem_printer_ip')
+      let ip = localStorage.getItem('rushup_printer_ip')
       if (ip) {
         receiptPrinters = [{ ip, type: 'receipt', model: 'xprinter-xp-n160ii' }]
       }
@@ -817,7 +817,7 @@ export default function POSDrawerManager({
           ? 'ยอดตรงตามระบบ (พิมพ์ย้อนหลัง)'
           : 'ยอดไม่ตรงตามระบบ (พิมพ์ย้อนหลัง)'
       }
-      const printShopData = { name: shopSettings?.name || 'XYL STUDIO', branch: shopSettings?.branch_name }
+      const printShopData = { name: shopSettings?.name || 'RUSH UP', branch: shopSettings?.branch_name }
       try {
         for (const rp of receiptPrinters) {
            if (!rp.ip) continue;
@@ -850,7 +850,7 @@ export default function POSDrawerManager({
                                             onClick={() => setSelectedHistoryShiftId(shift.id)}
                                             className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-colors whitespace-nowrap ${
                                                 selectedHistoryShiftId === shift.id 
-                                                    ? 'bg-neutral-900 text-white' 
+                                                    ? 'bg-[#D3202B] text-white' 
                                                     : 'bg-white border border-gray-200 text-gray-500 hover:bg-gray-50'
                                             }`}
                                         >
@@ -1000,7 +1000,7 @@ export default function POSDrawerManager({
                               {isOpeningDrawerForShift ? 'กำลังเปิดลิ้นชัก...' : 'เปิดลิ้นชักก่อนนับเงิน'}
                             </button>
                             <input type="number" value={openingCash} onChange={e => setOpeningCash(Number(e.target.value))} className="w-full bg-[#fcfcf9] border border-gray-100 py-4 sm:py-8 px-6 sm:px-8 text-2xl sm:text-4xl font-black outline-none text-black" />
-                            <button onClick={handleOpenShift} disabled={loading} className="w-full py-4 sm:py-8 bg-[#1A1A18] text-white text-[10px] sm:text-[11px] font-black uppercase tracking-[0.3em] disabled:opacity-50">{loading ? 'กำลังเปิดกะ...' : locale === 'en' ? 'เปิดกะทำงาน (START SHIFT)' : locale === 'zh' ? 'เปิดกะทำงาน (START SHIFT)' : 'เปิดกะทำงาน (START SHIFT)'}</button>
+                            <button onClick={handleOpenShift} disabled={loading} className="w-full py-4 sm:py-8 bg-[#D3202B] text-white text-[10px] sm:text-[11px] font-black uppercase tracking-[0.3em] disabled:opacity-50">{loading ? 'กำลังเปิดกะ...' : locale === 'en' ? 'เปิดกะทำงาน (START SHIFT)' : locale === 'zh' ? 'เปิดกะทำงาน (START SHIFT)' : 'เปิดกะทำงาน (START SHIFT)'}</button>
                         </div>
                     </section>
                 </div>
@@ -1181,7 +1181,7 @@ export default function POSDrawerManager({
                                     </div>
                                     <button 
                                         onClick={handleCloseShift} 
-                                        className="w-full py-5 bg-gray-900 hover:bg-black text-white text-xs font-black uppercase tracking-[0.2em] rounded-[1.5rem] transition-all shadow-lg shadow-gray-900/20 flex flex-col items-center justify-center"
+                                        className="w-full py-5 bg-[#D3202B] hover:bg-red-700 text-white text-xs font-black uppercase tracking-[0.2em] rounded-[1.5rem] transition-all shadow-lg shadow-gray-900/20 flex flex-col items-center justify-center"
                                     >
                                         <span>{locale === 'en' ? 'Close Shift' : 'ปิดกะทำงาน (Close Shift)'}</span>
                                     </button>
@@ -1253,7 +1253,7 @@ export default function POSDrawerManager({
                                                         onSetView('terminal')
                                                     }
                                                 }}
-                                                className="flex items-center gap-2 px-4 py-2.5 bg-neutral-900 text-white rounded-lg text-[12px] font-black hover:bg-neutral-800 active:scale-95 transition-all shadow-sm"
+                                                className="flex items-center gap-2 px-4 py-2.5 bg-[#D3202B] text-white rounded-lg text-[12px] font-black hover:bg-neutral-800 active:scale-95 transition-all shadow-sm"
                                             >
                                                 <span>ไปจัดการ</span>
                                                 <ChevronRight size={14} />

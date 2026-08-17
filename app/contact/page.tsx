@@ -4,7 +4,7 @@ export default function ContactPage() {
   return (
     <PublicInfoPage
       kicker="Contact"
-      title="Contact Xylem Landscape"
+      title="Contact RUSH UP"
       intro="Use this page as the contact surface for consultations, recurring care planning, workshop coordination, customer account support, or enterprise landscape discussions."
       sections={[
         {

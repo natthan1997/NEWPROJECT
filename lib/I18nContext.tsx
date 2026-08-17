@@ -31,8 +31,8 @@ type I18nContextValue = {
 
 const I18nContext = createContext<I18nContextValue | undefined>(undefined)
 
-const LOCALE_STORAGE_KEY = 'xylem.locale'
-const LOCALE_MODE_STORAGE_KEY = 'xylem.locale.mode'
+const LOCALE_STORAGE_KEY = 'rushup.locale'
+const LOCALE_MODE_STORAGE_KEY = 'rushup.locale.mode'
 const SUPPORTED_LOCALES: Locale[] = ['th', 'en', 'zh']
 
 const isSupportedLocale = (value: string | null | undefined): value is Locale => {

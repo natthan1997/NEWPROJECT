@@ -203,7 +203,7 @@ export async function sendLineFlexNotification(to: string, data: { status: strin
         layout: "vertical",
         spacing: "md",
         contents: [
-          { type: "text", text: "XYL STUDIO", weight: "bold", color: "#1A1A18", size: "sm" },
+          { type: "text", text: "RUSH UP", weight: "bold", color: "#1A1A18", size: "sm" },
           { type: "text", text: statusText, weight: "bold", size: "lg", color: "#10B981", wrap: true },
           { type: "separator", margin: "xl" },
           { type: "text", text: `ออเดอร์เลขที่ ${orderNumber}`, weight: "bold", size: "md" },
@@ -320,7 +320,7 @@ export async function sendServiceAppointmentFlex(to: string, data: {
         layout: "vertical",
         spacing: "md",
         contents: [
-          { type: "text", text: "XYLEM LANDSCAPE", weight: "bold", color: "#A3A3A3", size: "xs" },
+          { type: "text", text: "RUSH UP", weight: "bold", color: "#A3A3A3", size: "xs" },
           { type: "text", text: "แจ้งวันเข้าบริการดูแลสวน", weight: "bold", size: "lg", color: "#1A1A18" },
           { type: "text", text: `${statusText}${sessionText}`, weight: "bold", size: "sm", color: accentColor, margin: "none", wrap: true },
           { type: "separator", margin: "lg" },
@@ -344,7 +344,7 @@ export async function sendServiceAppointmentFlex(to: string, data: {
             backgroundColor: "#FAFAF8",
             paddingAll: "md",
             contents: [
-              { type: "text", text: "ทีมงาน Xylem จะเข้าดูแลสวนให้ตามวันและเวลาที่นัดหมายครับ หากมีข้อสงสัยสามารถติดต่อผ่านช่องทางนี้ได้ทันที", size: "xs", color: "#70706B", wrap: true }
+              { type: "text", text: "ทีมงาน RUSH UP จะเข้าดูแลสวนให้ตามวันและเวลาที่นัดหมายครับ หากมีข้อสงสัยสามารถติดต่อผ่านช่องทางนี้ได้ทันที", size: "xs", color: "#70706B", wrap: true }
             ]
           }
         ]

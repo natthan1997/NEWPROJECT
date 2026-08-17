@@ -449,7 +449,7 @@ export default function POSRecipeManager({
                   <input 
                       type="text" 
                       placeholder={mode === 'batch' ? "ค้นหาวัตถุดิบ..." : mode === 'items' ? "ค้นหาเมนูอาหาร..." : "ค้นหาตัวเลือกเสริม..."}
-                      className="w-full bg-white border border-[#F0F0E8] py-3 pl-12 pr-4 text-[14px] outline-none focus:border-[#1A1A18] transition-all font-bold placeholder:text-gray-200 text-black shadow-sm"
+                      className="w-full bg-white border border-[#F0F0E8] py-3 pl-12 pr-4 text-[14px] outline-none focus:border-[#D3202B] transition-all font-bold placeholder:text-gray-200 text-black shadow-sm"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                   />
@@ -463,8 +463,8 @@ export default function POSRecipeManager({
           ) : mode === 'batch' ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-8 font-bold text-black">
                   {inventory.filter(i => i.name.toLowerCase().includes(searchTerm.toLowerCase())).map(item => (
-                      <button key={item.id} onClick={() => openBatchEditor(item)} className="group bg-white border border-[#F0F0E8] p-6 sm:p-8 text-left transition-all hover:shadow-2xl hover:border-[#1A1A18] font-bold">
-                          <div className={`w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center transition-all mb-6 font-bold bg-green-50 text-green-300 group-hover:bg-[#1A1A18] group-hover:text-white`}>
+                      <button key={item.id} onClick={() => openBatchEditor(item)} className="group bg-white border border-[#F0F0E8] p-6 sm:p-8 text-left transition-all hover:shadow-2xl hover:border-[#D3202B] font-bold">
+                          <div className={`w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center transition-all mb-6 font-bold bg-green-50 text-green-300 group-hover:bg-[#D3202B] group-hover:text-white`}>
                               <Database size={24} strokeWidth={1.5} />
                           </div>
                           <span className="text-[8px] font-black uppercase tracking-[0.3em] text-sage-600 mb-2 block font-bold">วัตถุดิบ</span>
@@ -481,8 +481,8 @@ export default function POSRecipeManager({
           ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-8 font-bold text-black">
                   {filteredData.map(recipe => (
-                      <button key={recipe.id} onClick={() => { setEditingRecipe(recipe); setIsEditorOpen(true); }} className="group bg-white border border-[#F0F0E8] p-6 sm:p-8 text-left transition-all hover:shadow-2xl hover:border-[#1A1A18] font-bold">
-                          <div className={`w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center transition-all mb-6 font-bold ${mode === 'modifiers' ? 'bg-indigo-50 text-indigo-300' : 'bg-gray-50 text-gray-200'} group-hover:bg-[#1A1A18] group-hover:text-white`}>
+                      <button key={recipe.id} onClick={() => { setEditingRecipe(recipe); setIsEditorOpen(true); }} className="group bg-white border border-[#F0F0E8] p-6 sm:p-8 text-left transition-all hover:shadow-2xl hover:border-[#D3202B] font-bold">
+                          <div className={`w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center transition-all mb-6 font-bold ${mode === 'modifiers' ? 'bg-indigo-50 text-indigo-300' : 'bg-gray-50 text-gray-200'} group-hover:bg-[#D3202B] group-hover:text-white`}>
                               {mode === 'items' ? <FlaskConical size={24} strokeWidth={1.5} /> : <Settings size={24} strokeWidth={1.5} />}
                           </div>
                           <span className="text-[8px] font-black uppercase tracking-[0.3em] text-sage-600 mb-2 block font-bold">
@@ -505,7 +505,7 @@ export default function POSRecipeManager({
       {/* RECIPE LAB EDITOR */}
       {isEditorOpen && (
           <div className="fixed inset-0 z-[1200] flex items-center justify-end font-bold">
-              <div className="absolute inset-0 bg-[#1A1A18]/40 backdrop-blur-md animate-in fade-in duration-300 font-bold" onClick={() => setIsEditorOpen(false)}></div>
+              <div className="absolute inset-0 bg-[#D3202B]/40 backdrop-blur-md animate-in fade-in duration-300 font-bold" onClick={() => setIsEditorOpen(false)}></div>
               <div className="relative w-full sm:max-w-5xl bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-500 font-bold">
                   
                   <div className="flex h-full font-bold">
@@ -518,7 +518,7 @@ export default function POSRecipeManager({
                                   <input 
                                       type="text" 
                                       placeholder="ค้นหาวัตถุดิบ..."
-                                      className="w-full bg-white border border-[#F0F0E8] py-2 pl-9 pr-4 text-[12px] outline-none focus:border-[#1A1A18] transition-all font-bold placeholder:text-gray-200 text-black shadow-sm"
+                                      className="w-full bg-white border border-[#F0F0E8] py-2 pl-9 pr-4 text-[12px] outline-none focus:border-[#D3202B] transition-all font-bold placeholder:text-gray-200 text-black shadow-sm"
                                       value={ingredientSearchTerm}
                                       onChange={(e) => setIngredientSearchTerm(e.target.value)}
                                   />
@@ -558,7 +558,7 @@ export default function POSRecipeManager({
                                     <div className="text-xl sm:text-2xl font-black mt-1 font-bold">฿ {currentTotalCost.toFixed(2)}</div>
                                 </div>
                                 {mode === 'items' && (
-                                    <div className="bg-[#1A1A18] p-6 border border-transparent font-bold">
+                                    <div className="bg-[#D3202B] p-6 border border-transparent font-bold">
                                         <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest font-bold">PROFIT MARGIN</span>
                                         <div className="text-xl sm:text-2xl font-black mt-1 text-white font-bold">
                                             {editingRecipe.sale_price > 0 ? Math.round((((editingRecipe.sale_price - currentTotalCost) / editingRecipe.sale_price) * 100)) : 0}%
@@ -630,7 +630,7 @@ export default function POSRecipeManager({
                                                                         const finalTypes = newTypes.length === 0 ? ['none'] : newTypes;
                                                                         updateIngredient(ing.ingredient_id, { order_types: finalTypes });
                                                                     }}
-                                                                    className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-widest transition-all rounded-full border ${isSelected ? 'bg-[#1A1A18] text-white border-[#1A1A18]' : 'bg-white text-gray-400 border-gray-200 hover:border-black hover:text-black'}`}
+                                                                    className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-widest transition-all rounded-full border ${isSelected ? 'bg-[#D3202B] text-white border-[#D3202B]' : 'bg-white text-gray-400 border-gray-200 hover:border-black hover:text-black'}`}
                                                                 >
                                                                     {labels[type]}
                                                                 </button>
@@ -745,7 +745,7 @@ export default function POSRecipeManager({
                             </div>
                         </div>
 
-                        <button onClick={handleSaveRecipe} disabled={isSaving} className="w-full mt-auto py-10 bg-[#1A1A18] text-white text-[12px] font-black uppercase tracking-[0.5em] transition-all font-bold hover:bg-sage-950 shadow-xl flex items-center justify-center gap-4">
+                        <button onClick={handleSaveRecipe} disabled={isSaving} className="w-full mt-auto py-10 bg-[#D3202B] text-white text-[12px] font-black uppercase tracking-[0.5em] transition-all font-bold hover:bg-sage-950 shadow-xl flex items-center justify-center gap-4">
                             {isSaving ? <Loader2 className="animate-spin text-white font-bold" /> : <><Save size={20} /> บันทึกสูตรอาหาร</>}
                         </button>
                       </div>
@@ -757,7 +757,7 @@ export default function POSRecipeManager({
       {/* BATCH LINK EDITOR */}
       {isBatchEditorOpen && batchIngredient && (
           <div className="fixed inset-0 z-[1200] flex items-center justify-end font-bold">
-              <div className="absolute inset-0 bg-[#1A1A18]/40 backdrop-blur-md animate-in fade-in duration-300 font-bold" onClick={() => setIsBatchEditorOpen(false)}></div>
+              <div className="absolute inset-0 bg-[#D3202B]/40 backdrop-blur-md animate-in fade-in duration-300 font-bold" onClick={() => setIsBatchEditorOpen(false)}></div>
               <div className="relative w-full sm:max-w-5xl bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-500 font-bold">
                   
                   <div className="flex h-full font-bold">
@@ -770,7 +770,7 @@ export default function POSRecipeManager({
                                   <input 
                                       type="text" 
                                       placeholder="ค้นหาเมนู..."
-                                      className="w-full bg-white border border-[#F0F0E8] py-2 pl-9 pr-4 text-[12px] outline-none focus:border-[#1A1A18] transition-all font-bold placeholder:text-gray-200 text-black shadow-sm"
+                                      className="w-full bg-white border border-[#F0F0E8] py-2 pl-9 pr-4 text-[12px] outline-none focus:border-[#D3202B] transition-all font-bold placeholder:text-gray-200 text-black shadow-sm"
                                       value={batchSearchTerm}
                                       onChange={(e) => setBatchSearchTerm(e.target.value)}
                                   />
@@ -820,7 +820,7 @@ export default function POSRecipeManager({
                         <div className="space-y-12 font-bold mb-10 text-black">
                             <div className="space-y-6 font-bold">
                                 {Object.keys(batchTargets).length > 0 && (
-                                    <div className="p-8 bg-[#1A1A18] text-white flex flex-col gap-6 shadow-xl">
+                                    <div className="p-8 bg-[#D3202B] text-white flex flex-col gap-6 shadow-xl">
                                         <h3 className="text-[11px] font-black uppercase tracking-widest">ตั้งค่าทีเดียวให้ทุกเมนูที่เลือกไว้ (Apply to All)</h3>
                                         <div className="flex items-end gap-6">
                                             <div className="flex-1">
@@ -902,7 +902,7 @@ export default function POSRecipeManager({
                                                                 <button
                                                                     key={type}
                                                                     onClick={() => updateBatchTargetOrderTypes(target.id, type)}
-                                                                    className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-widest transition-all rounded-full border ${isSelected ? 'bg-[#1A1A18] text-white border-[#1A1A18]' : 'bg-white text-gray-400 border-gray-200 hover:border-black hover:text-black'}`}
+                                                                    className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-widest transition-all rounded-full border ${isSelected ? 'bg-[#D3202B] text-white border-[#D3202B]' : 'bg-white text-gray-400 border-gray-200 hover:border-black hover:text-black'}`}
                                                                 >
                                                                     {labels[type]}
                                                                 </button>
@@ -924,7 +924,7 @@ export default function POSRecipeManager({
                             </div>
                         </div>
 
-                        <button onClick={handleSaveBatch} disabled={isSaving || Object.keys(batchTargets).length === 0} className="w-full mt-auto py-10 bg-[#1A1A18] text-white text-[12px] font-black uppercase tracking-[0.5em] transition-all font-bold hover:bg-sage-950 shadow-xl flex items-center justify-center gap-4 disabled:opacity-50">
+                        <button onClick={handleSaveBatch} disabled={isSaving || Object.keys(batchTargets).length === 0} className="w-full mt-auto py-10 bg-[#D3202B] text-white text-[12px] font-black uppercase tracking-[0.5em] transition-all font-bold hover:bg-sage-950 shadow-xl flex items-center justify-center gap-4 disabled:opacity-50">
                             {isSaving ? <Loader2 className="animate-spin text-white font-bold" /> : <><Save size={20} /> บันทึกการเชื่อมโยง</>}
                         </button>
                       </div>

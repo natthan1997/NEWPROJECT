@@ -5,7 +5,7 @@ Last updated: 2026-05-05
 
 ## 1. Purpose
 
-This document defines the minimum professional standard for privacy consent capture, audit logging, security logging, and data governance controls across the Xylem Landscape platform.
+This document defines the minimum professional standard for privacy consent capture, audit logging, security logging, and data governance controls across the RUSH UP platform.
 
 It covers customer, staff, admin, workshop, payment, LINE, notification, and operational workflows implemented in the current system.
 

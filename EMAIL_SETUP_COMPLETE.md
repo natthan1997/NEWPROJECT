@@ -31,7 +31,7 @@ EMAIL_PORT=587
 EMAIL_USER=your-real-email@gmail.com
 EMAIL_PASS=your-16-digit-app-password
 EMAIL_FROM=your-real-email@gmail.com
-EMAIL_FROM_NAME=XYL Studio Workshop
+EMAIL_FROM_NAME=RUSH UP Workshop
 ```
 
 ### 📋 **วิธีใช้งานจริง:**

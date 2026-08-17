@@ -551,7 +551,7 @@ export default function POSMemberManager({
                                 <div className="flex flex-col gap-2.5 w-full">
                                     <div className="flex items-center justify-between text-[13px]">
                                         <div className="flex items-center gap-2 text-gray-600 font-medium">
-                                            <div className="w-2 h-2 rounded-full bg-gray-900"></div> ชาย
+                                            <div className="w-2 h-2 rounded-full bg-[#D3202B]"></div> ชาย
                                         </div>
                                         <span className="text-black font-semibold">{malePct}%</span>
                                     </div>
@@ -589,7 +589,7 @@ export default function POSMemberManager({
                             <div className="flex gap-2">
                                 <button
                                     onClick={() => setShowAddModal(true)}
-                                    className="flex items-center justify-center w-12 h-12 text-white bg-[#1A1A18] hover:bg-black rounded-full transition-all shadow-sm active:scale-95 shrink-0"
+                                    className="flex items-center justify-center w-12 h-12 text-white bg-[#D3202B] hover:bg-red-700 rounded-full transition-all shadow-sm active:scale-95 shrink-0"
                                     title="เพิ่มสมาชิกใหม่"
                                 >
                                     <UserPlus size={20} />

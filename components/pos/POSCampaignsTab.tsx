@@ -43,7 +43,7 @@ export default function POSCampaignsTab() {
                 description: 'รายละเอียดแคมเปญ',
                 icon: '🎉',
                 type_tag: 'NEW',
-                bg_gradient_from: 'from-[#1A1A18]',
+                bg_gradient_from: 'from-[#D3202B]',
                 bg_gradient_to: 'to-gray-800',
                 text_color: 'text-white',
                 tag_color: 'text-white',
@@ -118,7 +118,7 @@ export default function POSCampaignsTab() {
                     <button 
                         onClick={handleAdd}
                         disabled={isSaving}
-                        className="bg-[#1A1A18] text-white px-5 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-black transition-colors"
+                        className="bg-[#D3202B] text-white px-5 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-red-700 transition-colors"
                     >
                         <Plus size={18} /> เพิ่มแคมเปญ
                     </button>
@@ -166,7 +166,7 @@ export default function POSCampaignsTab() {
                                     <div className="p-4 bg-white rounded-xl border border-gray-100 grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
                                         <div>
                                             <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">สีพื้นหลัง 1 (Tailwind)</label>
-                                            <input type="text" value={editForm.bg_gradient_from} onChange={e => setEditForm({...editForm, bg_gradient_from: e.target.value})} placeholder="from-[#1A1A18]" className="w-full bg-gray-50 border border-gray-200 rounded-lg py-1.5 px-3 text-[12px] font-mono outline-none" />
+                                            <input type="text" value={editForm.bg_gradient_from} onChange={e => setEditForm({...editForm, bg_gradient_from: e.target.value})} placeholder="from-[#D3202B]" className="w-full bg-gray-50 border border-gray-200 rounded-lg py-1.5 px-3 text-[12px] font-mono outline-none" />
                                         </div>
                                         <div>
                                             <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">สีพื้นหลัง 2 (Tailwind)</label>
@@ -217,7 +217,7 @@ export default function POSCampaignsTab() {
                     {campaigns.length === 0 && (
                         <div className="text-center py-10 border-2 border-dashed border-gray-100 rounded-2xl">
                             <p className="text-gray-400 font-bold mb-4">ยังไม่มีแคมเปญในระบบ</p>
-                            <button onClick={handleAdd} className="bg-white border border-gray-200 text-gray-600 px-5 py-2 rounded-xl font-bold inline-flex items-center gap-2 hover:border-[#1A1A18] hover:text-[#1A1A18] transition-colors"><Plus size={16} /> สร้างแคมเปญแรก</button>
+                            <button onClick={handleAdd} className="bg-white border border-gray-200 text-gray-600 px-5 py-2 rounded-xl font-bold inline-flex items-center gap-2 hover:border-[#D3202B] hover:text-[#1A1A18] transition-colors"><Plus size={16} /> สร้างแคมเปญแรก</button>
                         </div>
                     )}
                 </div>

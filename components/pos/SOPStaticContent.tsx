@@ -285,7 +285,7 @@ ${sectionsHTML}
                         </button>
                         <button 
                             onClick={handlePrint}
-                            className="flex items-center gap-2 px-5 py-2 bg-gray-900 text-white rounded-lg font-bold shadow-sm hover:bg-black transition-all text-[14px]"
+                            className="flex items-center gap-2 px-5 py-2 bg-[#D3202B] text-white rounded-lg font-bold shadow-sm hover:bg-red-700 transition-all text-[14px]"
                         >
                             <Printer size={16} className="text-gray-400" /> สั่งพิมพ์
                         </button>

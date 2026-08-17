@@ -21,7 +21,7 @@ export default function StaffDetails({ params }: { params: { staffId: string } }
               </div>
               <div>
                 <p className="text-sm text-gray-500">Email</p>
-                <p className="font-medium">somsakk.k@xylem.com</p>
+                <p className="font-medium">somsakk.k@rushupcafe.comm</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Phone</p>

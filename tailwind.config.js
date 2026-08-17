@@ -8,16 +8,17 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['var(--font-sarabun)', 'sans-serif'],
+        sans: ['var(--font-plus-jakarta-sans)', 'sans-serif'],
+        serif: ['var(--font-playfair-display)', 'serif'],
       },
       colors: {
         background: 'var(--background)',
         foreground: 'var(--foreground)',
-        'xylem-dark': '#2d4a1a',
-        'xylem-medium': '#3d5a2a',
-        'xylem-light': '#4d6a3a',
-        'xylem-bg': '#f8faf6',
-        'xylem-gold': '#c9a227',
+        'rushup-dark': '#2d4a1a',
+        'rushup-medium': '#3d5a2a',
+        'rushup-light': '#4d6a3a',
+        'rushup-bg': '#f8faf6',
+        'rushup-gold': '#c9a227',
         'neo-bg': '#E0E8E3',
         'neo-shadow-light': '#ffffff',
         'neo-shadow-dark': '#c2cbc6',

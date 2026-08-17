@@ -93,7 +93,7 @@ export default function PaymentMethodSelector({
                   <div className="text-xs text-slate-500 line-clamp-1">{method.description}</div>
                 </div>
                 {method.popular && (
-                  <span className="text-[10px] uppercase tracking-wide font-semibold text-xylem-dark">{locale==='th'?'แนะนำ':locale==='en'?'Popular':'推荐'}</span>
+                  <span className="text-[10px] uppercase tracking-wide font-semibold text-rushup-dark">{locale==='th'?'แนะนำ':locale==='en'?'Popular':'推荐'}</span>
                 )}
               </label>
             )
@@ -122,7 +122,7 @@ export default function PaymentMethodSelector({
               className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium ring-1 transition focus:outline-none focus-visible:ring-2 ring-offset-2 ${
                 selectedMethod === method.id
                   ? 'bg-slate-900 text-white ring-slate-900'
-                  : 'bg-white text-slate-900 ring-slate-200 hover:bg-slate-100 focus-visible:ring-xylem-dark/30'
+                  : 'bg-white text-slate-900 ring-slate-200 hover:bg-slate-100 focus-visible:ring-rushup-dark/30'
               }`}
             >
               <span className="text-base leading-none">{method.icon}</span>
@@ -153,7 +153,7 @@ export default function PaymentMethodSelector({
           }`}
         >
           {method.popular && (
-            <div className="absolute -top-2 left-4 px-2 py-1 bg-xylem-gold text-white text-xs rounded-full">
+            <div className="absolute -top-2 left-4 px-2 py-1 bg-rushup-gold text-white text-xs rounded-full">
               {locale === 'th' ? 'แนะนำ' : locale === 'en' ? 'Popular' : '推荐'}
             </div>
           )}

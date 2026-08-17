@@ -1,5 +1,5 @@
 const fs = require('fs');
-const file = '/Users/natthanchaimongkol/Downloads/XYLPROJECT-main สำเนา 3/components/pos/POSMenuManager.tsx';
+const file = '/Users/natthanchaimongkol/Downloads/rushupproject-main สำเนา 3/components/pos/POSMenuManager.tsx';
 let content = fs.readFileSync(file, 'utf8');
 
 // Inside fetchData, fetch inventory_items and pos_menu_modifiers

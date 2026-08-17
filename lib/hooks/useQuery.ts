@@ -1,5 +1,5 @@
 /**
- * Custom React Query Hooks for Xylem Project
+ * Custom React Query Hooks for RUSH UP Project
  * 
  * These hooks provide type-safe, cached data fetching for all major entities.
  * Each hook includes:

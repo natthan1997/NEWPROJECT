@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getUserProfile, supabase, getHouseCount } from '../../../lib/supabaseClient'
-import XYLLoader from '@/components/loaders/XYLLoader'
+import RUSHUPLoader from '@/components/loaders/RUSHUPLoader'
 
 const parseTokenParams = (hash: string, search: string) => {
   const hashParams = new URLSearchParams(hash.replace(/^#/, ''))
@@ -114,7 +114,7 @@ export default function AuthSuccessPage() {
 
   return (
     <>
-      <XYLLoader tagline={message} />
+      <RUSHUPLoader tagline={message} />
       <style jsx global>{`
         [data-project-header] {
           display: none !important;

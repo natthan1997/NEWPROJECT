@@ -1,5 +1,5 @@
 /**
- * Custom React Hook Form Hooks for Xylem Project
+ * Custom React Hook Form Hooks for RUSH UP Project
  * 
  * Pre-configured hooks for common forms with built-in validation
  * and error handling.

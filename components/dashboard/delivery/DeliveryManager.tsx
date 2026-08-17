@@ -8,7 +8,7 @@ import {
   Package, ShoppingBag, ChevronDown
 } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
-import XYLLoader from '@/components/loaders/XYLLoader'
+import RUSHUPLoader from '@/components/loaders/RUSHUPLoader'
 import { printOpenDrawer } from '@/lib/printerUtils'
 
 export default function DeliveryManager({ unlockAudio, isAudioEnabled, variant = 'page', onClose, syncPulse, onStatusChange }: any) {

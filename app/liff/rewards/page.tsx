@@ -6,7 +6,7 @@ import { Search, Gift, ChevronLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
 import { useLiff } from '@/components/liff/LiffProvider';
-import XYLLoader from '@/components/loaders/XYLLoader';
+import RUSHUPLoader from '@/components/loaders/RUSHUPLoader';
 
 export default function RewardsPage() {
   const router = useRouter();
@@ -34,7 +34,7 @@ export default function RewardsPage() {
   }, [memberInfo]);
 
   const fetchData = async (isBackgroundSync = false) => {
-    const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
+    const userId = lineProfile?.userId || localStorage.getItem('rushup_line_user_id');
     if (!userId) return;
     try {
       if (!isBackgroundSync) setLoading(true);
@@ -80,7 +80,7 @@ export default function RewardsPage() {
     
     try {
       setLoading(true);
-      const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
+      const userId = lineProfile?.userId || localStorage.getItem('rushup_line_user_id');
       const res = await fetch('/api/liff/member/redeem', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -100,7 +100,7 @@ export default function RewardsPage() {
     }
   };
 
-  if ((liffLoading || loading) && !isDataReady) return <XYLLoader tagline="กำลังโหลดของรางวัล..." />;
+  if ((liffLoading || loading) && !isDataReady) return <RUSHUPLoader tagline="กำลังโหลดของรางวัล..." />;
 
   const filteredRewards = rewards.filter(r => r.name.toLowerCase().includes(searchQuery.toLowerCase()));
   const birthdayRewards = filteredRewards.filter(r => r.is_birthday_only);
@@ -116,7 +116,7 @@ export default function RewardsPage() {
         <button onClick={() => router.push('/liff/member')} className="text-gray-400 hover:text-gray-900 transition-colors p-1 -ml-1">
           <ChevronLeft size={24} strokeWidth={2} />
         </button>
-        <h1 className="text-[14px] font-bold tracking-widest text-[#1A1A18] uppercase">XYL STUDIO</h1>
+        <h1 className="text-[14px] font-bold tracking-widest text-[#1A1A18] uppercase">RUSH UP</h1>
         <div className="w-6"></div>
       </header>
 

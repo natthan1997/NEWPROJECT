@@ -16,21 +16,21 @@ export default function BankTransferInfo({ amount, bookingId, onPaymentComplete 
       bank: 'ธนาคารกสิกรไทย',
       bankEn: 'Kasikorn Bank',
       accountNumber: '123-4-56789-0',
-      accountName: 'XYL STUDIO CO., LTD.',
+      accountName: 'RUSH UP CO., LTD.',
       color: 'bg-green-600'
     },
     {
       bank: 'ธนาคารกรุงเทพ',
       bankEn: 'Bangkok Bank',
       accountNumber: '987-6-54321-0',
-      accountName: 'XYL STUDIO CO., LTD.',
+      accountName: 'RUSH UP CO., LTD.',
       color: 'bg-blue-600'
     },
     {
       bank: 'ธนาคารไทยพาณิชย์',
       bankEn: 'Siam Commercial Bank',
       accountNumber: '555-1-23456-7',
-      accountName: 'XYL STUDIO CO., LTD.',
+      accountName: 'RUSH UP CO., LTD.',
       color: 'bg-purple-600'
     }
   ]

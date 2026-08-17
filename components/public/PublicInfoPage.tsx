@@ -35,7 +35,7 @@ export default function PublicInfoPage({ kicker, title, intro, sections }: Publi
               <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-900 group-hover:tracking-[0.25em] transition-all">Back</span>
             </Link>
             <div className="flex flex-col items-center">
-              <span className="serif text-xl font-bold tracking-tighter">XYL</span>
+              <span className="serif text-xl font-bold tracking-tighter">RUSH UP</span>
             </div>
             <div className="w-[60px]" /> {/* Spacer to balance flex-between */}
           </div>
@@ -83,7 +83,7 @@ export default function PublicInfoPage({ kicker, title, intro, sections }: Publi
           {/* Footer inside content area */}
           <footer className="mt-40 border-t border-zinc-200 pt-12 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 opacity-0 animate-fade-in" style={{ animationDelay: '800ms' }}>
             <div>
-               <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-zinc-400 mb-2">© 2026 XYLEM STUDIO</p>
+               <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-zinc-400 mb-2">© 2026 RUSH UP STUDIO</p>
                <p className="text-[11px] text-zinc-500 font-light">Bespoke nature and collective management.</p>
             </div>
             <div className="flex items-center gap-6">

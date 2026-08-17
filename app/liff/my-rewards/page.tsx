@@ -6,7 +6,7 @@ import { Ticket, ChevronLeft, ChevronRight, CheckCircle2, Clock, Gift } from 'lu
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
 import { useLiff } from '@/components/liff/LiffProvider';
-import XYLLoader from '@/components/loaders/XYLLoader';
+import RUSHUPLoader from '@/components/loaders/RUSHUPLoader';
 import Link from 'next/link';
 import { getUserCurrentLocation, verifyUserIsAtShopLocation } from '@/lib/shopLocation';
 
@@ -171,7 +171,7 @@ export default function MyRewardsPage() {
   }, [ctxMemberInfo]);
 
   const fetchData = async (isBackgroundSync = false) => {
-    const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
+    const userId = lineProfile?.userId || localStorage.getItem('rushup_line_user_id');
     if (!userId) return;
     try {
       if (!isBackgroundSync) {
@@ -303,7 +303,7 @@ export default function MyRewardsPage() {
     }
   };
 
-  if ((liffLoading || loading) && !isDataReady) return <XYLLoader tagline="กำลังโหลดคูปองของคุณ..." />;
+  if ((liffLoading || loading) && !isDataReady) return <RUSHUPLoader tagline="กำลังโหลดคูปองของคุณ..." />;
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-[#1A1A18] font-sans pb-24 relative overflow-hidden">

@@ -54,13 +54,16 @@ export default function POSLayout({
     const renderSidebarContent = () => (
         <>
             {/* Sidebar Header */}
-            <header className={`p-6 sm:p-10 border-b space-y-4 sm:space-y-8 font-bold flex-shrink-0 ${isDark ? 'border-white/5' : 'border-[#E5E5DF]'}`}>
-                <div className="flex justify-between items-start font-bold">
-                    <div className="space-y-1 font-bold">
-                        <h1 className={`font-serif-luxury text-4xl sm:text-5xl font-light tracking-tighter leading-none border-none font-bold ${isDark ? 'text-white' : 'text-[#1A1A18]'}`}>
-                            XYL <span className="italic">STUDIO</span>
-                        </h1>
-                        <p className="text-[10px] sm:text-[11px] uppercase tracking-[0.3em] text-[#8C8A81] ml-0.5 font-bold">POS SYSTEM</p>
+            <header className={`p-6 sm:p-10 border-b space-y-4 sm:space-y-8 font-bold flex-shrink-0 ${isDark ? 'border-white/5' : 'border-[#E5E5DF]'} pt-[calc(1.5rem+env(safe-area-inset-top))] sm:pt-[calc(2.5rem+env(safe-area-inset-top))]`}>
+                <div className="flex justify-between items-center font-bold">
+                    <div className="flex items-center gap-2">
+                        <img src={isDark ? "/logo-white.png" : "/logo-red.png"} alt="RUSH UP Logo" className="h-10 w-auto object-contain shrink-0" />
+                        <div className="text-left font-bold">
+                            <h1 className={`text-[15px] font-black uppercase tracking-[0.15em] leading-none ${isDark ? 'text-white' : 'text-zinc-900'}`}>
+                                RUSH <span className={`font-light ${isDark ? 'text-white/60' : 'text-[#C62229]'}`}>UP</span>
+                            </h1>
+                            <p className="text-[8px] uppercase tracking-widest text-zinc-400 mt-0.5 font-bold">POS System</p>
+                        </div>
                     </div>
                     <button onClick={() => setIsSidebarOpen(false)} className={`p-2 hover:opacity-50 font-bold lg:hidden ${isDark ? 'text-white' : 'text-black'}`}><X size={20} /></button>
                 </div>
@@ -177,7 +180,7 @@ export default function POSLayout({
     // The actual Settings sidebar will slide in from POSShopSettings.
     if (activeView === 'settings') {
         return (
-            <div className="xyl-pos-scale h-screen h-[100dvh] flex overflow-hidden font-sans bg-[#F2F2F7] font-bold">
+            <div className="rushup-pos-scale h-screen h-[100dvh] flex overflow-hidden font-sans bg-[#F2F2F7] font-bold">
                 <main className="flex-1 flex flex-col overflow-hidden">
                     {children}
                 </main>
@@ -204,7 +207,7 @@ export default function POSLayout({
     }
 
     return (
-        <div className={`print:block print:h-auto print:overflow-visible xyl-pos-scale h-screen h-[100dvh] flex overflow-hidden font-sans ${isDark ? 'bg-[#1A1A18] text-white' : 'bg-[#FDFDFB] text-[#1A1A18]'} selection:bg-sage-600/10 font-bold`}>
+        <div className={`print:block print:h-auto print:overflow-visible rushup-pos-scale h-screen h-[100dvh] flex overflow-hidden font-sans ${isDark ? 'bg-[#1A1A18] text-white' : 'bg-[#FDFDFB] text-[#1A1A18]'} selection:bg-sage-600/10 font-bold`}>
             
             {/* PERSISTENT SIDEBAR FOR LG SCREENS */}
             <AnimatePresence mode="wait">
@@ -236,7 +239,7 @@ export default function POSLayout({
             {/* MAIN CONTENT WRAPPER */}
             <div className="flex-1 flex flex-col min-w-0 overflow-hidden print:overflow-visible">
                 {/* 2. MAIN HEADER (Sticky) */}
-                <header className={`print:hidden h-[60px] sm:h-[70px] border-b flex items-center justify-between px-3 sm:px-6 xl:px-10 sticky top-0 z-[50] flex-shrink-0 font-bold ${isDark ? 'bg-[#1A1A18] border-white/5' : 'bg-white border-[#F0F0E8]'}`}>
+                <header className={`print:hidden h-[calc(60px+env(safe-area-inset-top))] sm:h-[calc(70px+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] border-b flex items-center justify-between px-3 sm:px-6 xl:px-10 sticky top-0 z-[50] flex-shrink-0 font-bold ${isDark ? 'bg-[#1A1A18] border-white/5' : 'bg-white border-[#F0F0E8]'}`}>
                     <div className="flex items-center gap-3 sm:gap-6 xl:gap-10 flex-1 font-bold min-w-[140px] sm:min-w-0 flex-shrink-0 z-10">
                         <button 
                             onClick={() => setIsSidebarOpen(true)}
@@ -248,7 +251,7 @@ export default function POSLayout({
                     <div className="flex items-center gap-3 sm:gap-4 min-w-0 overflow-hidden">
                         <div className="flex flex-col font-bold min-w-0 overflow-hidden">
                             <span className={`text-[9px] sm:text-[10px] font-black tracking-widest uppercase leading-none mb-0.5 sm:mb-1 font-bold truncate ${isDark ? 'text-white/40' : 'text-[#818C83]'}`}>
-                                {subtitle || 'XYL POS'}
+                                {subtitle || 'RUSH UP POS'}
                             </span>
                             <h1 className={`text-[13px] sm:text-[18px] font-black tracking-tighter uppercase leading-none font-bold border-none truncate ${isDark ? 'text-white' : 'text-black'}`}>
                                 {title}
@@ -295,18 +298,18 @@ export default function POSLayout({
                     }
                 }
 
-                .xyl-pos-scale .text-xs { font-size: 0.875rem !important; line-height: 1.3rem !important; }
-                .xyl-pos-scale .text-sm { font-size: 1rem !important; line-height: 1.45rem !important; }
-                .xyl-pos-scale .text-base { font-size: 1.05rem !important; line-height: 1.55rem !important; }
-                .xyl-pos-scale .text-\[7px\] { font-size: 0.55rem !important; }
-                .xyl-pos-scale .text-\[8px\] { font-size: 0.65rem !important; }
-                .xyl-pos-scale .text-\[9px\] { font-size: 0.72rem !important; }
-                .xyl-pos-scale .text-\[10px\] { font-size: 0.8rem !important; }
-                .xyl-pos-scale .text-\[11px\] { font-size: 0.88rem !important; }
-                .xyl-pos-scale .text-\[12px\] { font-size: 0.95rem !important; }
-                .xyl-pos-scale .text-\[13px\] { font-size: 1rem !important; }
-                .xyl-pos-scale .text-\[14px\] { font-size: 1.06rem !important; }
-                .xyl-pos-scale .text-\[15px\] { font-size: 1.12rem !important; }
+                .rushup-pos-scale .text-xs { font-size: 0.875rem !important; line-height: 1.3rem !important; }
+                .rushup-pos-scale .text-sm { font-size: 1rem !important; line-height: 1.45rem !important; }
+                .rushup-pos-scale .text-base { font-size: 1.05rem !important; line-height: 1.55rem !important; }
+                .rushup-pos-scale .text-\[7px\] { font-size: 0.55rem !important; }
+                .rushup-pos-scale .text-\[8px\] { font-size: 0.65rem !important; }
+                .rushup-pos-scale .text-\[9px\] { font-size: 0.72rem !important; }
+                .rushup-pos-scale .text-\[10px\] { font-size: 0.8rem !important; }
+                .rushup-pos-scale .text-\[11px\] { font-size: 0.88rem !important; }
+                .rushup-pos-scale .text-\[12px\] { font-size: 0.95rem !important; }
+                .rushup-pos-scale .text-\[13px\] { font-size: 1rem !important; }
+                .rushup-pos-scale .text-\[14px\] { font-size: 1.06rem !important; }
+                .rushup-pos-scale .text-\[15px\] { font-size: 1.12rem !important; }
             `}</style>
         </div>
     )

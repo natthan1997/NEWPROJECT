@@ -17,7 +17,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
 import { useLiff } from '@/components/liff/LiffProvider';
 import { HistoryListSkeleton } from '@/components/liff/LiffSkeleton';
-import XYLLoader from '@/components/loaders/XYLLoader';
+import RUSHUPLoader from '@/components/loaders/RUSHUPLoader';
 import { useI18n } from "@/lib/I18nContext";
 
 export default function LiffHistoryPage() {
@@ -86,7 +86,7 @@ export default function LiffHistoryPage() {
   };
 
   const fetchHistory = async () => {
-    const currentUserId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
+    const currentUserId = lineProfile?.userId || localStorage.getItem('rushup_line_user_id');
     
     if (!currentUserId && !phone) {
       setFetchLoading(false);
@@ -185,12 +185,12 @@ export default function LiffHistoryPage() {
       selected_modifiers: item.selected_modifiers || [],
       sweetness: '100%', // Default sweetness for reorder
     }));
-    localStorage.setItem('xylem_cart', JSON.stringify(cartItems));
+    localStorage.setItem('rushup_cart', JSON.stringify(cartItems));
     router.push(`/liff/menu?openCart=1${isPreorderRedirect ? '&preorder=1' : ''}&t=${Date.now()}`); // Add timestamp to force update/effect
   };
 
   // Removed blocking loader for instant transition
-  if (liffLoading && !hasSeenLoader) return <XYLLoader tagline={locale === 'en' ? 'กำลังบันทึกประวัติการสั่งซื้อ...' : locale === 'zh' ? 'กำลังบันทึกประวัติการสั่งซื้อ...' : 'กำลังบันทึกประวัติการสั่งซื้อ...'} />;
+  if (liffLoading && !hasSeenLoader) return <RUSHUPLoader tagline={locale === 'en' ? 'กำลังบันทึกประวัติการสั่งซื้อ...' : locale === 'zh' ? 'กำลังบันทึกประวัติการสั่งซื้อ...' : 'กำลังบันทึกประวัติการสั่งซื้อ...'} />;
 
   return (
     <div className="min-h-screen bg-white pb-28">
@@ -375,7 +375,7 @@ export default function LiffHistoryPage() {
 
       <div className="py-12 pb-24 text-center opacity-25 pointer-events-none">
         <p className="text-[7px] font-black uppercase tracking-[0.4em] text-[#1A1A18]">
-          Designed by XYL STUDIO • v1.0.33
+          Designed by RUSH UP • v1.0.33
         </p>
       </div>
     </div>

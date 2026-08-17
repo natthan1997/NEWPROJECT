@@ -70,7 +70,7 @@ Total npm scripts added: **3** (db:migrate, db:rollback, db:status)
   - Character limit counter
   - Dynamic height
   - Thai font support
-- [x] Xylem Design System Integration
+- [x] RUSH UP Design System Integration
   - Colors: #FDFDFB, #1A1A1A, #2A4532
   - Rounded borders: rounded-2xl
   - Sarabun font
@@ -94,7 +94,7 @@ Total npm scripts added: **3** (db:migrate, db:rollback, db:status)
 - [x] Offline Page: `public/offline.html`
   - Thai-language support
   - Auto-recheck connection
-  - Styled with Xylem design
+  - Styled with RUSH UP design
 - [x] PWA Hooks: `lib/hooks/usePWA.ts`
   - `usePWA()` - Register service worker
   - `useInstallPrompt()` - Install app button
@@ -398,7 +398,7 @@ const { register, formState: { errors } } = useLoginForm()
 - ✅ React Hook Form + Zod integrated
 - ✅ 8 validation schemas created with Thai messages
 - ✅ 8 form hooks pre-configured
-- ✅ 4 UI components aligned with Xylem design
+- ✅ 4 UI components aligned with RUSH UP design
 - ✅ Service worker for offline support
 - ✅ PWA install support
 - ✅ Database migrations system ready

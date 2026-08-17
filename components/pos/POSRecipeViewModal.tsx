@@ -125,7 +125,7 @@ export default function POSRecipeViewModal({
         {/* Header - Minimalist & Clean */}
         <header className="relative flex items-center justify-between border-b border-gray-50 px-8 py-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-900 text-white">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#D3202B] text-white">
               <FlaskConical size={16} strokeWidth={2.5} className="text-white" />
             </div>
             <div>

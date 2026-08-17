@@ -48,7 +48,7 @@
 #### Minimal Design
 - ✅ Clean interface โฟกัสที่เนื้อหาสำคัญ
 - ✅ Progressive disclosure (ทีละขั้นตอน)
-- ✅ Consistent color scheme (xylem-dark, white, gray)
+- ✅ Consistent color scheme (rushup-dark, white, gray)
 - ✅ Responsive design (mobile-friendly)
 
 #### Smart Form Logic

@@ -128,7 +128,7 @@ export default function PointGenerator({ onClose }: { onClose?: () => void }) {
     <div className="bg-white rounded-[24px] shadow-2xl w-full max-w-[440px] mx-auto flex flex-col overflow-hidden font-sans border border-gray-100 relative">
       
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-[#1A1A18]">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-[#D3202B]">
         <h2 className="text-[18px] font-black text-white uppercase tracking-widest">
           {token ? (locale === 'en' ? 'Success' : 'สำเร็จ') : (locale === 'en' ? 'Issue Points' : 'ให้แต้มลูกค้าตามยอดซื้อ')}
         </h2>
@@ -176,7 +176,7 @@ export default function PointGenerator({ onClose }: { onClose?: () => void }) {
                     onChange={(e) => setPurchaseAmount(e.target.value.slice(0, 6))}
                     placeholder="0"
                     autoFocus
-                    className="w-full border-2 rounded-2xl py-4 px-6 text-2xl font-black text-center tracking-widest transition-all min-h-[64px] border-[#1A1A18] bg-white text-black shadow-sm outline-none focus:ring-4 focus:ring-emerald-500/20"
+                    className="w-full border-2 rounded-2xl py-4 px-6 text-2xl font-black text-center tracking-widest transition-all min-h-[64px] border-[#D3202B] bg-white text-black shadow-sm outline-none focus:ring-4 focus:ring-emerald-500/20"
                   />
                   
                   <div className="flex justify-center mt-3">
@@ -190,7 +190,7 @@ export default function PointGenerator({ onClose }: { onClose?: () => void }) {
                 <button 
                   onClick={generateQR}
                   disabled={loading || pointsToGenerate <= 0}
-                  className="w-full h-[60px] bg-[#1A1A18] text-white rounded-[16px] font-black text-[14px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-black transition-all disabled:opacity-50 active:scale-[0.98] shadow-lg"
+                  className="w-full h-[60px] bg-[#D3202B] text-white rounded-[16px] font-black text-[14px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-red-700 transition-all disabled:opacity-50 active:scale-[0.98] shadow-lg"
                 >
                   {loading ? <RefreshCcw size={20} className="animate-spin" /> : <QrCode size={20} />}
                   {loading ? (locale === 'en' ? 'Generating...' : 'กำลังสร้าง...') : (locale === 'en' ? 'Generate QR' : `สร้างคิวอาร์สแกนรับ ${pointsToGenerate} แต้ม`)}

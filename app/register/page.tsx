@@ -32,13 +32,13 @@ const copyByLocale: Record<Locale, Record<string, string>> = {
     haveAccount: 'มีบัญชีสมาชิกอยู่แล้ว?',
     signIn: 'เข้าสู่ระบบ',
     acceptPolicies: 'ฉันยอมรับนโยบายความเป็นส่วนตัวและเงื่อนไขการใช้บริการ',
-    marketingConsent: 'ฉันยินยอมรับข่าวสาร โปรโมชัน และอัปเดตบริการจาก Xylem Landscape',
+    marketingConsent: 'ฉันยินยอมรับข่าวสาร โปรโมชัน และอัปเดตบริการจาก RUSH UP',
     consentRequired: 'กรุณายอมรับนโยบายความเป็นส่วนตัวและเงื่อนไขการใช้บริการก่อนสมัครสมาชิก',
     privacyLabel: 'นโยบายความเป็นส่วนตัว',
     termsLabel: 'เงื่อนไขการใช้บริการ',
     projectStatus: 'Member Status',
     newMember: 'New Enrollment',
-    heroAlt: 'XYLEM Landscape Architecture',
+    heroAlt: 'RUSH UP Architecture',
   },
   en: {
     passwordMismatch: 'Passwords do not match. Please try again.',
@@ -64,13 +64,13 @@ const copyByLocale: Record<Locale, Record<string, string>> = {
     haveAccount: 'Already a member?',
     signIn: 'Sign In',
     acceptPolicies: 'I accept the Privacy Policy and Terms of Service',
-    marketingConsent: 'I agree to receive service updates, offers, and marketing communications from Xylem Landscape',
+    marketingConsent: 'I agree to receive service updates, offers, and marketing communications from RUSH UP',
     consentRequired: 'Please accept the Privacy Policy and Terms of Service before registering.',
     privacyLabel: 'Privacy Policy',
     termsLabel: 'Terms of Service',
     projectStatus: 'Member Status',
     newMember: 'New Enrollment',
-    heroAlt: 'XYLEM Landscape Architecture',
+    heroAlt: 'RUSH UP Architecture',
   },
   zh: {
     passwordMismatch: '密码不匹配，请重试。',
@@ -96,13 +96,13 @@ const copyByLocale: Record<Locale, Record<string, string>> = {
     haveAccount: '已经是会员？',
     signIn: '登录',
     acceptPolicies: '我接受隐私政策和服务条款',
-    marketingConsent: '我同意接收 Xylem Landscape 的服务更新、优惠和营销信息',
+    marketingConsent: '我同意接收 RUSH UP 的服务更新、优惠和营销信息',
     consentRequired: '请先接受隐私政策和服务条款后再注册。',
     privacyLabel: '隐私政策',
     termsLabel: '服务条款',
     projectStatus: '会员状态',
     newMember: '新注册',
-    heroAlt: 'XYLEM Landscape Architecture',
+    heroAlt: 'RUSH UP Architecture',
   },
 }
 
@@ -217,7 +217,7 @@ export default function Register() {
           <div className="flex w-full flex-col justify-center px-8 sm:px-16 md:px-24 lg:w-[45%]">
             <div className="w-full max-w-[450px] fade-in">
               <div className="mb-24">
-                 <span className="text-[10px] font-bold uppercase tracking-[0.5em]">XYLEM STUDIO</span>
+                 <span className="text-[10px] font-bold uppercase tracking-[0.5em]">RUSH UP STUDIO</span>
                  <div className="h-0.5 w-10 bg-black mt-4" />
               </div>
 
@@ -346,7 +346,7 @@ export default function Register() {
                    <span className="text-[10px] font-black uppercase tracking-[0.5em] mb-8 block">{copy.newMember}</span>
                    <h2 className="serif text-4xl font-light uppercase tracking-tighter leading-none mb-8">Bespoke<br/>Nature.</h2>
                    <div className="h-px w-10 bg-black/10 mb-8" />
-                   <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#A3A3A3]">© XYLEM STUDIO 2026</p>
+                   <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#A3A3A3]">© RUSH UP STUDIO 2026</p>
                 </div>
              </div>
           </div>

@@ -36,7 +36,7 @@ async function handleReminderRequest(req: NextRequest) {
     const isAuthorized = 
       isVercelCron ||
       (cronSecret && authHeader === `Bearer ${cronSecret}`) ||
-      (paramSecret && (paramSecret === cronSecret || paramSecret === 'xyl-attendance-cron-secret')) ||
+      (paramSecret && (paramSecret === cronSecret || paramSecret === 'rushup-attendance-cron-secret')) ||
       process.env.NODE_ENV === 'development'
 
     if (!isAuthorized) {
@@ -143,7 +143,7 @@ async function handleReminderRequest(req: NextRequest) {
         if (!hasBeenNotifiedToday) {
           // Find LINE User ID
           let lineUserId: string | null = null
-          if (staff.email && staff.email.endsWith('@line.xylemlandscape.com')) {
+          if (staff.email && staff.email.endsWith('@line.rushupcafe.com')) {
             lineUserId = staff.email.split('@')[0]
           } else {
             lineUserId = lineUserMap.get(staff.id) || null

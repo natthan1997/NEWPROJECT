@@ -54,7 +54,7 @@ function CheckoutForm({
       {message && <div className="text-red-500 text-xs text-center font-bold">{message}</div>}
       <button 
         disabled={isProcessing || !stripe || !elements}
-        className="w-full py-4 bg-black text-white text-[10px] font-black uppercase tracking-[0.3em] flex items-center justify-center gap-3 transition-all hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full py-4 bg-black text-white text-[10px] font-black uppercase tracking-[0.3em] flex items-center justify-center gap-3 transition-all hover:bg-[#D3202B] disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isProcessing ? <Loader2 size={16} className="animate-spin" /> : `Pay ฿ ${amount.toLocaleString()}`}
       </button>

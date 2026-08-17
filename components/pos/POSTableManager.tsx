@@ -61,7 +61,7 @@ export default function POSTableManager({
           <button onClick={() => window.print()} className="h-11 px-4 lg:px-6 bg-white text-neutral-900 border border-neutral-200 hover:bg-neutral-50 flex items-center justify-center gap-2 shadow-sm font-bold transition-all rounded-xl">
               <Printer size={16} /> <span className="text-[10px] font-black uppercase tracking-widest hidden lg:inline">PRINT QR</span>
           </button>
-          <button onClick={() => setIsShapePickerOpen(true)} className="h-11 px-5 lg:px-8 bg-neutral-900 text-white flex items-center justify-center gap-3 shadow-lg font-bold rounded-xl hover:bg-black transition-all">
+          <button onClick={() => setIsShapePickerOpen(true)} className="h-11 px-5 lg:px-8 bg-[#D3202B] text-white flex items-center justify-center gap-3 shadow-lg font-bold rounded-xl hover:bg-red-700 transition-all">
               <Plus size={16} /> <span className="text-[10px] font-black uppercase tracking-widest font-bold hidden sm:inline">ADD TABLE</span>
           </button>
       </div>
@@ -287,7 +287,7 @@ export default function POSTableManager({
         {/* TOP BAR / ZONES */}
         <div className="flex items-center gap-3 mb-4 overflow-x-auto no-scrollbar pb-1">
            {allZones.map(z => (
-               <button key={z} onClick={() => setActiveZone(z)} className={`px-6 py-3 rounded-2xl font-bold text-sm whitespace-nowrap transition-all flex items-center gap-2 ${activeZone === z ? 'bg-neutral-900 text-white shadow-md' : 'bg-white text-neutral-500 hover:bg-neutral-100 border border-neutral-200'}`}>
+               <button key={z} onClick={() => setActiveZone(z)} className={`px-6 py-3 rounded-2xl font-bold text-sm whitespace-nowrap transition-all flex items-center gap-2 ${activeZone === z ? 'bg-[#D3202B] text-white shadow-md' : 'bg-white text-neutral-500 hover:bg-neutral-100 border border-neutral-200'}`}>
                   {z}
                   {isLayoutMode && z !== 'Main' && (
                       <span onClick={(e) => handleDeleteZone(z, e)} className="p-1 -mr-2 text-neutral-400 hover:text-red-500 rounded-full hover:bg-red-50 transition-colors">
@@ -335,7 +335,7 @@ export default function POSTableManager({
                           }}
                       >
                           {/* TABLE BODY (CLEAN) */}
-                          <div className={`relative w-full h-full flex flex-col items-center justify-center z-10 ${table.shape === 'circle' ? 'rounded-full' : (table.shape === 'rectangle' || table.shape === 'rectangle_vertical' ? 'rounded-[1.5rem]' : 'rounded-2xl')} ${isLayoutMode ? 'bg-slate-800 border-2 border-dashed border-slate-500 text-slate-300' : (table.status === 'occupied' ? 'bg-neutral-900 text-white shadow-lg' : 'bg-white border border-neutral-200 text-neutral-800 shadow-sm')} transition-all group-hover:border-neutral-400`}>
+                          <div className={`relative w-full h-full flex flex-col items-center justify-center z-10 ${table.shape === 'circle' ? 'rounded-full' : (table.shape === 'rectangle' || table.shape === 'rectangle_vertical' ? 'rounded-[1.5rem]' : 'rounded-2xl')} ${isLayoutMode ? 'bg-slate-800 border-2 border-dashed border-slate-500 text-slate-300' : (table.status === 'occupied' ? 'bg-[#D3202B] text-white shadow-lg' : 'bg-white border border-neutral-200 text-neutral-800 shadow-sm')} transition-all group-hover:border-neutral-400`}>
                              {isLayoutMode && (
                                 <div className="absolute -top-2 -right-2 bg-indigo-500 text-white p-1 rounded-full shadow-md z-20">
                                    <Edit3 size={12} />
@@ -374,7 +374,7 @@ export default function POSTableManager({
           <div className="fixed inset-0 z-[1200] flex items-center justify-end font-sans">
               <motion.div 
                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                 className="absolute inset-0 bg-neutral-900/20 backdrop-blur-sm" 
+                 className="absolute inset-0 bg-[#D3202B]/20 backdrop-blur-sm" 
                  onClick={() => setIsEditorOpen(false)}
               />
               <motion.div 
@@ -392,17 +392,17 @@ export default function POSTableManager({
                   <div className="p-8 space-y-6 flex-1">
                       <div className="space-y-2">
                           <label className="text-[11px] font-medium text-neutral-600">{locale === 'en' ? 'Table Number / Name' : 'หมายเลขโต๊ะ / ชื่อโต๊ะ'}</label>
-                          <input type="text" value={editingTable.table_number} onChange={e => setEditingTable({...editingTable, table_number: e.target.value})} className="w-full bg-white border border-neutral-200 rounded-xl py-3.5 px-4 text-sm outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition-all text-neutral-900 shadow-sm" placeholder="e.g. A1, 01, VIP-1" />
+                          <input type="text" value={editingTable.table_number} onChange={e => setEditingTable({...editingTable, table_number: e.target.value})} className="w-full bg-white border border-neutral-200 rounded-xl py-3.5 px-4 text-sm outline-none focus:border-[#D3202B] focus:ring-1 focus:ring-neutral-900 transition-all text-neutral-900 shadow-sm" placeholder="e.g. A1, 01, VIP-1" />
                       </div>
                       
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <label className="text-[11px] font-medium text-neutral-600">Capacity (Seats)</label>
-                            <input type="number" value={editingTable.capacity} onChange={e => setEditingTable({...editingTable, capacity: Number(e.target.value)})} className="w-full bg-white border border-neutral-200 rounded-xl py-3.5 px-4 text-sm outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition-all text-neutral-900 shadow-sm" min="1" />
+                            <input type="number" value={editingTable.capacity} onChange={e => setEditingTable({...editingTable, capacity: Number(e.target.value)})} className="w-full bg-white border border-neutral-200 rounded-xl py-3.5 px-4 text-sm outline-none focus:border-[#D3202B] focus:ring-1 focus:ring-neutral-900 transition-all text-neutral-900 shadow-sm" min="1" />
                         </div>
                         <div className="space-y-2">
                             <label className="text-[11px] font-medium text-neutral-600">Zone</label>
-                            <select value={editingTable.zone || 'Main'} onChange={e => setEditingTable({...editingTable, zone: e.target.value})} className="w-full bg-white border border-neutral-200 rounded-xl py-3.5 px-4 text-sm outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition-all text-neutral-900 appearance-none shadow-sm">
+                            <select value={editingTable.zone || 'Main'} onChange={e => setEditingTable({...editingTable, zone: e.target.value})} className="w-full bg-white border border-neutral-200 rounded-xl py-3.5 px-4 text-sm outline-none focus:border-[#D3202B] focus:ring-1 focus:ring-neutral-900 transition-all text-neutral-900 appearance-none shadow-sm">
                                 {allZones.map(z => (
                                     <option key={z} value={z}>{z}</option>
                                 ))}
@@ -468,7 +468,7 @@ export default function POSTableManager({
                   </div>
 
                   <div className="p-6 bg-white border-t border-neutral-100">
-                    <button onClick={handleSaveTable} disabled={isSaving} className="w-full py-4 rounded-2xl bg-neutral-900 text-white text-[12px] font-black uppercase tracking-widest transition-all hover:bg-black hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2">
+                    <button onClick={handleSaveTable} disabled={isSaving} className="w-full py-4 rounded-2xl bg-[#D3202B] text-white text-[12px] font-black uppercase tracking-widest transition-all hover:bg-red-700 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2">
                       {isSaving ? <Loader2 className="animate-spin text-white" size={16} /> : <Save size={16} />}
                       Save Table
                     </button>
@@ -482,7 +482,7 @@ export default function POSTableManager({
       <AnimatePresence>
       {isShapePickerOpen && (
           <div className="fixed inset-0 z-[1300] flex items-center justify-center font-sans">
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-neutral-900/40 backdrop-blur-sm" onClick={() => setIsShapePickerOpen(false)} />
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[#D3202B]/40 backdrop-blur-sm" onClick={() => setIsShapePickerOpen(false)} />
               <motion.div 
                  initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }}
                  className="relative bg-white p-8 rounded-[2rem] shadow-2xl max-w-sm w-full mx-4 flex flex-col gap-4 border border-neutral-100"
@@ -518,7 +518,7 @@ export default function POSTableManager({
       <AnimatePresence>
       {showQrModal && (
         <div className="fixed inset-0 z-[3000] flex items-center justify-center font-sans">
-           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-neutral-900/40 backdrop-blur-md" onClick={() => setShowQrModal(null)} />
+           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[#D3202B]/40 backdrop-blur-md" onClick={() => setShowQrModal(null)} />
            <motion.div 
              initial={{ opacity: 0, scale: 0.9, y: 20 }} 
              animate={{ opacity: 1, scale: 1, y: 0 }} 
@@ -545,7 +545,7 @@ export default function POSTableManager({
               <div className="flex flex-col gap-3 w-full">
                  <button 
                     onClick={() => { printTableQRCode(showQrModal); setShowQrModal(null); }}
-                    className="w-full flex items-center gap-2 px-6 py-4 bg-neutral-900 text-white rounded-2xl font-black uppercase tracking-widest text-[11px] justify-center transition-all active:scale-95 hover:bg-black hover:shadow-lg"
+                    className="w-full flex items-center gap-2 px-6 py-4 bg-[#D3202B] text-white rounded-2xl font-black uppercase tracking-widest text-[11px] justify-center transition-all active:scale-95 hover:bg-red-700 hover:shadow-lg"
                  >
                     <Printer size={16} />
                     Print QR Code

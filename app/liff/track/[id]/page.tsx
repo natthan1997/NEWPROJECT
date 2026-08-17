@@ -16,7 +16,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
 import { useLiff } from '@/components/liff/LiffProvider';
-import XYLLoader from '@/components/loaders/XYLLoader';
+import RUSHUPLoader from '@/components/loaders/RUSHUPLoader';
 import { useI18n } from "@/lib/I18nContext";
 
 // --- ☕ ICON 1: Preparing (Barista Shaking) ---
@@ -259,7 +259,7 @@ export default function LiffTrackPage() {
   };
 
   if (loading || liffLoading || !order) return (
-    <XYLLoader tagline={locale === 'en' ? 'Following deliciousness signals...' : locale === 'zh' ? '遵循美味信号...' : 'กำลังติดตามสัญญาณความอร่อย...'} />
+    <RUSHUPLoader tagline={locale === 'en' ? 'Following deliciousness signals...' : locale === 'zh' ? '遵循美味信号...' : 'กำลังติดตามสัญญาณความอร่อย...'} />
   );
 
   const status = order.status?.toLowerCase() || 'pending';
@@ -391,7 +391,7 @@ export default function LiffTrackPage() {
                           : 'เครื่องชงกาแฟซิกเนเจอร์เริ่มทำงานพร้อมปรุงเมนูพิเศษสำหรับคุณ'
                      )}
                      {isShipping && 'ไรเดอร์กำลังนำออเดอร์มุ่งหน้าไปหาคุณโดยเร็วที่สุด'}
-                     {isCompleted && 'ขอให้มีความสุขกับเมนูพิเศษของเรา ขอบคุณที่ใช้บริการ XYL STUDIO'}
+                     {isCompleted && 'ขอให้มีความสุขกับเมนูพิเศษของเรา ขอบคุณที่ใช้บริการ RUSH UP'}
                      {status === 'cancelled' && 'คำสั่งซื้อนี้ถูกยกเลิกโดยระบบหรือความต้องการลูกค้า'}
                    </p>
                 </motion.div>
@@ -526,7 +526,7 @@ export default function LiffTrackPage() {
 
         <div className="py-12 pb-24 text-center opacity-10 pointer-events-none">
           <p className="text-[7px] font-black uppercase tracking-[0.4em] text-[#1A1A18]">
-            Designed by XYL STUDIO • v1.0.32
+            Designed by RUSH UP • v1.0.32
           </p>
         </div>
       </main>

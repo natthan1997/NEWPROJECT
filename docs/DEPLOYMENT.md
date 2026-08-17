@@ -23,7 +23,7 @@ EMAIL_PORT=587
 EMAIL_USER=your-email@gmail.com
 EMAIL_PASS=your-app-password
 EMAIL_FROM=your-email@gmail.com
-EMAIL_FROM_NAME="Xylem Landscape"
+EMAIL_FROM_NAME="RUSH UP"
 
 # Stripe Payment Gateway
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_xxxxx

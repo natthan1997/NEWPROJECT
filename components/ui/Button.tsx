@@ -2,7 +2,7 @@
  * shadcn/ui Button Component
  * 
  * Base button component that can be extended with variants.
- * Styled with Tailwind CSS following Xylem design system.
+ * Styled with Tailwind CSS following RUSH UP design system.
  */
 
 import * as React from "react"

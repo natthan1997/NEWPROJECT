@@ -129,7 +129,7 @@ export default function POSKitchen({
               const isLiff = order.order_source === 'liff';
               
               return (
-                <div key={order.id} className="w-[350px] sm:w-[450px] flex-shrink-0 flex flex-col bg-[#1A1A18] text-white h-[650px] rounded-[32px] overflow-hidden border-2 border-white/5 shadow-2xl animate-in slide-in-from-right-5 duration-500">
+                <div key={order.id} className="w-[350px] sm:w-[450px] flex-shrink-0 flex flex-col bg-[#D3202B] text-white h-[650px] rounded-[32px] overflow-hidden border-2 border-white/5 shadow-2xl animate-in slide-in-from-right-5 duration-500">
                     {/* 🏷️ HEADER: ORDER TYPE & NUMBER */}
                     <header className={`p-8 relative overflow-hidden ${isDelivery ? 'bg-emerald-600' : 'bg-white'}`}>
                         <div className="relative z-10 flex justify-between items-start">

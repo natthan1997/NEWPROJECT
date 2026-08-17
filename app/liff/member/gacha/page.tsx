@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ChevronLeft, Ticket, Gift, Sparkles, X } from 'lucide-react';
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
 import { useLiff } from '@/components/liff/LiffProvider';
-import XYLLoader from '@/components/loaders/XYLLoader';
+import RUSHUPLoader from '@/components/loaders/RUSHUPLoader';
 import Swal from 'sweetalert2';
 
 // Minimalist Slot Machine Component
@@ -104,7 +104,7 @@ const SlotMachineSVG = ({ rolling, onPull }: { rolling: boolean, onPull: () => v
         {/* Lower Decor */}
         <rect x="60" y="240" width="180" height="60" rx="8" fill="#111" stroke="#333" strokeWidth="2" />
         <rect x="70" y="250" width="160" height="40" rx="4" fill="#1A1A18" />
-        <text x="150" y="275" fontSize="14" textAnchor="middle" fill="#D4AF37" letterSpacing="4" className="font-sans font-bold">XYL STUDIO</text>
+        <text x="150" y="275" fontSize="14" textAnchor="middle" fill="#D4AF37" letterSpacing="4" className="font-sans font-bold">RUSH UP</text>
         
         {/* Tray */}
         <rect x="50" y="320" width="200" height="20" rx="10" fill="#0A0A0A" />
@@ -231,7 +231,7 @@ export default function GachaPage() {
     }
   };
 
-  if (!isDataReady || loading) return <XYLLoader tagline="เตรียมระบบรางวัล..." />;
+  if (!isDataReady || loading) return <RUSHUPLoader tagline="เตรียมระบบรางวัล..." />;
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] text-[#1A1A18] font-sans pb-24 selection:bg-[#D4AF37] selection:text-white">

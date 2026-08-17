@@ -7,7 +7,7 @@ import {
   StandaloneSearchBox,
 } from '@react-google-maps/api'
 import { X, MapPin, Navigation, Check, Search } from 'lucide-react'
-import XYLLoader from '@/components/loaders/XYLLoader'
+import RUSHUPLoader from '@/components/loaders/RUSHUPLoader'
 import { useI18n } from "@/lib/I18nContext";
 
 interface LocationValue {
@@ -254,7 +254,7 @@ export default function GoogleMapsLocationPicker({
           </>
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center gap-4 bg-[#FAFAFA]">
-            <XYLLoader tagline="Initialising Mapping Interface" />
+            <RUSHUPLoader tagline="Initialising Mapping Interface" />
           </div>
         )}
       </div>

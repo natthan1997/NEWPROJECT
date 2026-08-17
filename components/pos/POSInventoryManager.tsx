@@ -135,19 +135,19 @@ export default function POSInventoryManager({
             <div className="hidden md:flex bg-white border border-[#F0F0E8] overflow-hidden">
               <button 
                 onClick={() => { setViewMode('grid'); setShowColumnSelector(false); }} 
-                className={`w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center transition-all ${viewMode === 'grid' ? 'bg-[#1A1A18] text-white' : 'text-gray-400 hover:text-black hover:bg-gray-50'}`}
+                className={`w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center transition-all ${viewMode === 'grid' ? 'bg-[#D3202B] text-white' : 'text-gray-400 hover:text-black hover:bg-gray-50'}`}
               >
                 <LayoutGrid size={18} />
               </button>
               <button 
                 onClick={() => { setViewMode('list'); setShowColumnSelector(false); }} 
-                className={`w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center border-l border-[#F0F0E8] transition-all ${viewMode === 'list' ? 'bg-[#1A1A18] text-white' : 'text-gray-400 hover:text-black hover:bg-gray-50'}`}
+                className={`w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center border-l border-[#F0F0E8] transition-all ${viewMode === 'list' ? 'bg-[#D3202B] text-white' : 'text-gray-400 hover:text-black hover:bg-gray-50'}`}
               >
                 <List size={18} />
               </button>
               <button 
                 onClick={() => { setViewMode('table'); setShowColumnSelector(false); }} 
-                className={`w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center border-l border-[#F0F0E8] transition-all ${viewMode === 'table' ? 'bg-[#1A1A18] text-white' : 'text-gray-400 hover:text-black hover:bg-gray-50'}`}
+                className={`w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center border-l border-[#F0F0E8] transition-all ${viewMode === 'table' ? 'bg-[#D3202B] text-white' : 'text-gray-400 hover:text-black hover:bg-gray-50'}`}
               >
                 <Database size={18} />
               </button>
@@ -929,7 +929,7 @@ export default function POSInventoryManager({
                         <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tighter text-black border-none leading-none">STOCK JOURNALS & AUDITS</h2>
                         <p className="text-[8px] font-black uppercase tracking-[0.4em] text-[#8C8A81] mt-1 border-none">{locale === 'en' ? 'ประวัติการเคลื่อนไหวและการนับสต็อก' : locale === 'zh' ? 'ประวัติการเคลื่อนไหวและการนับสต็อก' : 'ประวัติการเคลื่อนไหวและการนับสต็อก'}</p>
                     </div>
-                    <button onClick={() => setShowHistory(false)} className="h-8 sm:h-10 px-4 bg-[#1A1A18] text-white text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2">
+                    <button onClick={() => setShowHistory(false)} className="h-8 sm:h-10 px-4 bg-[#D3202B] text-white text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2">
                         <ArrowLeft size={14} /> {locale === 'en' ? 'go back' : locale === 'zh' ? '回去' : ' กลับ                     '}</button>
                 </div>
 
@@ -1417,7 +1417,7 @@ export default function POSInventoryManager({
 
                           return (
                               <div key={cat.id} className="bg-white border border-gray-100 overflow-hidden rounded-[2rem] shadow-sm">
-                                  <div className="bg-[#1A1A18] text-white p-6 sm:p-8 flex items-center justify-between">
+                                  <div className="bg-[#D3202B] text-white p-6 sm:p-8 flex items-center justify-between">
                                       <h3 className="text-xl sm:text-2xl font-black uppercase tracking-widest">{cat.name}</h3>
                                       <span className="text-xs sm:text-sm font-black opacity-80 bg-white/10 px-4 py-2 rounded-full">{itemsInCat.length} Items</span>
                                   </div>
@@ -1535,7 +1535,7 @@ export default function POSInventoryManager({
         {isAuditSummaryOpen && auditSummary && (
             <div className="fixed inset-0 z-[1300] flex items-center justify-center sm:p-6 font-bold">
                 {/* Backdrop only for Desktop */}
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[#1A1A18]/90 backdrop-blur-xl hidden sm:block" />
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[#D3202B]/90 backdrop-blur-xl hidden sm:block" />
                 
                 <motion.div 
                     initial={{ y: "100%", opacity: 0 }} 
@@ -1546,7 +1546,7 @@ export default function POSInventoryManager({
                 >
                     <header className="p-6 sm:p-10 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10">
                         <div className="flex items-center gap-4 sm:gap-6 font-bold">
-                            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-[#1A1A18] flex items-center justify-center font-bold rounded-2xl shadow-xl">
+                            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-[#D3202B] flex items-center justify-center font-bold rounded-2xl shadow-xl">
                                 <CheckCircle2 className="text-white" size={24} />
                             </div>
                             <div className="font-bold">
@@ -1640,7 +1640,7 @@ export default function POSInventoryManager({
                     </div>
 
                     <footer className="p-6 sm:p-10 border-t border-gray-50 flex flex-col items-center gap-4 font-bold bg-white sticky bottom-0">
-                         <button onClick={() => setIsAuditSummaryOpen(false)} className="w-full h-14 sm:h-16 bg-[#1A1A18] text-white text-[12px] sm:text-[13px] font-black uppercase tracking-widest hover:bg-black transition-all font-bold rounded-2xl shadow-xl">{locale === 'en' ? 'เสร็จสิ้นและปิด' : locale === 'zh' ? 'เสร็จสิ้นและปิด' : 'เสร็จสิ้นและปิด'}</button>
+                         <button onClick={() => setIsAuditSummaryOpen(false)} className="w-full h-14 sm:h-16 bg-[#D3202B] text-white text-[12px] sm:text-[13px] font-black uppercase tracking-widest hover:bg-red-700 transition-all font-bold rounded-2xl shadow-xl">{locale === 'en' ? 'เสร็จสิ้นและปิด' : locale === 'zh' ? 'เสร็จสิ้นและปิด' : 'เสร็จสิ้นและปิด'}</button>
                     </footer>
                 </motion.div>
             </div>
@@ -1649,7 +1649,7 @@ export default function POSInventoryManager({
 
       {/* QUICK RESTOCK MODAL */}
       {isCategoryManagerOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-[#1A1A18]/60 backdrop-blur-md">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-[#D3202B]/60 backdrop-blur-md">
           <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-[32px] shadow-2xl flex flex-col overflow-hidden relative">
             <header className="shrink-0 px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-white relative z-10">
               <div>
@@ -1675,7 +1675,7 @@ export default function POSInventoryManager({
 
       {isRestockOpen && (
           <div className="fixed inset-0 z-[1250] flex items-center justify-center font-bold p-6">
-              <div className="absolute inset-0 bg-[#1A1A18]/60 backdrop-blur-sm" onClick={() => setIsRestockOpen(false)}></div>
+              <div className="absolute inset-0 bg-[#D3202B]/60 backdrop-blur-sm" onClick={() => setIsRestockOpen(false)}></div>
               <div className="relative w-full max-w-md bg-white p-10 shadow-2xl animate-in zoom-in-95 duration-200">
                   <header className="mb-8 font-bold">
                     <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">{locale === 'en' ? 'QUICK STOCK-IN / รับสินค้าเข้าคลัง' : locale === 'zh' ? 'QUICK STOCK-IN / รับสินค้าเข้าคลัง' : 'QUICK STOCK-IN / รับสินค้าเข้าคลัง'}</h3>
@@ -1720,7 +1720,7 @@ export default function POSInventoryManager({
                       <button 
                         onClick={handleQuickRestock}
                         disabled={isSaving || !restockQty}
-                        className="w-full bg-[#1A1A18] text-white py-6 flex items-center justify-center gap-3 shadow-xl hover:bg-black transition-all disabled:opacity-50"
+                        className="w-full bg-[#D3202B] text-white py-6 flex items-center justify-center gap-3 shadow-xl hover:bg-red-700 transition-all disabled:opacity-50"
                       >
                         {isSaving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
                         <span className="text-[12px] font-black uppercase tracking-widest">{locale === 'en' ? 'ยืนยันการรับสินค้า' : locale === 'zh' ? 'ยืนยันการรับสินค้า' : 'ยืนยันการรับสินค้า'}</span>
@@ -2194,7 +2194,7 @@ export default function POSInventoryManager({
                               }
                           }}
                           disabled={!editingSupplier?.name?.trim()}
-                          className="h-[50px] px-8 bg-[#1A1A18] text-white flex items-center justify-center gap-2 hover:bg-black transition-all disabled:opacity-50 w-full sm:w-auto"
+                          className="h-[50px] px-8 bg-[#D3202B] text-white flex items-center justify-center gap-2 hover:bg-red-700 transition-all disabled:opacity-50 w-full sm:w-auto"
                       >
                           <Plus size={18} /> สร้าง
                       </button>
@@ -2258,7 +2258,7 @@ export default function POSInventoryManager({
         {/* ASSIGN ITEMS MODAL */}
         {isAssignItemsOpen && selectedSupplierForAssign && (
           <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center sm:p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[#1A1A18]/80 backdrop-blur-md" onClick={() => setIsAssignItemsOpen(false)} />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[#D3202B]/80 backdrop-blur-md" onClick={() => setIsAssignItemsOpen(false)} />
             
             <motion.div 
               initial={{ y: "100%" }} 
@@ -2410,7 +2410,7 @@ export default function POSInventoryManager({
                             <CheckCircle2 size={18} />
                         </button>
                     )}
-                    <button onClick={() => window.print()} className="print:hidden w-10 h-10 md:w-12 md:h-12 flex justify-center items-center bg-[#1A1A18] text-white rounded-xl shadow-sm hover:bg-black transition-colors shrink-0">
+                    <button onClick={() => window.print()} className="print:hidden w-10 h-10 md:w-12 md:h-12 flex justify-center items-center bg-[#D3202B] text-white rounded-xl shadow-sm hover:bg-red-700 transition-colors shrink-0">
                         <Download size={18} />
                     </button>
                   </div>
@@ -2639,7 +2639,7 @@ export default function POSInventoryManager({
               {/* Header Section */}
               <div className="flex justify-between items-start mb-6">
                 <div>
-                  <h1 className="text-3xl font-black tracking-tighter mb-1">XYL STUDIO</h1>
+                  <h1 className="text-3xl font-black tracking-tighter mb-1">RUSH UP</h1>
                   <p className="text-xs text-gray-500 font-bold max-w-[250px]">
                     123 Landscape Design Blvd.<br/>
                     Bangkok, Thailand 10110<br/>
@@ -2668,7 +2668,7 @@ export default function POSInventoryManager({
                 </div>
                 <div>
                   <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 border-b border-gray-200 pb-1">{locale === 'en' ? 'Ship To' : 'จัดส่งที่'}</div>
-                  <div className="font-black text-lg">XYL STUDIO (HQ)</div>
+                  <div className="font-black text-lg">RUSH UP (HQ)</div>
                   <div className="text-gray-500 mt-1 font-bold">
                     แผนกรับสินค้า / คลังวัตถุดิบ
                   </div>

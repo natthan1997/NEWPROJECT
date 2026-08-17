@@ -35,7 +35,7 @@ export default function ProjectHeader() {
 
           <div className="flex items-center gap-10">
             <Link href="/" className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#E5E7EB] transition-colors hover:text-white">
-              XYLEM LANDSCAPE
+              RUSH UP
             </Link>
             <nav className="hidden items-center gap-6 text-[11px] font-semibold text-[#D1D5DB] md:flex">
               {primaryLinks.map((link) => (
@@ -62,7 +62,7 @@ export default function ProjectHeader() {
           <div className="fixed inset-0 z-50 bg-black/30" onClick={() => setMenuOpen(false)} />
           <aside className="fixed left-0 top-0 z-[60] h-full w-72 border-r border-[#E5E5DF] bg-white p-4 shadow-xl">
             <div className="mb-5 flex items-center justify-between">
-              <p className="text-sm font-semibold tracking-[0.14em] text-[#1A1A1A]">XYLEM LANDSCAPE</p>
+              <p className="text-sm font-semibold tracking-[0.14em] text-[#1A1A1A]">RUSH UP</p>
               <button
                 type="button"
                 onClick={() => setMenuOpen(false)}

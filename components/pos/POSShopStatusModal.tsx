@@ -68,8 +68,8 @@ export default function POSShopStatusModal({ isOpen, onClose, currentStatus, onU
       label: 'หยุดรับชั่วคราว (Manual)',
       sub: 'ปิดรับออเดอร์ชั่วคราว ต้องกดเปิดร้านเองเมื่อพร้อม',
       icon: Ban,
-      color: 'text-orange-500',
-      bg: 'bg-orange-50',
+      color: 'text-[#D3202B]',
+      bg: 'bg-red-50',
       action: () => handleApplyStatus('paused', 0)
     },
     {
@@ -102,7 +102,7 @@ export default function POSShopStatusModal({ isOpen, onClose, currentStatus, onU
             {/* Header */}
             <div className="p-8 border-b border-[#F0F0E8] flex items-center justify-between bg-white">
                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-[#1A1A18] text-white flex items-center justify-center">
+                  <div className="w-12 h-12 bg-[#D3202B] text-white flex items-center justify-center">
                     <Info size={20} />
                   </div>
                   <div>
@@ -162,7 +162,7 @@ export default function POSShopStatusModal({ isOpen, onClose, currentStatus, onU
                      opt.action();
                    }}
                    disabled={isSubmitting || !hasActiveShift}
-                   className={`w-full group p-6 flex items-center justify-between border border-transparent hover:border-[#1A1A18] transition-all bg-white relative overflow-hidden ${isSubmitting || !hasActiveShift ? 'opacity-50' : ''}`}
+                   className={`w-full group p-6 flex items-center justify-between border border-transparent hover:border-[#D3202B] transition-all bg-white relative overflow-hidden ${isSubmitting || !hasActiveShift ? 'opacity-50' : ''}`}
                  >
                     <div className="flex items-center gap-6 relative z-10">
                        <div className={`w-12 h-12 ${opt.bg} ${opt.color} flex items-center justify-center`}>
@@ -189,7 +189,7 @@ export default function POSShopStatusModal({ isOpen, onClose, currentStatus, onU
             </div>
 
             <div className="bg-white p-6 border-t border-[#F0F0E8] text-center">
-               <p className="text-[8px] font-black uppercase tracking-[0.4em] text-gray-300 italic">Designed by XYL STUDIO • Smart OPS v2.2</p>
+               <p className="text-[8px] font-black uppercase tracking-[0.4em] text-gray-300 italic">Designed by RUSH UP • Smart OPS v2.2</p>
             </div>
           </motion.div>
         </div>

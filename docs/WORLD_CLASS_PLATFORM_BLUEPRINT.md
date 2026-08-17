@@ -1,4 +1,4 @@
-# Xylem World-Class Platform Blueprint
+# RUSH UP World-Class Platform Blueprint
 
 ## 1) เป้าหมายระดับโลก (Target State)
 

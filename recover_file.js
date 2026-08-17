@@ -35,7 +35,7 @@ for (let i = lines.length - 1; i >= 0; i--) {
                                            }
                                        }
                                        if (restoredLines.length > 100) {
-                                            fs.writeFileSync('/Users/natthanchaimongkol/Downloads/XYLPROJECT-main/components/pos/POSMenuManager.tsx', restoredLines.join('\n'));
+                                            fs.writeFileSync('/Users/natthanchaimongkol/Downloads/rushupproject-main/components/pos/POSMenuManager.tsx', restoredLines.join('\n'));
                                             console.log('Restored POSMenuManager.tsx!');
                                             process.exit(0);
                                        }

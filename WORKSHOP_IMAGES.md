@@ -9,7 +9,7 @@
 ### Step 2: Copy Images to Public Folder
 Copy your images to:
 ```
-/Users/mac/Documents/GitHub/xylproject/xylem-landscape/public/
+/Users/mac/Documents/GitHub/rushupproject/xylem-landscape/public/
 ```
 
 So the final paths will be:

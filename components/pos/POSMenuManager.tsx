@@ -899,7 +899,7 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
                               type="text"
                               value={editingItem.name}
                               onChange={e => setEditingItem({...editingItem, name: e.target.value})}
-                              className="w-full bg-white border border-[#E5E5DF] py-5 px-6 text-sm outline-none focus:border-[#1A1A18] font-bold text-black font-bold font-bold font-bold font-bold font-bold"
+                              className="w-full bg-white border border-[#E5E5DF] py-5 px-6 text-sm outline-none focus:border-[#D3202B] font-bold text-black font-bold font-bold font-bold font-bold font-bold"
                           />
                       </div>
 
@@ -911,7 +911,7 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
                                   value={editingItem.name_en || ''}
                                   onChange={e => setEditingItem({ ...editingItem, name_en: e.target.value })}
                                   placeholder="Iced Latte"
-                                  className="w-full bg-white border border-[#E5E5DF] py-5 px-6 text-sm outline-none focus:border-[#1A1A18] font-bold text-black"
+                                  className="w-full bg-white border border-[#E5E5DF] py-5 px-6 text-sm outline-none focus:border-[#D3202B] font-bold text-black"
                               />
                           </div>
                           <div className="space-y-3">
@@ -921,7 +921,7 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
                                   value={editingItem.name_zh || ''}
                                   onChange={e => setEditingItem({ ...editingItem, name_zh: e.target.value })}
                                   placeholder="冰拿铁"
-                                  className="w-full bg-white border border-[#E5E5DF] py-5 px-6 text-sm outline-none focus:border-[#1A1A18] font-bold text-black"
+                                  className="w-full bg-white border border-[#E5E5DF] py-5 px-6 text-sm outline-none focus:border-[#D3202B] font-bold text-black"
                               />
                           </div>
                       </div>
@@ -1023,7 +1023,7 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
                               value={editingItem.description || ''}
                               onChange={e => setEditingItem({...editingItem, description: e.target.value})}
                               placeholder="Describe this asset (Flavor notes, ingredients, etc.)"
-                              className="w-full bg-white border border-[#E5E5DF] py-5 px-6 text-sm outline-none focus:border-[#1A1A18] font-bold text-black min-h-[120px] resize-none"
+                              className="w-full bg-white border border-[#E5E5DF] py-5 px-6 text-sm outline-none focus:border-[#D3202B] font-bold text-black min-h-[120px] resize-none"
                           />
                       </div>
 
@@ -1037,7 +1037,7 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
                                           key={group.id}
                                           type="button"
                                           onClick={() => setItemModifierLinks(prev => isActive ? prev.filter(id => id !== group.id) : [...prev, group.id])}
-                                          className={`p-4 border text-left transition-all flex justify-between items-center group/mod ${isActive ? 'bg-[#1A1A18] border-[#1A1A18] text-white shadow-lg' : 'bg-white border-[#E5E5DF] text-[#1A1A18] hover:border-[#1A1A18]'}`}
+                                          className={`p-4 border text-left transition-all flex justify-between items-center group/mod ${isActive ? 'bg-[#D3202B] border-[#D3202B] text-white shadow-lg' : 'bg-white border-[#E5E5DF] text-[#1A1A18] hover:border-[#D3202B]'}`}
                                       >
                                           <div className="flex flex-col">
                                               <span className="text-[11px] font-black uppercase leading-tight">{group.name}</span>
@@ -1096,7 +1096,7 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
                                       </div>
                                   )}
                               </div>
-                              <label className="cursor-pointer w-full h-16 border border-[#1A1A18] flex items-center justify-center gap-4 hover:bg-gray-50 transition-all font-bold">
+                              <label className="cursor-pointer w-full h-16 border border-[#D3202B] flex items-center justify-center gap-4 hover:bg-gray-50 transition-all font-bold">
                                   <ImageIcon size={16} />
                                   <span className="text-[10px] font-black uppercase tracking-[0.3em]">
                                       {editingItem.image_url ? 'CHANGE IMAGE' : 'UPLOAD IMAGE'}
@@ -1183,7 +1183,7 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
                       </div>
                   </div>
 
-                  <button onClick={handleSaveItem} disabled={isSaving} className="w-full mt-auto py-8 bg-[#1A1A18] text-white text-[11px] font-black uppercase tracking-[0.5em] transition-all flex items-center justify-center gap-6 font-bold">
+                  <button onClick={handleSaveItem} disabled={isSaving} className="w-full mt-auto py-8 bg-[#D3202B] text-white text-[11px] font-black uppercase tracking-[0.5em] transition-all flex items-center justify-center gap-6 font-bold">
                      {isSaving ? <Loader2 className="animate-spin text-white font-bold font-bold font-bold" /> : (editingItem.id ? 'บันทึกการแก้ไข' : 'เพิ่มรายการเมนู')}
                   </button>
               </div>

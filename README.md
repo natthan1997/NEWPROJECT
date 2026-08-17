@@ -1,8 +1,8 @@
-# 🌿 Xylem Landscape
+# 🌿 RUSH UP
 
 A modern, enterprise-grade landscaping services management system built with Next.js 14, TypeScript, and Supabase.
 
-[![CI/CD](https://github.com/natthan1997/xylproject/workflows/CI%2FCD%20Pipeline/badge.svg)](https://github.com/natthan1997/xylproject/actions)
+[![CI/CD](https://github.com/natthan1997/rushupproject/workflows/CI%2FCD%20Pipeline/badge.svg)](https://github.com/natthan1997/rushupproject/actions)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-14.2-black.svg)](https://nextjs.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -95,8 +95,8 @@ xylem-landscape/
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/natthan1997/xylproject.git
-   cd xylproject/xylem-landscape
+   git clone https://github.com/natthan1997/rushupproject.git
+   cd rushupproject/xylem-landscape
    ```
 
 2. **Install dependencies**:
@@ -295,7 +295,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 👥 Team
 
 - **Project Lead**: Natthan
-- **Repository**: [github.com/natthan1997/xylproject](https://github.com/natthan1997/xylproject)
+- **Repository**: [github.com/natthan1997/rushupproject](https://github.com/natthan1997/rushupproject)
 
 ## 🙏 Acknowledgments
 
@@ -306,7 +306,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-Made with ❤️ by the Xylem Landscape team
+Made with ❤️ by the RUSH UP team
 
 
 
@@ -356,9 +356,9 @@ Follow these steps to get the project up and running on your local machine.
 
 ```bash- Node.js (version 20.x or higher)
 
-git clone https://github.com/natthan1997/xylproject.git- npm or yarn
+git clone https://github.com/natthan1997/rushupproject.git- npm or yarn
 
-cd xylproject/xylem-landscape
+cd rushupproject/xylem-landscape
 
 ```### Installation
 
@@ -550,7 +550,7 @@ For support, please contact:
 
 ## 📄 License
 
-This project is proprietary software owned by XYL Studio.
+This project is proprietary software owned by RUSH UP.
 
 ## 🎯 Features Completed
 
@@ -567,6 +567,6 @@ This project is proprietary software owned by XYL Studio.
 
 ---
 
-Made with ❤️ by XYL Studio Team
+Made with ❤️ by RUSH UP Team
 
 Last Updated: December 2024

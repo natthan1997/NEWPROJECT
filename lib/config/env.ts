@@ -28,7 +28,7 @@ export const env = {
   EMAIL_USER: process.env.EMAIL_USER || '',
   EMAIL_PASS: process.env.EMAIL_PASS || '',
   EMAIL_FROM: process.env.EMAIL_FROM || '',
-  EMAIL_FROM_NAME: process.env.EMAIL_FROM_NAME || 'Xylem Landscape',
+  EMAIL_FROM_NAME: process.env.EMAIL_FROM_NAME || 'RUSH UP',
   
   // Stripe
   STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',

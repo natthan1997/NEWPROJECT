@@ -321,7 +321,7 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
       receiptPrinters = printers.filter((p: any) => p?.type === 'kitchen' || p?.type === 'both')
     }
     if (receiptPrinters.length === 0) {
-      const fallbackIp = typeof window !== 'undefined' ? localStorage.getItem('xylem_printer_ip') : ''
+      const fallbackIp = typeof window !== 'undefined' ? localStorage.getItem('rushup_printer_ip') : ''
       if (!fallbackIp) {
         alert('ยังไม่พบเครื่องปริ้นใบเสร็จในระบบ')
         return
@@ -344,7 +344,7 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
       }
 
       const shopData = {
-        name: shopSettings?.name || shopSettings?.branch_name || 'XYL STUDIO',
+        name: shopSettings?.name || shopSettings?.branch_name || 'RUSH UP',
         branch: shopSettings?.branch_name || '',
         taxId: shopSettings?.tax_id || '',
         address: shopSettings?.address || '',
@@ -434,7 +434,7 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
           .update({ updated_at: new Date().toISOString() })
           .eq('id', activeShift.id)
 
-        window.dispatchEvent(new CustomEvent('xyl-pos-shift-refresh', {
+        window.dispatchEvent(new CustomEvent('rushup-pos-shift-refresh', {
           detail: { shiftId: activeShift.id },
         }))
         await new Promise(resolve => setTimeout(resolve, 300))
@@ -467,12 +467,12 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
               onClick={() => setFilterType('all')}
               className={`pb-3 text-xs sm:text-sm font-extrabold transition-all border-b-2 whitespace-nowrap flex items-center gap-2 ${
                 filterType === 'all'
-                  ? 'border-[#1A1A18] text-[#1A1A18]'
+                  ? 'border-[#D3202B] text-[#1A1A18]'
                   : 'border-transparent text-neutral-400 hover:text-neutral-700'
               }`}
             >
               <span>{locale === 'en' ? 'All Orders' : 'ออเดอร์ทั้งหมด'}</span>
-              <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${filterType === 'all' ? 'bg-[#1A1A18] text-white' : 'bg-neutral-100 text-neutral-600'}`}>
+              <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${filterType === 'all' ? 'bg-[#D3202B] text-white' : 'bg-neutral-100 text-neutral-600'}`}>
                 {completedOrders.length}
               </span>
             </button>
@@ -482,12 +482,12 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
               onClick={() => setFilterType('takeaway')}
               className={`pb-3 text-xs sm:text-sm font-extrabold transition-all border-b-2 whitespace-nowrap flex items-center gap-2 ${
                 filterType === 'takeaway'
-                  ? 'border-[#1A1A18] text-[#1A1A18]'
+                  ? 'border-[#D3202B] text-[#1A1A18]'
                   : 'border-transparent text-neutral-400 hover:text-neutral-700'
               }`}
             >
               <span>{locale === 'en' ? 'Takeaway' : 'กลับบ้าน'}</span>
-              <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${filterType === 'takeaway' ? 'bg-[#1A1A18] text-white' : 'bg-neutral-100 text-neutral-600'}`}>
+              <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${filterType === 'takeaway' ? 'bg-[#D3202B] text-white' : 'bg-neutral-100 text-neutral-600'}`}>
                 {takeawayCount}
               </span>
             </button>
@@ -497,12 +497,12 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
               onClick={() => setFilterType('dine_in')}
               className={`pb-3 text-xs sm:text-sm font-extrabold transition-all border-b-2 whitespace-nowrap flex items-center gap-2 ${
                 filterType === 'dine_in'
-                  ? 'border-[#1A1A18] text-[#1A1A18]'
+                  ? 'border-[#D3202B] text-[#1A1A18]'
                   : 'border-transparent text-neutral-400 hover:text-neutral-700'
               }`}
             >
               <span>{locale === 'en' ? 'Dine-in' : 'ทานที่ร้าน'}</span>
-              <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${filterType === 'dine_in' ? 'bg-[#1A1A18] text-white' : 'bg-neutral-100 text-neutral-600'}`}>
+              <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${filterType === 'dine_in' ? 'bg-[#D3202B] text-white' : 'bg-neutral-100 text-neutral-600'}`}>
                 {dineInCount}
               </span>
             </button>
@@ -886,7 +886,7 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
               <button
                 type="button"
                 onClick={savePaymentEdit}
-                className="w-full rounded-none border border-black bg-[#1A1A18] py-4 text-[12px] font-black uppercase tracking-[0.2em] text-white transition-all hover:bg-white hover:text-black"
+                className="w-full rounded-none border border-black bg-[#D3202B] py-4 text-[12px] font-black uppercase tracking-[0.2em] text-white transition-all hover:bg-white hover:text-black"
               >
                 บันทึกการเปลี่ยนแปลง
               </button>

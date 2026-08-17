@@ -66,7 +66,7 @@ export default function POSPinModal({
     <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
       {/* Backdrop with Blur */}
       <div 
-        className="absolute inset-0 bg-[#1A1A18]/60 backdrop-blur-md transition-opacity duration-300"
+        className="absolute inset-0 bg-[#D3202B]/60 backdrop-blur-md transition-opacity duration-300"
         onClick={onClose}
       />
 

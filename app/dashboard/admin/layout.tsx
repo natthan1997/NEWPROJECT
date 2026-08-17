@@ -7,8 +7,8 @@ import TopNavBar from '../../../components/TopNavBar'
 import Sidebar from '../../../components/Sidebar'
 import { SidebarContext } from '../_shared/sidebar-context'
 
-const SIDEBAR_LOCK_KEY = 'xyl.admin.sidebarLocked'
-const SIDEBAR_OPEN_KEY = 'xyl.admin.sidebarOpen'
+const SIDEBAR_LOCK_KEY = 'rushup.admin.sidebarLocked'
+const SIDEBAR_OPEN_KEY = 'rushup.admin.sidebarOpen'
 
 // SidebarContext is provided from a shared module; no named exports from layout.
 const StyleTag = () => (
@@ -81,7 +81,7 @@ export default function AdminLayout({
   return (
     <ProtectedRoute allowedRoles={['admin']}>
       <SidebarContext.Provider value={{ sidebarLocked, sidebarOpen }}>
-        <div className="xyl-shell xyl-page flex min-h-screen w-full flex-col overflow-x-hidden">
+        <div className="rushup-shell rushup-page flex min-h-screen w-full flex-col overflow-x-hidden">
           {!isDocumentBuilderPage && (
             <>
               <TopNavBar 
@@ -108,9 +108,9 @@ export default function AdminLayout({
                   : isDocumentBuilderPage ? 'pt-0 ml-0' : 'pt-[calc(4rem+env(safe-area-inset-top))] ml-0'
             }`}
           >
-            <div className={isDocumentBuilderPage ? (pathname?.startsWith('/dashboard/admin/documents/create-manual') ? 'w-full p-0 min-h-screen' : 'w-full p-0 h-screen overflow-hidden') : 'xyl-page-inner'}>
+            <div className={isDocumentBuilderPage ? (pathname?.startsWith('/dashboard/admin/documents/create-manual') ? 'w-full p-0 min-h-screen' : 'w-full p-0 h-screen overflow-hidden') : 'rushup-page-inner'}>
               <StyleTag />
-              <div className={isDocumentBuilderPage ? 'w-full max-w-none min-h-full' : 'xyl-page-container'}>
+              <div className={isDocumentBuilderPage ? 'w-full max-w-none min-h-full' : 'rushup-page-container'}>
                 {children}
               </div>
             </div>

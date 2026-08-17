@@ -253,7 +253,7 @@ export default function POSShopSettings({
 
 `;
 
-const newUi = fs.readFileSync('/Users/natthanchaimongkol/Downloads/XYLPROJECT-main/ui_replacement.txt', 'utf8');
+const newUi = fs.readFileSync('/Users/natthanchaimongkol/Downloads/rushupproject-main/ui_replacement.txt', 'utf8');
 
-fs.writeFileSync('/Users/natthanchaimongkol/Downloads/XYLPROJECT-main/components/pos/POSShopSettings.tsx', part1 + newUi);
+fs.writeFileSync('/Users/natthanchaimongkol/Downloads/rushupproject-main/components/pos/POSShopSettings.tsx', part1 + newUi);
 console.log('Reconstructed completely!');

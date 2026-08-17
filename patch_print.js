@@ -84,7 +84,7 @@ const drawerTarget = `          if (method === 'cash') {
             }
             // Fallback: if no printers in settings, try localStorage IP
             if (receiptPrinters.length === 0) {
-              const fallbackIp = typeof window !== 'undefined' ? localStorage.getItem('xylem_printer_ip') : null
+              const fallbackIp = typeof window !== 'undefined' ? localStorage.getItem('rushup_printer_ip') : null
               if (fallbackIp) await printOpenDrawer(fallbackIp)
             }
           }`;
@@ -94,7 +94,7 @@ const drawerReplacement = `          if (method === 'cash') {
             if (receiptPrinters.length > 0) {
               Promise.allSettled(receiptPrinters.map(rp => rp.ip ? printOpenDrawer(rp.ip) : Promise.resolve())).catch(console.error);
             } else {
-              const fallbackIp = typeof window !== 'undefined' ? localStorage.getItem('xylem_printer_ip') : null
+              const fallbackIp = typeof window !== 'undefined' ? localStorage.getItem('rushup_printer_ip') : null
               if (fallbackIp) printOpenDrawer(fallbackIp).catch(console.error);
             }
           }`;

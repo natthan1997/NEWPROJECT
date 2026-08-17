@@ -56,7 +56,7 @@ export default function CreateAdmin() {
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
             {locale === 'en' ? 'Create an administrator account' : locale === 'zh' ? '创建管理员帐户' : '             สร้างบัญชีผู้ดูแลระบบ           '}</h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            {locale === 'en' ? 'For Xylem Landscape administrators only.' : locale === 'zh' ? '仅适用于赛莱默景观管理员。' : '             สำหรับผู้ดูแลระบบ Xylem Landscape เท่านั้น           '}</p>
+            {locale === 'en' ? 'For RUSH UP administrators only.' : locale === 'zh' ? '仅适用于赛莱默景观管理员。' : '             สำหรับผู้ดูแลระบบ RUSH UP เท่านั้น           '}</p>
         </div>
         
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>

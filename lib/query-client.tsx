@@ -7,7 +7,7 @@ import { useState } from 'react'
 /**
  * React Query Configuration
  * 
- * Default settings optimized for the Xylem project:
+ * Default settings optimized for the RUSH UP project:
  * - 5 minutes cache time
  * - 2 retries on failure
  * - Refetch on window focus (disabled for better UX)

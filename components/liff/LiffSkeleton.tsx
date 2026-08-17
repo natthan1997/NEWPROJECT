@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import XYLLoader from '@/components/loaders/XYLLoader';
+import RUSHUPLoader from '@/components/loaders/RUSHUPLoader';
 
 // Shimmer base —ใช้สำหรับ Placeholder รูปทรง
 const shimmerClass =
@@ -39,10 +39,10 @@ export const MenuRowSkeleton = () => (
   </div>
 );
 
-// Skeleton หน้าประวัติการสั่งซื้อ — ใช้ XYLLoader mini
+// Skeleton หน้าประวัติการสั่งซื้อ — ใช้ RUSHUPLoader mini
 export const HistoryListSkeleton = () => (
     <div className="flex justify-center p-20">
-      <XYLLoader mini />
+      <RUSHUPLoader mini />
     </div>
 );
 

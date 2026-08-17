@@ -1,4 +1,4 @@
-# Contributing to Xylem Landscape
+# Contributing to RUSH UP
 
 Thank you for your interest in contributing! This document provides guidelines and instructions for contributing to the project.
 
@@ -24,8 +24,8 @@ Thank you for your interest in contributing! This document provides guidelines a
 1. Fork the repository
 2. Clone your fork:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/xylproject.git
-   cd xylproject/xylem-landscape
+   git clone https://github.com/YOUR_USERNAME/rushupproject.git
+   cd rushupproject/xylem-landscape
    ```
 
 3. Install dependencies:
@@ -182,7 +182,7 @@ import { test, expect } from '@playwright/test'
 
 test('should load homepage', async ({ page }) => {
   await page.goto('/')
-  await expect(page).toHaveTitle(/Xylem/)
+  await expect(page).toHaveTitle(/RUSH UP/)
 })
 ```
 

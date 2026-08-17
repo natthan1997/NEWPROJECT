@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../lib/AuthContext';
-import XYLLoader from './loaders/XYLLoader';
+import RUSHUPLoader from './loaders/RUSHUPLoader';
 
 interface PublicRouteProps {
   children: React.ReactNode;
@@ -29,14 +29,14 @@ export default function PublicRoute({ children }: PublicRouteProps) {
       } else if (profile.role === 'staff') {
         if (profile.is_pos_account) { router.push('/dashboard/pos'); } else { router.push('/dashboard/staff'); }
       } else if (profile.role === 'customer') {
-        router.push('/dashboard/customer');
+        router.push('/liff/member');
       }
     }
   }, [user, profile, loading, router]);
 
-  // Show XYLLoader while checking authentication or redirecting
+  // Show RUSHUPLoader while checking authentication or redirecting
   if (loading || (user && profile)) {
-    return <XYLLoader />;
+    return <RUSHUPLoader />;
   }
 
   // Render children for public access

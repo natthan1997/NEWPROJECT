@@ -1,5 +1,5 @@
 const fs = require('fs');
-const content = fs.readFileSync('/Users/natthanchaimongkol/Downloads/XYLPROJECT-main/components/pos/POSShopSettings.tsx', 'utf8');
+const content = fs.readFileSync('/Users/natthanchaimongkol/Downloads/rushupproject-main/components/pos/POSShopSettings.tsx', 'utf8');
 
 // Use simple stack
 let lines = content.split('\n');

@@ -1,4 +1,4 @@
-# XYL STUDIO Workshops: Public Booking + Checkout Setup
+# RUSH UP Workshops: Public Booking + Checkout Setup
 
 This guide enables the public no-login workshop booking flow with immediate (simulated) payment in dev or staging.
 
@@ -24,7 +24,7 @@ Indexes and RLS policies are included. No public read/update/delete is enabled.
 
 ## 2) Run the app
 - Start dev server (already configured):
-  - VS Code task: "XYL STUDIO: Start Development Server" or `npm run dev`
+  - VS Code task: "RUSH UP: Start Development Server" or `npm run dev`
 - App served at http://localhost:3000
 
 ## 3) Quick smoke tests

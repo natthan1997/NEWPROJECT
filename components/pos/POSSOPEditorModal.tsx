@@ -163,7 +163,7 @@ export default function POSSOPEditorModal({ isOpen, onClose, shopSettings, branc
                 initial={{ opacity: 0 }} 
                 animate={{ opacity: 1 }} 
                 exit={{ opacity: 0 }} 
-                className="absolute inset-0 bg-[#1A1A18]/60 backdrop-blur-sm" 
+                className="absolute inset-0 bg-[#D3202B]/60 backdrop-blur-sm" 
                 onClick={onClose} 
             />
             
@@ -251,28 +251,28 @@ export default function POSSOPEditorModal({ isOpen, onClose, shopSettings, branc
                     <div className="w-full max-w-[800px] bg-white shadow-xl min-h-[1131px] rounded-sm flex flex-col border border-gray-200 print-a4-page">
                         {/* Document Header (Formal SOP Style) */}
                         <div className="pt-12 px-12 pb-4 mb-4 mt-4">
-                            <table className="w-full border-collapse border border-gray-900 text-sm">
+                            <table className="w-full border-collapse border border-[#D3202B] text-sm">
                                 <tbody>
                                     <tr>
-                                        <td rowSpan={3} className="border border-gray-900 p-4 text-center font-black text-2xl w-[35%] align-middle bg-gray-50">
+                                        <td rowSpan={3} className="border border-[#D3202B] p-4 text-center font-black text-2xl w-[35%] align-middle bg-gray-50">
                                             {shopSettings?.opening_hours?.name_en || shopSettings?.opening_hours?.branch_name_th || 'LOGO / BRAND'}
                                         </td>
-                                        <td className="border border-gray-900 p-2 font-bold bg-gray-50 w-[20%]">Document Title</td>
-                                        <td colSpan={3} className="border border-gray-900 p-2 font-black text-lg text-center">
+                                        <td className="border border-[#D3202B] p-2 font-bold bg-gray-50 w-[20%]">Document Title</td>
+                                        <td colSpan={3} className="border border-[#D3202B] p-2 font-black text-lg text-center">
                                             Standard Operating Procedure (SOP)
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td className="border border-gray-900 p-2 font-bold bg-gray-50">Document No.</td>
-                                        <td className="border border-gray-900 p-2 text-center font-semibold">{sopData.docNo || '-'}</td>
-                                        <td className="border border-gray-900 p-2 font-bold bg-gray-50 w-[15%]">Revision</td>
-                                        <td className="border border-gray-900 p-2 text-center font-semibold w-[15%]">{sopData.revision || '-'}</td>
+                                        <td className="border border-[#D3202B] p-2 font-bold bg-gray-50">Document No.</td>
+                                        <td className="border border-[#D3202B] p-2 text-center font-semibold">{sopData.docNo || '-'}</td>
+                                        <td className="border border-[#D3202B] p-2 font-bold bg-gray-50 w-[15%]">Revision</td>
+                                        <td className="border border-[#D3202B] p-2 text-center font-semibold w-[15%]">{sopData.revision || '-'}</td>
                                     </tr>
                                     <tr>
-                                        <td className="border border-gray-900 p-2 font-bold bg-gray-50">Effective Date</td>
-                                        <td className="border border-gray-900 p-2 text-center font-semibold">{sopData.effectiveDate ? new Date(sopData.effectiveDate).toLocaleDateString('en-GB') : '-'}</td>
-                                        <td className="border border-gray-900 p-2 font-bold bg-gray-50">Page</td>
-                                        <td className="border border-gray-900 p-2 text-center font-semibold">1 of 1</td>
+                                        <td className="border border-[#D3202B] p-2 font-bold bg-gray-50">Effective Date</td>
+                                        <td className="border border-[#D3202B] p-2 text-center font-semibold">{sopData.effectiveDate ? new Date(sopData.effectiveDate).toLocaleDateString('en-GB') : '-'}</td>
+                                        <td className="border border-[#D3202B] p-2 font-bold bg-gray-50">Page</td>
+                                        <td className="border border-[#D3202B] p-2 text-center font-semibold">1 of 1</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -320,7 +320,7 @@ export default function POSSOPEditorModal({ isOpen, onClose, shopSettings, branc
                     <button 
                         onClick={handleSave} 
                         disabled={isSaving}
-                        className="flex items-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-black transition-colors disabled:opacity-50"
+                        className="flex items-center gap-2 px-6 py-3 bg-[#D3202B] text-white rounded-xl font-bold hover:bg-red-700 transition-colors disabled:opacity-50"
                     >
                         <Save size={18} />
                         {isSaving ? 'กำลังบันทึก...' : 'บันทึกแบบฟอร์ม'}

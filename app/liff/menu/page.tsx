@@ -35,7 +35,7 @@ import {
   Ticket,
   AlertCircle
 } from 'lucide-react';
-import XYLLoader from '@/components/loaders/XYLLoader';
+import RUSHUPLoader from '@/components/loaders/RUSHUPLoader';
 import { motion, AnimatePresence, type PanInfo } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
 import { useJsApiLoader, GoogleMap, Marker, Autocomplete } from '@react-google-maps/api';
@@ -452,7 +452,7 @@ export default function LiffMenuPage() {
         return clean.length > 25 ? clean.substring(0, 25) + '...' : clean;
       };
 
-  const getCurrentUserId = () => lineProfile?.userId || (typeof window !== 'undefined' ? localStorage.getItem('xylem_line_user_id') : null);
+  const getCurrentUserId = () => lineProfile?.userId || (typeof window !== 'undefined' ? localStorage.getItem('rushup_line_user_id') : null);
 
   const buildDeliveryAddress = (baseAddress: string, detail: string) => {
     return detail ? `${detail} ${baseAddress}`.trim() : baseAddress.trim();
@@ -620,7 +620,7 @@ export default function LiffMenuPage() {
     } else {
       if (openCart === '1') {
         try {
-          const storedCart = localStorage.getItem('xylem_cart');
+          const storedCart = localStorage.getItem('rushup_cart');
           if (storedCart) {
             setCart(JSON.parse(storedCart));
             setIsCartOpen(true);
@@ -637,7 +637,7 @@ export default function LiffMenuPage() {
     setIsMounted(true);
     if (typeof window === 'undefined') return;
     try {
-      const storedCart = localStorage.getItem('xylem_cart');
+      const storedCart = localStorage.getItem('rushup_cart');
       if (storedCart) setCart(JSON.parse(storedCart));
     } catch (e) {
       console.error('Failed to load storage:', e);
@@ -685,8 +685,8 @@ export default function LiffMenuPage() {
   }, [isMounted, isLoaded, lineProfile]);
 
   useEffect(() => {
-    if (cart.length > 0) localStorage.setItem('xylem_cart', JSON.stringify(cart));
-    else localStorage.removeItem('xylem_cart');
+    if (cart.length > 0) localStorage.setItem('rushup_cart', JSON.stringify(cart));
+    else localStorage.removeItem('rushup_cart');
   }, [cart]);
 
   useEffect(() => {
@@ -742,7 +742,7 @@ export default function LiffMenuPage() {
     };
 
     const fetchActiveOrders = async () => {
-      const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
+      const userId = lineProfile?.userId || localStorage.getItem('rushup_line_user_id');
       if (!userId) return;
 
       // --- 👤 Member Sync & Loyalty ---
@@ -899,7 +899,7 @@ export default function LiffMenuPage() {
     };
 
     const fetchRegularItems = async () => {
-      const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
+      const userId = lineProfile?.userId || localStorage.getItem('rushup_line_user_id');
       if (!userId) return;
       try {
         const res = await fetch(`/api/liff/customer/regulars?line_user_id=${userId}`);
@@ -913,7 +913,7 @@ export default function LiffMenuPage() {
     };
 
     const fetchLatestCompletedOrder = async () => {
-      const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
+      const userId = lineProfile?.userId || localStorage.getItem('rushup_line_user_id');
       if (!userId) return;
       try {
         const { data: recentOrders, error } = await supabase
@@ -1080,7 +1080,7 @@ export default function LiffMenuPage() {
     };
 
     const fetchMemberInfo = async () => {
-      const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
+      const userId = lineProfile?.userId || localStorage.getItem('rushup_line_user_id');
       if (!userId) return;
       
       const { data } = await supabase
@@ -1130,7 +1130,7 @@ export default function LiffMenuPage() {
       });
 
     // 🔄 REAL-TIME SUBSCRIPTION: Personal Orders Tracking
-    const userId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
+    const userId = lineProfile?.userId || localStorage.getItem('rushup_line_user_id');
     let channelOrders: any = null;
     if (userId) {
       console.log('📡 [REALTIME] Monitoring orders for:', userId);
@@ -1191,7 +1191,7 @@ export default function LiffMenuPage() {
 
   // 🛒 GLOBAL CART PERSISTENCE & AUTO-OPEN
   useEffect(() => {
-    const saved = localStorage.getItem('xylem_cart');
+    const saved = localStorage.getItem('rushup_cart');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -1208,7 +1208,7 @@ export default function LiffMenuPage() {
 
   useEffect(() => {
     if (cart.length > 0) {
-      localStorage.setItem('xylem_cart', JSON.stringify(cart));
+      localStorage.setItem('rushup_cart', JSON.stringify(cart));
     }
   }, [cart]);
 
@@ -2142,7 +2142,7 @@ export default function LiffMenuPage() {
 
       // Do not empty cart state here to prevent UI flicker while redirecting.
       // We only clear the persistent storage so it will be empty on next visit.
-      localStorage.removeItem('xylem_cart');
+      localStorage.removeItem('rushup_cart');
       if (typeof window !== 'undefined') sessionStorage.removeItem('xyl_liff_checkout_lock');
       void refreshActiveOrders()
       isSuccess = true;
@@ -2159,10 +2159,10 @@ export default function LiffMenuPage() {
   };
 
   if (redirectTo && redirectTo.startsWith('/')) {
-    return <XYLLoader tagline="กำลังนำคุณไปยังหน้าสมาชิก..." />;
+    return <RUSHUPLoader tagline="กำลังนำคุณไปยังหน้าสมาชิก..." />;
   }
 
-  if (liffLoading && !hasSeenLoader) return <XYLLoader tagline={locale === 'en' ? 'กำลังบันทึกประวัติการสั่งซื้อ...' : locale === 'zh' ? 'กำลังบันทึกประวัติการสั่งซื้อ...' : 'กำลังบันทึกประวัติการสั่งซื้อ...'} />;
+  if (liffLoading && !hasSeenLoader) return <RUSHUPLoader tagline={locale === 'en' ? 'กำลังบันทึกประวัติการสั่งซื้อ...' : locale === 'zh' ? 'กำลังบันทึกประวัติการสั่งซื้อ...' : 'กำลังบันทึกประวัติการสั่งซื้อ...'} />;
 
   return (
     <div className="flex flex-col min-h-screen bg-[#fcfcf9]">
@@ -2210,7 +2210,7 @@ export default function LiffMenuPage() {
              </div>
            )}
            <button onClick={() => router.push('/liff/history')} className="w-9 h-9 rounded-full bg-white flex items-center justify-center border border-gray-200/80 shadow-[0_2px_8px_rgba(0,0,0,0.04)] active:scale-90 transition-all text-gray-700 hover:bg-gray-50 shrink-0">
-             {(loading || liffLoading) ? <XYLLoader mini /> : <History size={16} strokeWidth={2} />}
+             {(loading || liffLoading) ? <RUSHUPLoader mini /> : <History size={16} strokeWidth={2} />}
            </button>
         </div>
       </header>
@@ -2224,7 +2224,7 @@ export default function LiffMenuPage() {
            <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-8 flex items-end justify-between text-white z-10 pointer-events-none select-none">
                 <div className="flex flex-col gap-0.5">
                      <h1 className="text-xl sm:text-2xl font-black tracking-tight drop-shadow-sm uppercase">
-                         {shopSettings?.opening_hours?.name_th || shopSettings?.name || 'XYL STUDIO'}
+                         {shopSettings?.opening_hours?.name_th || shopSettings?.name || 'RUSH UP'}
                      </h1>
                      {(shopSettings?.opening_hours?.branch_name_th || shopSettings?.branch_name) && (
                          <p className="text-white/60 text-[10px] sm:text-xs font-bold tracking-widest uppercase drop-shadow-sm">
@@ -3342,7 +3342,7 @@ export default function LiffMenuPage() {
                       disabled={isLocatingAddress}
                       className="w-full h-11 border border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-800 rounded-xl text-[12px] font-black tracking-widest uppercase flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.98] transition-all"
                     >
-                      {isLocatingAddress ? <XYLLoader mini /> : <><Target size={14} className="text-black" /> {locale === 'en' ? 'Use Current Location' : 'ใช้ตำแหน่งปัจจุบันของคุณ'}</>}
+                      {isLocatingAddress ? <RUSHUPLoader mini /> : <><Target size={14} className="text-black" /> {locale === 'en' ? 'Use Current Location' : 'ใช้ตำแหน่งปัจจุบันของคุณ'}</>}
                     </button>
 
                     {/* Divider */}
@@ -3492,7 +3492,7 @@ export default function LiffMenuPage() {
                     disabled={isLocatingAddress}
                     className="w-12 h-12 bg-white rounded-full shadow-lg border border-neutral-100 flex items-center justify-center text-black active:scale-95 transition-all disabled:opacity-50"
                   >
-                    {isLocatingAddress ? <XYLLoader mini /> : <Target size={20} />}
+                    {isLocatingAddress ? <RUSHUPLoader mini /> : <Target size={20} />}
                   </button>
                 </div>
 
@@ -3589,7 +3589,7 @@ export default function LiffMenuPage() {
                     disabled={!tempAddress || isProcessing}
                     className="mt-6 w-full h-14 bg-black text-white font-black text-[14px] rounded-2xl active:scale-[0.98] transition-all disabled:opacity-30 shadow-xl shadow-black/10 flex items-center justify-center gap-2"
                   >
-                    {isProcessing ? <XYLLoader mini /> : <>{locale === 'en' ? 'Confirm Location' : 'ยืนยันตำแหน่งนี้'}</>}
+                    {isProcessing ? <RUSHUPLoader mini /> : <>{locale === 'en' ? 'Confirm Location' : 'ยืนยันตำแหน่งนี้'}</>}
                   </button>
                 </motion.div>
               </div>
@@ -3696,7 +3696,7 @@ export default function LiffMenuPage() {
                   disabled={isProcessing}
                   className="w-full h-14 bg-black text-white font-black text-[11px] active:scale-[0.98] transition-all shadow-2xl uppercase tracking-[0.26em] flex items-center justify-center gap-3 disabled:bg-gray-200"
                >
-                  {isProcessing ? <XYLLoader mini /> : <>{editingAddressId ? 'อัปเดตและใช้ที่อยู่นี้' : 'บันทึกและใช้ที่อยู่นี้'} <CheckCircle2 size={18} /></>}
+                  {isProcessing ? <RUSHUPLoader mini /> : <>{editingAddressId ? 'อัปเดตและใช้ที่อยู่นี้' : 'บันทึกและใช้ที่อยู่นี้'} <CheckCircle2 size={18} /></>}
                </button>
              </div>
           </motion.div>
@@ -3705,7 +3705,7 @@ export default function LiffMenuPage() {
 
       <div className="py-12 pb-24 text-center opacity-10 pointer-events-none">
         <p className="text-[7px] font-black uppercase tracking-[0.4em] text-[#1A1A18]">
-          Designed by XYL STUDIO • v1.0.32
+          Designed by RUSH UP • v1.0.32
         </p>
       </div>
 

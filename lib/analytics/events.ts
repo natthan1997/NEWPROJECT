@@ -16,7 +16,7 @@ export const trackProductEvent = (eventName: ProductEventName, payload: ProductE
   }
 
   if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('xylem:product-event', { detail: event }))
+    window.dispatchEvent(new CustomEvent('rushup:product-event', { detail: event }))
 
     const body = JSON.stringify({
       eventName,
@@ -35,6 +35,6 @@ export const trackProductEvent = (eventName: ProductEventName, payload: ProductE
   }
 
   if (process.env.NODE_ENV !== 'production') {
-    console.info('[xylem:event]', event)
+    console.info('[rushup:event]', event)
   }
 }

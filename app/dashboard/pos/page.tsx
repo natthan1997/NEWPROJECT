@@ -23,6 +23,7 @@ import {
   ShoppingBag,
   UserPlus,
   History as HistoryIcon,
+  Tag,
 } from 'lucide-react'
 import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/lib/supabaseClient'
@@ -34,7 +35,7 @@ import { printGraphicModeCustomerReceipt, printGraphicModeKitchenTicket } from '
 import { playAppSound } from '@/lib/audioUtils'
 import Swal from 'sweetalert2'
 
-// XYL POS Components
+// RUSH UP POS Components
 import POSLayout from '@/components/pos/POSLayout'
 import POSTerminal from '@/components/pos/POSTerminal'
 import POSMenuManager from '@/components/pos/POSMenuManager'
@@ -43,6 +44,7 @@ import POSReports from '@/components/pos/POSReports'
 import POSDrawerManager from '@/components/pos/POSDrawerManager'
 import POSStaffManager from '@/components/pos/POSStaffManager'
 import POSTableManager from '@/components/pos/POSTableManager'
+import POSPromotionsModal from '@/components/pos/POSPromotionsModal'
 import POSRecipeManager from '@/components/pos/POSRecipeManager'
 import POSKitchen from '@/components/pos/POSKitchen'
 import POSModifierManager from '@/components/pos/POSModifierManager'
@@ -52,7 +54,8 @@ import POSMemberManager from '@/components/pos/POSMemberManager'
 import POSHistory from '@/components/pos/POSHistory'
 import POSManagementUnified from '@/components/pos/POSManagementUnified'
 import POSMenuAppConfig from '@/components/pos/POSMenuAppConfig'
-import XYLLoader from '@/components/loaders/XYLLoader'
+import RUSHUPLoader from '@/components/loaders/RUSHUPLoader'
+import { POSSkeleton } from '@/components/ui/Skeleton'
 import POSBranchSelectModal from '@/components/pos/POSBranchSelectModal'
 import POSErrorBoundary from '@/components/pos/POSErrorBoundary'
 import { useI18n } from "@/lib/I18nContext";
@@ -73,9 +76,10 @@ type POSView =
   | 'management'
   | 'history'
   | 'menu-management'
+  | 'promotions'
 
 function RestaurantOSPageContent() {
-    const { locale } = useI18n();
+  const { locale } = useI18n();
   const { profile } = useAuth()
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -246,7 +250,7 @@ function RestaurantOSPageContent() {
       fetchPendingOrders()
       fetchClaimingCoupons()
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.id])
 
   useEffect(() => {
@@ -311,7 +315,7 @@ function RestaurantOSPageContent() {
         if (!data.branch_id || !currentBranchId || data.branch_id === currentBranchId) {
           playAppSound('table_call');
           Swal.fire({
-            title: `<div style="font-size: 1.25rem; font-weight: 900; color: #1A1A18; display: flex; align-items: center; gap: 8px;">🛎️ โต๊ะ ${data.table_number || data.table_id.substring(0,4)}</div>`,
+            title: `<div style="font-size: 1.25rem; font-weight: 900; color: #1A1A18; display: flex; align-items: center; gap: 8px;">🛎️ โต๊ะ ${data.table_number || data.table_id.substring(0, 4)}</div>`,
             html: `<div style="font-size: 0.95rem; font-weight: 700; color: #f97316;">เรียกเก็บเงิน / พนักงาน</div>`,
             showConfirmButton: false,
             position: 'top-end',
@@ -322,7 +326,7 @@ function RestaurantOSPageContent() {
             background: '#ffffff',
             customClass: {
               popup: 'rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.2)] border border-gray-100',
-              timerProgressBar: 'bg-orange-500'
+              timerProgressBar: 'bg-[#C62229]'
             }
           })
         }
@@ -364,7 +368,7 @@ function RestaurantOSPageContent() {
     if (!profile) return
     let branchId = forceBranchId || null
     let branchName = null
-    
+
     if (!branchId && profile.role === 'admin' && urlBranchId) {
       branchId = urlBranchId
     }
@@ -397,7 +401,7 @@ function RestaurantOSPageContent() {
           .maybeSingle()
         if (b) branchName = b.branch_name
       }
-      
+
       if (!branchName && data.id === '00000000-0000-0000-0000-000000000001') {
         branchName = 'สันกำแพง'
       }
@@ -583,7 +587,7 @@ function RestaurantOSPageContent() {
         const isQrOrderInsert = newOrder?.source === 'qr' && payload.eventType === 'INSERT'
         const isLiffOrderInsert = isLiffSource && payload.eventType === 'INSERT' && newOrder?.status !== 'payment_pending'
         const isLiffOrderPaid = isLiffSource && payload.eventType === 'UPDATE' && newOrder?.status === 'paid' && oldOrder?.status === 'payment_pending'
-        
+
         const shouldAlert = isQrOrderInsert || isLiffOrderInsert || isLiffOrderPaid
         const isMuted = typeof window !== 'undefined' && localStorage.getItem('pos_mute_sounds') === 'true'
 
@@ -592,7 +596,7 @@ function RestaurantOSPageContent() {
             audioRef.current = new Audio('/assets/sounds/orderline.m4a')
             audioRef.current.volume = 0.8
           }
-          audioRef.current.play().catch(() => {})
+          audioRef.current.play().catch(() => { })
         }
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_order_payments' }, (payload) => {
@@ -605,16 +609,16 @@ function RestaurantOSPageContent() {
 
     const broadcastChannel = supabase.channel('pos_qr_broadcast_alert')
       .on('broadcast', { event: 'qr_order_placed' }, () => {
-         setSyncPulse(prev => prev + 1)
-         fetchPendingOrders()
-         const isMuted = typeof window !== 'undefined' && localStorage.getItem('pos_mute_sounds') === 'true'
-         if (!isMuted) {
-           if (!audioRef.current) {
-             audioRef.current = new Audio('/assets/sounds/orderline.m4a')
-             audioRef.current.volume = 0.8
-           }
-           audioRef.current.play().catch(() => {})
-         }
+        setSyncPulse(prev => prev + 1)
+        fetchPendingOrders()
+        const isMuted = typeof window !== 'undefined' && localStorage.getItem('pos_mute_sounds') === 'true'
+        if (!isMuted) {
+          if (!audioRef.current) {
+            audioRef.current = new Audio('/assets/sounds/orderline.m4a')
+            audioRef.current.volume = 0.8
+          }
+          audioRef.current.play().catch(() => { })
+        }
       })
       .subscribe()
 
@@ -626,7 +630,7 @@ function RestaurantOSPageContent() {
         async (payload) => {
           const newRecord = payload.new as any
           playAppSound('notification')
-          
+
           let memberDetails = null
           if (newRecord.member_id) {
             const { data } = await supabase
@@ -636,7 +640,7 @@ function RestaurantOSPageContent() {
               .maybeSingle()
             memberDetails = data
           }
-          
+
           const fullClaim = { ...newRecord, member: memberDetails }
           setClaimingCoupons(prev => {
             if (prev.some(c => c.id === fullClaim.id)) return prev
@@ -652,7 +656,7 @@ function RestaurantOSPageContent() {
           const newRecord = payload.new as any
           if (newRecord.status === 'claiming') {
             playAppSound('notification')
-            
+
             let memberDetails = null
             if (newRecord.member_id) {
               const { data } = await supabase
@@ -662,7 +666,7 @@ function RestaurantOSPageContent() {
                 .maybeSingle()
               memberDetails = data
             }
-            
+
             const fullClaim = { ...newRecord, member: memberDetails }
             setClaimingCoupons(prev => {
               if (prev.some(c => c.id === fullClaim.id)) return prev
@@ -690,13 +694,13 @@ function RestaurantOSPageContent() {
       setSyncPulse(prev => prev + 1)
     }
 
-    window.addEventListener('xyl-pos-shift-refresh', handleShiftRefresh as EventListener)
+    window.addEventListener('rushup-pos-shift-refresh', handleShiftRefresh as EventListener)
 
     return () => {
       supabase.removeChannel(channel)
       supabase.removeChannel(broadcastChannel)
       supabase.removeChannel(couponChannel)
-      window.removeEventListener('xyl-pos-shift-refresh', handleShiftRefresh as EventListener)
+      window.removeEventListener('rushup-pos-shift-refresh', handleShiftRefresh as EventListener)
     }
   }, [profile, activeShift, shopSettings])
 
@@ -772,7 +776,7 @@ function RestaurantOSPageContent() {
       const { data: freshSettings } = await settingsQuery.maybeSingle()
       let freshPrinters: any[] = freshSettings?.printers || shopSettings?.printers || []
       if (freshPrinters.length === 0) {
-        const fallbackIp = typeof window !== 'undefined' ? localStorage.getItem('xylem_printer_ip') : null
+        const fallbackIp = typeof window !== 'undefined' ? localStorage.getItem('rushup_printer_ip') : null
         if (fallbackIp) {
           freshPrinters = [{ ip: fallbackIp, type: 'both', model: 'xprinter-xp-n160ii', encoding: 'graphic', categories: ['all'] }]
         }
@@ -811,7 +815,7 @@ function RestaurantOSPageContent() {
         }))
       }
       const shopData = {
-        name: freshSettings?.name || shopSettings?.name || 'XYL STUDIO',
+        name: freshSettings?.name || shopSettings?.name || 'RUSH UP',
         branch: freshSettings?.branch_name || shopSettings?.branch_name,
         taxId: freshSettings?.tax_id || shopSettings?.tax_id,
         address: freshSettings?.address || shopSettings?.address,
@@ -848,13 +852,13 @@ function RestaurantOSPageContent() {
           if (!skipKitchenPrint) {
             for (const printer of kitchenPrinters) {
               if (!printer.ip) continue;
-  
+
               let itemsToPrint = printOrderData.items;
               const printerCats = printer.categories || ['all'];
               if (!printerCats.includes('all') && printerCats.length > 0) {
                 itemsToPrint = printOrderData.items.filter((i: any) => printerCats.includes(i.category_id));
               }
-  
+
               if (itemsToPrint.length > 0) {
                 const routedOrderData = { ...printOrderData, items: itemsToPrint };
                 if (printer.encoding === 'graphic') {
@@ -989,16 +993,16 @@ function RestaurantOSPageContent() {
         .then(() => {
           setIsAudioEnabled(true)
         })
-        .catch(() => {})
+        .catch(() => { })
 
       const AudioContextClass = typeof window !== 'undefined' && (window.AudioContext || (window as any).webkitAudioContext)
       if (AudioContextClass) {
         const ctx = new AudioContextClass()
         if (ctx.state === 'suspended') {
-          ctx.resume().catch(() => {})
+          ctx.resume().catch(() => { })
         }
       }
-    } catch (e) {}
+    } catch (e) { }
   }
 
   const handleOpenShift = async (startCash: number) => {
@@ -1084,6 +1088,7 @@ function RestaurantOSPageContent() {
     { id: 'reports', label: 'รายงาน', icon: BarChart3, roles: ['admin'], group: 'management' },
     { id: 'staff', label: 'พนักงาน', icon: Users, roles: ['admin'], group: 'management' },
     { id: 'menu-management', label: 'จัดการเมนู', icon: Utensils, roles: ['admin', 'manager', 'staff'], group: 'management' },
+    { id: 'promotions', label: 'โปรโมชั่น', icon: Tag, roles: ['admin', 'manager'], group: 'management' },
     { id: 'settings', label: 'ตั้งค่าร้าน', icon: Settings, roles: ['admin', 'manager'], group: 'management' },
   ]
 
@@ -1091,13 +1096,13 @@ function RestaurantOSPageContent() {
     const level = (profile as any)?.staff_level || 'staff'
     const role = profile?.role === 'admin' ? 'admin' : level === 'manager' ? 'manager' : 'staff'
     if (profile?.role === 'admin') return true
-    
+
     // Check dynamic permissions from shopSettings
     const dynamicPerms = (shopSettings as any)?.role_permissions
     if (dynamicPerms && dynamicPerms[role]) {
       return dynamicPerms[role].includes(item.id)
     }
-    
+
     return item.roles.includes(role)
   })
 
@@ -1222,12 +1227,22 @@ function RestaurantOSPageContent() {
         return <POSMenuAppConfig {...commonProps} />
       case 'history':
         return <POSHistory {...commonProps} />
+      case 'promotions':
+        return (
+          <POSPromotionsModal
+            isOpen={true}
+            isInline={true}
+            onClose={() => handleSetView('terminal')}
+            onPromotionsChanged={() => {}}
+            shopSettings={shopSettings}
+          />
+        )
       default:
         return <POSTerminal {...commonProps} />
     }
   }
 
-  if (loading) return <XYLLoader tagline={locale === 'en' ? 'กำลังเข้าสู่ระบบจัดการ...' : locale === 'zh' ? 'กำลังเข้าสู่ระบบจัดการ...' : 'กำลังเข้าสู่ระบบจัดการ...'} />
+  if (loading) return <POSSkeleton />
 
   const isKitchen = activeView === 'kitchen'
   const isMuted = typeof window !== 'undefined' && localStorage.getItem('pos_mute_sounds') === 'true'
@@ -1346,11 +1361,11 @@ function RestaurantOSPageContent() {
                     รายละเอียดคูปอง
                   </div>
                   <span className="inline-block px-2.5 py-1 rounded-full text-[10px] font-black bg-amber-100 text-amber-800 uppercase tracking-widest mb-3">
-                    {activeCouponClaimRequest.discount_type === 'percent' 
-                      ? `${activeCouponClaimRequest.discount_value}% OFF` 
-                      : activeCouponClaimRequest.discount_type === 'free_item' 
-                      ? 'FREE ITEM' 
-                      : `฿${activeCouponClaimRequest.discount_value} OFF`}
+                    {activeCouponClaimRequest.discount_type === 'percent'
+                      ? `${activeCouponClaimRequest.discount_value}% OFF`
+                      : activeCouponClaimRequest.discount_type === 'free_item'
+                        ? 'FREE ITEM'
+                        : `฿${activeCouponClaimRequest.discount_value} OFF`}
                   </span>
                   <h4 className="text-base font-black text-gray-900 leading-snug">
                     {activeCouponClaimRequest.coupon_name}
@@ -1434,9 +1449,9 @@ function RestaurantOSPageContent() {
 }
 
 export default function RestaurantOSPage() {
-    const { locale } = useI18n();
+  const { locale } = useI18n();
   return (
-    <Suspense fallback={<XYLLoader tagline={locale === 'en' ? 'กำลังโหลดระบบ POS...' : locale === 'zh' ? 'กำลังโหลดระบบ POS...' : 'กำลังโหลดระบบ POS...'} />}>
+    <Suspense fallback={<POSSkeleton />}>
       <RestaurantOSPageContent />
     </Suspense>
   )

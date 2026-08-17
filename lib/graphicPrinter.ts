@@ -115,7 +115,7 @@ const renderReceiptHtml = (order: PrintOrderData, shop: PrintShopData) => {
   const itemFontSize = isLarge ? 31 : 27;
   const modifierFontSize = isLarge ? 23 : 21;
   if (shop.receiptHeader) html += `<div style="margin-bottom: 14px; white-space: pre-wrap; line-height:1.45; font-size:25px; text-align:center;">${escapeHtml(shop.receiptHeader)}</div>`;
-  html += `<div style="font-size: ${isLarge ? '44px' : '38px'}; margin-bottom: 8px; font-weight: 900; text-align:center; line-height:1.04;">${escapeHtml(shop.name || 'XYLEM LANDSCAPE')}</div>`;
+  html += `<div style="font-size: ${isLarge ? '44px' : '38px'}; margin-bottom: 8px; font-weight: 900; text-align:center; line-height:1.04;">${escapeHtml(shop.name || 'RUSH UP')}</div>`;
   if (shop.branch) html += `<div style="margin-bottom: 4px; text-align:center; font-size:23px; line-height:1.3;">สาขา: ${escapeHtml(shop.branch)}</div>`;
   if (shop.taxId) html += `<div style="margin-bottom: 4px; text-align:center; font-size:22px; line-height:1.3;">TAX ID: ${escapeHtml(shop.taxId)}</div>`;
   if (shop.address) html += `<div style="margin-bottom: 4px; white-space: pre-wrap; text-align:center; font-size:22px; line-height:1.35;">${escapeHtml(shop.address)}</div>`;
@@ -219,7 +219,7 @@ const renderReceiptHtml = (order: PrintOrderData, shop: PrintShopData) => {
   if (shop.receiptFooter) {
     html += `<div style="white-space: pre-wrap; text-align:center; font-size:21px; line-height:1.35;">${escapeHtml(shop.receiptFooter)}</div>`;
   } else {
-    html += `<div style="white-space: pre-wrap; text-align:center; font-size:21px; line-height:1.35; font-weight:800;">Thank you<br>Powered by XYL STUDIO</div>`;
+    html += `<div style="white-space: pre-wrap; text-align:center; font-size:21px; line-height:1.35; font-weight:800;">Thank you<br>Powered by RUSH UP</div>`;
   }
   return html;
 };

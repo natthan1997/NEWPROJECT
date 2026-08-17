@@ -511,10 +511,10 @@ export default function CustomerMenuPage() {
 
       if (finalTableData.branch_id) {
         const bName = await getBranchName(finalTableData.branch_id);
-        finalTableData.branch = { ...finalTableData.branch, name: bName || 'XYL STUDIO' };
+        finalTableData.branch = { ...finalTableData.branch, name: bName || 'RUSH UP' };
       }
       if (!finalTableData.branch) {
-        finalTableData.branch = { name: 'XYL STUDIO' };
+        finalTableData.branch = { name: 'RUSH UP' };
       }
       tableStatusRef.current = finalTableData.status ?? null
       setTable(finalTableData)
@@ -1180,7 +1180,7 @@ export default function CustomerMenuPage() {
               <div className="w-20 h-20 bg-gray-100 flex items-center justify-center mb-6">
                   <Clock size={34} className="text-gray-500" />
               </div>
-              <h1 className="text-3xl font-black uppercase tracking-tighter mb-3">{table?.branch?.name || 'XYL STUDIO'}</h1>
+              <h1 className="text-3xl font-black uppercase tracking-tighter mb-3">{table?.branch?.name || 'RUSH UP'}</h1>
               <p className="text-[10px] font-black uppercase tracking-[0.25em] text-gray-400 mb-6">{t.table} {table?.display_name || table?.table_number || table_id}</p>
               <div className="border border-red-100 bg-red-50 px-6 py-4 text-red-600 text-sm font-black">
                   {shopClosedMessage || 'ขณะนี้ร้านปิดให้บริการ'}
@@ -1194,7 +1194,7 @@ export default function CustomerMenuPage() {
       return (
           <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-black">
               <div className="w-full max-w-sm flex flex-col items-center text-center">
-                  <h1 className="text-3xl font-black uppercase tracking-tighter mb-2">{table?.branch?.name || 'XYL STUDIO'}</h1>
+                  <h1 className="text-3xl font-black uppercase tracking-tighter mb-2">{table?.branch?.name || 'RUSH UP'}</h1>
                   <p className="text-gray-400 font-bold text-[10px] uppercase tracking-[0.3em] mb-10 border border-gray-200 px-4 py-1">{t.welcomeTable} <span className="text-black">{table?.display_name || table?.table_number || table_id}</span></p>
                   
                   <div className="w-full space-y-6">
@@ -1272,7 +1272,7 @@ export default function CustomerMenuPage() {
             {/* Info Panel - Text floating on gradient */}
             <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-8 flex items-center justify-between max-w-7xl mx-auto">
                 <div className="flex items-center gap-4 text-white">
-                    <h1 className="text-sm sm:text-base font-bold tracking-wide leading-none">{table?.branch?.name || 'XYL STUDIO'}</h1>
+                    <h1 className="text-sm sm:text-base font-bold tracking-wide leading-none">{table?.branch?.name || 'RUSH UP'}</h1>
                     <div className="w-1 h-1 bg-white/50 rounded-full hidden sm:block"></div>
                     <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4">
                         <span className="text-xs sm:text-sm text-white/80 tracking-wide font-medium">{t.table || 'TABLE'} {table?.display_name || table?.table_number || table_id}</span>

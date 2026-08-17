@@ -28,6 +28,8 @@ interface Profile {
   shift_start?: string;
   shift_end?: string;
   avatar_url?: string;
+  is_pos_account?: boolean;
+  staff_level?: string;
 }
 
 interface AuthContextType {

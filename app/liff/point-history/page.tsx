@@ -11,7 +11,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/utils/supabase/client';
 import { useLiff } from '@/components/liff/LiffProvider';
-import XYLLoader from '@/components/loaders/XYLLoader';
+import RUSHUPLoader from '@/components/loaders/RUSHUPLoader';
 import { useI18n } from "@/lib/I18nContext";
 
 export default function LiffPointHistoryPage() {
@@ -27,7 +27,7 @@ export default function LiffPointHistoryPage() {
   const [selectedMonth, setSelectedMonth] = useState<string>('');
 
   const fetchPointHistory = async () => {
-    const currentUserId = lineProfile?.userId || localStorage.getItem('xylem_line_user_id');
+    const currentUserId = lineProfile?.userId || localStorage.getItem('rushup_line_user_id');
     
     if (!currentUserId && !phone) {
       setFetchLoading(false);
@@ -97,7 +97,7 @@ export default function LiffPointHistoryPage() {
     };
   }, [lineProfile, phone]);
 
-  if (liffLoading && !hasSeenLoader) return <XYLLoader tagline={locale === 'en' ? 'Loading points...' : locale === 'zh' ? 'Loading points...' : 'กำลังโหลดประวัติพอยท์...'} />;
+  if (liffLoading && !hasSeenLoader) return <RUSHUPLoader tagline={locale === 'en' ? 'Loading points...' : locale === 'zh' ? 'Loading points...' : 'กำลังโหลดประวัติพอยท์...'} />;
 
   return (
     <div className="min-h-screen bg-[#fcfcf9] pb-20 font-sans">
@@ -107,7 +107,7 @@ export default function LiffPointHistoryPage() {
           <ChevronLeft size={24} />
         </button>
         <div className="flex-1 text-center">
-          <h1 className="text-[12px] font-black uppercase text-[#1A1A18] tracking-[0.2em]">XYL STUDIO</h1>
+          <h1 className="text-[12px] font-black uppercase text-[#1A1A18] tracking-[0.2em]">RUSH UP</h1>
           <p className="text-[7px] tracking-[0.3em] text-emerald-500 font-black uppercase mt-0.5">POINT HISTORY</p>
         </div>
         <button onClick={() => router.back()} className="p-2 -mr-2 text-gray-400">

@@ -35,7 +35,7 @@ function getCustomerEmailTemplate(data: BookingEmailData) {
   
   const translations = {
     th: {
-      subject: 'ยืนยันการจอง Workshop - XYL Studio',
+      subject: 'ยืนยันการจอง Workshop - RUSH UP',
       title: 'ยืนยันการจอง Workshop',
       greeting: `เรียน คุณ${data.customerName}`,
       thankYou: 'ขอบคุณที่จองเวิร์คชอปกับเรา! นี่คือรายละเอียดการจองของคุณ:',
@@ -68,7 +68,7 @@ function getCustomerEmailTemplate(data: BookingEmailData) {
         ]
       },
       location: {
-        title: '📍 ที่อยู่ XYL Studio',
+        title: '📍 ที่อยู่ RUSH UP',
         address: '123 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพฯ 10110',
         phone: 'โทร: 02-123-4567',
         line: 'Line: @xylstudio'
@@ -78,13 +78,13 @@ function getCustomerEmailTemplate(data: BookingEmailData) {
         call: '📞 โทรสอบถาม'
       },
       footer: {
-        thanks: '🌿 ขอบคุณที่เลือก XYL Studio',
+        thanks: '🌿 ขอบคุณที่เลือก RUSH UP',
         contact: 'หากมีคำถามใดๆ สามารถติดต่อเราได้ตลอดเวลา',
         disclaimer: 'อีเมลนี้ถูกส่งอัตโนมัติ กรุณาอย่าตอบกลับ<br>หากต้องการติดต่อ กรุณาใช้ช่องทางที่ระบุด้านบน'
       }
     },
     en: {
-      subject: 'Workshop Booking Confirmation - XYL Studio',
+      subject: 'Workshop Booking Confirmation - RUSH UP',
       title: 'Workshop Booking Confirmation',
       greeting: `Dear ${data.customerName}`,
       thankYou: 'Thank you for booking our workshop! Here are your booking details:',
@@ -117,7 +117,7 @@ function getCustomerEmailTemplate(data: BookingEmailData) {
         ]
       },
       location: {
-        title: '📍 XYL Studio Location',
+        title: '📍 RUSH UP Location',
         address: '123 Sukhumvit Road, Khlong Toei, Bangkok 10110',
         phone: 'Phone: 02-123-4567',
         line: 'Line: @xylstudio'
@@ -127,13 +127,13 @@ function getCustomerEmailTemplate(data: BookingEmailData) {
         call: '📞 Call Us'
       },
       footer: {
-        thanks: '🌿 Thank you for choosing XYL Studio',
+        thanks: '🌿 Thank you for choosing RUSH UP',
         contact: 'If you have any questions, feel free to contact us anytime',
         disclaimer: 'This email was sent automatically. Please do not reply.<br>For inquiries, please use the contact methods listed above.'
       }
     },
     zh: {
-      subject: '工作坊预订确认 - XYL Studio',
+      subject: '工作坊预订确认 - RUSH UP',
       title: '工作坊预订确认',
       greeting: `亲爱的 ${data.customerName}`,
       thankYou: '感谢您预订我们的工作坊！以下是您的预订详情：',
@@ -166,7 +166,7 @@ function getCustomerEmailTemplate(data: BookingEmailData) {
         ]
       },
       location: {
-        title: '📍 XYL Studio 地址',
+        title: '📍 RUSH UP 地址',
         address: '123 素坤逸路，空堤区，曼谷 10110',
         phone: '电话：02-123-4567',
         line: 'Line：@xylstudio'
@@ -176,7 +176,7 @@ function getCustomerEmailTemplate(data: BookingEmailData) {
         call: '📞 电话咨询'
       },
       footer: {
-        thanks: '🌿 感谢您选择 XYL Studio',
+        thanks: '🌿 感谢您选择 RUSH UP',
         contact: '如有任何疑问，请随时联系我们',
         disclaimer: '此邮件为自动发送，请勿回复。<br>如需咨询，请使用上述联系方式。'
       }
@@ -216,7 +216,7 @@ function getCustomerEmailTemplate(data: BookingEmailData) {
 <body>
   <div class="container">
     <div class="header">
-      <h1>🌿 XYL Studio</h1>
+      <h1>🌿 RUSH UP</h1>
       <h2>${t.title}</h2>
     </div>
     
@@ -314,7 +314,7 @@ function getCustomerEmailTemplate(data: BookingEmailData) {
 function getAdminEmailTemplate(data: BookingEmailData) {
   const adminTranslations = {
     title: 'มีการจองใหม่!',
-    subtitle: 'XYL Studio Workshop',
+    subtitle: 'RUSH UP Workshop',
     bookingDetails: 'รายละเอียดการจอง',
     bookingNumber: 'หมายเลขการจอง:',
     customerName: 'ชื่อลูกค้า:',
@@ -338,7 +338,7 @@ function getAdminEmailTemplate(data: BookingEmailData) {
 <html>
 <head>
   <meta charset="utf-8">
-  <title>${t.title} - XYL Studio</title>
+  <title>${t.title} - RUSH UP</title>
   <style>
     body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
@@ -434,14 +434,14 @@ export async function sendBookingEmails(data: BookingEmailData) {
     
     // Get subject based on language
     const customerSubjects = {
-      th: `✅ ยืนยันการจอง Workshop - ${data.workshopTopic} | XYL Studio`,
-      en: `✅ Workshop Booking Confirmation - ${data.workshopTopic} | XYL Studio`,
-      zh: `✅ 工作坊预订确认 - ${data.workshopTopic} | XYL Studio`
+      th: `✅ ยืนยันการจอง Workshop - ${data.workshopTopic} | RUSH UP`,
+      en: `✅ Workshop Booking Confirmation - ${data.workshopTopic} | RUSH UP`,
+      zh: `✅ 工作坊预订确认 - ${data.workshopTopic} | RUSH UP`
     }
     
     // Send confirmation email to customer
     const customerEmail = {
-      from: `${process.env.EMAIL_FROM_NAME || 'XYL Studio'} <${process.env.EMAIL_FROM}>`,
+      from: `${process.env.EMAIL_FROM_NAME || 'RUSH UP'} <${process.env.EMAIL_FROM}>`,
       to: data.customerEmail,
       subject: customerSubjects[lang],
       html: getCustomerEmailTemplate(data),
@@ -449,7 +449,7 @@ export async function sendBookingEmails(data: BookingEmailData) {
 
     // Send notification email to admin (always in Thai)
     const adminEmail = {
-      from: `${process.env.EMAIL_FROM_NAME || 'XYL Studio'} <${process.env.EMAIL_FROM}>`,
+      from: `${process.env.EMAIL_FROM_NAME || 'RUSH UP'} <${process.env.EMAIL_FROM}>`,
       to: process.env.EMAIL_FROM, // Send to same email as sender (admin)
       subject: `🚨 การจองใหม่: ${data.customerName} - ${data.workshopTopic}`,
       html: getAdminEmailTemplate(data),

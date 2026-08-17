@@ -3,7 +3,7 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { CheckCircle, ArrowRight, ShoppingBag, Clock, MapPin } from 'lucide-react';
 import Link from 'next/link';
-import XYLLoader from '@/components/loaders/XYLLoader';
+import RUSHUPLoader from '@/components/loaders/RUSHUPLoader';
 import { useI18n } from "@/lib/I18nContext";
 
 function SuccessContent() {
@@ -17,7 +17,7 @@ function SuccessContent() {
     return () => clearTimeout(timer);
   }, []);
 
-  if (loading) return <XYLLoader tagline={locale === 'en' ? 'กำลังยืนยันคำสั่งซื้อ...' : locale === 'zh' ? 'กำลังยืนยันคำสั่งซื้อ...' : 'กำลังยืนยันคำสั่งซื้อ...'} />;
+  if (loading) return <RUSHUPLoader tagline={locale === 'en' ? 'กำลังยืนยันคำสั่งซื้อ...' : locale === 'zh' ? 'กำลังยืนยันคำสั่งซื้อ...' : 'กำลังยืนยันคำสั่งซื้อ...'} />;
 
   return (
     <div className="min-h-screen bg-[#fcfcf9] text-[#1A1A18] font-sans p-6 sm:p-12 flex flex-col items-center justify-center text-center space-y-12">
@@ -63,7 +63,7 @@ function SuccessContent() {
             <span className="text-[12px] font-black uppercase tracking-[0.4em]">ORDER MORE</span>
             <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
         </Link>
-        <p className="text-[8px] text-gray-300 uppercase tracking-widest">Thank you for choosing Xylem Landscape POS</p>
+        <p className="text-[8px] text-gray-300 uppercase tracking-widest">Thank you for choosing RUSH UP POS</p>
       </div>
     </div>
   );

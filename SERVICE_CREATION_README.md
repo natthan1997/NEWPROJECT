@@ -1,7 +1,7 @@
-# Xylem Landscape - Admin Service Creation Page
+# RUSH UP - Admin Service Creation Page
 
 ## Overview
-หน้าสร้างบริการใหม่สำหรับผู้จัดการระบบ Xylem Landscape ที่ออกแบบมาให้ใช้งานง่าย ครอบคลุมข้อมูลที่จำเป็น และมีความปลอดภัยสูง
+หน้าสร้างบริการใหม่สำหรับผู้จัดการระบบ RUSH UP ที่ออกแบบมาให้ใช้งานง่าย ครอบคลุมข้อมูลที่จำเป็น และมีความปลอดภัยสูง
 
 ## Features
 

@@ -5,7 +5,7 @@ export default function AccessibilityPage() {
     <PublicInfoPage
       kicker="Accessibility"
       title="Accessibility commitment"
-      intro="Xylem Landscape is improving the public site and customer portal so that service discovery, account management, and customer reporting remain accessible across devices, screen sizes, and common assistive workflows."
+      intro="RUSH UP is improving the public site and customer portal so that service discovery, account management, and customer reporting remain accessible across devices, screen sizes, and common assistive workflows."
       sections={[
         {
           title: 'Current focus',
