@@ -114,6 +114,9 @@ import {
   Eye,
   Merge,
   Phone,
+  Package,
+  BarChart3,
+  ClipboardList,
 } from 'lucide-react'
 import Swal from 'sweetalert2'
 import { QRCodeSVG } from 'qrcode.react'
@@ -138,8 +141,8 @@ import { useI18n } from "@/lib/I18nContext";
 import { fetchOrGenerateLoyaltyToken } from "@/lib/loyaltyUtils";
 import { getMenuSearchText, getPrimaryMenuName, getSecondaryMenuName } from '@/lib/posMenuLabels'
 import { sortMenuItemsByOrder } from '@/lib/posMenuOrder'
-
-
+import POSInventoryManager from './POSInventoryManager'
+import POSMenuManager from './POSMenuManager'
 
 interface CartItemRowProps {
   item: any;
@@ -1734,9 +1737,9 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                 ) : renderedLandscapeTab === 'inventory' ? (
                   renderUnifiedLeftPanel('วัตถุดิบ & สต็อกสินค้า', Package, <POSInventoryManager {...commonProps} />)
                 ) : renderedLandscapeTab === 'reports' ? (
-                  renderUnifiedLeftPanel('รายงาน & สถิติ', BarChart3, <POSReportDashboard {...commonProps} />)
+                  renderUnifiedLeftPanel('รายงาน & สถิติ', BarChart3, <POSReports {...commonProps} />)
                 ) : renderedLandscapeTab === 'staff' ? (
-                  renderUnifiedLeftPanel('พนักงาน & SOP', ClipboardList, <POSStaffManagement {...commonProps} />)
+                  renderUnifiedLeftPanel('พนักงาน & SOP', ClipboardList, <POSStaffManager {...commonProps} />)
                 ) : renderedLandscapeTab === 'menu-management' ? (
                   renderUnifiedLeftPanel('แก้ไขรายการอาหาร', ShoppingBag, <POSMenuManager {...commonProps} />)
                 ) : renderedLandscapeTab === 'promotions' ? (
