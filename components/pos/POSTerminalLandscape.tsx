@@ -1798,22 +1798,32 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
             className="flex h-full w-full flex-col bg-white absolute inset-0 font-bold will-change-transform"
           >
             {/* Header */}
-            <header className="flex items-center gap-3 bg-white px-5 py-3.5 shrink-0">
+            <header className="flex items-center justify-between bg-white px-5 py-3.5 shrink-0">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleSwitchTab('terminal')}
+                  className="flex items-center justify-center text-[#D3202B] hover:text-red-700 transition-colors shrink-0"
+                >
+                  <ChevronLeft size={24} strokeWidth={3} />
+                </button>
+                <div>
+                  <h3 className="text-sm font-black uppercase tracking-tighter text-black">
+                    {locale === 'en' ? 'Select Table' : locale === 'zh' ? '选择桌子' : 'เลือกโต๊ะ'}
+                  </h3>
+                  <p className="text-[9px] font-bold tracking-widest text-gray-400 uppercase mt-0.5">
+                    {tables.length} {locale === 'en' ? 'tables' : 'โต๊ะ'}
+                  </p>
+                </div>
+              </div>
               <button
                 type="button"
-                onClick={() => handleSwitchTab('terminal')}
-                className="flex items-center justify-center text-[#D3202B] hover:text-red-700 transition-colors shrink-0"
+                onClick={() => router.push('/dashboard/settings/tables')}
+                className="flex items-center justify-center w-9 h-9 rounded-full bg-neutral-50 text-neutral-400 hover:bg-neutral-100 hover:text-[#D3202B] transition-colors"
+                title="จัดการโต๊ะ"
               >
-                <ChevronLeft size={24} strokeWidth={3} />
+                <Settings size={18} strokeWidth={2.5} />
               </button>
-              <div>
-                <h3 className="text-sm font-black uppercase tracking-tighter text-black">
-                  {locale === 'en' ? 'Select Table' : locale === 'zh' ? '选择桌子' : 'เลือกโต๊ะ'}
-                </h3>
-                <p className="text-[9px] font-bold tracking-widest text-gray-400 uppercase mt-0.5">
-                  {tables.length} {locale === 'en' ? 'tables' : 'โต๊ะ'}
-                </p>
-              </div>
             </header>
 
             {/* Zone tabs */}
