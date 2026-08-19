@@ -1818,7 +1818,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
               </div>
               <button
                 type="button"
-                onClick={() => router.push('/dashboard/settings/tables')}
+                onClick={() => handleSwitchTab('tables')}
                 className="flex items-center justify-center w-9 h-9 rounded-full bg-neutral-50 text-neutral-400 hover:bg-neutral-100 hover:text-[#D3202B] transition-colors"
                 title="จัดการโต๊ะ"
               >
