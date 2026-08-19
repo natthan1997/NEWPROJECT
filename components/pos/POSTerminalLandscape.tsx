@@ -2877,12 +2877,12 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
           {/* 3. TERMINAL CART (Always mounted, toggled visibility) */}
           <motion.div
             animate={{
-              opacity: (renderedLandscapeTab === 'terminal' || renderedLandscapeTab === 'drawer') ? 1 : 0,
-              x: (renderedLandscapeTab === 'terminal' || renderedLandscapeTab === 'drawer') ? 0 : 20,
-              zIndex: (renderedLandscapeTab === 'terminal' || renderedLandscapeTab === 'drawer') ? 10 : 0
+              opacity: (renderedLandscapeTab === 'terminal' || renderedLandscapeTab === 'drawer' || renderedLandscapeTab === 'table_select') ? 1 : 0,
+              x: (renderedLandscapeTab === 'terminal' || renderedLandscapeTab === 'drawer' || renderedLandscapeTab === 'table_select') ? 0 : 20,
+              zIndex: (renderedLandscapeTab === 'terminal' || renderedLandscapeTab === 'drawer' || renderedLandscapeTab === 'table_select') ? 10 : 0
             }}
             style={{
-              pointerEvents: (renderedLandscapeTab === 'terminal' || renderedLandscapeTab === 'drawer') ? 'auto' : 'none'
+              pointerEvents: (renderedLandscapeTab === 'terminal' || renderedLandscapeTab === 'drawer' || renderedLandscapeTab === 'table_select') ? 'auto' : 'none'
             }}
             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
             className="absolute inset-0 flex flex-col min-h-0 bg-white lg:rounded-[2rem]"
