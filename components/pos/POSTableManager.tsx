@@ -534,7 +534,7 @@ export default function POSTableManager({
                    <button 
                      onClick={handleSaveLayout} 
                      disabled={savingLayout} 
-                     className="px-5 py-2 bg-[#D3202B] hover:bg-red-700 text-white rounded-full text-[11px] font-bold uppercase tracking-widest transition-all flex items-center gap-1.5 active:scale-95 shadow-md shadow-red-600/20"
+                     className="px-5 py-2 bg-neutral-900 hover:bg-black text-white rounded-full text-[11px] font-bold uppercase tracking-widest transition-all flex items-center gap-1.5 active:scale-95 shadow-md shadow-black/20"
                    >
                      {savingLayout ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
                      บันทึก
