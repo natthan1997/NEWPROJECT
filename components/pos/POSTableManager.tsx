@@ -55,6 +55,11 @@ export default function POSTableManager({
   const [isCreatingZone, setIsCreatingZone] = useState(false)
   const [newZoneName, setNewZoneName] = useState('')
   
+  const [renamingZoneText, setRenamingZoneText] = useState('')
+  useEffect(() => {
+     setRenamingZoneText(activeZoneInternal)
+  }, [activeZoneInternal])
+  
   const [isLayoutModeInternalState, setIsLayoutModeInternalState] = useState(false)
   const isLayoutMode = isLayoutModeProps !== undefined ? isLayoutModeProps : isLayoutModeInternalState;
   const setIsLayoutMode = setIsLayoutModeProps !== undefined ? setIsLayoutModeProps : setIsLayoutModeInternalState;
@@ -315,14 +320,26 @@ export default function POSTableManager({
       setIsCreatingZone(true);
   }
 
-  const handleDeleteZone = async (zoneName: string, e: React.MouseEvent) => {
-      e.stopPropagation();
+  const handleDeleteZone = async (zoneName: string, e?: React.MouseEvent) => {
+      if (e) e.stopPropagation();
       if (!confirm(`ยืนยันการลบโซน "${zoneName}"?\n(โต๊ะในโซนนี้จะถูกย้ายไปโซน Main อัตโนมัติ)`)) return;
       await supabase.from('pos_zones').delete().eq('name', zoneName).eq('branch_id', shopSettings?.branch_id || null);
       await supabase.from('pos_tables').update({ zone: 'Main' }).eq('zone', zoneName);
       fetchZones();
       fetchTables();
       setActiveZone('Main');
+  }
+
+  const handleRenameZone = async (oldName: string) => {
+      const newName = renamingZoneText.trim();
+      if (!newName || newName === oldName || newName.toLowerCase() === 'main') return;
+      
+      await supabase.from('pos_zones').update({ name: newName }).eq('name', oldName).eq('branch_id', shopSettings?.branch_id || null);
+      await supabase.from('pos_tables').update({ zone: newName }).eq('zone', oldName);
+      
+      fetchZones();
+      fetchTables();
+      setActiveZone(newName);
   }
 
   if (showOnlyZones) {
@@ -481,30 +498,63 @@ export default function POSTableManager({
            })}
         </div>
         {!isLayoutMode && (
-          isCreatingZone ? (
-            <div className="mt-4 flex flex-col gap-2 p-3 rounded-2xl border border-indigo-200 bg-indigo-50/50 shrink-0">
-               <input 
-                  autoFocus
-                  type="text" 
-                  placeholder="ชื่อโซนใหม่..." 
-                  value={newZoneName} 
-                  onChange={(e) => setNewZoneName(e.target.value)} 
-                  onKeyDown={(e) => { if(e.key === 'Enter') submitNewZone(); else if (e.key === 'Escape') setIsCreatingZone(false); }}
-                  className="w-full px-3 py-2 rounded-xl text-sm border border-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-indigo-900 bg-white" 
-               />
-               <div className="flex gap-2">
-                 <button onClick={() => setIsCreatingZone(false)} className="flex-1 py-2 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-200 transition-colors bg-white border border-gray-200 shadow-sm">ยกเลิก</button>
-                 <button onClick={submitNewZone} className="flex-1 py-2 rounded-xl text-xs font-bold text-white bg-indigo-500 hover:bg-indigo-600 transition-colors shadow-sm">บันทึก</button>
-               </div>
-            </div>
-          ) : (
-            <button 
-              onClick={() => setIsCreatingZone(true)} 
-              className="w-full py-4 rounded-2xl font-black text-xs bg-white text-indigo-500 hover:bg-indigo-50 border border-indigo-100 flex items-center justify-center gap-1.5 transition-colors shadow-sm shrink-0 mt-4"
-            >
-              <Plus size={16} /> สร้างโซนใหม่
-            </button>
-          )
+          <div className="mt-4 flex flex-col gap-4 shrink-0 bg-gray-50/50 p-4 rounded-3xl border border-gray-100">
+            {activeZone !== 'Main' && !isCreatingZone ? (
+              <div className="flex flex-col gap-3">
+                 <div className="flex items-center justify-between">
+                   <span className="text-[10px] font-black text-[#D3202B] uppercase tracking-widest bg-red-50 px-2 py-0.5 rounded-md">ตั้งค่าโซน {activeZone}</span>
+                 </div>
+                 <div className="flex gap-2">
+                   <input 
+                      type="text" 
+                      value={renamingZoneText} 
+                      onChange={(e) => setRenamingZoneText(e.target.value)} 
+                      onKeyDown={(e) => { if(e.key === 'Enter') handleRenameZone(activeZone); }}
+                      className="flex-1 px-3 py-2.5 rounded-xl text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 font-bold text-gray-900 bg-white" 
+                   />
+                   <button onClick={() => handleRenameZone(activeZone)} className="px-4 rounded-xl text-xs font-bold text-white bg-gray-900 hover:bg-black transition-colors shadow-sm">
+                     บันทึก
+                   </button>
+                 </div>
+                 <div className="flex gap-2 mt-1">
+                    <button onClick={() => handleDeleteZone(activeZone)} className="flex-1 py-2.5 rounded-xl text-xs font-bold text-red-600 bg-white hover:bg-red-50 transition-colors border border-red-100 flex items-center justify-center gap-1.5 shadow-sm">
+                      <Trash2 size={14} /> ลบโซนนี้ทิ้ง
+                    </button>
+                    <button onClick={() => setIsCreatingZone(true)} className="flex-1 py-2.5 rounded-xl text-xs font-bold text-gray-600 bg-white hover:bg-gray-100 transition-colors border border-gray-200 flex items-center justify-center gap-1.5 shadow-sm">
+                      <Plus size={14} /> โซนใหม่
+                    </button>
+                 </div>
+              </div>
+            ) : isCreatingZone ? (
+              <div className="flex flex-col gap-3">
+                 <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest bg-indigo-50 px-2 py-0.5 rounded-md self-start">สร้างโซนบริการใหม่</span>
+                 <input 
+                    autoFocus
+                    type="text" 
+                    placeholder="พิมพ์ชื่อโซนใหม่..." 
+                    value={newZoneName} 
+                    onChange={(e) => setNewZoneName(e.target.value)} 
+                    onKeyDown={(e) => { if(e.key === 'Enter') submitNewZone(); else if (e.key === 'Escape') setIsCreatingZone(false); }}
+                    className="w-full px-3 py-2.5 rounded-xl text-sm border border-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-bold text-indigo-900 bg-white" 
+                 />
+                 <div className="flex gap-2">
+                   <button onClick={() => setIsCreatingZone(false)} className="flex-1 py-2.5 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-100 transition-colors bg-white border border-gray-200 shadow-sm">
+                     ยกเลิก
+                   </button>
+                   <button onClick={submitNewZone} className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white bg-indigo-500 hover:bg-indigo-600 transition-colors shadow-sm">
+                     ยืนยันสร้างโซน
+                   </button>
+                 </div>
+              </div>
+            ) : (
+              <button 
+                onClick={() => setIsCreatingZone(true)} 
+                className="w-full py-4 rounded-2xl font-black text-xs bg-white text-[#D3202B] hover:bg-red-50 border border-red-100 flex items-center justify-center gap-2 transition-colors shadow-sm"
+              >
+                <Plus size={16} /> สร้างโซนใหม่
+              </button>
+            )}
+          </div>
         )}
       </div>
     );
