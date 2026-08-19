@@ -518,7 +518,7 @@ export default function POSTableManager({
                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                      <span className="relative inline-flex rounded-full h-2 w-2 bg-[#D3202B]"></span>
                    </span>
-                   <span className="ml-1 text-[#D3202B]">จัดวางตำแหน่งโต๊ะ</span>
+                   <span className="ml-1 text-[#D3202B] whitespace-nowrap">จัดวางตำแหน่งโต๊ะ</span>
                  </div>
                  <div className="w-px h-4 bg-gray-200"></div>
                  <div className="flex items-center gap-1.5">
@@ -586,11 +586,7 @@ export default function POSTableManager({
                       >
                           {/* TABLE BODY (CLEAN) */}
                           <div className={`relative w-full h-full flex flex-col items-center justify-center z-10 ${table.shape === 'circle' ? 'rounded-full' : (table.shape === 'rectangle' || table.shape === 'rectangle_vertical' ? 'rounded-[1.5rem]' : 'rounded-2xl')} ${isLayoutMode ? 'bg-white border-2 border-dashed border-neutral-300 text-black shadow-sm group-hover:border-neutral-500' : (table.status === 'occupied' ? 'bg-[#D3202B] text-white shadow-lg' : 'bg-white border border-neutral-200 text-neutral-800 shadow-sm')} transition-all`}>
-                             {isLayoutMode && (
-                                <div className="absolute -top-1.5 -right-1.5 bg-[#D3202B] text-white p-1.5 rounded-full shadow-md z-20">
-                                   <Edit3 size={10} strokeWidth={3} />
-                                </div>
-                             )}
+                              {/* Removed red pencil icon as requested */}
                              <div className={`text-2xl sm:text-3xl font-bold tracking-tight pointer-events-none`}>{table.table_number}</div>
                              <div className="mt-1 flex flex-col items-center pointer-events-none">
                                  <span className={`text-[9px] sm:text-[10px] font-medium uppercase tracking-widest ${isLayoutMode ? 'text-neutral-400' : (table.status === 'occupied' ? 'text-red-200' : 'text-neutral-500')}`}>Seats {table.capacity}</span>
