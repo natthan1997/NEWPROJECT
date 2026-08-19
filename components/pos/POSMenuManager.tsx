@@ -14,6 +14,17 @@ import { getMenuSearchText, getPrimaryMenuName, getSecondaryMenuName } from '@/l
 import { sortMenuItemsByOrder, withMenuSortOrder } from '@/lib/posMenuOrder'
 import Cropper from 'react-easy-crop'
 import getCroppedImg from '@/lib/cropImage'
+
+const getPlatformColor = (platform: string) => {
+    const p = platform.toLowerCase();
+    if (p === 'grab') return '#00B14F';
+    if (p === 'lineman') return '#06C755';
+    if (p === 'shopee') return '#EE4D2D';
+    if (p === 'foodpanda') return '#D70F64';
+    if (p === 'robinhood') return '#8A2E8A';
+    return '#8B5CF6'; // default purple
+};
+
 import POSCategoryManager from './POSCategoryManager'
 import POSModifierManager from './POSModifierManager'
 interface POSMenuManagerProps {
@@ -131,7 +142,7 @@ const ReorderMenuItem = ({ item, locale }: { item: any, locale: string }) => {
                     <div className="flex items-center gap-1"><span className="text-black"><Store size={14}/></span> ฿{item.sale_price}</div>
                     {item.platform_prices && Object.entries(item.platform_prices).filter(([_,v]) => v).map(([platform, price]) => (
                         <div key={platform} className="flex items-center gap-1">
-                            <span className={platform === 'lineman' ? 'text-green-500' : platform === 'grab' ? 'text-[#00B14F]' : 'text-purple-500'}><ShoppingBag size={14}/></span> ฿{price}
+                            <span style={{ color: getPlatformColor(platform) }}><ShoppingBag size={14}/></span> ฿{price}
                         </div>
                     ))}
                 </div>
@@ -798,7 +809,7 @@ const handleBulkUpdate = async (id: string, field: string, value: any) => {
                                                                           <div className="flex items-center gap-1"><span className="text-black"><Store size={14}/></span> ฿{item.sale_price}</div>
                                                                           {item.platform_prices && Object.entries(item.platform_prices).filter(([_,v]) => v).map(([platform, price]) => (
                                                                               <div key={platform} className="flex items-center gap-1">
-                                                                                  <span className={platform === 'lineman' ? 'text-green-500' : platform === 'grab' ? 'text-[#00B14F]' : 'text-purple-500'}><ShoppingBag size={14}/></span> ฿{price}
+                                                                                  <span style={{ color: getPlatformColor(platform) }}><ShoppingBag size={14}/></span> ฿{price}
                                                                               </div>
                                                                           ))}
                                                                           {item.platform_prices && Object.keys(item.platform_prices).length > 0 && (

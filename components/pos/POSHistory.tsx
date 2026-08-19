@@ -413,15 +413,14 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
         .eq('id', paymentEditOrder.id)
       if (orderError) throw orderError
 
-      await supabase
+      const { error: paymentError } = await supabase
         .from('pos_order_payments')
         .update({
           payment_method: paymentMethod,
-          received_amount: paymentMethod === 'cash' && numCashReceived >= orderTotal ? numCashReceived : orderTotal,
-          change_amount: paymentMethod === 'cash' && numCashReceived >= orderTotal ? cashChange : 0,
-          updated_at: new Date().toISOString(),
         })
         .eq('order_id', paymentEditOrder.id)
+      if (paymentError) throw paymentError
+
       await fetchCompletedOrders()
       
       if (typeof window !== 'undefined') {
@@ -756,10 +755,7 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
                               e.stopPropagation()
                               checkManagerPin(
                                 () => {
-                                  setPaymentEditOrder(order)
-                                  setPaymentEditMethod(getPaymentMethodValue(order))
-                                  setCashReceivedInput('')
-                                  setPaymentEditOpen(true)
+                                  openPaymentEdit(order)
                                 },
                                 'แก้ไขช่องทางชำระเงิน',
                                 'กรุณาใส่รหัสผู้จัดการเพื่อแก้ไขรูปแบบการชำระเงิน'

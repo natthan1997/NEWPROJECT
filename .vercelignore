@@ -1,0 +1,21 @@
+# Exclude heavy directories and binary files from Vercel upload
+/node-v20.12.2-darwin-arm64
+node-v20.12.2-darwin-arm64.tar.gz
+/.npm-cache
+/.npm-global
+/.codex-tmp-npm-global
+/node_modules
+/.next
+/.git
+/out
+/ios
+/rushup-rider-app
+/RUSHUP_RIDER_iOS
+/build
+/dist
+/tmp_backups
+*.log
+*.zip
+*.tar.gz
+*.dmg
+*.pkg

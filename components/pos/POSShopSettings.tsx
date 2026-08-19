@@ -13,6 +13,34 @@ import AddressMapInput from '@/components/AddressMapInput'
 import { useI18n } from "@/lib/I18nContext";
 import Cropper from 'react-easy-crop'
 
+const DeliveryPlatformIcon = ({ platform, className, size = 20 }: { platform: string; className?: string; size?: number }) => {
+  const p = platform.toLowerCase();
+  let src = '';
+  
+  if (p.includes('grab')) {
+    src = '/images/delivery/grab.svg';
+  } else if (p.includes('lineman') || p.includes('line_man')) {
+    src = '/images/delivery/lineman.png';
+  } else if (p.includes('shopee')) {
+    src = '/images/delivery/shopee.svg';
+  } else if (p.includes('foodpanda') || p.includes('panda')) {
+    src = '/images/delivery/foodpanda.svg';
+  } else if (p.includes('robinhood') || p.includes('rbh')) {
+    src = '/images/delivery/robinhood.png';
+  }
+  
+  if (!src) return null;
+  
+  return (
+    <img 
+      src={src} 
+      alt={platform} 
+      className={`${className} object-contain rounded-full`} 
+      style={{ width: size, height: size }}
+    />
+  );
+};
+
 const createImage = (url: string): Promise<HTMLImageElement> =>
   new Promise((resolve, reject) => {
     const image = new Image()
@@ -1500,12 +1528,33 @@ const handleSave = async () => {
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                         {['grab', 'lineman', 'shopee', 'foodpanda', 'robinhood'].map(platform => {
                                             const isActive = settings.active_delivery_platforms?.includes(platform) ?? true;
+                                            const colors: Record<string, { brand: string; lightBg: string; text: string; border: string }> = {
+                                                grab: { brand: '#00B14F', lightBg: 'rgba(0, 177, 79, 0.04)', text: '#00B14F', border: 'rgba(0, 177, 79, 0.15)' },
+                                                lineman: { brand: '#06C755', lightBg: 'rgba(6, 199, 85, 0.04)', text: '#06C755', border: 'rgba(6, 199, 85, 0.15)' },
+                                                shopee: { brand: '#EE4D2D', lightBg: 'rgba(238, 77, 45, 0.04)', text: '#EE4D2D', border: 'rgba(238, 77, 45, 0.15)' },
+                                                foodpanda: { brand: '#D70F64', lightBg: 'rgba(215, 15, 100, 0.04)', text: '#D70F64', border: 'rgba(215, 15, 100, 0.15)' },
+                                                robinhood: { brand: '#8A2E8A', lightBg: 'rgba(138, 46, 138, 0.04)', text: '#8A2E8A', border: 'rgba(138, 46, 138, 0.15)' }
+                                            };
+                                            const c = colors[platform] || { brand: '#4F46E5', lightBg: '#F9FAFB', text: '#1A1A18', border: 'rgba(0, 0, 0, 0.05)' };
                                             return (
-                                            <div key={platform} className={`bg-gray-50 p-4 rounded-xl border border-black/5 transition-opacity ${isActive ? '' : 'opacity-50 grayscale'}`}>
+                                            <div
+                                                key={platform}
+                                                style={{
+                                                    backgroundColor: c.lightBg,
+                                                    borderColor: c.border
+                                                }}
+                                                className={`p-4 rounded-xl border transition-opacity duration-300 ${isActive ? '' : 'opacity-40 grayscale'}`}
+                                            >
                                                 <div className="flex items-center justify-between mb-4">
-                                                    <label className="text-[14px] font-semibold text-gray-900 capitalize">
-                                                        {platform === 'grab' ? 'Grab' : platform === 'lineman' ? 'LINE MAN' : platform === 'shopee' ? 'ShopeeFood' : platform === 'foodpanda' ? 'Foodpanda' : 'Robinhood'}
-                                                    </label>
+                                                    <div className="flex items-center gap-2">
+                                                        <DeliveryPlatformIcon platform={platform} size={28} className="rounded-full shadow-sm" />
+                                                        <label
+                                                            style={{ color: c.brand }}
+                                                            className="text-[14px] font-black uppercase tracking-wider"
+                                                        >
+                                                            {platform === 'grab' ? 'Grab' : platform === 'lineman' ? 'LINE MAN' : platform === 'shopee' ? 'ShopeeFood' : platform === 'foodpanda' ? 'Foodpanda' : 'Robinhood'}
+                                                        </label>
+                                                    </div>
                                                     <button
                                                         onClick={() => {
                                                             let active = settings.active_delivery_platforms || ['grab', 'lineman', 'shopee', 'foodpanda', 'robinhood'];
@@ -1516,7 +1565,8 @@ const handleSave = async () => {
                                                             }
                                                             setSettings({...settings, active_delivery_platforms: active});
                                                         }}
-                                                        className={`relative w-11 h-6 rounded-full transition-colors duration-300 ${isActive ? 'bg-indigo-500' : 'bg-gray-200'}`}
+                                                        style={{ backgroundColor: isActive ? c.brand : '#E5E7EB' }}
+                                                        className="relative w-11 h-6 rounded-full transition-colors duration-300"
                                                     >
                                                         <div className={`absolute top-[2px] w-5 h-5 rounded-full bg-white transition-all duration-300 shadow-sm flex items-center justify-center ${isActive ? 'left-[22px]' : 'left-[2px]'}`} />
                                                     </button>
@@ -1531,9 +1581,9 @@ const handleSave = async () => {
                                                             ...settings, 
                                                             delivery_gp: { ...settings.delivery_gp, [platform]: parseFloat(e.target.value) || 0 }
                                                         })}
-                                                        className="w-full bg-white border-0 rounded-lg py-2 px-3 text-[14px] font-medium text-gray-900 outline-none focus:ring-1 focus:ring-black" 
+                                                        className="w-full bg-white border border-gray-100 rounded-lg py-2 px-3 text-[14px] font-bold text-gray-900 outline-none focus:ring-1 focus:ring-black" 
                                                     />
-                                                    <span className="text-[13px] text-gray-500 font-medium">%</span>
+                                                    <span className="text-[13px] text-gray-500 font-bold">%</span>
                                                 </div>
                                             </div>
                                         )})}

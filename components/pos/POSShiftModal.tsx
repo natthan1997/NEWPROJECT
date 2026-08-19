@@ -1,23 +1,107 @@
 'use client';
 import React, { useState } from 'react'
-import { Wallet, X, ArrowRight, AlertTriangle, Printer } from 'lucide-react'
+import { Wallet, X, ArrowRight, AlertTriangle, Printer, Check, Clock, UserCheck, ChevronsRight, Delete, ShieldCheck } from 'lucide-react'
 import RUSHUPLoader from '@/components/loaders/RUSHUPLoader'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useMotionValue, animate, useTransform } from 'framer-motion'
 import { printOpenDrawer } from '@/lib/printerUtils'
-import { useI18n } from "@/lib/I18nContext";
+import { useI18n } from "@/lib/I18nContext"
+import { playAppSound } from '@/lib/audioUtils'
+
+const CashDrawerIcon = () => (
+  <img 
+    src="/logo.png" 
+    alt="RUSH UP Logo" 
+    className="h-10 w-auto object-contain mx-auto select-none" 
+  />
+)
+
+const SwipeButton = ({ onSwipe, isSubmitting }: { onSwipe: () => void; isSubmitting: boolean }) => {
+  const [isSwiped, setIsSwiped] = useState(false);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const [trackWidth, setTrackWidth] = useState(0);
+  const x = useMotionValue(0);
+
+  // Dynamically map drag x position to text opacity
+  const textOpacity = useTransform(x, [0, Math.max(1, trackWidth - 100)], [1, 0]);
+
+  React.useEffect(() => {
+    if (containerRef.current) {
+      setTrackWidth(containerRef.current.offsetWidth);
+    }
+  }, [containerRef]);
+
+  const handleDragEnd = (event: any, info: any) => {
+    const threshold = trackWidth - 56; // 48px handle + margins
+    const currentX = x.get();
+    if (currentX >= threshold * 0.8) {
+      setIsSwiped(true);
+      onSwipe();
+    } else {
+      setIsSwiped(false);
+      animate(x, 0, { type: "spring", stiffness: 450, damping: 28 });
+    }
+  };
+
+  return (
+    <div 
+      ref={containerRef}
+      className="h-14 bg-red-50/50 rounded-full border border-red-200/50 p-1 relative overflow-hidden flex items-center justify-center select-none w-full"
+    >
+      <div className="absolute inset-y-0 left-0 bg-red-500/5 pointer-events-none rounded-l-full" style={{ width: '100%' }} />
+
+      <motion.span 
+        style={{ opacity: textOpacity }}
+        className="text-[10px] font-black text-red-600/70 z-0 tracking-wider uppercase animate-pulse select-none pointer-events-none"
+      >
+        {isSubmitting ? 'กำลังดำเนินการ...' : 'สไลด์เพื่อเปิดกะทำงาน'}
+      </motion.span>
+
+      {!isSwiped && !isSubmitting && (
+        <motion.div
+          drag="x"
+          dragElastic={0.1}
+          dragMomentum={false}
+          dragConstraints={{ left: 0, right: Math.max(0, trackWidth - 56) }}
+          onDragEnd={handleDragEnd}
+          style={{ x }}
+          className="w-12 h-12 bg-[#C62229] hover:bg-[#a11a1f] active:scale-95 text-white rounded-full flex items-center justify-center cursor-grab active:cursor-grabbing absolute left-1 shadow-md z-10 transition-colors"
+        >
+          <motion.div
+            animate={{ x: [0, 4, 0] }}
+            transition={{ repeat: Infinity, duration: 1.2, ease: "easeInOut" }}
+          >
+            <ChevronsRight size={18} />
+          </motion.div>
+        </motion.div>
+      )}
+
+      {(isSwiped || isSubmitting) && (
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.2 }}
+          className="absolute inset-0 bg-[#C62229] flex items-center justify-center text-white font-bold text-xs gap-2 rounded-full z-20"
+        >
+          <RUSHUPLoader mini />
+          <span>กำลังเปิดกะ...</span>
+        </motion.div>
+      )}
+    </div>
+  );
+};
 
 interface POSShiftModalProps {
   isOpen: boolean
   onClose: () => void
   onOpenShift: (cash: number) => Promise<void>
   shopSettings?: any
+  isInline?: boolean
 }
 
-export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettings }: POSShiftModalProps) {
+export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettings, isInline = false }: POSShiftModalProps) {
   const { locale } = useI18n();
   const [openingCash, setOpeningCash] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [showConfirm, setShowConfirm] = useState(false)
   const [isOpeningDrawer, setIsOpeningDrawer] = useState(false)
 
   // Shift Attendance Gating States
@@ -30,8 +114,46 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
   const [leaveType, setLeaveType] = useState<'leave' | 'late'>('leave')
   const [isSubmittingLeave, setIsSubmittingLeave] = useState(false)
 
-  const checkEligibility = async (): Promise<boolean> => {
-    setCheckingEligibility(true)
+  // Manager PIN Verification for Open Drawer
+  const [showPinVerify, setShowPinVerify] = useState(false)
+  const [enteredPin, setEnteredPin] = useState('')
+  const [pinError, setPinError] = useState(false)
+
+  const targetPin = String(shopSettings?.role_permissions?.manager_pin || '').trim() || '1234'
+
+  const handlePinKeyPress = (num: string) => {
+    if (pinError) setPinError(false)
+    if (enteredPin.length < 6) {
+      const nextPin = enteredPin + num
+      setEnteredPin(nextPin)
+      
+      if (nextPin.length === targetPin.length) {
+        if (nextPin === targetPin) {
+          openDrawerBeforeCounting()
+          setEnteredPin('')
+          setShowPinVerify(false)
+        } else {
+          setPinError(true)
+          setEnteredPin('')
+        }
+      }
+    }
+  }
+
+  const handlePinDelete = () => {
+    if (pinError) setPinError(false)
+    setEnteredPin(prev => prev.slice(0, -1))
+  }
+
+  const handlePinClear = () => {
+    setEnteredPin('')
+    setPinError(false)
+  }
+
+  const checkEligibility = async (skipLoading = false): Promise<boolean> => {
+    if (!skipLoading) {
+      setCheckingEligibility(true)
+    }
     try {
       const res = await fetch('/api/pos/shifts/check-eligibility', { method: 'GET' })
       const data = await res.json()
@@ -48,17 +170,17 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
       console.error('Check eligibility error:', e)
       return true
     } finally {
-      setCheckingEligibility(false)
+      if (!skipLoading) {
+        setCheckingEligibility(false)
+      }
     }
   }
 
   React.useEffect(() => {
-    if (isOpen) {
+    if (isOpen || isInline) {
       setEligibilityData(null)
       checkEligibility()
-      const shiftSettings = typeof shopSettings?.shift_settings === 'string' 
-        ? JSON.parse(shopSettings.shift_settings) 
-        : (shopSettings?.shift_settings || {});
+      const shiftSettings = shopSettings?.opening_hours?.shift_settings || {};
         
       if (shiftSettings?.default_start_cash !== undefined && shiftSettings?.default_start_cash !== null) {
         setOpeningCash(Number(shiftSettings.default_start_cash) || 0)
@@ -68,9 +190,8 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
     } else {
       setShowBlockedModal(false)
       setShowLeaveModal(false)
-      setEligibilityData(null)
     }
-  }, [isOpen, shopSettings])
+  }, [isOpen, isInline, shopSettings])
 
   const handleGrantEmergencyLeave = async (staffId: string) => {
     if (!staffId) return
@@ -101,49 +222,40 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
   }
 
   const openDrawerBeforeCounting = async () => {
-    if (isOpeningDrawer) return
     setIsOpeningDrawer(true)
+    playAppSound('pay')
     try {
       let printers = shopSettings?.printers || []
       let receiptPrinters = printers.filter((p: any) => p.type === 'receipt' || p.type === 'both')
-
-      if (receiptPrinters.length === 0 && typeof window !== 'undefined') {
-        const ip = localStorage.getItem('rushup_printer_ip')
+      
+      if (receiptPrinters.length === 0) {
+        let ip = localStorage.getItem('rushup_printer_ip')
         if (ip) {
           receiptPrinters = [{ ip, type: 'receipt', model: 'xprinter-xp-n160ii' }]
         }
       }
-
-      if (receiptPrinters.length === 0) {
-        alert('ยังไม่พบเครื่องปริ้นสำหรับเปิดลิ้นชัก')
-        return
+      
+      if (receiptPrinters.length > 0) {
+        for (const rp of receiptPrinters) {
+          if (!rp.ip) continue;
+          await printOpenDrawer(rp.ip, rp.model)
+        }
       }
-
-      for (const rp of receiptPrinters) {
-        if (!rp.ip) continue
-        await printOpenDrawer(rp.ip, rp.model)
-      }
-    } catch (err) {
-      console.error('Open drawer failed:', err)
-      alert('เปิดลิ้นชักไม่สำเร็จ กรุณาตรวจสอบเครื่องปริ้น')
+    } catch (e) {
+      console.error("Open drawer error in shift modal:", e)
     } finally {
       setIsOpeningDrawer(false)
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    // First check staff attendance eligibility
-    const isEligible = await checkEligibility()
-    if (!isEligible) {
-      return // Blocked by Attendance Gating modal
-    }
-    setShowConfirm(true)
-  }
-
-  const handleConfirmedOpen = async () => {
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
     setIsSubmitting(true)
     try {
+      const isEligible = await checkEligibility(true)
+      if (!isEligible) {
+        return
+      }
       await onOpenShift(openingCash)
       onClose()
     } catch (err) {
@@ -151,8 +263,332 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
       alert('เกิดข้อผิดพลาดในการเปิดกะ กรุณาลองใหม่อีกครั้ง')
     } finally {
       setIsSubmitting(false)
-      setShowConfirm(false)
     }
+  }
+
+  if (isInline) {
+    return (
+      <div className="relative w-full h-full bg-[#fcfcf9] font-sans overflow-hidden flex flex-col min-h-0">
+        {/* Loading Gate State */}
+        {checkingEligibility && !eligibilityData && (
+          <div className="p-8 flex flex-col items-center justify-center space-y-3 text-center min-h-[280px] my-auto">
+            <RUSHUPLoader mini />
+            <p className="text-xs font-bold text-neutral-500">กำลังตรวจสอบการลงเวลาพนักงาน...</p>
+          </div>
+        )}
+
+        {/* STEP 1: Emergency Leave View (If active) */}
+        <AnimatePresence mode="wait">
+          {showLeaveModal && (
+            <motion.div 
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 15 }}
+              className="w-full flex-1 flex flex-col justify-between bg-white"
+            >
+              {/* Overlay Header */}
+              <div className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between bg-white">
+                <div className="flex items-center gap-2.5">
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${leaveType === 'late' ? 'bg-blue-50 text-blue-600' : 'bg-amber-50 text-amber-600'}`}>
+                    <AlertTriangle size={17} />
+                  </div>
+                  <h3 className="text-sm font-black text-neutral-900 tracking-tight">
+                    {leaveType === 'late' ? 'แจ้งมาสาย' : 'แจ้งลากะทันหัน'}
+                  </h3>
+                </div>
+              </div>
+
+              {/* Body */}
+              <div className="p-5 flex-1 flex flex-col justify-center space-y-3">
+                <p className="text-xs font-medium text-neutral-500 text-center">
+                  ระบบจะยกเว้นการลงเวลาเข้างานเฉพาะวันนี้เพื่อเปิดกะ POS
+                </p>
+
+                <div className="w-full text-left space-y-1">
+                  <label className="text-[11px] font-bold text-neutral-500 block">เหตุผลการลา</label>
+                  <input 
+                    type="text"
+                    value={leaveReason}
+                    onChange={(e) => setLeaveReason(e.target.value)}
+                    className="w-full bg-neutral-50 border border-neutral-200 focus:border-[#D3202B] rounded-xl p-3 text-xs font-bold text-neutral-900 outline-none transition-all"
+                    placeholder="ระบุเหตุผลการลา"
+                  />
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="p-5 pt-0">
+                <button 
+                  type="button"
+                  onClick={() => handleGrantEmergencyLeave(selectedStaffForLeave)}
+                  disabled={isSubmittingLeave}
+                  className={`w-full h-11 text-white font-bold rounded-2xl text-xs transition-all flex items-center justify-center gap-2 active:scale-98 shadow-sm ${leaveType === 'late' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-amber-500 hover:bg-amber-600'}`}
+                >
+                  {isSubmittingLeave ? <RUSHUPLoader mini /> : (leaveType === 'late' ? 'ยืนยันแจ้งมาสาย' : 'ยืนยันแจ้งลา')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowLeaveModal(false)}
+                  className="w-full h-10 mt-2 text-neutral-500 font-bold text-xs rounded-xl hover:bg-neutral-50 transition-all border border-neutral-200"
+                >
+                  ย้อนกลับ
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* STEP 2: Attendance Gate Blocked View */}
+        {!showLeaveModal && showBlockedModal && (
+          <motion.div 
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 15 }}
+            className="w-full flex-1 flex flex-col justify-between bg-white"
+          >
+            {/* Header */}
+            <div className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between bg-white">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center">
+                  <AlertTriangle size={17} />
+                </div>
+                <h3 className="text-sm font-black text-neutral-900 tracking-tight">
+                  ไม่สามารถเปิดกะได้
+                </h3>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 flex-1 flex flex-col justify-center space-y-3">
+              <p className="text-xs font-bold text-rose-600 bg-rose-50/80 px-3.5 py-2.5 rounded-xl border border-rose-100 text-center">
+                พนักงานยังไม่ลงเวลาเข้างาน {eligibilityData?.missingCheckInStaff?.length || 0} คน
+              </p>
+
+              {/* Missing Staff List */}
+              <div className="w-full bg-neutral-50 border border-neutral-100 rounded-2xl p-3 space-y-2 max-h-48 overflow-y-auto text-left">
+                {eligibilityData?.missingCheckInStaff?.map((staff: any) => (
+                  <div key={staff.id} className="flex justify-between items-center bg-white p-2.5 rounded-xl border border-neutral-200/60 shadow-xs">
+                    <span className="text-xs font-bold text-neutral-900">• {staff.display_name || staff.full_name || staff.email}</span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedStaffForLeave(staff.id);
+                          setLeaveType('late');
+                          setLeaveReason('แจ้งมาสาย (จะเข้างานทีหลัง)');
+                          setShowLeaveModal(true);
+                        }}
+                        className="text-[11px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200/60 transition-colors"
+                      >
+                        มาสาย
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedStaffForLeave(staff.id);
+                          setLeaveType('leave');
+                          setLeaveReason('แจ้งลาป่วย/ลากะทันหัน');
+                          setShowLeaveModal(true);
+                        }}
+                        className="text-[11px] font-bold text-amber-600 hover:text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200/60 transition-colors"
+                      >
+                        ลา
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 pt-0">
+              <button 
+                type="button"
+                onClick={() => checkEligibility()}
+                disabled={checkingEligibility}
+                className="w-full h-11 bg-[#D3202B] hover:bg-red-700 text-white font-bold rounded-2xl text-xs transition-all flex items-center justify-center gap-2 active:scale-98 shadow-sm"
+              >
+                {checkingEligibility ? <RUSHUPLoader mini /> : 'ตรวจสอบการลงเวลาอีกครั้ง'}
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* STEP 4: Main Open Shift Form View */}
+        {!showLeaveModal && !showBlockedModal && !checkingEligibility && (
+          <div className="flex-1 flex flex-col justify-between p-6 bg-[#fcfcf9] select-none h-full">
+            {/* Header Badge */}
+            <div className="pt-4 flex justify-center w-full relative shrink-0">
+              <CashDrawerIcon />
+            </div>
+
+            {showPinVerify ? (
+              /* Inline PIN Pad View (Clean, matching style) */
+              <div className="flex-1 flex flex-col items-center justify-center py-4 my-auto w-full">
+                <div className="flex flex-col items-center text-center space-y-3 mb-6 w-full shrink-0">
+                  <div className="w-14 h-14 flex items-center justify-center rounded-2xl bg-neutral-100 text-neutral-800 shrink-0">
+                    <ShieldCheck size={26} />
+                  </div>
+                  <h3 className="text-xs font-black uppercase tracking-[0.25em] leading-tight text-neutral-800">
+                    เปิดลิ้นชัก (NO SALE DRAWER OPEN)
+                  </h3>
+                  <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest max-w-[240px] leading-relaxed">
+                    {pinError ? 'รหัส PIN ไม่ถูกต้อง' : 'จำเป็นต้องใช้รหัสผ่านผู้จัดการเพื่อเปิดลิ้นชักเก็บเงิน'}
+                  </p>
+                </div>
+
+                {/* PIN Display Bullets */}
+                <div className="flex gap-3 mb-8 h-6 items-center justify-center shrink-0">
+                  {Array.from({ length: Math.max(targetPin.length, 4) }).map((_, idx) => {
+                    const isFilled = idx < enteredPin.length
+                    return (
+                      <div 
+                        key={idx}
+                        className={`w-3 h-3 rounded-full transition-all duration-150 ${pinError ? 'bg-red-500 scale-110' : isFilled ? 'bg-[#C62229] scale-110' : 'bg-neutral-200 border border-neutral-300'}`}
+                      />
+                    )
+                  })}
+                </div>
+
+                {/* Numeric Numpad (Tactile red hover/press dimension, expanded) */}
+                <div className="grid grid-cols-3 gap-3 w-full max-w-[310px] shrink-0 mx-auto">
+                  {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(num => (
+                    <button
+                      key={num}
+                      type="button"
+                      onClick={() => handlePinKeyPress(num)}
+                      className="h-16 bg-neutral-100 hover:bg-[#D3202B]/10 hover:text-[#D3202B] active:bg-[#D3202B] active:text-white transition-all text-xl font-black rounded-2xl flex items-center justify-center active:scale-95 text-[#1A1A18]"
+                    >
+                      {num}
+                    </button>
+                  ))}
+                  
+                  {/* Clear button */}
+                  <button
+                    type="button"
+                    onClick={handlePinClear}
+                    className="h-16 bg-transparent hover:bg-[#D3202B]/10 hover:text-[#D3202B] active:bg-[#D3202B] active:text-white transition-all text-[11px] font-black uppercase tracking-widest flex items-center justify-center rounded-2xl active:scale-95 text-neutral-400"
+                  >
+                    Clear
+                  </button>
+                  
+                  {/* Zero */}
+                  <button
+                    type="button"
+                    onClick={() => handlePinKeyPress('0')}
+                    className="h-16 bg-neutral-100 hover:bg-[#D3202B]/10 hover:text-[#D3202B] active:bg-[#D3202B] active:text-white transition-all text-xl font-black rounded-2xl flex items-center justify-center active:scale-95 text-[#1A1A18]"
+                  >
+                    0
+                  </button>
+
+                  {/* Delete Backspace */}
+                  <button
+                    type="button"
+                    onClick={handlePinDelete}
+                    className="h-16 bg-transparent hover:bg-[#D3202B]/10 hover:text-[#D3202B] active:bg-[#D3202B] active:text-white transition-all text-[11px] font-black uppercase tracking-widest flex items-center justify-center rounded-2xl active:scale-95 text-neutral-400"
+                  >
+                    <Delete size={18} />
+                  </button>
+                </div>
+
+                {/* Cancel Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPinVerify(false)
+                    setEnteredPin('')
+                    setPinError(false)
+                  }}
+                  className="mt-6 text-[10px] font-black uppercase tracking-widest text-neutral-400 hover:text-neutral-700 transition-colors shrink-0 mx-auto block"
+                >
+                  ยกเลิก
+                </button>
+              </div>
+            ) : (
+              /* Starting Cash Form Content */
+              <form onSubmit={handleSubmit} className="flex-1 flex flex-col justify-between mt-8 min-h-0">
+                <div className="flex flex-col items-center justify-center text-center space-y-3 py-4 my-auto w-full">
+                  <span className="text-[10.5px] font-bold text-neutral-400 tracking-[0.25em] uppercase">
+                    Starting Cash
+                  </span>
+                  
+                  <div className="flex justify-center items-baseline focus-within:ring-0">
+                    <span className="text-[36px] font-light text-[#1A1A18] mr-1 tracking-tighter leading-none select-none">฿</span>
+                    <input 
+                      type="number"
+                      pattern="[0-9]*"
+                      inputMode="numeric"
+                      value={openingCash === 0 ? '' : openingCash}
+                      onChange={(e) => {
+                        const val = e.target.value === '' ? 0 : Number(e.target.value);
+                        if (!isNaN(val) && val <= 999999) {
+                          setOpeningCash(val);
+                        }
+                      }}
+                      placeholder="0"
+                      className="bg-transparent text-[72px] font-medium text-[#1A1A18] tracking-tighter leading-none border-0 outline-none focus:outline-none focus:ring-0 p-0 text-center w-64 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
+                    />
+                  </div>
+                </div>
+
+                {/* Shift Staff Attendance List (Typographic & borderless) */}
+                {eligibilityData?.scheduledStaff && eligibilityData.scheduledStaff.length > 0 && (
+                  <div className="pt-4 border-t border-neutral-100/60 mt-2 select-none shrink-0 w-full mb-4">
+                    <p className="text-[10px] font-black text-neutral-400 tracking-[0.2em] uppercase text-center mb-3">
+                      {locale === 'en' ? 'Shift Staff Attendance' : 'รายชื่อพนักงานประจำกะทำงาน'}
+                    </p>
+                    <div className="flex flex-wrap gap-x-5 gap-y-2.5 justify-center max-w-md mx-auto">
+                      {eligibilityData.scheduledStaff.map((staff: any) => {
+                        const isCheckedIn = eligibilityData.checkedInStaff?.some((c: any) => c.id === staff.id);
+                        const isLeave = eligibilityData.emergencyLeaveStaff?.some((l: any) => l.id === staff.id);
+                        
+                        return (
+                          <div 
+                            key={staff.id} 
+                            className="flex items-center gap-1 text-[11px] font-bold text-neutral-600"
+                          >
+                            {isCheckedIn ? (
+                              <Check size={14} strokeWidth={3} className="text-[#10B981] shrink-0" />
+                            ) : (
+                              <span className="w-3.5 h-3.5 block shrink-0" />
+                            )}
+                            <span className={isLeave ? 'line-through text-neutral-400 opacity-60' : ''}>
+                              {staff.display_name || staff.full_name || staff.email}
+                            </span>
+                            {isLeave && <span className="text-[9px] font-bold text-amber-600 ml-0.5">(ลา)</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Open Drawer Button */}
+                <button
+                  type="button"
+                  onClick={() => setShowPinVerify(true)}
+                  className="w-full h-10 bg-neutral-100 hover:bg-neutral-200/80 active:scale-95 text-[#1A1A18] rounded-xl flex items-center justify-center gap-1.5 text-[11px] font-bold uppercase tracking-wider transition-all select-none mb-3"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="3" y="11" width="18" height="10" rx="2.5" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round" />
+                    <path d="M7 11V6.5C7 5.11929 8.11929 4 9.5 4H14.5C15.8807 4 17 5.11929 17 6.5V11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                    <path d="M3 15H21" stroke="currentColor" strokeWidth="1.8" />
+                    <circle cx="12" cy="18" r="1.5" fill="currentColor" />
+                  </svg>
+                  <span>เปิดลิ้นชัก</span>
+                </button>
+
+                {/* Swipe to Open Shift button */}
+                <div className="shrink-0">
+                  <SwipeButton onSwipe={() => handleSubmit()} isSubmitting={isSubmitting} />
+                </div>
+              </form>
+            )}
+          </div>
+        )}
+      </div>
+    );
   }
 
   return (
@@ -165,14 +601,14 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-[#D3202B]/40 backdrop-blur-sm"
+            className="absolute inset-0 bg-[#1A1A18]/40 backdrop-blur-sm"
           />
 
           <motion.div
             initial={{ opacity: 0, scale: 0.96, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 10 }}
-            className="relative w-full max-w-sm bg-white rounded-3xl shadow-xl border border-neutral-200/80 font-sans overflow-hidden min-h-[280px]"
+            className="relative w-full max-w-sm bg-[#fcfcf9] rounded-3xl shadow-xl border border-neutral-200/80 font-sans overflow-hidden min-h-[280px]"
           >
             {/* Loading Gate State */}
             {checkingEligibility && !eligibilityData && (
@@ -189,7 +625,7 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 15 }}
-                  className="w-full flex flex-col justify-between"
+                  className="w-full flex flex-col justify-between bg-white"
                 >
                   {/* Overlay Header */}
                   <div className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between bg-white">
@@ -243,13 +679,13 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
               )}
             </AnimatePresence>
 
-            {/* STEP 2: Attendance Gate Blocked View (First View if staff not checked in) */}
+            {/* STEP 2: Attendance Gate Blocked View */}
             {!showLeaveModal && showBlockedModal && (
               <motion.div 
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 15 }}
-                className="w-full flex flex-col justify-between"
+                className="w-full flex flex-col justify-between bg-white"
               >
                 {/* Header */}
                 <div className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between bg-white">
@@ -326,138 +762,185 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
               </motion.div>
             )}
 
-            {/* STEP 3: Confirmation View (If confirming) */}
-            {!showLeaveModal && !showBlockedModal && showConfirm && (
-              <motion.div 
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 15 }}
-                className="w-full flex flex-col justify-between"
-              >
-                {/* Header */}
-                <div className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between bg-white">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 bg-[#D3202B] text-white rounded-xl flex items-center justify-center">
-                      <Wallet size={17} />
-                    </div>
-                    <h3 className="text-sm font-black text-neutral-900 tracking-tight">
-                      ยืนยันเปิดกะ POS
-                    </h3>
-                  </div>
-                  <button 
-                    type="button"
-                    onClick={() => setShowConfirm(false)}
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-all"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-
-                {/* Body */}
-                <div className="p-6 flex-1 flex flex-col items-center justify-center text-center space-y-2">
-                  <p className="text-xs text-neutral-500">เงินสดเริ่มต้นในลิ้นชัก</p>
-                  <p className="text-3xl font-black text-neutral-900">฿{openingCash.toLocaleString()}</p>
-                </div>
-
-                {/* Footer */}
-                <div className="p-5 pt-0">
-                  <button 
-                    type="button"
-                    onClick={handleConfirmedOpen}
-                    disabled={isSubmitting}
-                    className="w-full h-11 bg-[#D3202B] hover:bg-red-700 text-white font-bold text-xs rounded-2xl transition-all flex items-center justify-center gap-2 active:scale-98 shadow-sm"
-                  >
-                    {isSubmitting ? <RUSHUPLoader mini /> : 'ยืนยันและเริ่มงาน'}
-                  </button>
-                </div>
-              </motion.div>
-            )}
-
             {/* STEP 4: Main Open Shift Form View (Shown ONLY after eligibility passed!) */}
-            {!showLeaveModal && !showBlockedModal && !showConfirm && !checkingEligibility && (
-              <div>
-                {/* Clean Modal Header */}
-                <div className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between bg-white">
-                   <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 bg-[#D3202B] text-white rounded-xl flex items-center justify-center">
-                        <Wallet size={18} />
-                      </div>
-                      <h2 className="text-base font-black text-neutral-900">
-                        เปิดกะ POS
-                      </h2>
-                   </div>
-                   <button 
-                     onClick={onClose}
-                     className="w-8 h-8 rounded-full flex items-center justify-center text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-all"
-                   >
-                     <X size={16} />
-                   </button>
+            {!showLeaveModal && !showBlockedModal && !checkingEligibility && (
+              <div className="p-6 relative select-none">
+                {/* Close button */}
+                <button 
+                  onClick={onClose}
+                  className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-all z-10"
+                >
+                  <X size={16} />
+                </button>
+
+                {/* Header Badge */}
+                <div className="pt-4 flex justify-center w-full relative shrink-0">
+                  <CashDrawerIcon />
                 </div>
 
-                {/* Form Content */}
-                <form onSubmit={handleSubmit} className="p-5 space-y-4">
-                   {/* Test Kick Drawer Option */}
-                   <button
-                     type="button"
-                     onClick={openDrawerBeforeCounting}
-                     disabled={isOpeningDrawer}
-                     className="w-full py-2.5 px-3 bg-neutral-50 hover:bg-neutral-100 border border-neutral-200/60 text-neutral-700 rounded-xl flex items-center justify-center gap-2 font-bold text-xs transition-all disabled:opacity-50"
-                   >
-                     {isOpeningDrawer ? <RUSHUPLoader mini /> : <Printer size={15} className="text-neutral-500" />}
-                     <span>เปิดลิ้นชักทดสอบ</span>
-                   </button>
-
-                   {/* Opening Cash Input (Pure Native Device Numpad Integration) */}
-                   <div className="space-y-1.5">
-                      <div className="flex items-center justify-between text-xs font-bold text-neutral-500">
-                        <span>เงินสดเริ่มต้น</span>
-                        {openingCash > 0 && (
-                          <button 
-                            type="button" 
-                            onClick={() => setOpeningCash(0)}
-                            className="text-[11px] text-rose-500 hover:text-rose-600 font-bold"
-                          >
-                            ล้างค่า
-                          </button>
-                        )}
+                {showPinVerify ? (
+                  /* Inline PIN Pad View (Clean, matching style) */
+                  <div className="flex-1 flex flex-col items-center justify-center py-4 my-auto w-full">
+                    <div className="flex flex-col items-center text-center space-y-3 mb-6 w-full shrink-0">
+                      <div className="w-14 h-14 flex items-center justify-center rounded-2xl bg-neutral-100 text-neutral-800 shrink-0">
+                        <ShieldCheck size={26} />
                       </div>
+                      <h3 className="text-xs font-black uppercase tracking-[0.25em] leading-tight text-neutral-800">
+                        เปิดลิ้นชัก (NO SALE DRAWER OPEN)
+                      </h3>
+                      <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest max-w-[240px] leading-relaxed">
+                        {pinError ? 'รหัส PIN ไม่ถูกต้อง' : 'จำเป็นต้องใช้รหัสผ่านผู้จัดการเพื่อเปิดลิ้นชักเก็บเงิน'}
+                      </p>
+                    </div>
 
-                      <div className="bg-neutral-50 border border-neutral-200 focus-within:border-[#D3202B] focus-within:bg-white rounded-2xl px-4 py-3 flex items-center transition-all">
-                        <span className="text-xl font-extrabold text-neutral-400 mr-2 select-none">฿</span>
+                    {/* PIN Display Bullets */}
+                    <div className="flex gap-3 mb-8 h-6 items-center justify-center shrink-0">
+                      {Array.from({ length: Math.max(targetPin.length, 4) }).map((_, idx) => {
+                        const isFilled = idx < enteredPin.length
+                        return (
+                          <div 
+                            key={idx}
+                            className={`w-3 h-3 rounded-full transition-all duration-150 ${pinError ? 'bg-red-500 scale-110' : isFilled ? 'bg-[#C62229] scale-110' : 'bg-neutral-200 border border-neutral-300'}`}
+                          />
+                        )
+                      })}
+                    </div>
+
+                    {/* Numeric Numpad (Tactile red hover/press dimension, expanded) */}
+                    <div className="grid grid-cols-3 gap-3 w-full max-w-[310px] shrink-0 mx-auto">
+                      {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(num => (
+                        <button
+                          key={num}
+                          type="button"
+                          onClick={() => handlePinKeyPress(num)}
+                          className="h-16 bg-neutral-100 hover:bg-[#D3202B]/10 hover:text-[#D3202B] active:bg-[#D3202B] active:text-white transition-all text-xl font-black rounded-2xl flex items-center justify-center active:scale-95 text-[#1A1A18]"
+                        >
+                          {num}
+                        </button>
+                      ))}
+                      
+                      {/* Clear button */}
+                      <button
+                        type="button"
+                        onClick={handlePinClear}
+                        className="h-16 bg-transparent hover:bg-[#D3202B]/10 hover:text-[#D3202B] active:bg-[#D3202B] active:text-white transition-all text-[11px] font-black uppercase tracking-widest flex items-center justify-center rounded-2xl active:scale-95 text-neutral-400"
+                      >
+                        Clear
+                      </button>
+                      
+                      {/* Zero */}
+                      <button
+                        type="button"
+                        onClick={() => handlePinKeyPress('0')}
+                        className="h-16 bg-neutral-100 hover:bg-[#D3202B]/10 hover:text-[#D3202B] active:bg-[#D3202B] active:text-white transition-all text-xl font-black rounded-2xl flex items-center justify-center active:scale-95 text-[#1A1A18]"
+                      >
+                        0
+                      </button>
+
+                      {/* Delete Backspace */}
+                      <button
+                        type="button"
+                        onClick={handlePinDelete}
+                        className="h-16 bg-transparent hover:bg-[#D3202B]/10 hover:text-[#D3202B] active:bg-[#D3202B] active:text-white transition-all text-[11px] font-black uppercase tracking-widest flex items-center justify-center rounded-2xl active:scale-95 text-neutral-400"
+                      >
+                        <Delete size={18} />
+                      </button>
+                    </div>
+
+                    {/* Cancel Button */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowPinVerify(false)
+                        setEnteredPin('')
+                        setPinError(false)
+                      }}
+                      className="mt-6 text-[10px] font-black uppercase tracking-widest text-neutral-400 hover:text-neutral-700 transition-colors shrink-0 mx-auto block"
+                    >
+                      ยกเลิก
+                    </button>
+                  </div>
+                ) : (
+                  /* Starting Cash Form Content */
+                  <form onSubmit={handleSubmit} className="space-y-6 mt-8 select-none">
+                    <div className="flex flex-col items-center justify-center text-center space-y-3 py-6 my-auto w-full">
+                      <span className="text-[10.5px] font-bold text-neutral-400 tracking-[0.25em] uppercase">
+                        Starting Cash
+                      </span>
+                      
+                      <div className="flex justify-center items-baseline focus-within:ring-0">
+                        <span className="text-[36px] font-light text-[#1A1A18] mr-1 tracking-tighter leading-none select-none">฿</span>
                         <input 
-                          autoFocus
-                          type="tel"
-                          inputMode="numeric"
+                          type="number"
                           pattern="[0-9]*"
-                          value={openingCash || ''} 
-                          onChange={e => {
-                            const val = e.target.value.replace(/[^0-9]/g, '')
-                            setOpeningCash(val ? Number(val) : 0)
+                          inputMode="numeric"
+                          value={openingCash === 0 ? '' : openingCash}
+                          onChange={(e) => {
+                            const val = e.target.value === '' ? 0 : Number(e.target.value);
+                            if (!isNaN(val) && val <= 999999) {
+                              setOpeningCash(val);
+                            }
                           }}
-                          style={{ outline: 'none', WebkitAppearance: 'none', boxShadow: 'none', border: 'none' }}
-                          className="w-full bg-transparent text-3xl font-black text-neutral-900 outline-none border-none ring-0 shadow-none focus:outline-none focus:ring-0 focus:border-none"
                           placeholder="0"
-                          required
+                          className="bg-transparent text-[72px] font-medium text-[#1A1A18] tracking-tighter leading-none border-0 outline-none focus:outline-none focus:ring-0 p-0 text-center w-64 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
                         />
                       </div>
-                   </div>
+                    </div>
 
-                   {/* Main Action Button */}
-                   <button 
-                     type="submit"
-                     disabled={isSubmitting}
-                     className="w-full h-12 bg-[#D3202B] hover:bg-red-700 text-white rounded-2xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-sm active:scale-98 disabled:opacity-50 mt-2"
-                   >
-                     {isSubmitting ? (
-                       <RUSHUPLoader mini />
-                     ) : (
-                       <>
-                        <span>เปิดกะทำงาน</span>
-                        <ArrowRight size={16} />
-                       </>
-                     )}
-                   </button>
-                </form>
+                    {/* Shift Staff Attendance List (Typographic & borderless) */}
+                    {eligibilityData?.scheduledStaff && eligibilityData.scheduledStaff.length > 0 && (
+                      <div className="pt-4 border-t border-neutral-100/60 mt-2 select-none shrink-0 w-full mb-4">
+                        <p className="text-[10px] font-black text-neutral-400 tracking-[0.2em] uppercase text-center mb-3">
+                          {locale === 'en' ? 'Shift Staff Attendance' : 'รายชื่อพนักงานประจำกะทำงาน'}
+                        </p>
+                        <div className="flex flex-wrap gap-x-5 gap-y-2.5 justify-center max-w-md mx-auto">
+                          {eligibilityData.scheduledStaff.map((staff: any) => {
+                            const isCheckedIn = eligibilityData.checkedInStaff?.some((c: any) => c.id === staff.id);
+                            const isLeave = eligibilityData.emergencyLeaveStaff?.some((l: any) => l.id === staff.id);
+                            
+                            return (
+                              <div 
+                                key={staff.id} 
+                                className="flex items-center gap-1 text-[11px] font-bold text-neutral-600"
+                              >
+                                {isCheckedIn ? (
+                                  <Check size={14} strokeWidth={3} className="text-[#10B981] shrink-0" />
+                                ) : (
+                                  <span className="w-3.5 h-3.5 block shrink-0" />
+                                )}
+                                <span className={isLeave ? 'line-through text-neutral-400 opacity-60' : ''}>
+                                  {staff.display_name || staff.full_name || staff.email}
+                                </span>
+                                {isLeave && <span className="text-[9px] font-bold text-amber-600 ml-0.5">(ลา)</span>}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Open Drawer Button */}
+                    <button
+                      type="button"
+                      onClick={() => setShowPinVerify(true)}
+                      className="w-full h-10 bg-neutral-100 hover:bg-neutral-200/80 active:scale-95 text-[#1A1A18] rounded-xl flex items-center justify-center gap-1.5 text-[11px] font-bold uppercase tracking-wider transition-all select-none mb-3"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="3" y="11" width="18" height="10" rx="2.5" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round" />
+                        <path d="M7 11V6.5C7 5.11929 8.11929 4 9.5 4H14.5C15.8807 4 17 5.11929 17 6.5V11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                        <path d="M3 15H21" stroke="currentColor" strokeWidth="1.8" />
+                        <circle cx="12" cy="18" r="1.5" fill="currentColor" />
+                      </svg>
+                      <span>เปิดลิ้นชัก</span>
+                    </button>
+
+                    {/* Swipe to Open Shift button */}
+                    <div className="mt-4 shrink-0">
+                      <SwipeButton onSwipe={() => handleSubmit()} isSubmitting={isSubmitting} />
+                    </div>
+                  </form>
+                )}
               </div>
             )}
           </motion.div>

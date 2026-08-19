@@ -25,23 +25,58 @@ interface POSTableManagerProps {
   activeShift?: any
   setViewExtraHeader: (node: React.ReactNode) => void
   shopSettings?: any
+  showOnlyZones?: boolean
+  showOnlyGrid?: boolean
+  activeZoneProps?: string
+  setActiveZoneProps?: (zone: string) => void
+  editingTableProps?: any
+  setEditingTableProps?: (table: any) => void
+  isLayoutModeProps?: boolean
+  setIsLayoutModeProps?: (isLayout: boolean) => void
 }
 
 export default function POSTableManager({ 
-  profile, activeView, allowedNav, onSetView, onShiftModalOpen, activeShift, setViewExtraHeader, shopSettings
+  profile, activeView, allowedNav, onSetView, onShiftModalOpen, activeShift, setViewExtraHeader, shopSettings,
+  showOnlyZones, showOnlyGrid, activeZoneProps, setActiveZoneProps,
+  editingTableProps, setEditingTableProps, isLayoutModeProps, setIsLayoutModeProps
 }: POSTableManagerProps) {
     const { locale } = useI18n();
   const [tables, setTables] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [isEditorOpen, setIsEditorOpen] = useState(false)
-  const [editingTable, setEditingTable] = useState<any>(null)
+  const [editingTableInternalState, setEditingTableInternalState] = useState<any>(null)
+  const editingTable = editingTableProps !== undefined ? editingTableProps : editingTableInternalState;
+  const setEditingTable = setEditingTableProps !== undefined ? setEditingTableProps : setEditingTableInternalState;
   const [isSaving, setIsSaving] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [showQrModal, setShowQrModal] = useState<any>(null)
   
-  const [isLayoutMode, setIsLayoutMode] = useState(false)
+  const [isLayoutModeInternalState, setIsLayoutModeInternalState] = useState(false)
+  const isLayoutMode = isLayoutModeProps !== undefined ? isLayoutModeProps : isLayoutModeInternalState;
+  const setIsLayoutMode = setIsLayoutModeProps !== undefined ? setIsLayoutModeProps : setIsLayoutModeInternalState;
+
+  // Long press timer ref and helper functions
+  const pressTimerRef = React.useRef<any>(null);
+  const startPress = (table: any) => {
+    if (isLayoutMode) return;
+    if (pressTimerRef.current) clearTimeout(pressTimerRef.current);
+    pressTimerRef.current = setTimeout(() => {
+      setIsLayoutMode(true);
+      if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
+         window.navigator.vibrate(50);
+      }
+    }, 650);
+  };
+  const endPress = () => {
+    if (pressTimerRef.current) {
+      clearTimeout(pressTimerRef.current);
+      pressTimerRef.current = null;
+    }
+  };
   const [savingLayout, setSavingLayout] = useState(false)
-  const [activeZone, setActiveZone] = useState<string>('Main')
+  const [activeZoneInternal, setActiveZoneInternal] = useState<string>('Main')
+  const activeZone = activeZoneProps !== undefined ? activeZoneProps : activeZoneInternal;
+  const setActiveZone = setActiveZoneProps !== undefined ? setActiveZoneProps : setActiveZoneInternal;
   const [dbZones, setDbZones] = useState<any[]>([])
   const [isShapePickerOpen, setIsShapePickerOpen] = useState(false)
 
@@ -113,7 +148,7 @@ export default function POSTableManager({
     fetchZones()
 
     const channel = supabase
-      .channel('public:pos_tables')
+      .channel(`pos_tables_realtime_${Math.random().toString(36).substring(2, 9)}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_tables' }, () => {
         if (!isLayoutMode) {
           fetchTables()
@@ -186,6 +221,7 @@ export default function POSTableManager({
     const { error } = await supabase.from('pos_tables').upsert(editingTable)
     if (!error) {
       setIsEditorOpen(false)
+      setEditingTable(null)
       fetchTables()
     }
     setIsSaving(false)
@@ -280,11 +316,179 @@ export default function POSTableManager({
       setActiveZone('Main');
   }
 
+  if (showOnlyZones) {
+    if (editingTable) {
+      return (
+        <div className="h-full flex flex-col font-bold bg-white p-6 space-y-6">
+          <div className="border-b border-gray-100 pb-4 shrink-0 flex justify-between items-center">
+            <div>
+              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">ตั้งค่าข้อมูลโต๊ะ</span>
+              <h3 className="text-lg font-black text-gray-900">โต๊ะ {editingTable.table_number || 'ใหม่'}</h3>
+            </div>
+            <button 
+              onClick={() => setEditingTable(null)} 
+              className="w-8 h-8 bg-neutral-100 rounded-full flex items-center justify-center text-neutral-500 hover:bg-neutral-200 hover:text-black transition-colors"
+            >
+              <X size={16} />
+            </button>
+          </div>
+          
+          <div className="flex-grow overflow-y-auto no-scrollbar space-y-5 py-2">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">หมายเลขโต๊ะ / ชื่อโต๊ะ</label>
+              <input 
+                type="text" 
+                value={editingTable.table_number || ''} 
+                onChange={e => setEditingTable({...editingTable, table_number: e.target.value})} 
+                className="w-full bg-white border border-neutral-200 rounded-xl py-3 px-4 text-xs font-bold outline-none focus:border-[#D3202B] transition-all text-neutral-900 shadow-sm" 
+                placeholder="เช่น A1, 01, VIP-1" 
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">จำนวนที่นั่ง</label>
+                <input 
+                  type="number" 
+                  value={editingTable.capacity || 4} 
+                  onChange={e => setEditingTable({...editingTable, capacity: Number(e.target.value)})} 
+                  className="w-full bg-white border border-neutral-200 rounded-xl py-3 px-4 text-xs font-bold outline-none focus:border-[#D3202B] transition-all text-neutral-900 shadow-sm" 
+                  min="1" 
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">โซนบริการ</label>
+                <select 
+                  value={editingTable.zone || 'Main'} 
+                  onChange={e => setEditingTable({...editingTable, zone: e.target.value})} 
+                  className="w-full bg-white border border-neutral-200 rounded-xl py-3 px-4 text-xs font-bold outline-none focus:border-[#D3202B] transition-all text-neutral-900 appearance-none shadow-sm"
+                >
+                  {allZones.map(z => (
+                    <option key={z} value={z}>{z}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">รูปทรงโต๊ะ (Shape)</label>
+              <div className="grid grid-cols-4 gap-2">
+                <button onClick={() => setEditingTable({...editingTable, shape: 'square'})} className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all \${editingTable.shape === 'square' || !editingTable.shape ? 'border-[#D3202B] bg-red-50 text-[#D3202B] shadow-sm' : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300'}`}>
+                  <div className="w-5 h-5 rounded border-2 border-current"></div>
+                  <span className="text-[8px] font-bold">จัตุรัส</span>
+                </button>
+                <button onClick={() => setEditingTable({...editingTable, shape: 'rectangle'})} className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all \${editingTable.shape === 'rectangle' ? 'border-[#D3202B] bg-red-50 text-[#D3202B] shadow-sm' : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300'}`}>
+                  <div className="w-7 h-4 rounded border-2 border-current mt-0.5 mb-0.5"></div>
+                  <span className="text-[8px] font-bold">ผืนผ้า(นอน)</span>
+                </button>
+                <button onClick={() => setEditingTable({...editingTable, shape: 'rectangle_vertical'})} className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all \${editingTable.shape === 'rectangle_vertical' ? 'border-[#D3202B] bg-red-50 text-[#D3202B] shadow-sm' : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300'}`}>
+                  <div className="w-4 h-7 rounded border-2 border-current"></div>
+                  <span className="text-[8px] font-bold">ผืนผ้า(ตั้ง)</span>
+                </button>
+                <button onClick={() => setEditingTable({...editingTable, shape: 'circle'})} className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all \${editingTable.shape === 'circle' ? 'border-[#D3202B] bg-red-50 text-[#D3202B] shadow-sm' : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300'}`}>
+                  <div className="w-5 h-5 rounded-full border-2 border-current"></div>
+                  <span className="text-[8px] font-bold">วงกลม</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">รวมบิลกับโต๊ะ (Merge)</label>
+              <select 
+                value={editingTable.parent_table_id || ''} 
+                onChange={e => setEditingTable({...editingTable, parent_table_id: e.target.value || null})} 
+                className="w-full bg-white border border-neutral-200 rounded-xl py-3 px-4 text-xs font-bold outline-none focus:border-[#D3202B] transition-all text-neutral-900 appearance-none shadow-sm"
+              >
+                <option value="">-- แยกบิลปกติ (ไม่รวม) --</option>
+                {tables.filter(t => t.id !== editingTable.id && !t.parent_table_id).map(t => (
+                  <option key={t.id} value={t.id}>รวมเข้ากับโต๊ะ {t.table_number}</option>
+                ))}
+              </select>
+            </div>
+
+            <label className="flex items-center justify-between cursor-pointer bg-neutral-50 p-3 rounded-xl hover:bg-neutral-100 transition-colors">
+              <div className="flex flex-col mr-4">
+                <span className="text-xs font-bold text-neutral-900">สั่งอาหารผ่าน QR (24/7)</span>
+                <span className="text-[9px] text-neutral-500 font-medium">ลูกค้าสั่งได้แม้จะปิดกะแล้ว</span>
+              </div>
+              <div className="relative shrink-0">
+                <input 
+                  type="checkbox" 
+                  className="sr-only" 
+                  checked={!!editingTable.allow_after_hours}
+                  onChange={e => setEditingTable({...editingTable, allow_after_hours: e.target.checked})}
+                />
+                <div className={`block w-10 h-6 rounded-full transition-colors duration-300 \${editingTable.allow_after_hours ? 'bg-emerald-500' : 'bg-neutral-300'}`}></div>
+                <div className={`absolute left-0.5 top-0.5 bg-white w-5 h-5 rounded-full transition-transform duration-300 shadow-sm \${editingTable.allow_after_hours ? 'transform translate-x-4' : ''}`}></div>
+              </div>
+            </label>
+          </div>
+
+          <div className="flex gap-2 pt-4 border-t border-neutral-100 shrink-0">
+            <button 
+              onClick={() => setEditingTable(null)} 
+              className="flex-1 py-3 rounded-xl border border-neutral-200 text-neutral-700 text-xs font-black uppercase tracking-wider hover:bg-neutral-50 transition-all flex items-center justify-center gap-1.5"
+            >
+              ยกเลิก
+            </button>
+            <button 
+              onClick={handleSaveTable} 
+              disabled={isSaving} 
+              className="flex-grow-[2] py-3 rounded-xl bg-[#D3202B] text-white text-xs font-black uppercase tracking-wider hover:bg-red-700 transition-all flex items-center justify-center gap-1.5 shadow-md shadow-red-500/10"
+            >
+              {isSaving ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />}
+              บันทึกข้อมูล
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="h-full flex flex-col justify-between font-bold bg-white p-6 space-y-6">
+        <div className="border-b border-gray-100 pb-4 shrink-0">
+          <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">หมวดหมู่โต๊ะ</span>
+          <h3 className="text-lg font-black text-gray-900">เลือกโซนบริการ</h3>
+        </div>
+        <div className="flex-grow flex flex-col min-h-0 overflow-y-auto space-y-3 custom-scrollbar py-2">
+           {allZones.map(z => {
+              const isActive = activeZone === z;
+              return (
+                <button 
+                  key={z} 
+                  onClick={() => setActiveZone(z)} 
+                  className={`w-full px-5 py-4 rounded-2xl font-black text-xs transition-all flex items-center justify-between border ${isActive ? 'bg-red-50 text-red-600 border-red-200 shadow-sm' : 'bg-white text-neutral-500 hover:bg-neutral-100 border-neutral-200'}`}
+                >
+                   <span>{z}</span>
+                   {isLayoutMode && z !== 'Main' ? (
+                     <span onClick={(e) => handleDeleteZone(z, e)} className="p-1 -mr-2 text-neutral-400 hover:text-red-500 rounded-full hover:bg-red-50 transition-colors">
+                       <X size={14} />
+                     </span>
+                   ) : (
+                     <ChevronRight size={14} className={isActive ? 'text-red-600' : 'opacity-40'} />
+                   )}
+                </button>
+              );
+           })}
+        </div>
+        {!isLayoutMode && (
+          <button 
+            onClick={handleAddZone} 
+            className="w-full py-4 rounded-2xl font-black text-xs bg-white text-indigo-500 hover:bg-indigo-50 border border-indigo-100 flex items-center justify-center gap-1.5 transition-colors shadow-sm shrink-0 mt-4"
+          >
+            <Plus size={16} /> สร้างโซนใหม่
+          </button>
+        )}
+      </div>
+    );
+  }
+
   return (
     <>
-      <div className="p-4 sm:p-6 lg:p-10 font-sans print:hidden bg-neutral-50 h-full flex flex-col">
+      <div className="p-4 sm:p-6 lg:p-6 font-sans print:hidden bg-transparent h-full flex flex-col">
 
         {/* TOP BAR / ZONES */}
+        {!showOnlyGrid && (
         <div className="flex items-center gap-3 mb-4 overflow-x-auto no-scrollbar pb-1">
            {allZones.map(z => (
                <button key={z} onClick={() => setActiveZone(z)} className={`px-6 py-3 rounded-2xl font-bold text-sm whitespace-nowrap transition-all flex items-center gap-2 ${activeZone === z ? 'bg-[#D3202B] text-white shadow-md' : 'bg-white text-neutral-500 hover:bg-neutral-100 border border-neutral-200'}`}>
@@ -302,11 +506,41 @@ export default function POSTableManager({
                </button>
            )}
         </div>
+        )}
 
         {/* 2. MAIN TABLE CANVAS (Scrollable on small devices) */}
-        <div className={`flex-1 mt-2 relative w-full rounded-[2.5rem] overflow-auto ${isLayoutMode ? 'bg-[#0f172a] border border-[#1e293b]' : 'bg-neutral-100/50 border border-neutral-200'}`}>
-            <div className="relative min-w-[1000px] min-h-[800px] w-full h-full"
-                 style={{ backgroundImage: isLayoutMode ? 'radial-gradient(#334155 2px, transparent 2px)' : 'none', backgroundSize: '32px 32px' }}>
+        <div className={`flex-grow mt-2 relative w-full rounded-[2.5rem] overflow-hidden ${isLayoutMode ? 'bg-black border border-neutral-900 shadow-inner' : 'bg-transparent border-none'}`}>
+             {isLayoutMode && (
+               <div className="absolute top-5 left-1/2 -translate-x-1/2 bg-black/95 backdrop-blur border border-neutral-800 px-6 py-3 rounded-2xl flex items-center gap-6 shadow-2xl z-30 font-sans">
+                 <div className="flex items-center gap-2.5 text-white text-xs font-black tracking-wide">
+                   <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse"></span>
+                   <span>โหมดจัดตำแหน่งโต๊ะ</span>
+                   <span className="text-[10px] text-neutral-400 font-bold hidden sm:inline">(ลากเพื่อย้ายตำแหน่ง)</span>
+                 </div>
+                 <div className="flex items-center gap-2">
+                   <button 
+                     onClick={handleSaveLayout} 
+                     disabled={savingLayout} 
+                     className="px-4 py-2 bg-[#D3202B] hover:bg-red-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 active:scale-95 shadow-lg shadow-red-600/10 font-bold"
+                   >
+                     {savingLayout ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+                     บันทึกตำแหน่ง
+                   </button>
+                   <button 
+                     onClick={() => {
+                       setIsLayoutMode(false);
+                       fetchTables();
+                     }} 
+                     className="px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 border border-neutral-800 rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 font-bold"
+                   >
+                     ยกเลิก
+                   </button>
+                 </div>
+               </div>
+             )}
+            <div className="relative w-full h-full overflow-auto">
+               <div className="relative min-w-[1000px] min-h-[800px] w-full h-full"
+                 style={{ backgroundImage: isLayoutMode ? 'radial-gradient(#262626 2.5px, transparent 2.5px)' : 'none', backgroundSize: '32px 32px' }}>
                 {loading ? (
                    <div className="absolute inset-0 flex items-center justify-center opacity-30">
                        <Loader2 className="animate-spin text-neutral-400" size={48} />
@@ -325,30 +559,39 @@ export default function POSTableManager({
                           exit={{ opacity: 0, scale: 0.8 }}
                           transition={{ type: 'spring', stiffness: 300, damping: 25 }}
                           className={`absolute ${table.shape === 'rectangle' ? 'w-32 h-20 sm:w-40 sm:h-24' : (table.shape === 'rectangle_vertical' ? 'w-20 h-32 sm:w-24 sm:h-40' : 'w-20 h-20 sm:w-24 sm:h-24')} group ${isLayoutMode ? 'cursor-grab active:cursor-grabbing z-10' : 'cursor-pointer'}`}
+                          onMouseDown={() => startPress(table)}
+                          onTouchStart={() => startPress(table)}
+                          onMouseUp={endPress}
+                          onMouseLeave={endPress}
+                          onTouchEnd={endPress}
                           onClick={() => {
                              if (isLayoutMode) {
                                 // do nothing on click in layout mode, they just drag
                              } else {
-                                setEditingTable(table); 
-                                setIsEditorOpen(true);
+                                if (setEditingTableProps) {
+                                   setEditingTableProps(table);
+                                } else {
+                                   setEditingTable(table); 
+                                   setIsEditorOpen(true);
+                                }
                              }
                           }}
                       >
                           {/* TABLE BODY (CLEAN) */}
-                          <div className={`relative w-full h-full flex flex-col items-center justify-center z-10 ${table.shape === 'circle' ? 'rounded-full' : (table.shape === 'rectangle' || table.shape === 'rectangle_vertical' ? 'rounded-[1.5rem]' : 'rounded-2xl')} ${isLayoutMode ? 'bg-slate-800 border-2 border-dashed border-slate-500 text-slate-300' : (table.status === 'occupied' ? 'bg-[#D3202B] text-white shadow-lg' : 'bg-white border border-neutral-200 text-neutral-800 shadow-sm')} transition-all group-hover:border-neutral-400`}>
+                          <div className={`relative w-full h-full flex flex-col items-center justify-center z-10 ${table.shape === 'circle' ? 'rounded-full' : (table.shape === 'rectangle' || table.shape === 'rectangle_vertical' ? 'rounded-[1.5rem]' : 'rounded-2xl')} ${isLayoutMode ? 'bg-white border-2 border-dashed border-neutral-300 text-black shadow-sm group-hover:border-neutral-500' : (table.status === 'occupied' ? 'bg-[#D3202B] text-white shadow-lg' : 'bg-white border border-neutral-200 text-neutral-800 shadow-sm')} transition-all`}>
                              {isLayoutMode && (
-                                <div className="absolute -top-2 -right-2 bg-indigo-500 text-white p-1 rounded-full shadow-md z-20">
-                                   <Edit3 size={12} />
+                                <div className="absolute -top-1.5 -right-1.5 bg-[#D3202B] text-white p-1.5 rounded-full shadow-md z-20">
+                                   <Edit3 size={10} strokeWidth={3} />
                                 </div>
                              )}
                              <div className={`text-2xl sm:text-3xl font-bold tracking-tight pointer-events-none`}>{table.table_number}</div>
                              <div className="mt-1 flex flex-col items-center pointer-events-none">
-                                 <span className={`text-[9px] sm:text-[10px] font-medium uppercase tracking-widest ${table.status === 'occupied' ? 'text-neutral-400' : 'text-neutral-500'}`}>Seats {table.capacity}</span>
+                                 <span className={`text-[9px] sm:text-[10px] font-medium uppercase tracking-widest ${isLayoutMode ? 'text-neutral-400' : (table.status === 'occupied' ? 'text-red-200' : 'text-neutral-500')}`}>Seats {table.capacity}</span>
                              </div>
                              
                              {table.parent_table_id && (
-                                 <div className="absolute -bottom-3 bg-indigo-600 text-white text-[9px] px-3 py-1 rounded-full font-bold shadow-md whitespace-nowrap flex items-center gap-1">
-                                     🔗 โต๊ะ {tables.find(t => t.id === table.parent_table_id)?.table_number}
+                                 <div className="absolute -bottom-3 bg-black border border-neutral-800 text-white text-[9px] px-3 py-1 rounded-full font-bold shadow-md whitespace-nowrap flex items-center gap-1">
+                                     🔗 รวมโต๊ะ {tables.find(t => t.id === table.parent_table_id)?.table_number}
                                  </div>
                              )}
                           </div>
@@ -365,6 +608,7 @@ export default function POSTableManager({
                </>
             )}
             </div>
+          </div>
         </div>
       </div>
 
@@ -490,22 +734,22 @@ export default function POSTableManager({
                   <button onClick={() => setIsShapePickerOpen(false)} className="absolute top-6 right-6 w-8 h-8 flex items-center justify-center bg-neutral-100 rounded-full text-neutral-500 hover:bg-neutral-200 hover:text-black transition-colors"><X size={16} /></button>
                   <h3 className="text-xl font-black text-center mb-4 tracking-tight">เลือกทรงโต๊ะ</h3>
                   
-                  <button onClick={() => { setIsShapePickerOpen(false); setEditingTable({ table_number: '', capacity: 4, zone: activeZone, shape: 'square', status: 'available', branch_id: shopSettings?.branch_id || null }); setIsEditorOpen(true); }} className="flex items-center gap-4 p-4 border border-neutral-200 rounded-2xl hover:border-indigo-500 hover:bg-indigo-50 hover:shadow-md transition-all group text-left">
+                  <button onClick={() => { setIsShapePickerOpen(false); const t = { table_number: '', capacity: 4, zone: activeZone, shape: 'square', status: 'available', branch_id: shopSettings?.branch_id || null }; if (setEditingTableProps) { setEditingTableProps(t); } else { setEditingTable(t); setIsEditorOpen(true); } }} className="flex items-center gap-4 p-4 border border-neutral-200 rounded-2xl hover:border-indigo-500 hover:bg-indigo-50 hover:shadow-md transition-all group text-left">
                       <div className="w-12 h-12 bg-white rounded-2xl border-[3px] border-neutral-300 group-hover:border-indigo-500 shadow-sm shrink-0 transition-colors"></div>
                       <div className="flex flex-col"><span className="font-bold text-neutral-900">โต๊ะสี่เหลี่ยมจัตุรัส</span><span className="text-[10px] font-medium text-neutral-500">2-4 ที่นั่ง (มาตรฐาน)</span></div>
                   </button>
                   
-                  <button onClick={() => { setIsShapePickerOpen(false); setEditingTable({ table_number: '', capacity: 6, zone: activeZone, shape: 'rectangle', status: 'available', branch_id: shopSettings?.branch_id || null }); setIsEditorOpen(true); }} className="flex items-center gap-4 p-4 border border-neutral-200 rounded-2xl hover:border-indigo-500 hover:bg-indigo-50 hover:shadow-md transition-all group text-left">
+                  <button onClick={() => { setIsShapePickerOpen(false); const t = { table_number: '', capacity: 6, zone: activeZone, shape: 'rectangle', status: 'available', branch_id: shopSettings?.branch_id || null }; if (setEditingTableProps) { setEditingTableProps(t); } else { setEditingTable(t); setIsEditorOpen(true); } }} className="flex items-center gap-4 p-4 border border-neutral-200 rounded-2xl hover:border-indigo-500 hover:bg-indigo-50 hover:shadow-md transition-all group text-left">
                       <div className="w-14 h-9 bg-white rounded-xl border-[3px] border-neutral-300 group-hover:border-indigo-500 shadow-sm shrink-0 transition-colors"></div>
                       <div className="flex flex-col"><span className="font-bold text-neutral-900">ผืนผ้า แนวนอน</span><span className="text-[10px] font-medium text-neutral-500">6-8 ที่นั่ง (แนวนอน)</span></div>
                   </button>
 
-                  <button onClick={() => { setIsShapePickerOpen(false); setEditingTable({ table_number: '', capacity: 6, zone: activeZone, shape: 'rectangle_vertical', status: 'available', branch_id: shopSettings?.branch_id || null }); setIsEditorOpen(true); }} className="flex items-center gap-4 p-4 border border-neutral-200 rounded-2xl hover:border-indigo-500 hover:bg-indigo-50 hover:shadow-md transition-all group text-left">
+                  <button onClick={() => { setIsShapePickerOpen(false); const t = { table_number: '', capacity: 6, zone: activeZone, shape: 'rectangle_vertical', status: 'available', branch_id: shopSettings?.branch_id || null }; if (setEditingTableProps) { setEditingTableProps(t); } else { setEditingTable(t); setIsEditorOpen(true); } }} className="flex items-center gap-4 p-4 border border-neutral-200 rounded-2xl hover:border-indigo-500 hover:bg-indigo-50 hover:shadow-md transition-all group text-left">
                       <div className="w-9 h-14 mx-2 bg-white rounded-xl border-[3px] border-neutral-300 group-hover:border-indigo-500 shadow-sm shrink-0 transition-colors"></div>
                       <div className="flex flex-col"><span className="font-bold text-neutral-900">ผืนผ้า แนวตั้ง</span><span className="text-[10px] font-medium text-neutral-500">6-8 ที่นั่ง (แนวตั้ง)</span></div>
                   </button>
                   
-                  <button onClick={() => { setIsShapePickerOpen(false); setEditingTable({ table_number: '', capacity: 4, zone: activeZone, shape: 'circle', status: 'available', branch_id: shopSettings?.branch_id || null }); setIsEditorOpen(true); }} className="flex items-center gap-4 p-4 border border-neutral-200 rounded-2xl hover:border-indigo-500 hover:bg-indigo-50 hover:shadow-md transition-all group text-left">
+                  <button onClick={() => { setIsShapePickerOpen(false); const t = { table_number: '', capacity: 4, zone: activeZone, shape: 'circle', status: 'available', branch_id: shopSettings?.branch_id || null }; if (setEditingTableProps) { setEditingTableProps(t); } else { setEditingTable(t); setIsEditorOpen(true); } }} className="flex items-center gap-4 p-4 border border-neutral-200 rounded-2xl hover:border-indigo-500 hover:bg-indigo-50 hover:shadow-md transition-all group text-left">
                       <div className="w-12 h-12 bg-white rounded-full border-[3px] border-neutral-300 group-hover:border-indigo-500 shadow-sm shrink-0 transition-colors"></div>
                       <div className="flex flex-col"><span className="font-bold text-neutral-900">โต๊ะกลม</span><span className="text-[10px] font-medium text-neutral-500">4-6 ที่นั่ง (โต๊ะกลม)</span></div>
                   </button>

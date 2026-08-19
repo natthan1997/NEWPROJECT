@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { X, Delete, ShieldAlert } from 'lucide-react'
+import { X, Delete, ShieldCheck } from 'lucide-react'
 
 interface POSPinModalProps {
   isOpen: boolean
@@ -32,6 +32,8 @@ export default function POSPinModal({
 
   if (!isOpen) return null
 
+  const pinToCompare = String(correctPin || '').trim();
+
   const handleKeyPress = (num: string) => {
     if (error) setError(false)
     if (pin.length < 6) {
@@ -39,8 +41,8 @@ export default function POSPinModal({
       setPin(nextPin)
       
       // Auto-validate if PIN reaches correct length
-      if (nextPin.length === correctPin.length) {
-        if (nextPin === correctPin) {
+      if (nextPin.length === pinToCompare.length) {
+        if (nextPin === pinToCompare) {
           onSuccess()
           onClose()
         } else {
@@ -64,54 +66,54 @@ export default function POSPinModal({
 
   return (
     <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
-      {/* Backdrop with Blur */}
+      {/* Clean Dark Backdrop with Blur (Removes red glow/shadow) */}
       <div 
-        className="absolute inset-0 bg-[#D3202B]/60 backdrop-blur-md transition-opacity duration-300"
+        className="absolute inset-0 bg-neutral-900/60 backdrop-blur-md transition-opacity duration-300"
         onClick={onClose}
       />
 
-      {/* Modal Container */}
-      <div className={`relative w-full max-w-md bg-white border border-[#F0F0E8] p-8 sm:p-10 shadow-2xl transition-all duration-300 transform scale-100 flex flex-col items-center justify-center text-black font-bold select-none ${error ? 'animate-shake border-red-500 bg-red-50/10' : ''}`}>
+      {/* Modal Container (Clean rounded-3xl, subtle border) */}
+      <div className={`relative w-full max-w-sm bg-white border border-neutral-100 p-8 rounded-3xl shadow-2xl transition-all duration-300 transform scale-100 flex flex-col items-center justify-center text-black font-bold select-none ${error ? 'animate-shake' : ''}`}>
         
-        {/* Close Button */}
+        {/* Close Button (Rounded-full, clean hover) */}
         <button 
           onClick={onClose}
-          className="absolute top-6 right-6 w-10 h-10 bg-gray-50 hover:bg-gray-100 transition-colors flex items-center justify-center text-gray-400 hover:text-black"
+          className="absolute top-5 right-5 w-8 h-8 rounded-full bg-neutral-50 hover:bg-neutral-100 transition-colors flex items-center justify-center text-neutral-400 hover:text-neutral-900"
         >
-          <X size={20} />
+          <X size={16} />
         </button>
 
         {/* Shield Icon / Title */}
-        <div className="flex flex-col items-center text-center space-y-4 mb-8">
-          <div className={`w-16 h-16 flex items-center justify-center rounded-none transition-colors ${error ? 'bg-red-100 text-red-500' : 'bg-gray-50 text-[#1A1A18]'}`}>
-            <ShieldAlert size={28} />
+        <div className="flex flex-col items-center text-center space-y-3 mb-6 w-full">
+          <div className="w-14 h-14 flex items-center justify-center rounded-2xl bg-neutral-50 text-neutral-800 shrink-0">
+            <ShieldCheck size={26} />
           </div>
-          <h3 className="text-sm font-black uppercase tracking-[0.25em] leading-tight text-[#1A1A18]">{title}</h3>
-          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest max-w-[280px] leading-relaxed">
-            {error ? 'รหัส PIN ไม่ถูกต้อง กรุณาลองใหม่' : description}
+          <h3 className="text-xs font-black uppercase tracking-[0.2em] leading-tight text-neutral-800">{title}</h3>
+          <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest max-w-[240px] leading-relaxed">
+            {error ? 'รหัส PIN ไม่ถูกต้อง' : description}
           </p>
         </div>
 
-        {/* PIN Display Bullets */}
-        <div className="flex gap-4 mb-10 h-6 items-center">
-          {Array.from({ length: Math.max(correctPin.length, 4) }).map((_, idx) => {
+        {/* PIN Display Bullets (Brand red when filled, clean animations) */}
+        <div className="flex gap-3 mb-8 h-6 items-center justify-center">
+          {Array.from({ length: Math.max(pinToCompare.length, 4) }).map((_, idx) => {
             const isFilled = idx < pin.length
             return (
               <div 
                 key={idx}
-                className={`w-4 h-4 rounded-full transition-all duration-150 ${error ? 'bg-red-500 scale-110' : isFilled ? 'bg-black scale-110' : 'bg-gray-100 border border-[#F0F0E8]'}`}
+                className={`w-3 h-3 rounded-full transition-all duration-150 ${error ? 'bg-red-500 scale-110' : isFilled ? 'bg-[#C62229] scale-110' : 'bg-neutral-100 border border-neutral-200'}`}
               />
             )
           })}
         </div>
 
-        {/* Numeric Numpad */}
-        <div className="grid grid-cols-3 gap-4 w-full max-w-[320px]">
+        {/* Numeric Numpad (Clean, rounded-2xl buttons, no harsh borders) */}
+        <div className="grid grid-cols-3 gap-2.5 w-full max-w-[280px]">
           {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(num => (
             <button
               key={num}
               onClick={() => handleKeyPress(num)}
-              className="h-20 bg-gray-50 hover:bg-black hover:text-white transition-all text-xl font-black uppercase tracking-widest flex items-center justify-center border border-transparent hover:border-black active:scale-95"
+              className="h-14 bg-neutral-50 hover:bg-neutral-900 hover:text-white transition-all text-lg font-black rounded-2xl flex items-center justify-center active:scale-95 text-[#1A1A18]"
             >
               {num}
             </button>
@@ -120,7 +122,7 @@ export default function POSPinModal({
           {/* Clear button */}
           <button
             onClick={handleClear}
-            className="h-20 bg-gray-50 hover:bg-gray-100 transition-all text-[10px] font-black uppercase tracking-widest flex items-center justify-center active:scale-95 text-gray-400 hover:text-black"
+            className="h-14 bg-transparent hover:bg-neutral-50 transition-all text-[10px] font-black uppercase tracking-widest flex items-center justify-center rounded-2xl active:scale-95 text-neutral-400 hover:text-[#1A1A18]"
           >
             Clear
           </button>
@@ -128,7 +130,7 @@ export default function POSPinModal({
           {/* Zero */}
           <button
             onClick={() => handleKeyPress('0')}
-            className="h-20 bg-gray-50 hover:bg-black hover:text-white transition-all text-xl font-black uppercase tracking-widest flex items-center justify-center border border-transparent hover:border-black active:scale-95"
+            className="h-14 bg-neutral-50 hover:bg-neutral-900 hover:text-white transition-all text-lg font-black rounded-2xl flex items-center justify-center active:scale-95 text-[#1A1A18]"
           >
             0
           </button>
@@ -136,9 +138,9 @@ export default function POSPinModal({
           {/* Delete Backspace */}
           <button
             onClick={handleDelete}
-            className="h-20 bg-gray-50 hover:bg-gray-100 transition-all text-[10px] font-black uppercase tracking-widest flex items-center justify-center active:scale-95 text-gray-400 hover:text-black"
+            className="h-14 bg-transparent hover:bg-neutral-50 transition-all text-[10px] font-black uppercase tracking-widest flex items-center justify-center rounded-2xl active:scale-95 text-neutral-400 hover:text-[#1A1A18]"
           >
-            <Delete size={20} />
+            <Delete size={16} />
           </button>
         </div>
 
@@ -147,8 +149,8 @@ export default function POSPinModal({
       <style jsx global>{`
         @keyframes shake {
           0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-8px); }
-          75% { transform: translateX(8px); }
+          25% { transform: translateX(-6px); }
+          75% { transform: translateX(6px); }
         }
         .animate-shake {
           animation: shake 0.2s ease-in-out 0s 2;

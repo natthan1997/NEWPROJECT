@@ -24,6 +24,7 @@ import {
   UserPlus,
   History as HistoryIcon,
   Tag,
+  ShieldCheck,
 } from 'lucide-react'
 import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/lib/supabaseClient'
@@ -88,6 +89,17 @@ function RestaurantOSPageContent() {
   const [loading, setLoading] = useState(true)
   const [activeView, setActiveView] = useState<POSView | null>(null)
   const [showAdminBranchSelect, setShowAdminBranchSelect] = useState(false)
+  const [isPortrait, setIsPortrait] = useState(true)
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(orientation: portrait)')
+    setIsPortrait(mediaQuery.matches)
+    const handleOrientationChange = (e: MediaQueryListEvent) => {
+      setIsPortrait(e.matches)
+    }
+    mediaQuery.addEventListener('change', handleOrientationChange)
+    return () => mediaQuery.removeEventListener('change', handleOrientationChange)
+  }, [])
 
   const [activeShift, setActiveShift] = useState<any>(null)
   const [shiftStats, setShiftStats] = useState<any>(null)
@@ -95,6 +107,8 @@ function RestaurantOSPageContent() {
   const [syncPulse, setSyncPulse] = useState(0)
   const [isAudioEnabled, setIsAudioEnabled] = useState(false)
   const [isShiftModalOpen, setIsShiftModalOpen] = useState(false)
+  const [isClosingSuccessShow, setIsClosingSuccessShow] = useState(false)
+  const isClosingShiftRef = useRef(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const hasInitialized = useRef(false)
 
@@ -232,7 +246,10 @@ function RestaurantOSPageContent() {
     } else {
       setActiveShift(null)
       if (options?.promptIfMissing) {
-        setIsShiftModalOpen(true)
+        const isPortraitMode = typeof window !== 'undefined' && window.matchMedia('(orientation: portrait)').matches
+        if (isPortraitMode) {
+          setIsShiftModalOpen(true)
+        }
       }
       return false
     }
@@ -283,7 +300,9 @@ function RestaurantOSPageContent() {
     const channel = supabase
       .channel('pos-shift-state-sync')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_shifts' }, () => {
-        void checkActiveShift({ promptIfMissing: true })
+        if (!isClosingShiftRef.current) {
+          void checkActiveShift({ promptIfMissing: true })
+        }
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_shop_settings' }, () => {
         fetchShopSettings()
@@ -1026,16 +1045,23 @@ function RestaurantOSPageContent() {
       return
     }
 
+    // Await all initial data queries so the loader stays active until data is ready in parent state
+    await Promise.all([
+      fetchShopSettings(),
+      fetchShiftStats(result.shift.id)
+    ])
+
     setActiveShift(result.shift)
     setIsShiftModalOpen(false)
     setActiveView('terminal')
     localStorage.setItem('xyl_pos_active_view', 'terminal')
-    fetchShopSettings()
-    fetchShiftStats(result.shift.id)
   }
 
   const handleCloseShift = async (actualCash: number) => {
     if (!activeShift || !profile) return
+    isClosingShiftRef.current = true
+    // Show thank-you overlay state early
+    setIsClosingSuccessShow(true)
     try {
       const branchId = await getCurrentBranchId()
       const response = await fetch('/api/pos/shifts', {
@@ -1056,6 +1082,7 @@ function RestaurantOSPageContent() {
         throw new Error(result?.error || 'Close shift request failed')
       }
 
+      // Clear states
       setActiveShift(null)
       setShiftStats(null)
       setCart([])
@@ -1064,14 +1091,30 @@ function RestaurantOSPageContent() {
       setEditingOrderNumber(null)
       setOrderType('takeaway')
       setDeliveryPlatform('')
-      setActiveView('drawer')
-      localStorage.setItem('xyl_pos_active_view', 'drawer')
       localStorage.removeItem('pos_saved_editing_order_id')
       localStorage.removeItem('pos_saved_editing_order_number')
       localStorage.removeItem('pos_saved_selected_table')
       fetchShopSettings()
-      setIsShiftModalOpen(true)
+
+      if (!isPortrait) {
+        setActiveView('terminal')
+        localStorage.setItem('xyl_pos_active_view', 'terminal')
+      }
+
+      // After 3.5 seconds, hide the thank you screen, set view to drawer, and open the shift-opening modal if portrait
+      setTimeout(() => {
+        setIsClosingSuccessShow(false)
+        isClosingShiftRef.current = false
+        if (isPortrait) {
+          setActiveView('drawer')
+          localStorage.setItem('xyl_pos_active_view', 'drawer')
+          setIsShiftModalOpen(true)
+        }
+      }, 3500)
+
     } catch (e) {
+      isClosingShiftRef.current = false
+      setIsClosingSuccessShow(false)
       console.error('Close shift failed:', e)
       const message = e instanceof Error ? e.message : 'กรุณาลองใหม่อีกครั้ง'
       alert(`ปิดกะไม่สำเร็จ: ${message}`)
@@ -1121,6 +1164,7 @@ function RestaurantOSPageContent() {
   const commonProps = {
     profile,
     activeShift,
+    isClosingSuccessShow,
     shiftStats,
     activeView: activeView || 'terminal',
     allowedNav,
@@ -1194,7 +1238,13 @@ function RestaurantOSPageContent() {
     if (!activeView) return null
     switch (activeView) {
       case 'terminal':
-        return <POSTerminal {...commonProps} />
+        return (
+          <POSTerminal
+            {...commonProps}
+            onOpenShift={handleOpenShift}
+            onCloseShift={handleCloseShift}
+          />
+        )
       case 'drawer':
         return (
           <POSDrawerManager
@@ -1259,6 +1309,7 @@ function RestaurantOSPageContent() {
         headerExtra={viewExtraHeader}
         branchName={shopSettings?.branch_name}
         onBranchClick={profile?.role === 'admin' ? () => setShowAdminBranchSelect(true) : undefined}
+        hideHeader={!isPortrait}
       >
         <POSErrorBoundary>
           {renderView()}
@@ -1293,6 +1344,35 @@ function RestaurantOSPageContent() {
           hasActiveShift={!!activeShift}
         />
       </POSLayout>
+
+      {/* SHIFT CLOSING SUCCESS THANK YOU OVERLAY */}
+      <AnimatePresence>
+        {isClosingSuccessShow && isPortrait && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+            className="fixed inset-0 z-[9999] bg-white flex flex-col items-center justify-center p-6 text-neutral-900 font-bold"
+          >
+            <motion.div
+              initial={{ scale: 0.98, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.98, opacity: 0 }}
+              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+              className="text-center font-bold"
+            >
+              <h2 className="text-3xl sm:text-4xl font-light tracking-[0.2em] text-[#1A1A18] uppercase font-serif-luxury leading-none">
+                THANK YOU
+              </h2>
+              <div className="h-px bg-neutral-200 w-16 mx-auto my-6" />
+              <p className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.3em] text-neutral-500">
+                {locale === 'en' ? 'Shift Closed Successfully' : 'ปิดกะทำงานเรียบร้อยแล้ว'}
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* REAL-TIME COUPON CLAIM MODAL (GLOBAL OVERLAY) */}
       <AnimatePresence>

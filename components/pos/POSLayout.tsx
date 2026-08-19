@@ -24,11 +24,12 @@ interface POSLayoutProps {
     isDark?: boolean // For Kitchen view
     branchName?: string
     onBranchClick?: () => void
+    hideHeader?: boolean
 }
 
 export default function POSLayout({ 
     children, title, subtitle, profile, activeView, 
-    allowedNav, onSetView, headerExtra, isDark, branchName, onBranchClick 
+    allowedNav, onSetView, headerExtra, isDark, branchName, onBranchClick, hideHeader 
 }: POSLayoutProps) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [isMuted, setIsMuted] = useState(false)
@@ -36,6 +37,10 @@ export default function POSLayout({
 
     useEffect(() => {
         setIsMuted(localStorage.getItem('pos_mute_sounds') === 'true')
+        
+        const handleToggleSidebar = () => setIsSidebarOpen(true)
+        window.addEventListener('toggle-pos-sidebar', handleToggleSidebar)
+        return () => window.removeEventListener('toggle-pos-sidebar', handleToggleSidebar)
     }, [])
 
     const toggleMute = () => {
@@ -194,21 +199,34 @@ export default function POSLayout({
             </AnimatePresence>
 
             {/* OFF-CANVAS SIDEBAR FOR MOBILE/TABLET PORTRAIT */}
-            {isSidebarOpen && (
-                <div className="print:hidden fixed inset-0 z-[1000] xl:hidden flex animate-in fade-in duration-300 font-bold">
-                    <div 
-                        className={`absolute inset-0 backdrop-blur-md transition-all ${isDark ? 'bg-black/80' : 'bg-[#3a3a38]/40'}`} 
-                        onClick={() => setIsSidebarOpen(false)}
-                    ></div>
-                    <aside className={`relative w-[320px] max-w-[85vw] h-full shadow-2xl animate-in slide-in-from-left duration-700 flex flex-col font-bold ${isDark ? 'bg-[#1A1A18] border-r border-white/5' : 'bg-white'}`}>
-                        {renderSidebarContent()}
-                    </aside>
-                </div>
-            )}
+            <AnimatePresence>
+                {isSidebarOpen && (
+                    <div className="print:hidden fixed inset-0 z-[1000] xl:hidden flex font-bold">
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className={`absolute inset-0 backdrop-blur-sm ${isDark ? 'bg-black/60' : 'bg-[#3a3a38]/40'}`} 
+                            onClick={() => setIsSidebarOpen(false)}
+                        />
+                        <motion.aside 
+                            initial={{ x: '-100%' }}
+                            animate={{ x: 0 }}
+                            exit={{ x: '-100%' }}
+                            transition={{ type: 'tween', duration: 0.3, ease: 'easeOut' }}
+                            className={`relative w-[320px] max-w-[85vw] h-full shadow-2xl flex flex-col font-bold ${isDark ? 'bg-[#1A1A18] border-r border-white/5' : 'bg-white'}`}
+                        >
+                            {renderSidebarContent()}
+                        </motion.aside>
+                    </div>
+                )}
+            </AnimatePresence>
 
             {/* MAIN CONTENT WRAPPER */}
             <div className="flex-1 flex flex-col min-w-0 overflow-hidden print:overflow-visible">
                 {/* 2. MAIN HEADER (Sticky) */}
+                {!hideHeader && (
                 <header className={`print:hidden h-[calc(60px+env(safe-area-inset-top))] sm:h-[calc(70px+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] border-b flex items-center justify-between px-3 sm:px-6 xl:px-10 sticky top-0 z-[50] flex-shrink-0 font-bold ${isDark ? 'bg-[#1A1A18] border-white/5' : 'bg-white border-[#F0F0E8]'}`}>
                     <div className="flex items-center gap-3 sm:gap-6 xl:gap-10 flex-1 font-bold min-w-[140px] sm:min-w-0 flex-shrink-0 z-10">
                         <button 
@@ -243,6 +261,7 @@ export default function POSLayout({
                     {headerExtra}
                 </div>
             </header>
+            )}
 
             {/* 3. MAIN CONTENT CONTAINER */}
             <main className={`print:overflow-visible print:block flex-1 relative flex flex-col font-bold custom-scrollbar min-h-0 ${activeView === 'delivery' ? 'overflow-visible' : (activeView === 'terminal' || activeView === 'kitchen') ? 'overflow-hidden' : 'overflow-y-auto'}`}>

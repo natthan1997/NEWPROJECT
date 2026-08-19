@@ -23,6 +23,24 @@ body {
   color: #1A1A1A;
 }
 
+/* Prevent text selection and magnifier glass globally for native-like feel */
+*, *::before, *::after {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Re-enable selection for inputs and text fields */
+input, textarea, [contenteditable="true"], [contenteditable="true"] * {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+  caret-color: #D3202B;
+}
+
 .font-serif-thai {
   font-family: var(--font-sarabun), 'Sarabun', sans-serif;
 }
@@ -91,9 +109,9 @@ body {
   }
 
   .rushup-input {
-    @apply bg-white border border-[#E5E5DF] rounded-none px-4 py-3 text-base text-[#1A1A1A] placeholder:text-[#B5B5B0] focus:outline-none focus:border-[#2A4532] transition-colors;
+    @apply bg-white border border-[#E5E5DF] rounded-none px-4 py-3 text-base text-[#1A1A1A] placeholder:text-[#B5B5B0] focus:outline-none focus:border-[#D3202B] transition-colors;
     cursor: default !important;
-    caret-color: #1A1A18 !important;
+    caret-color: #D3202B !important;
   }
 
   .rushup-btn-primary {
@@ -405,10 +423,10 @@ body {
   input,
   select,
   textarea {
-    @apply border border-[#E5E5DF] bg-white text-[#1A1A1A] text-base;
+    @apply border border-[#E5E5DF] bg-white text-[#1A1A18] text-base;
     font-size: 16px !important;
     cursor: default !important;
-    caret-color: #1A1A18 !important;
+    caret-color: #D3202B !important;
   }
 
   select,
@@ -437,7 +455,7 @@ body {
   select:focus,
   input[type='date']:focus,
   input[type='time']:focus {
-    @apply ring-2 ring-offset-2 ring-[#D9E2DC] border-[#2A4532];
+    @apply ring-2 ring-offset-2 ring-[#FEE2E2] border-[#D3202B];
     font-size: 16px !important;
     cursor: text !important;
   }
@@ -600,7 +618,7 @@ body {
 /* Better focus visibility for touch devices */
 @media (hover: none) and (pointer: coarse) {
   .focus\:ring-2:focus {
-    outline: 2px solid #2a4532;
+    outline: 2px solid #D3202B;
     outline-offset: 2px;
   }
 }
