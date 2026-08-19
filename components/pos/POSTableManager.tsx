@@ -345,136 +345,76 @@ export default function POSTableManager({
   }
 
   if (showOnlyZones) {
-    if (editingTable) {
-      return (
-        <div className="h-full flex flex-col font-bold bg-white p-6 space-y-6">
-          <div className="border-b border-gray-100 pb-4 shrink-0 flex justify-between items-center">
-            <div>
-              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">ตั้งค่าข้อมูลโต๊ะ</span>
-              <h3 className="text-lg font-black text-gray-900">โต๊ะ {editingTable.table_number || 'ใหม่'}</h3>
-            </div>
-            <button 
-              onClick={() => setEditingTable(null)} 
-              className="w-8 h-8 bg-neutral-100 rounded-full flex items-center justify-center text-neutral-500 hover:bg-neutral-200 hover:text-black transition-colors"
-            >
-              <X size={16} />
-            </button>
+    return (
+      <div className="relative w-full h-full bg-white overflow-hidden">
+        
+        {/* VIEW 1: Zone List */}
+        <motion.div
+          className="absolute inset-0 flex flex-col justify-between font-bold p-6 space-y-6"
+          initial={false}
+          animate={{ x: (editingTable || editingZone) ? '-50%' : '0%', opacity: (editingTable || editingZone) ? 0 : 1 }}
+          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+          style={{ pointerEvents: (editingTable || editingZone) ? 'none' : 'auto' }}
+        >
+          <div className="border-b border-gray-100 pb-4 shrink-0">
+            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">หมวดหมู่โต๊ะ</span>
+            <h3 className="text-lg font-black text-gray-900">เลือกโซนบริการ</h3>
           </div>
-          
-          <div className="flex-grow overflow-y-auto no-scrollbar space-y-5 py-2">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">หมายเลขโต๊ะ / ชื่อโต๊ะ</label>
-              <input 
-                type="text" 
-                value={editingTable.table_number || ''} 
-                onChange={e => setEditingTable({...editingTable, table_number: e.target.value})} 
-                className="w-full bg-white border border-neutral-200 rounded-xl py-3 px-4 text-xs font-bold outline-none focus:border-[#D3202B] transition-all text-neutral-900 shadow-sm" 
-                placeholder="เช่น A1, 01, VIP-1" 
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">จำนวนที่นั่ง</label>
-                <input 
-                  type="number" 
-                  value={editingTable.capacity || 4} 
-                  onChange={e => setEditingTable({...editingTable, capacity: Number(e.target.value)})} 
-                  className="w-full bg-white border border-neutral-200 rounded-xl py-3 px-4 text-xs font-bold outline-none focus:border-[#D3202B] transition-all text-neutral-900 shadow-sm" 
-                  min="1" 
-                />
+          <div className="flex-grow flex flex-col min-h-0 overflow-y-auto space-y-3 custom-scrollbar py-2">
+             {allZones.map(z => {
+                const isActive = activeZone === z;
+                return (
+                  <button 
+                    key={z} 
+                    onClick={() => {
+                      setActiveZone(z);
+                      setEditingZone(z);
+                      setRenameZoneValue(z);
+                    }} 
+                    className={`w-full px-5 py-4 rounded-2xl font-black text-xs transition-all flex items-center justify-between border ${isActive ? 'bg-red-50 text-red-600 border-red-200 shadow-sm' : 'bg-white text-neutral-500 hover:bg-neutral-100 border-neutral-200'}`}
+                  >
+                     <span>{z}</span>
+                     <ChevronRight size={14} className={isActive ? 'text-red-600' : 'opacity-40'} />
+                  </button>
+                );
+             })}
+          </div>
+          {!isLayoutMode && (
+            isCreatingZone ? (
+              <div className="mt-4 flex flex-col gap-2 p-3 rounded-2xl border border-indigo-200 bg-indigo-50/50 shrink-0">
+                 <input 
+                    autoFocus
+                    type="text" 
+                    placeholder="ชื่อโซนใหม่..." 
+                    value={newZoneName} 
+                    onChange={(e) => setNewZoneName(e.target.value)} 
+                    onKeyDown={(e) => { if(e.key === 'Enter') submitNewZone(); else if (e.key === 'Escape') setIsCreatingZone(false); }}
+                    className="w-full px-3 py-2 rounded-xl text-sm border border-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-indigo-900 bg-white" 
+                 />
+                 <div className="flex gap-2">
+                   <button onClick={() => setIsCreatingZone(false)} className="flex-1 py-2 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-200 transition-colors bg-white border border-gray-200 shadow-sm">ยกเลิก</button>
+                   <button onClick={submitNewZone} className="flex-1 py-2 rounded-xl text-xs font-bold text-white bg-indigo-500 hover:bg-indigo-600 transition-colors shadow-sm">บันทึก</button>
+                 </div>
               </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">โซนบริการ</label>
-                <select 
-                  value={editingTable.zone || 'Main'} 
-                  onChange={e => setEditingTable({...editingTable, zone: e.target.value})} 
-                  className="w-full bg-white border border-neutral-200 rounded-xl py-3 px-4 text-xs font-bold outline-none focus:border-[#D3202B] transition-all text-neutral-900 appearance-none shadow-sm"
-                >
-                  {allZones.map(z => (
-                    <option key={z} value={z}>{z}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">รูปทรงโต๊ะ (Shape)</label>
-              <div className="grid grid-cols-4 gap-2">
-                <button onClick={() => setEditingTable({...editingTable, shape: 'square'})} className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all \${editingTable.shape === 'square' || !editingTable.shape ? 'border-[#D3202B] bg-red-50 text-[#D3202B] shadow-sm' : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300'}`}>
-                  <div className="w-5 h-5 rounded border-2 border-current"></div>
-                  <span className="text-[8px] font-bold">จัตุรัส</span>
-                </button>
-                <button onClick={() => setEditingTable({...editingTable, shape: 'rectangle'})} className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all \${editingTable.shape === 'rectangle' ? 'border-[#D3202B] bg-red-50 text-[#D3202B] shadow-sm' : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300'}`}>
-                  <div className="w-7 h-4 rounded border-2 border-current mt-0.5 mb-0.5"></div>
-                  <span className="text-[8px] font-bold">ผืนผ้า(นอน)</span>
-                </button>
-                <button onClick={() => setEditingTable({...editingTable, shape: 'rectangle_vertical'})} className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all \${editingTable.shape === 'rectangle_vertical' ? 'border-[#D3202B] bg-red-50 text-[#D3202B] shadow-sm' : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300'}`}>
-                  <div className="w-4 h-7 rounded border-2 border-current"></div>
-                  <span className="text-[8px] font-bold">ผืนผ้า(ตั้ง)</span>
-                </button>
-                <button onClick={() => setEditingTable({...editingTable, shape: 'circle'})} className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all \${editingTable.shape === 'circle' ? 'border-[#D3202B] bg-red-50 text-[#D3202B] shadow-sm' : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300'}`}>
-                  <div className="w-5 h-5 rounded-full border-2 border-current"></div>
-                  <span className="text-[8px] font-bold">วงกลม</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">รวมบิลกับโต๊ะ (Merge)</label>
-              <select 
-                value={editingTable.parent_table_id || ''} 
-                onChange={e => setEditingTable({...editingTable, parent_table_id: e.target.value || null})} 
-                className="w-full bg-white border border-neutral-200 rounded-xl py-3 px-4 text-xs font-bold outline-none focus:border-[#D3202B] transition-all text-neutral-900 appearance-none shadow-sm"
+            ) : (
+              <button 
+                onClick={() => setIsCreatingZone(true)} 
+                className="w-full py-4 rounded-2xl font-black text-xs bg-white text-indigo-500 hover:bg-indigo-50 border border-indigo-100 flex items-center justify-center gap-1.5 transition-colors shadow-sm shrink-0 mt-4"
               >
-                <option value="">-- แยกบิลปกติ (ไม่รวม) --</option>
-                {tables.filter(t => t.id !== editingTable.id && !t.parent_table_id).map(t => (
-                  <option key={t.id} value={t.id}>รวมเข้ากับโต๊ะ {t.table_number}</option>
-                ))}
-              </select>
-            </div>
+                <Plus size={16} /> สร้างโซนใหม่
+              </button>
+            )
+          )}
+        </motion.div>
 
-            <label className="flex items-center justify-between cursor-pointer bg-neutral-50 p-3 rounded-xl hover:bg-neutral-100 transition-colors">
-              <div className="flex flex-col mr-4">
-                <span className="text-xs font-bold text-neutral-900">สั่งอาหารผ่าน QR (24/7)</span>
-                <span className="text-[9px] text-neutral-500 font-medium">ลูกค้าสั่งได้แม้จะปิดกะแล้ว</span>
-              </div>
-              <div className="relative shrink-0">
-                <input 
-                  type="checkbox" 
-                  className="sr-only" 
-                  checked={!!editingTable.allow_after_hours}
-                  onChange={e => setEditingTable({...editingTable, allow_after_hours: e.target.checked})}
-                />
-                <div className={`block w-10 h-6 rounded-full transition-colors duration-300 \${editingTable.allow_after_hours ? 'bg-emerald-500' : 'bg-neutral-300'}`}></div>
-                <div className={`absolute left-0.5 top-0.5 bg-white w-5 h-5 rounded-full transition-transform duration-300 shadow-sm \${editingTable.allow_after_hours ? 'transform translate-x-4' : ''}`}></div>
-              </div>
-            </label>
-          </div>
-
-          <div className="flex gap-2 pt-4 border-t border-neutral-100 shrink-0">
-            <button 
-              onClick={() => setEditingTable(null)} 
-              className="flex-1 py-3 rounded-xl border border-neutral-200 text-neutral-700 text-xs font-black uppercase tracking-wider hover:bg-neutral-50 transition-all flex items-center justify-center gap-1.5"
-            >
-              ยกเลิก
-            </button>
-            <button 
-              onClick={handleSaveTable} 
-              disabled={isSaving} 
-              className="flex-grow-[2] py-3 rounded-xl bg-[#D3202B] text-white text-xs font-black uppercase tracking-wider hover:bg-red-700 transition-all flex items-center justify-center gap-1.5 shadow-md shadow-red-500/10"
-            >
-              {isSaving ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />}
-              บันทึกข้อมูล
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    if (editingZone) {
-      return (
-        <div className="h-full flex flex-col justify-between font-bold bg-white p-6 space-y-6">
+        {/* VIEW 2: Zone Details */}
+        <motion.div
+          className="absolute inset-0 flex flex-col justify-between font-bold bg-white p-6 space-y-6"
+          initial={false}
+          animate={{ x: (editingZone && !editingTable) ? '0%' : (editingTable ? '-50%' : '100%'), opacity: (editingZone && !editingTable) ? 1 : 0 }}
+          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+          style={{ pointerEvents: (editingZone && !editingTable) ? 'auto' : 'none' }}
+        >
           <div>
             <div className="border-b border-gray-100 pb-4 shrink-0 flex items-center gap-3">
               <button 
@@ -485,7 +425,7 @@ export default function POSTableManager({
               </button>
               <div>
                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-0.5">รายละเอียดโซน</span>
-                <h3 className="text-lg font-black text-gray-900">{editingZone}</h3>
+                <h3 className="text-lg font-black text-gray-900">{editingZone || ''}</h3>
               </div>
             </div>
 
@@ -528,68 +468,144 @@ export default function POSTableManager({
           {editingZone !== 'Main' && (
             <div className="border-t border-neutral-100 pt-4 shrink-0">
               <button 
-                onClick={() => handleDeleteZone(editingZone)} 
+                onClick={() => handleDeleteZone(editingZone || '')} 
                 className="w-full py-3 rounded-xl border border-red-100 bg-red-50 text-red-600 text-xs font-black uppercase tracking-wider hover:bg-red-100 transition-all flex items-center justify-center gap-1.5"
               >
                 <Trash2 size={14} /> ลบโซนนี้
               </button>
             </div>
           )}
-        </div>
-      );
-    }
+        </motion.div>
 
-    return (
-      <div className="h-full flex flex-col justify-between font-bold bg-white p-6 space-y-6">
-        <div className="border-b border-gray-100 pb-4 shrink-0">
-          <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">หมวดหมู่โต๊ะ</span>
-          <h3 className="text-lg font-black text-gray-900">เลือกโซนบริการ</h3>
-        </div>
-        <div className="flex-grow flex flex-col min-h-0 overflow-y-auto space-y-3 custom-scrollbar py-2">
-           {allZones.map(z => {
-              const isActive = activeZone === z;
-              return (
-                <button 
-                  key={z} 
-                  onClick={() => {
-                    setActiveZone(z);
-                    setEditingZone(z);
-                    setRenameZoneValue(z);
-                  }} 
-                  className={`w-full px-5 py-4 rounded-2xl font-black text-xs transition-all flex items-center justify-between border ${isActive ? 'bg-red-50 text-red-600 border-red-200 shadow-sm' : 'bg-white text-neutral-500 hover:bg-neutral-100 border-neutral-200'}`}
-                >
-                   <span>{z}</span>
-                   <ChevronRight size={14} className={isActive ? 'text-red-600' : 'opacity-40'} />
-                </button>
-              );
-           })}
-        </div>
-        {!isLayoutMode && (
-          isCreatingZone ? (
-            <div className="mt-4 flex flex-col gap-2 p-3 rounded-2xl border border-indigo-200 bg-indigo-50/50 shrink-0">
-               <input 
-                  autoFocus
-                  type="text" 
-                  placeholder="ชื่อโซนใหม่..." 
-                  value={newZoneName} 
-                  onChange={(e) => setNewZoneName(e.target.value)} 
-                  onKeyDown={(e) => { if(e.key === 'Enter') submitNewZone(); else if (e.key === 'Escape') setIsCreatingZone(false); }}
-                  className="w-full px-3 py-2 rounded-xl text-sm border border-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-indigo-900 bg-white" 
-               />
-               <div className="flex gap-2">
-                 <button onClick={() => setIsCreatingZone(false)} className="flex-1 py-2 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-200 transition-colors bg-white border border-gray-200 shadow-sm">ยกเลิก</button>
-                 <button onClick={submitNewZone} className="flex-1 py-2 rounded-xl text-xs font-bold text-white bg-indigo-500 hover:bg-indigo-600 transition-colors shadow-sm">บันทึก</button>
-               </div>
+        {/* VIEW 3: Table Details */}
+        <motion.div
+          className="absolute inset-0 flex flex-col font-bold bg-white p-6 space-y-6"
+          initial={false}
+          animate={{ x: editingTable ? '0%' : '100%', opacity: editingTable ? 1 : 0 }}
+          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+          style={{ pointerEvents: editingTable ? 'auto' : 'none' }}
+        >
+          <div className="border-b border-gray-100 pb-4 shrink-0 flex justify-between items-center">
+            <div>
+              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">ตั้งค่าข้อมูลโต๊ะ</span>
+              <h3 className="text-lg font-black text-gray-900">โต๊ะ {editingTable?.table_number || 'ใหม่'}</h3>
             </div>
-          ) : (
             <button 
-              onClick={() => setIsCreatingZone(true)} 
-              className="w-full py-4 rounded-2xl font-black text-xs bg-white text-indigo-500 hover:bg-indigo-50 border border-indigo-100 flex items-center justify-center gap-1.5 transition-colors shadow-sm shrink-0 mt-4"
+              onClick={() => setEditingTable(null)} 
+              className="w-8 h-8 bg-neutral-100 rounded-full flex items-center justify-center text-neutral-500 hover:bg-neutral-200 hover:text-black transition-colors"
             >
-              <Plus size={16} /> สร้างโซนใหม่
+              <X size={16} />
             </button>
-          )
-        )}
+          </div>
+          
+          <div className="flex-grow overflow-y-auto no-scrollbar space-y-5 py-2">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">หมายเลขโต๊ะ / ชื่อโต๊ะ</label>
+              <input 
+                type="text" 
+                value={editingTable?.table_number || ''} 
+                onChange={e => setEditingTable({...editingTable, table_number: e.target.value})} 
+                className="w-full bg-white border border-neutral-200 rounded-xl py-3 px-4 text-xs font-bold outline-none focus:border-[#D3202B] transition-all text-neutral-900 shadow-sm" 
+                placeholder="เช่น A1, 01, VIP-1" 
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">จำนวนที่นั่ง</label>
+                <input 
+                  type="number" 
+                  value={editingTable?.capacity || 4} 
+                  onChange={e => setEditingTable({...editingTable, capacity: Number(e.target.value)})} 
+                  className="w-full bg-white border border-neutral-200 rounded-xl py-3 px-4 text-xs font-bold outline-none focus:border-[#D3202B] transition-all text-neutral-900 shadow-sm" 
+                  min="1" 
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">โซนบริการ</label>
+                <select 
+                  value={editingTable?.zone || 'Main'} 
+                  onChange={e => setEditingTable({...editingTable, zone: e.target.value})} 
+                  className="w-full bg-white border border-neutral-200 rounded-xl py-3 px-4 text-xs font-bold outline-none focus:border-[#D3202B] transition-all text-neutral-900 appearance-none shadow-sm"
+                >
+                  {allZones.map(z => (
+                    <option key={z} value={z}>{z}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">รูปทรงโต๊ะ (Shape)</label>
+              <div className="grid grid-cols-4 gap-2">
+                <button onClick={() => setEditingTable({...editingTable, shape: 'square'})} className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all ${editingTable?.shape === 'square' || !editingTable?.shape ? 'border-[#D3202B] bg-red-50 text-[#D3202B] shadow-sm' : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300'}`}>
+                  <div className="w-5 h-5 rounded border-2 border-current"></div>
+                  <span className="text-[8px] font-bold">จัตุรัส</span>
+                </button>
+                <button onClick={() => setEditingTable({...editingTable, shape: 'rectangle'})} className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all ${editingTable?.shape === 'rectangle' ? 'border-[#D3202B] bg-red-50 text-[#D3202B] shadow-sm' : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300'}`}>
+                  <div className="w-7 h-4 rounded border-2 border-current mt-0.5 mb-0.5"></div>
+                  <span className="text-[8px] font-bold">ผืนผ้า(นอน)</span>
+                </button>
+                <button onClick={() => setEditingTable({...editingTable, shape: 'rectangle_vertical'})} className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all ${editingTable?.shape === 'rectangle_vertical' ? 'border-[#D3202B] bg-red-50 text-[#D3202B] shadow-sm' : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300'}`}>
+                  <div className="w-4 h-7 rounded border-2 border-current"></div>
+                  <span className="text-[8px] font-bold">ผืนผ้า(ตั้ง)</span>
+                </button>
+                <button onClick={() => setEditingTable({...editingTable, shape: 'circle'})} className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all ${editingTable?.shape === 'circle' ? 'border-[#D3202B] bg-red-50 text-[#D3202B] shadow-sm' : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300'}`}>
+                  <div className="w-5 h-5 rounded-full border-2 border-current"></div>
+                  <span className="text-[8px] font-bold">วงกลม</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">รวมบิลกับโต๊ะ (Merge)</label>
+              <select 
+                value={editingTable?.parent_table_id || ''} 
+                onChange={e => setEditingTable({...editingTable, parent_table_id: e.target.value || null})} 
+                className="w-full bg-white border border-neutral-200 rounded-xl py-3 px-4 text-xs font-bold outline-none focus:border-[#D3202B] transition-all text-neutral-900 appearance-none shadow-sm"
+              >
+                <option value="">-- แยกบิลปกติ (ไม่รวม) --</option>
+                {tables.filter(t => t.id !== editingTable?.id && !t.parent_table_id).map(t => (
+                  <option key={t.id} value={t.id}>รวมเข้ากับโต๊ะ {t.table_number}</option>
+                ))}
+              </select>
+            </div>
+
+            <label className="flex items-center justify-between cursor-pointer bg-neutral-50 p-3 rounded-xl hover:bg-neutral-100 transition-colors">
+              <div className="flex flex-col mr-4">
+                <span className="text-xs font-bold text-neutral-900">สั่งอาหารผ่าน QR (24/7)</span>
+                <span className="text-[9px] text-neutral-500 font-medium">ลูกค้าสั่งได้แม้จะปิดกะแล้ว</span>
+              </div>
+              <div className="relative shrink-0">
+                <input 
+                  type="checkbox" 
+                  className="sr-only" 
+                  checked={!!editingTable?.allow_after_hours}
+                  onChange={e => setEditingTable({...editingTable, allow_after_hours: e.target.checked})}
+                />
+                <div className={`block w-10 h-6 rounded-full transition-colors duration-300 ${editingTable?.allow_after_hours ? 'bg-emerald-500' : 'bg-neutral-300'}`}></div>
+                <div className={`absolute left-0.5 top-0.5 bg-white w-5 h-5 rounded-full transition-transform duration-300 shadow-sm ${editingTable?.allow_after_hours ? 'transform translate-x-4' : ''}`}></div>
+              </div>
+            </label>
+          </div>
+
+          <div className="flex gap-2 pt-4 border-t border-neutral-100 shrink-0">
+            <button 
+              onClick={() => setEditingTable(null)} 
+              className="flex-1 py-3 rounded-xl border border-neutral-200 text-neutral-700 text-xs font-black uppercase tracking-wider hover:bg-neutral-50 transition-all flex items-center justify-center gap-1.5"
+            >
+              ยกเลิก
+            </button>
+            <button 
+              onClick={handleSaveTable} 
+              disabled={isSaving} 
+              className="flex-grow-[2] py-3 rounded-xl bg-[#D3202B] text-white text-xs font-black uppercase tracking-wider hover:bg-red-700 transition-all flex items-center justify-center gap-1.5 shadow-md shadow-red-500/10"
+            >
+              {isSaving ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />}
+              บันทึกข้อมูล
+            </button>
+          </div>
+        </motion.div>
       </div>
     );
   }
