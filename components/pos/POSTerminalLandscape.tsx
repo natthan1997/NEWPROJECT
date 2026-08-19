@@ -1705,7 +1705,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
 
         <div className="relative flex-1 flex flex-col min-h-0 w-full h-full">
           {/* 1. OTHER SUB-VIEWS */}
-          {renderedLandscapeTab !== 'terminal' && renderedLandscapeTab !== 'tables' && (
+          {renderedLandscapeTab !== 'terminal' && renderedLandscapeTab !== 'tables' && renderedLandscapeTab !== 'table_select' && (
             <AnimatePresence mode="wait">
               <motion.div
                 key={renderedLandscapeTab}
