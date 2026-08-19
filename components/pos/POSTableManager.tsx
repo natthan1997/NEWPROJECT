@@ -756,9 +756,9 @@ export default function POSTableManager({
                   {!isLayoutMode && (
                       <button 
                          onClick={() => setIsShapePickerOpen(true)}
-                         className="absolute top-6 right-6 p-2 text-neutral-300 hover:text-[#D3202B] transition-all hover:scale-110 active:scale-95 z-20 flex items-center justify-center drop-shadow-sm"
+                         className="absolute top-6 right-6 p-2 text-[#D3202B] hover:text-red-700 transition-all hover:scale-110 active:scale-95 z-20 flex items-center justify-center drop-shadow-md bg-white/80 rounded-full backdrop-blur-sm"
                       >
-                         <Plus size={40} strokeWidth={2} />
+                         <Plus size={32} strokeWidth={2.5} />
                       </button>
                   )}
                </>
@@ -769,9 +769,10 @@ export default function POSTableManager({
       </div>
 
       {/* TABLE EDITOR (Sleek Glassmorphic Slide-over) */}
-      <AnimatePresence>
-      {isEditorOpen && typeof document !== 'undefined' && createPortal(
-          <div className="fixed inset-0 z-[1200] flex items-center justify-end font-sans">
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+        {isEditorOpen && (
+            <div className="fixed inset-0 z-[1200] flex items-center justify-end font-sans">
               <motion.div 
                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                  className="absolute inset-0 bg-[#D3202B]/20 backdrop-blur-sm" 
@@ -874,15 +875,17 @@ export default function POSTableManager({
                     </button>
                   </div>
               </motion.div>
-          </div>,
-          document.body
+            </div>
+        )}
+        </AnimatePresence>,
+        document.body
       )}
-      </AnimatePresence>
 
       {/* VISUAL SHAPE PICKER MODAL */}
-      <AnimatePresence>
-      {isShapePickerOpen && typeof document !== 'undefined' && createPortal(
-          <div className="fixed inset-0 z-[1300] flex items-center justify-center font-sans">
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+        {isShapePickerOpen && (
+            <div className="fixed inset-0 z-[1300] flex items-center justify-center font-sans">
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[#D3202B]/40 backdrop-blur-sm" onClick={() => setIsShapePickerOpen(false)} />
               <motion.div 
                  initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }}
@@ -911,10 +914,11 @@ export default function POSTableManager({
                       <div className="flex flex-col"><span className="font-bold text-neutral-900">โต๊ะกลม</span><span className="text-[10px] font-medium text-neutral-500">4-6 ที่นั่ง (โต๊ะกลม)</span></div>
                   </button>
               </motion.div>
-          </div>,
-          document.body
+            </div>
+        )}
+        </AnimatePresence>,
+        document.body
       )}
-      </AnimatePresence>
 
       {/* QR MODAL (Frosted Glass) */}
       <AnimatePresence>
