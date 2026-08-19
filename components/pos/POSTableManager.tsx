@@ -750,6 +750,16 @@ export default function POSTableManager({
                       </motion.div>
                   ))}
                   </AnimatePresence>
+
+                  {/* Clean Add Table Button (Borderless) */}
+                  {!isLayoutMode && (
+                      <button 
+                         onClick={() => setIsShapePickerOpen(true)}
+                         className="absolute bottom-6 right-6 p-2 text-neutral-300 hover:text-[#D3202B] transition-all hover:scale-110 active:scale-95 z-20 flex items-center justify-center drop-shadow-sm"
+                      >
+                         <Plus size={40} strokeWidth={2} />
+                      </button>
+                  )}
                </>
             )}
             </div>
