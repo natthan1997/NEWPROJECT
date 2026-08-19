@@ -797,6 +797,23 @@ export default function POSTableManager({
                                  </div>
                              )}
                           </div>
+                          
+                          {/* Animated Border for Selected or New Table */}
+                          {(editingTable?.id === table.id || pendingEditTableId === table.id) && (
+                             <svg className="absolute inset-0 w-full h-full pointer-events-none z-20 overflow-visible">
+                                <motion.rect
+                                   x="-3" y="-3" 
+                                   width="calc(100% + 6px)" height="calc(100% + 6px)"
+                                   rx={table.shape === 'circle' ? '9999' : (table.shape === 'rectangle' || table.shape === 'rectangle_vertical' ? '27' : '19')}
+                                   fill="none"
+                                   stroke="#D3202B"
+                                   strokeWidth="2.5"
+                                   strokeDasharray="8 8"
+                                   animate={{ strokeDashoffset: [0, -16] }}
+                                   transition={{ repeat: Infinity, ease: "linear", duration: 0.5 }}
+                                />
+                             </svg>
+                          )}
 
                           {!isLayoutMode && (
                             <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20">
