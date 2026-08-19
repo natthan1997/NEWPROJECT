@@ -1803,7 +1803,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
               </div>
               <button
                 type="button"
-                onClick={() => setActiveLandscapeTab('terminal')}
+                onClick={() => handleSwitchTab('terminal')}
                 className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:text-black transition-colors"
               >
                 <ArrowLeft size={18} />
@@ -1874,7 +1874,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                             if (isSelected) {
                               resetOrderComposer();
                               setTotalPaid(0);
-                              setActiveLandscapeTab('terminal');
+                              handleSwitchTab('terminal');
                             } else if (editingOrderId) {
                               setTableActionTarget(targetTable);
                             } else if (pendingForThisTable.length > 0 && cart.length > 0) {
@@ -1883,7 +1883,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                               setSelectedTable(targetTable);
                               setOrderType('dine_in');
                               resetDeliveryDraft();
-                              setActiveLandscapeTab('terminal');
+                              handleSwitchTab('terminal');
                               if (pendingForThisTable.length > 0) {
                                 handleResumeOrder(pendingForThisTable[0]);
                               }
@@ -1970,7 +1970,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                                   await supabase.from('pos_orders').update({ status: 'cancelled' }).eq('id', editingOrderId);
                                   if (selectedTable?.id) { await supabase.from('pos_tables').update({ parent_table_id: tableActionTarget.id }).eq('id', selectedTable.id); }
                                   fetchTables(); refreshPendingOrders(); resetDeliveryDraft();
-                                  setTableActionTarget(null); setActiveLandscapeTab('terminal');
+                                  setTableActionTarget(null); handleSwitchTab('terminal');
                                 } catch (err: any) { alert('Error: ' + err.message); } finally { setIsProcessing(false); }
                               })();
                             }}
@@ -1984,7 +1984,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                             onClick={() => {
                               const targetOrder = suspendedOrders.find((o: any) => o.table_id === tableActionTarget.id && o.status === 'pending');
                               setSelectedTable(tableActionTarget); setOrderType('dine_in'); resetDeliveryDraft();
-                              setTableActionTarget(null); setActiveLandscapeTab('terminal');
+                              setTableActionTarget(null); handleSwitchTab('terminal');
                               if (targetOrder) handleResumeOrder(targetOrder);
                             }}
                             className="flex items-center justify-center gap-2 w-full bg-gray-100 active:bg-gray-200 text-[#1A1A18] rounded-2xl py-3.5 text-[12px] font-black uppercase tracking-wider transition-all active:scale-[0.98]"
@@ -2003,7 +2003,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                                 await supabase.from('pos_orders').update({ table_id: tableActionTarget.id, table_number: tableActionTarget.table_number }).eq('id', editingOrderId);
                                 if (selectedTable?.id) { await supabase.from('pos_tables').update({ parent_table_id: null }).eq('id', selectedTable.id); }
                                 fetchTables(); refreshPendingOrders();
-                                setSelectedTable(tableActionTarget); setTableActionTarget(null); setActiveLandscapeTab('terminal');
+                                setSelectedTable(tableActionTarget); setTableActionTarget(null); handleSwitchTab('terminal');
                               } catch (err: any) { alert('Error: ' + err.message); } finally { setIsProcessing(false); }
                             })();
                           }}
