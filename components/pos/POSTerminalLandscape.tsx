@@ -2802,7 +2802,47 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
           >
                         <>
 
-        {!activeShift?.id ? (
+        {isPinModalOpen ? (
+          <motion.div
+            key="manager-pin-view"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.2 }}
+            className="flex h-full w-full flex-col bg-white absolute inset-0 z-[55] font-bold"
+          >
+             <header className="flex items-center justify-between border-b border-gray-100 bg-white p-6 sm:p-8 shrink-0">
+                 <div className="flex flex-col gap-0.5">
+                     <h3 className="text-xl font-black uppercase tracking-tighter text-black flex items-center gap-2">
+                         <ShieldCheck size={20} className="text-neutral-400" />
+                         <span>การยืนยันผู้จัดการ</span>
+                     </h3>
+                     <p className="text-[10px] font-bold tracking-widest text-gray-500 uppercase mt-0.5">
+                         Manager Verification
+                     </p>
+                 </div>
+                 <button onClick={() => { setIsPinModalOpen(false); setPinCallback(null); }} className="w-8 h-8 rounded-full bg-neutral-50 hover:bg-neutral-100 flex items-center justify-center text-neutral-400 hover:text-neutral-900 transition-colors">
+                     <X size={14} />
+                 </button>
+             </header>
+             <div className="flex-1 overflow-y-auto flex flex-col">
+                 <POSPinModal
+                   isOpen={isPinModalOpen}
+                   onClose={() => {
+                     setIsPinModalOpen(false)
+                     setPinCallback(null)
+                   }}
+                   onSuccess={() => {
+                     if (pinCallback) pinCallback()
+                   }}
+                   correctPin={shopSettings?.role_permissions?.manager_pin || ''}
+                   title={pinTitle}
+                   description={pinDesc}
+                   inline={true}
+                 />
+             </div>
+          </motion.div>
+        ) : !activeShift?.id ? (
           <motion.div
             key="open-shift-inline"
             initial={{ opacity: 0, scale: 0.98 }}
