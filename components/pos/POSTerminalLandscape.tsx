@@ -896,15 +896,14 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
     return (
       <div className={`flex-grow flex flex-col min-h-0 ${transparent ? 'bg-transparent space-y-6 lg:overflow-hidden' : 'bg-white p-6 space-y-6 lg:rounded-[2rem] lg:overflow-hidden'}`}>
         <div className={`flex items-center justify-between ${transparent ? 'pb-4' : 'border-b border-gray-100 pb-4'} shrink-0`}>
-          <h2 className="text-lg font-black text-gray-900 uppercase tracking-tight flex items-center gap-3">
+          <h2 className="text-lg font-black text-gray-900 uppercase tracking-tight flex items-center gap-2">
             <button 
               onClick={() => handleSwitchTab('terminal')}
               className="text-[#D3202B] hover:text-red-700 transition-colors p-1 -ml-1 border-none bg-transparent active:scale-95 shrink-0"
               title="กลับสู่หน้าขาย"
             >
-              <ArrowLeft size={22} strokeWidth={2.5} />
+              <ChevronLeft size={24} strokeWidth={3} />
             </button>
-            <Icon size={20} className="text-gray-400" />
             <span>{title}</span>
           </h2>
         </div>
@@ -918,15 +917,14 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
     return (
       <div className="flex-1 flex flex-col min-h-0 bg-white p-6 space-y-6 lg:rounded-[2rem] lg:overflow-hidden">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-black text-gray-900 uppercase tracking-tight flex items-center gap-3">
+          <h2 className="text-lg font-black text-gray-900 uppercase tracking-tight flex items-center gap-2">
             <button 
               onClick={() => handleSwitchTab('terminal')}
               className="text-[#D3202B] hover:text-red-700 transition-colors p-1 -ml-1 border-none bg-transparent active:scale-95 shrink-0"
               title="กลับสู่หน้าขาย"
             >
-              <ArrowLeft size={22} strokeWidth={2.5} />
+              <ChevronLeft size={24} strokeWidth={3} />
             </button>
-            <History size={20} className="text-gray-400" />
             <span>ประวัติการขาย</span>
           </h2>
           <div className="flex items-center gap-3">
