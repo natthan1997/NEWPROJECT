@@ -59,6 +59,11 @@ export default function POSTableManager({
   
   const [isLayoutModeInternalState, setIsLayoutModeInternalState] = useState(false)
   const isLayoutMode = isLayoutModeProps !== undefined ? isLayoutModeProps : isLayoutModeInternalState;
+  const isLayoutModeRef = useRef(isLayoutMode);
+  
+  useEffect(() => {
+    isLayoutModeRef.current = isLayoutMode;
+  }, [isLayoutMode]);
   const setIsLayoutMode = setIsLayoutModeProps !== undefined ? setIsLayoutModeProps : setIsLayoutModeInternalState;
 
   // Long press timer ref and helper functions
@@ -178,7 +183,7 @@ export default function POSTableManager({
     const channel = supabase
       .channel(`pos_tables_realtime_${Math.random().toString(36).substring(2, 9)}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_tables' }, () => {
-        if (!isLayoutMode) {
+        if (!isLayoutModeRef.current) {
           fetchTables()
         }
       })
@@ -191,7 +196,7 @@ export default function POSTableManager({
       supabase.removeChannel(channel)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLayoutMode, shopSettings?.branch_id])
+  }, [shopSettings?.branch_id])
 
   const handleSaveLayout = async () => {
     setSavingLayout(true)
