@@ -1832,7 +1832,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
             </div>
 
             {/* Canvases by Zone */}
-            <div className="flex-1 overflow-auto bg-[#F2F2F0]/50 relative">
+            <div className="flex-1 overflow-auto bg-[#F2F2F0]/50 relative flex flex-row">
               {['All', ...Array.from(new Set(tables.map((t: any) => (t.zone || 'Main'))))]
                 .filter(z => z !== 'All') // Iterate through actual zones only
                 .filter(z => selectedTableZone === 'All' || z === selectedTableZone)
@@ -1845,7 +1845,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                   const minH = Math.max(300, ...zoneTables.map((t: any, idx: number) => (t.position_y ?? (Math.floor(idx / 4) * 110 + 20)) + 120)) + 40;
 
                   return (
-                    <div key={zone} className="border-b border-gray-200/50 last:border-0 relative">
+                    <div key={zone} className="border-r-2 border-gray-200/60 last:border-0 relative shrink-0 min-h-full">
                       {/* Zone Label Overlay (only show if viewing All, or always show for clarity) */}
                       {selectedTableZone === 'All' && (
                         <div className="sticky left-0 top-0 z-10 px-6 pt-6 pb-2 inline-block pointer-events-none">
