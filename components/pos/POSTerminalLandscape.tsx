@@ -1842,14 +1842,10 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
             </div>
 
             {/* Canvas */}
-            <div className="flex-1 overflow-auto relative bg-white">
+            <div className="flex-1 overflow-hidden relative bg-white">
               <div
-                className="relative"
-                style={{
-                  minWidth: Math.max(500, ...tables.map((t: any) => (t.position_x || 0) + 160)) + 40,
-                  minHeight: Math.max(500, ...tables.map((t: any) => (t.position_y || 0) + 160)) + 40,
-                  backgroundColor: '#ffffff'
-                }}
+                className="relative w-full h-full"
+                style={{ backgroundColor: '#ffffff' }}
               >
                 {tables
                   .filter((t: any) => selectedTableZone === 'All' || (t.zone || 'Main') === selectedTableZone)

@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Plus, Search, Edit3, Trash2, Loader2, 
@@ -538,8 +538,10 @@ export default function POSTableManager({
                  </div>
                </div>
              )}
-            <div className="relative w-full h-full overflow-auto">
-               <div className="relative min-w-[1000px] min-h-[800px] w-full h-full"
+            <div className="relative w-full h-full overflow-hidden">
+               <div 
+                 ref={containerRef}
+                 className="relative w-full h-full"
                  style={{ backgroundImage: isLayoutMode ? 'radial-gradient(#262626 2.5px, transparent 2.5px)' : 'none', backgroundSize: '32px 32px' }}>
                 {loading ? (
                    <div className="absolute inset-0 flex items-center justify-center opacity-30">
@@ -552,6 +554,7 @@ export default function POSTableManager({
                           <motion.div 
                           key={table.id} 
                           drag={isLayoutMode}
+                          dragConstraints={containerRef}
                           dragMomentum={false}
                           onDragEnd={(e, info) => handleDragEnd(table.id, info)}
                           initial={{ x: table.position_x || 0, y: table.position_y || 0, opacity: 0, scale: 0.9 }}
