@@ -85,6 +85,7 @@ export default function POSTableManager({
   const setActiveZone = setActiveZoneProps !== undefined ? setActiveZoneProps : setActiveZoneInternal;
   const [dbZones, setDbZones] = useState<any[]>([])
   const [isShapePickerOpen, setIsShapePickerOpen] = useState(false)
+  const [pendingEditTableId, setPendingEditTableId] = useState<string | null>(null)
 
   useEffect(() => {
     setViewExtraHeader(
@@ -109,6 +110,27 @@ export default function POSTableManager({
     );
     return () => setViewExtraHeader(null);
   }, [setViewExtraHeader, isLayoutMode, savingLayout, tables]);
+
+  const handleAddTableFlow = async (shape: string) => {
+    setIsShapePickerOpen(false);
+    const newTable = {
+        table_number: '',
+        capacity: shape === 'circle' ? 4 : (shape === 'square' ? 4 : 6),
+        zone: activeZone,
+        shape: shape,
+        status: 'available',
+        branch_id: shopSettings?.branch_id || null,
+        position_x: 20,
+        position_y: 20
+    };
+    
+    // Optimistically add it so we can drag it immediately
+    const tempId = 'temp-' + Date.now();
+    const tempTable = { ...newTable, id: tempId };
+    setTables(prev => [...prev, tempTable]);
+    setPendingEditTableId(tempId);
+    setIsLayoutMode(true);
+  }
 
   const fetchTables = async () => {
     setLoading(true)
@@ -172,35 +194,50 @@ export default function POSTableManager({
   }, [isLayoutMode, shopSettings?.branch_id])
 
   const handleSaveLayout = async () => {
-     setSavingLayout(true)
-     try {
-       const updates = tables.map(t => ({
-          id: t.id,
-          position_x: t.position_x,
-          position_y: t.position_y,
-          shape: t.shape || 'square',
-       }))
-       
-       for (const update of updates) {
-          const { error } = await supabase.from('pos_tables').update({
-             position_x: Math.round(update.position_x || 0),
-             position_y: Math.round(update.position_y || 0),
-             shape: update.shape
-          }).eq('id', update.id)
-          
-          if (error) {
-             console.error("Supabase update error:", error)
-             throw new Error(error.message)
+    setSavingLayout(true)
+    try {
+       for (const t of tables) {
+          if (t.id.startsWith('temp-')) {
+             const { error, data } = await supabase.from('pos_tables').insert({
+                 table_number: t.table_number,
+                 capacity: t.capacity,
+                 zone: t.zone,
+                 shape: t.shape,
+                 status: t.status,
+                 branch_id: t.branch_id,
+                 position_x: Math.round(t.position_x || 0),
+                 position_y: Math.round(t.position_y || 0)
+             }).select().single();
+             if (error) throw new Error(error.message);
+             
+             if (pendingEditTableId === t.id && data) {
+                 if (setEditingTableProps) {
+                     setEditingTableProps(data);
+                 } else {
+                     setEditingTable(data);
+                     setIsEditorOpen(true);
+                 }
+                 setPendingEditTableId(null);
+             }
+          } else {
+             const { error } = await supabase.from('pos_tables').update({
+                position_x: Math.round(t.position_x || 0),
+                position_y: Math.round(t.position_y || 0),
+                shape: t.shape
+             }).eq('id', t.id)
+             
+             if (error) throw new Error(error.message);
           }
        }
-       alert('บันทึกตำแหน่งและรูปแบบโต๊ะเรียบร้อยแล้ว!')
+       
        setIsLayoutMode(false)
-     } catch (e) {
-       console.error(e)
-       alert('Error saving layout')
-     } finally {
-       setSavingLayout(false)
-     }
+       fetchTables() // Refresh to get proper IDs
+    } catch (e) {
+      console.error(e)
+      alert('Error saving layout')
+    } finally {
+      setSavingLayout(false)
+    }
   }
 
   const handleDragEnd = (id: string, info: any) => {
@@ -767,14 +804,45 @@ export default function POSTableManager({
                       })()}
                   </AnimatePresence>
 
-                  {/* Clean Add Table Button (Borderless) */}
+                  {/* Clean Add Table Button with Dropdown */}
                   {!isLayoutMode && (
-                      <button 
-                         onClick={() => setIsShapePickerOpen(true)}
-                         className="absolute top-6 right-6 p-2 text-[#D3202B] hover:text-red-700 transition-all hover:scale-110 active:scale-95 z-20 flex items-center justify-center drop-shadow-sm"
-                      >
-                         <Plus size={40} strokeWidth={2} />
-                      </button>
+                      <div className="absolute top-6 right-6 z-30">
+                          <button 
+                             onClick={() => setIsShapePickerOpen(!isShapePickerOpen)}
+                             className={`p-2 transition-all hover:scale-110 active:scale-95 flex items-center justify-center drop-shadow-sm ${isShapePickerOpen ? 'text-red-700' : 'text-[#D3202B] hover:text-red-700'}`}
+                          >
+                             <Plus size={40} strokeWidth={2} className={`transition-transform duration-300 ${isShapePickerOpen ? 'rotate-45' : ''}`} />
+                          </button>
+                          
+                          <AnimatePresence>
+                              {isShapePickerOpen && (
+                                  <motion.div 
+                                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                                      transition={{ duration: 0.2 }}
+                                      className="absolute top-full right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-neutral-100 flex flex-col py-2 overflow-hidden origin-top-right"
+                                  >
+                                      <button onClick={() => handleAddTableFlow('square')} className="px-4 py-3 text-left hover:bg-neutral-50 transition-colors flex items-center gap-3 group">
+                                          <div className="w-5 h-5 rounded border-2 border-neutral-300 group-hover:border-[#D3202B] shrink-0 transition-colors"></div>
+                                          <span className="text-xs font-bold text-neutral-700 group-hover:text-black">จัตุรัส</span>
+                                      </button>
+                                      <button onClick={() => handleAddTableFlow('rectangle')} className="px-4 py-3 text-left hover:bg-neutral-50 transition-colors flex items-center gap-3 group">
+                                          <div className="w-7 h-4 rounded border-2 border-neutral-300 group-hover:border-[#D3202B] shrink-0 transition-colors mt-0.5 mb-0.5"></div>
+                                          <span className="text-xs font-bold text-neutral-700 group-hover:text-black">ผืนผ้า (แนวนอน)</span>
+                                      </button>
+                                      <button onClick={() => handleAddTableFlow('rectangle_vertical')} className="px-4 py-3 text-left hover:bg-neutral-50 transition-colors flex items-center gap-3 group">
+                                          <div className="w-4 h-7 rounded border-2 border-neutral-300 group-hover:border-[#D3202B] shrink-0 transition-colors"></div>
+                                          <span className="text-xs font-bold text-neutral-700 group-hover:text-black">ผืนผ้า (แนวตั้ง)</span>
+                                      </button>
+                                      <button onClick={() => handleAddTableFlow('circle')} className="px-4 py-3 text-left hover:bg-neutral-50 transition-colors flex items-center gap-3 group">
+                                          <div className="w-5 h-5 rounded-full border-2 border-neutral-300 group-hover:border-[#D3202B] shrink-0 transition-colors"></div>
+                                          <span className="text-xs font-bold text-neutral-700 group-hover:text-black">วงกลม</span>
+                                      </button>
+                                  </motion.div>
+                              )}
+                          </AnimatePresence>
+                      </div>
                   )}
                </>
             )}
@@ -901,41 +969,7 @@ export default function POSTableManager({
       )}
       </AnimatePresence>
 
-      {/* VISUAL SHAPE PICKER MODAL */}
-      <AnimatePresence>
-      {isShapePickerOpen && (
-          <div className="fixed inset-0 z-[1300] flex items-center justify-center font-sans">
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[#D3202B]/40 backdrop-blur-sm" onClick={() => setIsShapePickerOpen(false)} />
-              <motion.div 
-                 initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                 className="relative bg-white p-8 rounded-[2rem] shadow-2xl max-w-sm w-full mx-4 flex flex-col gap-4 border border-neutral-100"
-              >
-                  <button onClick={() => setIsShapePickerOpen(false)} className="absolute top-6 right-6 w-8 h-8 flex items-center justify-center bg-neutral-100 rounded-full text-neutral-500 hover:bg-neutral-200 hover:text-black transition-colors"><X size={16} /></button>
-                  <h3 className="text-xl font-black text-center mb-4 tracking-tight">เลือกทรงโต๊ะ</h3>
-                  
-                  <button onClick={() => { setIsShapePickerOpen(false); const t = { table_number: '', capacity: 4, zone: activeZone, shape: 'square', status: 'available', branch_id: shopSettings?.branch_id || null }; if (setEditingTableProps) { setEditingTableProps(t); } else { setEditingTable(t); setIsEditorOpen(true); } }} className="flex items-center gap-4 p-4 border border-neutral-200 rounded-2xl hover:border-indigo-500 hover:bg-indigo-50 hover:shadow-md transition-all group text-left">
-                      <div className="w-12 h-12 bg-white rounded-2xl border-[3px] border-neutral-300 group-hover:border-indigo-500 shadow-sm shrink-0 transition-colors"></div>
-                      <div className="flex flex-col"><span className="font-bold text-neutral-900">โต๊ะสี่เหลี่ยมจัตุรัส</span><span className="text-[10px] font-medium text-neutral-500">2-4 ที่นั่ง (มาตรฐาน)</span></div>
-                  </button>
-                  
-                  <button onClick={() => { setIsShapePickerOpen(false); const t = { table_number: '', capacity: 6, zone: activeZone, shape: 'rectangle', status: 'available', branch_id: shopSettings?.branch_id || null }; if (setEditingTableProps) { setEditingTableProps(t); } else { setEditingTable(t); setIsEditorOpen(true); } }} className="flex items-center gap-4 p-4 border border-neutral-200 rounded-2xl hover:border-indigo-500 hover:bg-indigo-50 hover:shadow-md transition-all group text-left">
-                      <div className="w-14 h-9 bg-white rounded-xl border-[3px] border-neutral-300 group-hover:border-indigo-500 shadow-sm shrink-0 transition-colors"></div>
-                      <div className="flex flex-col"><span className="font-bold text-neutral-900">ผืนผ้า แนวนอน</span><span className="text-[10px] font-medium text-neutral-500">6-8 ที่นั่ง (แนวนอน)</span></div>
-                  </button>
 
-                  <button onClick={() => { setIsShapePickerOpen(false); const t = { table_number: '', capacity: 6, zone: activeZone, shape: 'rectangle_vertical', status: 'available', branch_id: shopSettings?.branch_id || null }; if (setEditingTableProps) { setEditingTableProps(t); } else { setEditingTable(t); setIsEditorOpen(true); } }} className="flex items-center gap-4 p-4 border border-neutral-200 rounded-2xl hover:border-indigo-500 hover:bg-indigo-50 hover:shadow-md transition-all group text-left">
-                      <div className="w-9 h-14 mx-2 bg-white rounded-xl border-[3px] border-neutral-300 group-hover:border-indigo-500 shadow-sm shrink-0 transition-colors"></div>
-                      <div className="flex flex-col"><span className="font-bold text-neutral-900">ผืนผ้า แนวตั้ง</span><span className="text-[10px] font-medium text-neutral-500">6-8 ที่นั่ง (แนวตั้ง)</span></div>
-                  </button>
-                  
-                  <button onClick={() => { setIsShapePickerOpen(false); const t = { table_number: '', capacity: 4, zone: activeZone, shape: 'circle', status: 'available', branch_id: shopSettings?.branch_id || null }; if (setEditingTableProps) { setEditingTableProps(t); } else { setEditingTable(t); setIsEditorOpen(true); } }} className="flex items-center gap-4 p-4 border border-neutral-200 rounded-2xl hover:border-indigo-500 hover:bg-indigo-50 hover:shadow-md transition-all group text-left">
-                      <div className="w-12 h-12 bg-white rounded-full border-[3px] border-neutral-300 group-hover:border-indigo-500 shadow-sm shrink-0 transition-colors"></div>
-                      <div className="flex flex-col"><span className="font-bold text-neutral-900">โต๊ะกลม</span><span className="text-[10px] font-medium text-neutral-500">4-6 ที่นั่ง (โต๊ะกลม)</span></div>
-                  </button>
-              </motion.div>
-          </div>
-      )}
-      </AnimatePresence>
 
       {/* QR MODAL (Frosted Glass) */}
       <AnimatePresence>
