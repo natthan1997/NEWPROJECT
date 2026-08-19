@@ -1809,9 +1809,6 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                   <h3 className="text-sm font-black uppercase tracking-tighter text-black">
                     {locale === 'en' ? 'Select Table' : locale === 'zh' ? '选择桌子' : 'เลือกโต๊ะ'}
                   </h3>
-                  <p className="text-[9px] font-bold tracking-widest text-gray-400 uppercase mt-0.5">
-                    {tables.length} {locale === 'en' ? 'tables' : 'โต๊ะ'}
-                  </p>
                 </div>
               </div>
               <button
@@ -1826,17 +1823,23 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
 
             {/* Zone tabs */}
             <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar bg-white px-4 pb-2.5 pt-2 shrink-0 border-b border-gray-100">
-              {['All', ...Array.from(new Set(tables.map((t: any) => (t.zone || 'Main'))))].map((zone: any) => (
+              {['All', ...Array.from(new Set(tables.map((t: any) => (t.zone || 'Main'))))].map((zone: any) => {
+                const tableCount = zone === 'All' ? tables.length : tables.filter((t: any) => (t.zone || 'Main') === zone).length;
+                return (
                 <button
                   key={zone}
                   onClick={() => setSelectedTableZone(zone)}
-                  className={`px-3.5 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${
+                  className={`px-3.5 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all flex items-center gap-1 ${
                     selectedTableZone === zone ? 'bg-[#1A1A18] text-white shadow' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                   }`}
                 >
-                  {zone}
+                  <span>{zone}</span>
+                  {selectedTableZone === zone && (
+                     <span className="opacity-70 text-[8px] font-bold">({tableCount} {locale === 'en' ? 'tables' : 'โต๊ะ'})</span>
+                  )}
                 </button>
-              ))}
+                );
+              })}
             </div>
 
             {/* Canvas */}
