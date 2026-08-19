@@ -1899,7 +1899,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                           }}
                           className={`relative flex flex-col items-center justify-center transition-all duration-200 border-2 active:scale-95 ${
                             isSelected
-                              ? 'bg-emerald-500 text-white border-emerald-500 shadow-xl shadow-emerald-500/30 scale-105'
+                              ? 'bg-[#D3202B] text-white border-[#D3202B] shadow-xl shadow-red-500/30 scale-105'
                               : isOccupied
                                 ? 'bg-[#1A1A18] text-white border-[#1A1A18] shadow-lg'
                                 : 'bg-white text-gray-700 border-gray-200 hover:border-gray-400 hover:shadow-md'
@@ -1907,15 +1907,15 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                         >
                           {isOccupied && !isSelected && (
                             <span className="absolute top-1.5 right-1.5 flex h-1.5 w-1.5">
-                              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+                              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#D3202B]" />
                             </span>
                           )}
                           <span className={`leading-none text-center pointer-events-none ${isShortName ? 'text-lg font-black tracking-tight' : 'text-[9px] font-bold tracking-tight px-1 break-all'}`}>
                             {table.table_number}
                           </span>
                           {(table.parent_table_id || isParent) && (
-                            <div className={`absolute -bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest shadow z-10 ${isSelected ? 'bg-white text-emerald-600' : isOccupied ? 'bg-white text-[#1A1A18]' : 'bg-[#1A1A18] text-white'}`}>
+                            <div className={`absolute -bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest shadow z-10 ${isSelected ? 'bg-white text-[#D3202B]' : isOccupied ? 'bg-white text-[#1A1A18]' : 'bg-[#1A1A18] text-white'}`}>
                               {table.parent_table_id ? `🔗 ${targetTable.table_number}` : `+${childrenTables.map((t: any) => t.table_number).join(',')}`}
                             </div>
                           )}
