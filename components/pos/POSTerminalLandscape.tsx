@@ -646,6 +646,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
 
   const [currentRightPanel, setCurrentRightPanel] = useState<'cart' | 'pending' | 'delivery' | 'delivery_platform' | 'modifiers' | 'table_select'>('cart');
   const [showPrintDropdown, setShowPrintDropdown] = useState(false);
+  const [checkoutShake, setCheckoutShake] = useState(false);
 
   // Split Thai string into base consonants + combining vowels/tones to prevent typography issues
   const splitThaiClusters = (text: string): string[] => {
@@ -5898,13 +5899,17 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                     <span className="text-[13px] font-black uppercase tracking-wider">เคลียร์โต๊ะ (ยกเลิกบิล)</span>
                   </button>
                 ) : (
-                  <button
+                  <motion.button
+                    animate={checkoutShake ? { x: [-8, 8, -8, 8, 0] } : {}}
+                    transition={{ duration: 0.4 }}
                     type="button"
                     onClick={async () => {
                       if (orderType === 'dine_in' && !selectedTable) {
+                        setCheckoutShake(true)
+                        setTimeout(() => setCheckoutShake(false), 400)
                         fetchTables()
                         refreshPendingOrders()
-                        setCurrentRightPanel('table_select')
+                        handleSwitchTab('table_select')
                         return
                       }
                       if (orderType === 'delivery') {
@@ -5940,7 +5945,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                           : `ชำระเงิน ฿${cartTotal.toLocaleString()}`}
                     </span>
                     {orderType !== 'delivery' && <ArrowRight size={16} strokeWidth={3} />}
-                  </button>
+                  </motion.button>
                 )}
               </div>
             </footer>
