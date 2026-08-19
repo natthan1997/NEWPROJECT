@@ -677,7 +677,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
   // History states
   const [selectedHistoryOrder, setSelectedHistoryOrder] = useState<any | null>(null);
 
-  const isSplitTab = activeLandscapeTab === 'terminal' || activeLandscapeTab === 'tables' || activeLandscapeTab === 'drawer';
+  const isSplitTab = activeLandscapeTab === 'terminal' || activeLandscapeTab === 'tables' || activeLandscapeTab === 'table_select' || activeLandscapeTab === 'drawer';
   const [activeTableZone, setActiveTableZone] = useState<string>('Main');
 
   const commonProps = {
@@ -1770,6 +1770,260 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
               setIsLayoutModeProps={setIsLayoutMode}
             />
           </motion.div>
+          {/* 3.5 TABLE SELECTOR CANVAS (Always mounted, toggled visibility) */}
+          <motion.div
+            animate={{
+              opacity: renderedLandscapeTab === 'table_select' ? 1 : 0,
+              x: renderedLandscapeTab === 'table_select' ? 0 : -20,
+              zIndex: renderedLandscapeTab === 'table_select' ? 10 : 0
+            }}
+            style={{
+              pointerEvents: renderedLandscapeTab === 'table_select' ? 'auto' : 'none'
+            }}
+            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            className="absolute inset-0 flex flex-col min-h-0 bg-[#F2F2F0] lg:rounded-[2rem] overflow-hidden"
+          >
+<motion.div
+            key="table-select-view"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.2 }}
+            className="flex h-full w-full flex-col bg-[#F2F2F0] absolute inset-0 font-bold will-change-transform"
+          >
+            {/* Header */}
+            <header className="flex items-center justify-between bg-white border-b border-gray-100 px-5 py-3.5 shrink-0">
+              <div>
+                <h3 className="text-sm font-black uppercase tracking-tighter text-black">
+                  {locale === 'en' ? 'Select Table' : locale === 'zh' ? '选择桌子' : 'เลือกโต๊ะ'}
+                </h3>
+                <p className="text-[9px] font-bold tracking-widest text-gray-400 uppercase mt-0.5">
+                  {tables.length} {locale === 'en' ? 'tables' : 'โต๊ะ'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveLandscapeTab('terminal')}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:text-black transition-colors"
+              >
+                <ArrowLeft size={18} />
+              </button>
+            </header>
+
+            {/* Zone tabs */}
+            <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar bg-white px-4 pb-2.5 pt-2 shrink-0 border-b border-gray-100">
+              {['All', ...Array.from(new Set(tables.map((t: any) => (t.zone || 'Main'))))].map((zone: any) => (
+                <button
+                  key={zone}
+                  onClick={() => setSelectedTableZone(zone)}
+                  className={`px-3.5 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${
+                    selectedTableZone === zone ? 'bg-[#1A1A18] text-white shadow' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                  }`}
+                >
+                  {zone}
+                </button>
+              ))}
+            </div>
+
+            {/* Canvas */}
+            <div className="flex-1 overflow-auto relative">
+              <div
+                className="relative"
+                style={{
+                  minWidth: Math.max(500, ...tables.map((t: any) => (t.position_x || 0) + 120)) + 40,
+                  minHeight: Math.max(500, ...tables.map((t: any) => (t.position_y || 0) + 120)) + 40,
+                  backgroundImage: 'radial-gradient(#D1D5DB 1.5px, transparent 1.5px)',
+                  backgroundSize: '24px 24px',
+                }}
+              >
+                {tables
+                  .filter((t: any) => selectedTableZone === 'All' || (t.zone || 'Main') === selectedTableZone)
+                  .map((table: any, idx: number) => {
+                    const targetTable = table.parent_table_id
+                      ? tables.find((t: any) => t.id === table.parent_table_id) || table
+                      : table;
+                    const childrenTables = tables.filter((t: any) => t.parent_table_id === table.id);
+                    const isParent = childrenTables.length > 0;
+                    const pendingForThisTable = pendingOrders.filter(
+                      (o: any) => o.table_id === targetTable.id && o.status === 'pending'
+                    );
+                    const isOccupied = pendingForThisTable.length > 0 || targetTable.status === 'occupied';
+                    const isSelected = selectedTable?.id === targetTable.id;
+
+                    const shape = table.shape || 'square';
+                    const dims =
+                      shape === 'rectangle'          ? { w: 88, h: 56 } :
+                      shape === 'rectangle_vertical' ? { w: 56, h: 88 } :
+                                                       { w: 64, h: 64 };
+                    const borderRadius = shape === 'circle' ? '50%' : shape === 'square' ? '14px' : '16px';
+                    const posX = table.position_x ?? ((idx % 4) * 110 + 20);
+                    const posY = table.position_y ?? (Math.floor(idx / 4) * 110 + 20);
+                    const isShortName = (table.table_number || '').length <= 3;
+
+                    return (
+                      <div
+                        key={table.id}
+                        style={{ position: 'absolute', left: posX, top: posY, width: dims.w, height: dims.h }}
+                        className="group"
+                      >
+                        <button
+                          type="button"
+                          style={{ width: '100%', height: '100%', borderRadius, WebkitTouchCallout: 'none', userSelect: 'none' }}
+                          onContextMenu={e => e.preventDefault()}
+                          onClick={() => {
+                            if (isSelected) {
+                              resetOrderComposer();
+                              setTotalPaid(0);
+                              setActiveLandscapeTab('terminal');
+                            } else if (editingOrderId) {
+                              setTableActionTarget(targetTable);
+                            } else if (pendingForThisTable.length > 0 && cart.length > 0) {
+                              setMergeTableTarget({ table: targetTable, pendingOrder: pendingForThisTable[0] });
+                            } else {
+                              setSelectedTable(targetTable);
+                              setOrderType('dine_in');
+                              resetDeliveryDraft();
+                              setActiveLandscapeTab('terminal');
+                              if (pendingForThisTable.length > 0) {
+                                handleResumeOrder(pendingForThisTable[0]);
+                              }
+                            }
+                          }}
+                          className={`relative flex flex-col items-center justify-center transition-all duration-200 border-2 active:scale-95 ${
+                            isSelected
+                              ? 'bg-emerald-500 text-white border-emerald-500 shadow-xl shadow-emerald-500/30 scale-105'
+                              : isOccupied
+                                ? 'bg-[#1A1A18] text-white border-[#1A1A18] shadow-lg'
+                                : 'bg-white text-gray-700 border-gray-200 hover:border-gray-400 hover:shadow-md'
+                          }`}
+                        >
+                          {isOccupied && !isSelected && (
+                            <span className="absolute top-1.5 right-1.5 flex h-1.5 w-1.5">
+                              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                            </span>
+                          )}
+                          <span className={`leading-none text-center pointer-events-none ${isShortName ? 'text-lg font-black tracking-tight' : 'text-[9px] font-bold tracking-tight px-1 break-all'}`}>
+                            {table.table_number}
+                          </span>
+                          {(table.parent_table_id || isParent) && (
+                            <div className={`absolute -bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest shadow z-10 ${isSelected ? 'bg-white text-emerald-600' : isOccupied ? 'bg-white text-[#1A1A18]' : 'bg-[#1A1A18] text-white'}`}>
+                              {table.parent_table_id ? `🔗 ${targetTable.table_number}` : `+${childrenTables.map((t: any) => t.table_number).join(',')}`}
+                            </div>
+                          )}
+                        </button>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+
+            {/* Table Action bottom-sheet — same pattern as pendingOrderTypeSwitch */}
+            <AnimatePresence>
+              {tableActionTarget && (
+                <div className="absolute inset-0 z-20 flex items-end justify-center font-bold">
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute inset-0 bg-neutral-900/60 backdrop-blur-sm"
+                    onClick={() => setTableActionTarget(null)}
+                  />
+                  <motion.div
+                    initial={{ y: '100%', opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: '100%', opacity: 0 }}
+                    transition={{ type: 'spring', damping: 28, stiffness: 260 }}
+                    className="relative w-full bg-white rounded-t-[2rem] p-5 shadow-2xl z-10"
+                  >
+                    <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-500">
+                      <ArrowRight size={22} />
+                    </div>
+                    <h3 className="text-center text-base font-black tracking-tight text-[#1A1A18] mb-1">จัดการบิล</h3>
+                    <p className="text-center text-[11px] text-gray-500 font-bold mb-5">
+                      โต๊ะ <span className="text-[#1A1A18]">{selectedTable?.table_number}</span>
+                      {' → '}
+                      โต๊ะ <span className="text-[#D3202B]">{tableActionTarget.table_number}</span>
+                    </p>
+                    <div className="flex flex-col gap-2">
+                      {(tables.find((t: any) => t.id === tableActionTarget.id)?.status === 'occupied' ||
+                        pendingOrders.some((o: any) => o.table_id === tableActionTarget.id && o.status === 'pending')) ? (
+                        <>
+                          <button
+                            type="button"
+                            disabled={isProcessing}
+                            onClick={() => {
+                              const targetOrder = suspendedOrders.find((o: any) => o.table_id === tableActionTarget.id && o.status === 'pending');
+                              if (!targetOrder) { alert('ไม่พบบิลของโต๊ะปลายทาง'); return; }
+                              setIsProcessing(true); setCheckoutError(null);
+                              (async () => {
+                                try {
+                                  const { data: oldOrderData } = await supabase.from('pos_orders').select('*').eq('id', editingOrderId).single();
+                                  if (oldOrderData) {
+                                    const mergedTableNumber = targetOrder.table_number?.includes(oldOrderData.table_number) ? targetOrder.table_number : `${targetOrder.table_number} + ${oldOrderData.table_number}`;
+                                    await supabase.from('pos_orders').update({ subtotal: Number(targetOrder.subtotal||0)+Number(oldOrderData.subtotal||0), tax: Number(targetOrder.tax||0)+Number(oldOrderData.tax||0), service_charge: Number(targetOrder.service_charge||0)+Number(oldOrderData.service_charge||0), total: Number(targetOrder.total||0)+Number(oldOrderData.total||0), table_number: mergedTableNumber }).eq('id', targetOrder.id);
+                                  }
+                                  const { data: currentItems } = await supabase.from('pos_order_items').select('*').eq('order_id', editingOrderId);
+                                  if (currentItems?.length) {
+                                    await supabase.from('pos_order_items').upsert(currentItems.map((item: any) => ({ ...item, order_id: targetOrder.id, selected_modifiers: [...(item.selected_modifiers||[]), { name: `[ย้ายมาจากโต๊ะ ${selectedTable?.table_number||'เดิม'}]`, price_adjustment: 0, qty: 1 }] })));
+                                  }
+                                  await supabase.from('pos_orders').update({ status: 'cancelled' }).eq('id', editingOrderId);
+                                  if (selectedTable?.id) { await supabase.from('pos_tables').update({ parent_table_id: tableActionTarget.id }).eq('id', selectedTable.id); }
+                                  fetchTables(); refreshPendingOrders(); resetDeliveryDraft();
+                                  setTableActionTarget(null); setActiveLandscapeTab('terminal');
+                                } catch (err: any) { alert('Error: ' + err.message); } finally { setIsProcessing(false); }
+                              })();
+                            }}
+                            className="flex items-center justify-center gap-2 w-full bg-emerald-500 active:bg-emerald-600 text-white rounded-2xl py-3.5 text-[12px] font-black uppercase tracking-wider transition-all active:scale-[0.98]"
+                          >
+                            {isProcessing ? <Loader2 size={15} className="animate-spin" /> : <Merge size={15} />}
+                            รวมบิลเข้าด้วยกัน
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const targetOrder = suspendedOrders.find((o: any) => o.table_id === tableActionTarget.id && o.status === 'pending');
+                              setSelectedTable(tableActionTarget); setOrderType('dine_in'); resetDeliveryDraft();
+                              setTableActionTarget(null); setActiveLandscapeTab('terminal');
+                              if (targetOrder) handleResumeOrder(targetOrder);
+                            }}
+                            className="flex items-center justify-center gap-2 w-full bg-gray-100 active:bg-gray-200 text-[#1A1A18] rounded-2xl py-3.5 text-[12px] font-black uppercase tracking-wider transition-all active:scale-[0.98]"
+                          >
+                            <Eye size={15} /> สลับไปดูบิลโต๊ะนี้
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={isProcessing}
+                          onClick={() => {
+                            setIsProcessing(true); setCheckoutError(null);
+                            (async () => {
+                              try {
+                                await supabase.from('pos_orders').update({ table_id: tableActionTarget.id, table_number: tableActionTarget.table_number }).eq('id', editingOrderId);
+                                if (selectedTable?.id) { await supabase.from('pos_tables').update({ parent_table_id: null }).eq('id', selectedTable.id); }
+                                fetchTables(); refreshPendingOrders();
+                                setSelectedTable(tableActionTarget); setTableActionTarget(null); setActiveLandscapeTab('terminal');
+                              } catch (err: any) { alert('Error: ' + err.message); } finally { setIsProcessing(false); }
+                            })();
+                          }}
+                          className="flex items-center justify-center gap-2 w-full bg-amber-500 active:bg-amber-600 text-white rounded-2xl py-3.5 text-[12px] font-black uppercase tracking-wider transition-all active:scale-[0.98]"
+                        >
+                          {isProcessing ? <Loader2 size={15} className="animate-spin" /> : <ArrowRight size={15} />}
+                          ย้ายบิลมาโต๊ะนี้
+                        </button>
+                      )}
+                      <button type="button" onClick={() => setTableActionTarget(null)} className="w-full py-2.5 text-[11px] font-black uppercase tracking-widest text-neutral-400 hover:text-neutral-600 transition-colors">
+                        ยกเลิก
+                      </button>
+                    </div>
+                  </motion.div>
+                </div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+          </motion.div>
+
 
           {/* 3. TERMINAL SALES CATALOG (Always mounted, toggled visibility) */}
           <motion.div
@@ -4772,246 +5026,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
               </div>
             </div>
           </motion.div>
-        ) : currentRightPanel === 'table_select' ? (
-          <motion.div
-            key="table-select-view"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            transition={{ duration: 0.2 }}
-            className="flex h-full w-full flex-col bg-[#F2F2F0] absolute inset-0 font-bold will-change-transform"
-          >
-            {/* Header */}
-            <header className="flex items-center justify-between bg-white border-b border-gray-100 px-5 py-3.5 shrink-0">
-              <div>
-                <h3 className="text-sm font-black uppercase tracking-tighter text-black">
-                  {locale === 'en' ? 'Select Table' : locale === 'zh' ? '选择桌子' : 'เลือกโต๊ะ'}
-                </h3>
-                <p className="text-[9px] font-bold tracking-widest text-gray-400 uppercase mt-0.5">
-                  {tables.length} {locale === 'en' ? 'tables' : 'โต๊ะ'}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setCurrentRightPanel('cart')}
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:text-black transition-colors"
-              >
-                <ArrowLeft size={18} />
-              </button>
-            </header>
-
-            {/* Zone tabs */}
-            <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar bg-white px-4 pb-2.5 pt-2 shrink-0 border-b border-gray-100">
-              {['All', ...Array.from(new Set(tables.map(t => (t.zone || 'Main'))))].map(zone => (
-                <button
-                  key={zone}
-                  onClick={() => setSelectedTableZone(zone)}
-                  className={`px-3.5 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${
-                    selectedTableZone === zone ? 'bg-[#1A1A18] text-white shadow' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                  }`}
-                >
-                  {zone}
-                </button>
-              ))}
-            </div>
-
-            {/* Canvas */}
-            <div className="flex-1 overflow-auto relative">
-              <div
-                className="relative"
-                style={{
-                  minWidth: Math.max(500, ...tables.map((t: any) => (t.position_x || 0) + 120)) + 40,
-                  minHeight: Math.max(500, ...tables.map((t: any) => (t.position_y || 0) + 120)) + 40,
-                  backgroundImage: 'radial-gradient(#D1D5DB 1.5px, transparent 1.5px)',
-                  backgroundSize: '24px 24px',
-                }}
-              >
-                {tables
-                  .filter((t: any) => selectedTableZone === 'All' || (t.zone || 'Main') === selectedTableZone)
-                  .map((table: any, idx: number) => {
-                    const targetTable = table.parent_table_id
-                      ? tables.find((t: any) => t.id === table.parent_table_id) || table
-                      : table;
-                    const childrenTables = tables.filter((t: any) => t.parent_table_id === table.id);
-                    const isParent = childrenTables.length > 0;
-                    const pendingForThisTable = pendingOrders.filter(
-                      (o: any) => o.table_id === targetTable.id && o.status === 'pending'
-                    );
-                    const isOccupied = pendingForThisTable.length > 0 || targetTable.status === 'occupied';
-                    const isSelected = selectedTable?.id === targetTable.id;
-
-                    const shape = table.shape || 'square';
-                    const dims =
-                      shape === 'rectangle'          ? { w: 88, h: 56 } :
-                      shape === 'rectangle_vertical' ? { w: 56, h: 88 } :
-                                                       { w: 64, h: 64 };
-                    const borderRadius = shape === 'circle' ? '50%' : shape === 'square' ? '14px' : '16px';
-                    const posX = table.position_x ?? ((idx % 4) * 110 + 20);
-                    const posY = table.position_y ?? (Math.floor(idx / 4) * 110 + 20);
-                    const isShortName = (table.table_number || '').length <= 3;
-
-                    return (
-                      <div
-                        key={table.id}
-                        style={{ position: 'absolute', left: posX, top: posY, width: dims.w, height: dims.h }}
-                        className="group"
-                      >
-                        <button
-                          type="button"
-                          style={{ width: '100%', height: '100%', borderRadius, WebkitTouchCallout: 'none', userSelect: 'none' }}
-                          onContextMenu={e => e.preventDefault()}
-                          onClick={() => {
-                            if (isSelected) {
-                              resetOrderComposer();
-                              setTotalPaid(0);
-                              setCurrentRightPanel('cart');
-                            } else if (editingOrderId) {
-                              setTableActionTarget(targetTable);
-                            } else if (pendingForThisTable.length > 0 && cart.length > 0) {
-                              setMergeTableTarget({ table: targetTable, pendingOrder: pendingForThisTable[0] });
-                            } else {
-                              setSelectedTable(targetTable);
-                              setOrderType('dine_in');
-                              resetDeliveryDraft();
-                              setCurrentRightPanel('cart');
-                              if (pendingForThisTable.length > 0) {
-                                handleResumeOrder(pendingForThisTable[0]);
-                              }
-                            }
-                          }}
-                          className={`relative flex flex-col items-center justify-center transition-all duration-200 border-2 active:scale-95 ${
-                            isSelected
-                              ? 'bg-emerald-500 text-white border-emerald-500 shadow-xl shadow-emerald-500/30 scale-105'
-                              : isOccupied
-                                ? 'bg-[#1A1A18] text-white border-[#1A1A18] shadow-lg'
-                                : 'bg-white text-gray-700 border-gray-200 hover:border-gray-400 hover:shadow-md'
-                          }`}
-                        >
-                          {isOccupied && !isSelected && (
-                            <span className="absolute top-1.5 right-1.5 flex h-1.5 w-1.5">
-                              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                            </span>
-                          )}
-                          <span className={`leading-none text-center pointer-events-none ${isShortName ? 'text-lg font-black tracking-tight' : 'text-[9px] font-bold tracking-tight px-1 break-all'}`}>
-                            {table.table_number}
-                          </span>
-                          {(table.parent_table_id || isParent) && (
-                            <div className={`absolute -bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest shadow z-10 ${isSelected ? 'bg-white text-emerald-600' : isOccupied ? 'bg-white text-[#1A1A18]' : 'bg-[#1A1A18] text-white'}`}>
-                              {table.parent_table_id ? `🔗 ${targetTable.table_number}` : `+${childrenTables.map((t: any) => t.table_number).join(',')}`}
-                            </div>
-                          )}
-                        </button>
-                      </div>
-                    );
-                  })}
-              </div>
-            </div>
-
-            {/* Table Action bottom-sheet — same pattern as pendingOrderTypeSwitch */}
-            <AnimatePresence>
-              {tableActionTarget && (
-                <div className="absolute inset-0 z-20 flex items-end justify-center font-bold">
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="absolute inset-0 bg-neutral-900/60 backdrop-blur-sm"
-                    onClick={() => setTableActionTarget(null)}
-                  />
-                  <motion.div
-                    initial={{ y: '100%', opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: '100%', opacity: 0 }}
-                    transition={{ type: 'spring', damping: 28, stiffness: 260 }}
-                    className="relative w-full bg-white rounded-t-[2rem] p-5 shadow-2xl z-10"
-                  >
-                    <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-500">
-                      <ArrowRight size={22} />
-                    </div>
-                    <h3 className="text-center text-base font-black tracking-tight text-[#1A1A18] mb-1">จัดการบิล</h3>
-                    <p className="text-center text-[11px] text-gray-500 font-bold mb-5">
-                      โต๊ะ <span className="text-[#1A1A18]">{selectedTable?.table_number}</span>
-                      {' → '}
-                      โต๊ะ <span className="text-[#D3202B]">{tableActionTarget.table_number}</span>
-                    </p>
-                    <div className="flex flex-col gap-2">
-                      {(tables.find((t: any) => t.id === tableActionTarget.id)?.status === 'occupied' ||
-                        pendingOrders.some((o: any) => o.table_id === tableActionTarget.id && o.status === 'pending')) ? (
-                        <>
-                          <button
-                            type="button"
-                            disabled={isProcessing}
-                            onClick={() => {
-                              const targetOrder = suspendedOrders.find((o: any) => o.table_id === tableActionTarget.id && o.status === 'pending');
-                              if (!targetOrder) { alert('ไม่พบบิลของโต๊ะปลายทาง'); return; }
-                              setIsProcessing(true); setCheckoutError(null);
-                              (async () => {
-                                try {
-                                  const { data: oldOrderData } = await supabase.from('pos_orders').select('*').eq('id', editingOrderId).single();
-                                  if (oldOrderData) {
-                                    const mergedTableNumber = targetOrder.table_number?.includes(oldOrderData.table_number) ? targetOrder.table_number : `${targetOrder.table_number} + ${oldOrderData.table_number}`;
-                                    await supabase.from('pos_orders').update({ subtotal: Number(targetOrder.subtotal||0)+Number(oldOrderData.subtotal||0), tax: Number(targetOrder.tax||0)+Number(oldOrderData.tax||0), service_charge: Number(targetOrder.service_charge||0)+Number(oldOrderData.service_charge||0), total: Number(targetOrder.total||0)+Number(oldOrderData.total||0), table_number: mergedTableNumber }).eq('id', targetOrder.id);
-                                  }
-                                  const { data: currentItems } = await supabase.from('pos_order_items').select('*').eq('order_id', editingOrderId);
-                                  if (currentItems?.length) {
-                                    await supabase.from('pos_order_items').upsert(currentItems.map((item: any) => ({ ...item, order_id: targetOrder.id, selected_modifiers: [...(item.selected_modifiers||[]), { name: `[ย้ายมาจากโต๊ะ ${selectedTable?.table_number||'เดิม'}]`, price_adjustment: 0, qty: 1 }] })));
-                                  }
-                                  await supabase.from('pos_orders').update({ status: 'cancelled' }).eq('id', editingOrderId);
-                                  if (selectedTable?.id) { await supabase.from('pos_tables').update({ parent_table_id: tableActionTarget.id }).eq('id', selectedTable.id); }
-                                  fetchTables(); refreshPendingOrders(); resetDeliveryDraft();
-                                  setTableActionTarget(null); setCurrentRightPanel('cart');
-                                } catch (err: any) { alert('Error: ' + err.message); } finally { setIsProcessing(false); }
-                              })();
-                            }}
-                            className="flex items-center justify-center gap-2 w-full bg-emerald-500 active:bg-emerald-600 text-white rounded-2xl py-3.5 text-[12px] font-black uppercase tracking-wider transition-all active:scale-[0.98]"
-                          >
-                            {isProcessing ? <Loader2 size={15} className="animate-spin" /> : <Merge size={15} />}
-                            รวมบิลเข้าด้วยกัน
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const targetOrder = suspendedOrders.find((o: any) => o.table_id === tableActionTarget.id && o.status === 'pending');
-                              setSelectedTable(tableActionTarget); setOrderType('dine_in'); resetDeliveryDraft();
-                              setTableActionTarget(null); setCurrentRightPanel('cart');
-                              if (targetOrder) handleResumeOrder(targetOrder);
-                            }}
-                            className="flex items-center justify-center gap-2 w-full bg-gray-100 active:bg-gray-200 text-[#1A1A18] rounded-2xl py-3.5 text-[12px] font-black uppercase tracking-wider transition-all active:scale-[0.98]"
-                          >
-                            <Eye size={15} /> สลับไปดูบิลโต๊ะนี้
-                          </button>
-                        </>
-                      ) : (
-                        <button
-                          type="button"
-                          disabled={isProcessing}
-                          onClick={() => {
-                            setIsProcessing(true); setCheckoutError(null);
-                            (async () => {
-                              try {
-                                await supabase.from('pos_orders').update({ table_id: tableActionTarget.id, table_number: tableActionTarget.table_number }).eq('id', editingOrderId);
-                                if (selectedTable?.id) { await supabase.from('pos_tables').update({ parent_table_id: null }).eq('id', selectedTable.id); }
-                                fetchTables(); refreshPendingOrders();
-                                setSelectedTable(tableActionTarget); setTableActionTarget(null); setCurrentRightPanel('cart');
-                              } catch (err: any) { alert('Error: ' + err.message); } finally { setIsProcessing(false); }
-                            })();
-                          }}
-                          className="flex items-center justify-center gap-2 w-full bg-amber-500 active:bg-amber-600 text-white rounded-2xl py-3.5 text-[12px] font-black uppercase tracking-wider transition-all active:scale-[0.98]"
-                        >
-                          {isProcessing ? <Loader2 size={15} className="animate-spin" /> : <ArrowRight size={15} />}
-                          ย้ายบิลมาโต๊ะนี้
-                        </button>
-                      )}
-                      <button type="button" onClick={() => setTableActionTarget(null)} className="w-full py-2.5 text-[11px] font-black uppercase tracking-widest text-neutral-400 hover:text-neutral-600 transition-colors">
-                        ยกเลิก
-                      </button>
-                    </div>
-                  </motion.div>
-                </div>
-              )}
-            </AnimatePresence>
-          </motion.div>
+        
         ) : currentRightPanel === 'modifiers' && modifierModalItem ? (
 
 
@@ -5665,13 +5680,13 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                 onClick={() => {
                   if (orderType === 'dine_in') {
                       fetchTables();
-                      setCurrentRightPanel('table_select');
+                      setActiveLandscapeTab('table_select');
                   } else if (editingOrderId) {
                       setPendingOrderTypeSwitch('dine_in');
                   } else {
                       setOrderType('dine_in');
                       fetchTables();
-                      setCurrentRightPanel('table_select');
+                      setActiveLandscapeTab('table_select');
                   }
                 }}
                 className={`flex h-12 flex-1 items-center justify-center gap-2 text-[12px] font-bold transition-all rounded-[0.8rem] ${orderType === 'dine_in' ? 'text-[#D3202B]' : 'text-gray-400 hover:text-gray-900'}`}
@@ -5995,7 +6010,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                               refreshPendingOrders();
                           } else {
                               // They are switching to dine_in, open table modal to pick a table
-                              setCurrentRightPanel('table_select');
+                              setActiveLandscapeTab('table_select');
                           }
                       }
                     }}
