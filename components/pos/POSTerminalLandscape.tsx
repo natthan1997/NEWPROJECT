@@ -1831,19 +1831,12 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
               ))}
             </div>
 
-            {/* Canvas */}
-            <div className="flex-1 overflow-auto relative">
-              <div
-                className="relative"
-                style={{
-                  minWidth: Math.max(500, ...tables.map((t: any) => (t.position_x || 0) + 120)) + 40,
-                  minHeight: Math.max(500, ...tables.map((t: any) => (t.position_y || 0) + 120)) + 40,
-                  backgroundColor: '#ffffff'
-                }}
-              >
+            {/* Grid Layout */}
+            <div className="flex-1 overflow-auto bg-[#F2F2F0]/50 p-6">
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-6 gap-4">
                 {tables
                   .filter((t: any) => selectedTableZone === 'All' || (t.zone || 'Main') === selectedTableZone)
-                  .map((table: any, idx: number) => {
+                  .map((table: any) => {
                     const targetTable = table.parent_table_id
                       ? tables.find((t: any) => t.id === table.parent_table_id) || table
                       : table;
@@ -1855,25 +1848,16 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                     const isOccupied = pendingForThisTable.length > 0 || targetTable.status === 'occupied';
                     const isSelected = selectedTable?.id === targetTable.id;
 
-                    const shape = table.shape || 'square';
-                    const dims =
-                      shape === 'rectangle'          ? { w: 88, h: 56 } :
-                      shape === 'rectangle_vertical' ? { w: 56, h: 88 } :
-                                                       { w: 64, h: 64 };
-                    const borderRadius = shape === 'circle' ? '50%' : shape === 'square' ? '14px' : '16px';
-                    const posX = table.position_x ?? ((idx % 4) * 110 + 20);
-                    const posY = table.position_y ?? (Math.floor(idx / 4) * 110 + 20);
                     const isShortName = (table.table_number || '').length <= 3;
 
                     return (
                       <div
                         key={table.id}
-                        style={{ position: 'absolute', left: posX, top: posY, width: dims.w, height: dims.h }}
-                        className="group"
+                        className="group relative aspect-square"
                       >
                         <button
                           type="button"
-                          style={{ width: '100%', height: '100%', borderRadius, WebkitTouchCallout: 'none', userSelect: 'none' }}
+                          style={{ WebkitTouchCallout: 'none', userSelect: 'none' }}
                           onContextMenu={e => e.preventDefault()}
                           onClick={() => {
                             if (isSelected) {
@@ -1894,7 +1878,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                               }
                             }
                           }}
-                          className={`relative flex flex-col items-center justify-center transition-all duration-200 border-2 active:scale-95 ${
+                          className={`w-full h-full relative flex flex-col items-center justify-center transition-all duration-200 border-2 rounded-2xl active:scale-95 ${
                             isSelected
                               ? 'bg-emerald-500 text-white border-emerald-500 shadow-xl shadow-emerald-500/30 scale-105'
                               : isOccupied
