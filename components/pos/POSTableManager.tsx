@@ -54,6 +54,8 @@ export default function POSTableManager({
   
   const [isCreatingZone, setIsCreatingZone] = useState(false)
   const [newZoneName, setNewZoneName] = useState('')
+  const [editingZone, setEditingZone] = useState<string | null>(null)
+  const [renameZoneValue, setRenameZoneValue] = useState<string>('')
   
   const [isLayoutModeInternalState, setIsLayoutModeInternalState] = useState(false)
   const isLayoutMode = isLayoutModeProps !== undefined ? isLayoutModeProps : isLayoutModeInternalState;
