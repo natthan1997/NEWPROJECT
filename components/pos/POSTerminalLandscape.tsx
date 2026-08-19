@@ -1784,7 +1784,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
               pointerEvents: renderedLandscapeTab === 'table_select' ? 'auto' : 'none'
             }}
             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute inset-0 flex flex-col min-h-0 bg-white lg:rounded-[2rem] overflow-hidden shadow-sm border border-gray-100"
+            className="absolute inset-0 flex flex-col min-h-0 bg-white lg:rounded-[2rem] overflow-hidden"
           >
 <motion.div
             key="table-select-view"
@@ -1795,7 +1795,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
             className="flex h-full w-full flex-col bg-white absolute inset-0 font-bold will-change-transform"
           >
             {/* Header */}
-            <header className="flex items-center justify-between bg-white border-b border-gray-100 px-5 py-3.5 shrink-0">
+            <header className="flex items-center justify-between bg-white px-5 py-3.5 shrink-0">
               <div>
                 <h3 className="text-sm font-black uppercase tracking-tighter text-black">
                   {locale === 'en' ? 'Select Table' : locale === 'zh' ? '选择桌子' : 'เลือกโต๊ะ'}
@@ -1804,13 +1804,6 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                   {tables.length} {locale === 'en' ? 'tables' : 'โต๊ะ'}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => handleSwitchTab('terminal')}
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:text-black transition-colors"
-              >
-                <ArrowLeft size={18} />
-              </button>
             </header>
 
             {/* Zone tabs */}
@@ -5602,6 +5595,9 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                         await handleDeleteOrder(editingOrderId);
                       }
                       resetOrderComposer();
+                      if (renderedLandscapeTab === 'table_select') {
+                        handleSwitchTab('terminal');
+                      }
                     }}
                     className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 text-gray-500 hover:border-gray-900 hover:text-gray-900 transition-colors"
                     title={locale === 'en' ? 'Exit active held bill and start a new order' : 'ล้างตะกร้า / เริ่มสั่งรายการใหม่'}
