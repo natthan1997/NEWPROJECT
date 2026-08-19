@@ -5901,8 +5901,8 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                   </button>
                 ) : (
                   <motion.button
-                    animate={checkoutShake ? { x: [-8, 8, -8, 8, 0] } : {}}
-                    transition={{ duration: 0.4 }}
+                    animate={checkoutShake ? { x: [0, -6, 6, -4, 4, -2, 2, 0] } : { x: 0 }}
+                    transition={checkoutShake ? { duration: 0.5, ease: "easeInOut" } : { duration: 0.2 }}
                     type="button"
                     onClick={async () => {
                       if (orderType === 'dine_in' && !selectedTable) {
@@ -5934,10 +5934,12 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                       }
                     }}
                     disabled={isAutoCreatingOrder || cart.length === 0}
-                    className={`flex h-12 flex-1 items-center justify-center gap-2 rounded-xl text-white transition-all shadow-md ${
+                    className={`flex h-12 flex-1 items-center justify-center gap-2 rounded-xl text-white transition-all duration-300 shadow-md ${
                       (isAutoCreatingOrder || cart.length === 0) 
                         ? 'bg-gray-200 text-gray-400 shadow-none cursor-not-allowed' 
-                        : 'bg-[#D3202B] hover:bg-red-700 shadow-[#D3202B]/20'
+                        : checkoutWarning
+                          ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/30'
+                          : 'bg-[#D3202B] hover:bg-red-700 shadow-[#D3202B]/20'
                     }`}
                   >
                     <AnimatePresence mode="wait">
