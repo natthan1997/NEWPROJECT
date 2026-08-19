@@ -613,7 +613,7 @@ export default function POSTableManager({
 
   return (
     <>
-      <div className="p-4 sm:p-6 lg:p-6 font-sans print:hidden bg-transparent h-full flex flex-col">
+      <div className="p-4 sm:p-6 lg:p-6 font-sans print:hidden bg-transparent h-full flex flex-col relative overflow-hidden">
 
         {/* TOP BAR / ZONES */}
         {!showOnlyGrid && (
@@ -769,10 +769,9 @@ export default function POSTableManager({
       </div>
 
       {/* TABLE EDITOR (Sleek Glassmorphic Slide-over) */}
-      {typeof document !== 'undefined' && createPortal(
-        <AnimatePresence>
-        {isEditorOpen && (
-            <div className="fixed inset-0 z-[1200] flex items-center justify-end font-sans">
+      <AnimatePresence>
+      {isEditorOpen && (
+          <div className="absolute inset-0 z-[1200] flex items-center justify-end font-sans">
               <motion.div 
                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                  className="absolute inset-0 bg-[#D3202B]/20 backdrop-blur-sm" 
@@ -876,20 +875,17 @@ export default function POSTableManager({
                   </div>
               </motion.div>
             </div>
-        )}
-        </AnimatePresence>,
-        document.body
       )}
+      </AnimatePresence>
 
       {/* VISUAL SHAPE PICKER MODAL */}
-      {typeof document !== 'undefined' && createPortal(
-        <AnimatePresence>
-        {isShapePickerOpen && (
-            <div className="fixed inset-0 z-[1300] flex items-center justify-center font-sans">
+      <AnimatePresence>
+      {isShapePickerOpen && (
+          <div className="absolute inset-0 z-[1300] flex items-center justify-end font-sans pr-8 sm:pr-12">
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[#D3202B]/40 backdrop-blur-sm" onClick={() => setIsShapePickerOpen(false)} />
               <motion.div 
-                 initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                 className="relative bg-white p-8 rounded-[2rem] shadow-2xl max-w-sm w-full mx-4 flex flex-col gap-4 border border-neutral-100"
+                 initial={{ opacity: 0, scale: 0.95, x: 20 }} animate={{ opacity: 1, scale: 1, x: 0 }} exit={{ opacity: 0, scale: 0.95, x: 20 }}
+                 className="relative bg-white p-8 rounded-[2rem] shadow-2xl max-w-sm w-full flex flex-col gap-4 border border-neutral-100"
               >
                   <button onClick={() => setIsShapePickerOpen(false)} className="absolute top-6 right-6 w-8 h-8 flex items-center justify-center bg-neutral-100 rounded-full text-neutral-500 hover:bg-neutral-200 hover:text-black transition-colors"><X size={16} /></button>
                   <h3 className="text-xl font-black text-center mb-4 tracking-tight">เลือกทรงโต๊ะ</h3>
@@ -915,10 +911,8 @@ export default function POSTableManager({
                   </button>
               </motion.div>
             </div>
-        )}
-        </AnimatePresence>,
-        document.body
       )}
+      </AnimatePresence>
 
       {/* QR MODAL (Frosted Glass) */}
       <AnimatePresence>
