@@ -1831,113 +1831,98 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
               ))}
             </div>
 
-            {/* Canvases by Zone */}
-            <div className="flex-1 overflow-auto bg-[#F2F2F0]/50 relative flex flex-row">
-              {['All', ...Array.from(new Set(tables.map((t: any) => (t.zone || 'Main'))))]
-                .filter(z => z !== 'All') // Iterate through actual zones only
-                .filter(z => selectedTableZone === 'All' || z === selectedTableZone)
-                .map((zone: any) => {
-                  const zoneTables = tables.filter((t: any) => (t.zone || 'Main') === zone);
-                  if (zoneTables.length === 0) return null;
+            {/* Canvas */}
+            <div className="flex-1 overflow-auto relative bg-[#f7f7f7]">
+              <div
+                className="relative"
+                style={{
+                  minWidth: Math.max(500, ...tables.map((t: any) => (t.position_x || 0) + 120)) + 40,
+                  minHeight: Math.max(500, ...tables.map((t: any) => (t.position_y || 0) + 120)) + 40,
+                }}
+              >
+                {tables
+                  .filter((t: any) => selectedTableZone === 'All' || (t.zone || 'Main') === selectedTableZone)
+                  .map((table: any, idx: number) => {
+                    const targetTable = table.parent_table_id
+                      ? tables.find((t: any) => t.id === table.parent_table_id) || table
+                      : table;
+                    const childrenTables = tables.filter((t: any) => t.parent_table_id === table.id);
+                    const isParent = childrenTables.length > 0;
+                    const pendingForThisTable = pendingOrders.filter(
+                      (o: any) => o.table_id === targetTable.id && o.status === 'pending'
+                    );
+                    const isOccupied = pendingForThisTable.length > 0 || targetTable.status === 'occupied';
+                    const isSelected = selectedTable?.id === targetTable.id;
 
-                  // Calculate required canvas size for this zone
-                  const minW = Math.max(300, ...zoneTables.map((t: any, idx: number) => (t.position_x ?? ((idx % 4) * 110 + 20)) + 120)) + 40;
-                  const minH = Math.max(300, ...zoneTables.map((t: any, idx: number) => (t.position_y ?? (Math.floor(idx / 4) * 110 + 20)) + 120)) + 40;
+                    const shape = table.shape || 'square';
+                    const dims =
+                      shape === 'rectangle'          ? { w: 88, h: 56 } :
+                      shape === 'rectangle_vertical' ? { w: 56, h: 88 } :
+                                                       { w: 64, h: 64 };
+                    const borderRadius = shape === 'circle' ? '50%' : shape === 'square' ? '14px' : '16px';
+                    
+                    // Fallback to auto-grid if not positioned (or if sitting at exactly 0,0 which causes overlaps)
+                    const posX = (table.position_x || 0) > 0 ? table.position_x : ((idx % 4) * 110 + 20);
+                    const posY = (table.position_y || 0) > 0 ? table.position_y : (Math.floor(idx / 4) * 110 + 20);
+                    
+                    const isShortName = (table.table_number || '').length <= 3;
 
-                  return (
-                    <div key={zone} className="border-r-2 border-gray-200/60 last:border-0 relative shrink-0 min-h-full">
-                      {/* Zone Label Overlay (only show if viewing All, or always show for clarity) */}
-                      {selectedTableZone === 'All' && (
-                        <div className="sticky left-0 top-0 z-10 px-6 pt-6 pb-2 inline-block pointer-events-none">
-                          <div className="bg-white/80 backdrop-blur-md px-4 py-2 rounded-xl shadow-sm border border-gray-100 font-black uppercase tracking-widest text-[#1A1A18] text-xs">
-                            {zone}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Zone Canvas */}
-                      <div className="relative" style={{ minWidth: minW, minHeight: minH }}>
-                        {zoneTables.map((table: any, idx: number) => {
-                          const targetTable = table.parent_table_id
-                            ? tables.find((t: any) => t.id === table.parent_table_id) || table
-                            : table;
-                          const childrenTables = tables.filter((t: any) => t.parent_table_id === table.id);
-                          const isParent = childrenTables.length > 0;
-                          const pendingForThisTable = pendingOrders.filter(
-                            (o: any) => o.table_id === targetTable.id && o.status === 'pending'
-                          );
-                          const isOccupied = pendingForThisTable.length > 0 || targetTable.status === 'occupied';
-                          const isSelected = selectedTable?.id === targetTable.id;
-
-                          const shape = table.shape || 'square';
-                          const dims =
-                            shape === 'rectangle'          ? { w: 88, h: 56 } :
-                            shape === 'rectangle_vertical' ? { w: 56, h: 88 } :
-                                                             { w: 64, h: 64 };
-                          const borderRadius = shape === 'circle' ? '50%' : shape === 'square' ? '14px' : '16px';
-                          const posX = table.position_x ?? ((idx % 4) * 110 + 20);
-                          const posY = table.position_y ?? (Math.floor(idx / 4) * 110 + 20);
-                          const isShortName = (table.table_number || '').length <= 3;
-
-                          return (
-                            <div
-                              key={table.id}
-                              style={{ position: 'absolute', left: posX, top: posY, width: dims.w, height: dims.h }}
-                              className="group"
-                            >
-                              <button
-                                type="button"
-                                style={{ width: '100%', height: '100%', borderRadius, WebkitTouchCallout: 'none', userSelect: 'none' }}
-                                onContextMenu={e => e.preventDefault()}
-                                onClick={() => {
-                                  if (isSelected) {
-                                    resetOrderComposer();
-                                    setTotalPaid(0);
-                                    handleSwitchTab('terminal');
-                                  } else if (editingOrderId) {
-                                    setTableActionTarget(targetTable);
-                                  } else if (pendingForThisTable.length > 0 && cart.length > 0) {
-                                    setMergeTableTarget({ table: targetTable, pendingOrder: pendingForThisTable[0] });
-                                  } else {
-                                    setSelectedTable(targetTable);
-                                    setOrderType('dine_in');
-                                    resetDeliveryDraft();
-                                    handleSwitchTab('terminal');
-                                    if (pendingForThisTable.length > 0) {
-                                      handleResumeOrder(pendingForThisTable[0]);
-                                    }
-                                  }
-                                }}
-                                className={`relative flex flex-col items-center justify-center transition-all duration-200 border-2 active:scale-95 ${
-                                  isSelected
-                                    ? 'bg-emerald-500 text-white border-emerald-500 shadow-xl shadow-emerald-500/30 scale-105'
-                                    : isOccupied
-                                      ? 'bg-[#1A1A18] text-white border-[#1A1A18] shadow-lg'
-                                      : 'bg-white text-gray-700 border-gray-200 hover:border-gray-400 hover:shadow-md'
-                                }`}
-                              >
-                                {isOccupied && !isSelected && (
-                                  <span className="absolute top-1.5 right-1.5 flex h-1.5 w-1.5">
-                                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                                  </span>
-                                )}
-                                <div className={`font-black tracking-tighter ${isShortName ? 'text-2xl' : 'text-lg leading-tight'}`}>
-                                  {table.table_number}
-                                </div>
-                                {isParent && (
-                                  <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm">
-                                    +{childrenTables.length}
-                                  </div>
-                                )}
-                              </button>
+                    return (
+                      <div
+                        key={table.id}
+                        style={{ position: 'absolute', left: posX, top: posY, width: dims.w, height: dims.h }}
+                        className="group"
+                      >
+                        <button
+                          type="button"
+                          style={{ width: '100%', height: '100%', borderRadius, WebkitTouchCallout: 'none', userSelect: 'none' }}
+                          onContextMenu={e => e.preventDefault()}
+                          onClick={() => {
+                            if (isSelected) {
+                              resetOrderComposer();
+                              setTotalPaid(0);
+                              handleSwitchTab('terminal');
+                            } else if (editingOrderId) {
+                              setTableActionTarget(targetTable);
+                            } else if (pendingForThisTable.length > 0 && cart.length > 0) {
+                              setMergeTableTarget({ table: targetTable, pendingOrder: pendingForThisTable[0] });
+                            } else {
+                              setSelectedTable(targetTable);
+                              setOrderType('dine_in');
+                              resetDeliveryDraft();
+                              handleSwitchTab('terminal');
+                              if (pendingForThisTable.length > 0) {
+                                handleResumeOrder(pendingForThisTable[0]);
+                              }
+                            }
+                          }}
+                          className={`relative flex flex-col items-center justify-center transition-all duration-200 border-2 active:scale-95 ${
+                            isSelected
+                              ? 'bg-emerald-500 text-white border-emerald-500 shadow-xl shadow-emerald-500/30 scale-105'
+                              : isOccupied
+                                ? 'bg-[#1A1A18] text-white border-[#1A1A18] shadow-lg'
+                                : 'bg-white text-gray-700 border-gray-200 hover:border-gray-400 hover:shadow-md'
+                          }`}
+                        >
+                          {isOccupied && !isSelected && (
+                            <span className="absolute top-1.5 right-1.5 flex h-1.5 w-1.5">
+                              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                            </span>
+                          )}
+                          <span className={`leading-none text-center pointer-events-none ${isShortName ? 'text-lg font-black tracking-tight' : 'text-[9px] font-bold tracking-tight px-1 break-all'}`}>
+                            {table.table_number}
+                          </span>
+                          {(table.parent_table_id || isParent) && (
+                            <div className={`absolute -bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest shadow z-10 ${isSelected ? 'bg-white text-emerald-600' : isOccupied ? 'bg-white text-[#1A1A18]' : 'bg-[#1A1A18] text-white'}`}>
+                              {table.parent_table_id ? `🔗 ${targetTable.table_number}` : `+${childrenTables.map((t: any) => t.table_number).join(',')}`}
                             </div>
-                          );
-                        })}
+                          )}
+                        </button>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+              </div>
             </div>
 
             {/* Table Action bottom-sheet moved to Cart side */}
