@@ -589,21 +589,31 @@ export default function POSTableManager({
             </label>
           </div>
 
-          <div className="flex gap-2 pt-4 border-t border-neutral-100 shrink-0">
-            <button 
-              onClick={() => setEditingTable(null)} 
-              className="flex-1 py-3 rounded-xl border border-neutral-200 text-neutral-700 text-xs font-black uppercase tracking-wider hover:bg-neutral-50 transition-all flex items-center justify-center gap-1.5"
-            >
-              ยกเลิก
-            </button>
-            <button 
-              onClick={handleSaveTable} 
-              disabled={isSaving} 
-              className="flex-grow-[2] py-3 rounded-xl bg-[#D3202B] text-white text-xs font-black uppercase tracking-wider hover:bg-red-700 transition-all flex items-center justify-center gap-1.5 shadow-md shadow-red-500/10"
-            >
-              {isSaving ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />}
-              บันทึกข้อมูล
-            </button>
+          <div className="flex flex-col gap-2 pt-4 border-t border-neutral-100 shrink-0">
+            {editingTable?.id && (
+              <button 
+                onClick={() => { handleDeleteTable(editingTable.id); setEditingTable(null); }} 
+                className="w-full py-3 rounded-xl border border-red-100 bg-red-50 text-red-600 text-xs font-black uppercase tracking-wider hover:bg-red-100 transition-all flex items-center justify-center gap-1.5"
+              >
+                <Trash2 size={14} /> ลบโต๊ะนี้
+              </button>
+            )}
+            <div className="flex gap-2">
+              <button 
+                onClick={() => setEditingTable(null)} 
+                className="flex-1 py-3 rounded-xl border border-neutral-200 text-neutral-700 text-xs font-black uppercase tracking-wider hover:bg-neutral-50 transition-all flex items-center justify-center gap-1.5"
+              >
+                ยกเลิก
+              </button>
+              <button 
+                onClick={handleSaveTable} 
+                disabled={isSaving} 
+                className="flex-grow-[2] py-3 rounded-xl bg-[#D3202B] text-white text-xs font-black uppercase tracking-wider hover:bg-red-700 transition-all flex items-center justify-center gap-1.5 shadow-md shadow-red-500/10"
+              >
+                {isSaving ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />}
+                บันทึกข้อมูล
+              </button>
+            </div>
           </div>
         </motion.div>
       </div>
@@ -872,7 +882,15 @@ export default function POSTableManager({
                       </div>
                   </div>
 
-                  <div className="p-6 bg-white border-t border-neutral-100">
+                  <div className="p-6 bg-white border-t border-neutral-100 flex flex-col gap-3">
+                    {editingTable.id && (
+                      <button 
+                        onClick={() => { handleDeleteTable(editingTable.id); setIsEditorOpen(false); setEditingTable(null); }} 
+                        className="w-full py-4 rounded-2xl border border-red-100 bg-red-50 text-red-600 text-[12px] font-black uppercase tracking-widest transition-all hover:bg-red-100 flex items-center justify-center gap-2"
+                      >
+                        <Trash2 size={16} /> ลบโต๊ะนี้
+                      </button>
+                    )}
                     <button onClick={handleSaveTable} disabled={isSaving} className="w-full py-4 rounded-2xl bg-[#D3202B] text-white text-[12px] font-black uppercase tracking-widest transition-all hover:bg-red-700 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2">
                       {isSaving ? <Loader2 className="animate-spin text-white" size={16} /> : <Save size={16} />}
                       Save Table
