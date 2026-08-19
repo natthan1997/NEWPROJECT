@@ -1832,12 +1832,13 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
             </div>
 
             {/* Canvas */}
-            <div className="flex-1 overflow-auto relative bg-[#f7f7f7]">
+            <div className="flex-1 overflow-auto relative bg-white">
               <div
                 className="relative"
                 style={{
-                  minWidth: Math.max(500, ...tables.map((t: any) => (t.position_x || 0) + 120)) + 40,
-                  minHeight: Math.max(500, ...tables.map((t: any) => (t.position_y || 0) + 120)) + 40,
+                  minWidth: Math.max(500, ...tables.map((t: any) => (t.position_x || 0) + 160)) + 40,
+                  minHeight: Math.max(500, ...tables.map((t: any) => (t.position_y || 0) + 160)) + 40,
+                  backgroundColor: '#ffffff'
                 }}
               >
                 {tables
@@ -1856,14 +1857,14 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
 
                     const shape = table.shape || 'square';
                     const dims =
-                      shape === 'rectangle'          ? { w: 88, h: 56 } :
-                      shape === 'rectangle_vertical' ? { w: 56, h: 88 } :
-                                                       { w: 64, h: 64 };
-                    const borderRadius = shape === 'circle' ? '50%' : shape === 'square' ? '14px' : '16px';
+                      shape === 'rectangle'          ? { w: 160, h: 96 } :
+                      shape === 'rectangle_vertical' ? { w: 96, h: 160 } :
+                                                       { w: 96, h: 96 };
+                    const borderRadius = shape === 'circle' ? '50%' : shape === 'square' ? '1rem' : '1.5rem';
                     
                     // Fallback to auto-grid if not positioned (or if sitting at exactly 0,0 which causes overlaps)
-                    const posX = (table.position_x || 0) > 0 ? table.position_x : ((idx % 4) * 110 + 20);
-                    const posY = (table.position_y || 0) > 0 ? table.position_y : (Math.floor(idx / 4) * 110 + 20);
+                    const posX = (table.position_x || 0) > 0 ? table.position_x : ((idx % 4) * 180 + 40);
+                    const posY = (table.position_y || 0) > 0 ? table.position_y : (Math.floor(idx / 4) * 180 + 40);
                     
                     const isShortName = (table.table_number || '').length <= 3;
 
