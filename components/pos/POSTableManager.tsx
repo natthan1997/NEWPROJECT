@@ -41,6 +41,7 @@ export default function POSTableManager({
   editingTableProps, setEditingTableProps, isLayoutModeProps, setIsLayoutModeProps
 }: POSTableManagerProps) {
     const { locale } = useI18n();
+  const containerRef = useRef<HTMLDivElement>(null)
   const [tables, setTables] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [isEditorOpen, setIsEditorOpen] = useState(false)
