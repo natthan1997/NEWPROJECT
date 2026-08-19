@@ -55,11 +55,7 @@ export default function POSTableManager({
   const [isCreatingZone, setIsCreatingZone] = useState(false)
   const [newZoneName, setNewZoneName] = useState('')
   
-  const [renamingZoneText, setRenamingZoneText] = useState('')
-  useEffect(() => {
-     setRenamingZoneText(activeZoneInternal)
-  }, [activeZoneInternal])
-  
+
   const [isLayoutModeInternalState, setIsLayoutModeInternalState] = useState(false)
   const isLayoutMode = isLayoutModeProps !== undefined ? isLayoutModeProps : isLayoutModeInternalState;
   const setIsLayoutMode = setIsLayoutModeProps !== undefined ? setIsLayoutModeProps : setIsLayoutModeInternalState;
@@ -86,6 +82,11 @@ export default function POSTableManager({
   const [activeZoneInternal, setActiveZoneInternal] = useState<string>('Main')
   const activeZone = activeZoneProps !== undefined ? activeZoneProps : activeZoneInternal;
   const setActiveZone = setActiveZoneProps !== undefined ? setActiveZoneProps : setActiveZoneInternal;
+
+  const [renamingZoneText, setRenamingZoneText] = useState('')
+  useEffect(() => {
+     setRenamingZoneText(activeZone)
+  }, [activeZone])
   const [dbZones, setDbZones] = useState<any[]>([])
   const [isShapePickerOpen, setIsShapePickerOpen] = useState(false)
 
