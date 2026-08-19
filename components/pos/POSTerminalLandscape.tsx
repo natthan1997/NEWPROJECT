@@ -647,6 +647,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
   const [currentRightPanel, setCurrentRightPanel] = useState<'cart' | 'pending' | 'delivery' | 'delivery_platform' | 'modifiers' | 'table_select'>('cart');
   const [showPrintDropdown, setShowPrintDropdown] = useState(false);
   const [checkoutShake, setCheckoutShake] = useState(false);
+  const [checkoutWarning, setCheckoutWarning] = useState(false);
 
   // Split Thai string into base consonants + combining vowels/tones to prevent typography issues
   const splitThaiClusters = (text: string): string[] => {
@@ -5906,7 +5907,9 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                     onClick={async () => {
                       if (orderType === 'dine_in' && !selectedTable) {
                         setCheckoutShake(true)
+                        setCheckoutWarning(true)
                         setTimeout(() => setCheckoutShake(false), 400)
+                        setTimeout(() => setCheckoutWarning(false), 2000)
                         fetchTables()
                         refreshPendingOrders()
                         handleSwitchTab('table_select')
@@ -5937,14 +5940,26 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                         : 'bg-[#D3202B] hover:bg-red-700 shadow-[#D3202B]/20'
                     }`}
                   >
-                    <span className="text-[13px] font-black uppercase tracking-wider">
-                      {orderType === 'delivery' 
-                        ? `ยืนยันส่งออเดอร์ ฿${cartTotal.toLocaleString()}` 
-                        : (showMemberCheckoutFlow && !selectedCustomer)
-                          ? `ข้ามไปชำระเงิน ฿${cartTotal.toLocaleString()}`
-                          : `ชำระเงิน ฿${cartTotal.toLocaleString()}`}
-                    </span>
-                    {orderType !== 'delivery' && <ArrowRight size={16} strokeWidth={3} />}
+                    <AnimatePresence mode="wait">
+                      <motion.span 
+                        key={checkoutWarning ? 'warning' : 'checkout'}
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -5 }}
+                        transition={{ duration: 0.15 }}
+                        className="text-[13px] font-black uppercase tracking-wider"
+                      >
+                        {checkoutWarning
+                          ? 'กรุณาเลือกโต๊ะก่อน'
+                          : orderType === 'delivery' 
+                            ? `ยืนยันส่งออเดอร์ ฿${cartTotal.toLocaleString()}` 
+                            : (showMemberCheckoutFlow && !selectedCustomer)
+                              ? `ข้ามไปชำระเงิน ฿${cartTotal.toLocaleString()}`
+                              : `ชำระเงิน ฿${cartTotal.toLocaleString()}`
+                        }
+                      </motion.span>
+                    </AnimatePresence>
+                    {!checkoutWarning && orderType !== 'delivery' && <ArrowRight size={16} strokeWidth={3} />}
                   </motion.button>
                 )}
               </div>
