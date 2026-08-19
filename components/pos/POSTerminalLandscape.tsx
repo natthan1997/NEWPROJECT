@@ -1817,10 +1817,10 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
               <button
                 type="button"
                 onClick={() => handleSwitchTab('tables')}
-                className="flex items-center justify-center w-9 h-9 rounded-full bg-neutral-50 text-neutral-400 hover:bg-neutral-100 hover:text-[#D3202B] transition-colors"
+                className="flex items-center justify-center p-2 text-neutral-400 hover:text-[#D3202B] transition-colors bg-transparent border-none"
                 title="จัดการโต๊ะ"
               >
-                <Settings size={18} strokeWidth={2.5} />
+                <Settings size={20} strokeWidth={2.5} />
               </button>
             </header>
 
@@ -1842,7 +1842,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
             {/* Canvas */}
             <div className="flex-1 overflow-hidden relative bg-white">
               <div
-                className="relative w-full h-full"
+                className={`w-full h-full ${selectedTableZone === 'All' ? 'p-6 overflow-y-auto flex flex-wrap gap-6 content-start' : 'relative'}`}
                 style={{ backgroundColor: '#ffffff' }}
               >
                 {tables
@@ -1875,8 +1875,11 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                     return (
                       <div
                         key={table.id}
-                        style={{ position: 'absolute', left: posX, top: posY, width: dims.w, height: dims.h }}
-                        className="group"
+                        style={selectedTableZone === 'All' 
+                           ? { position: 'relative', width: dims.w, height: dims.h }
+                           : { position: 'absolute', left: posX, top: posY, width: dims.w, height: dims.h }
+                        }
+                        className="group shrink-0"
                       >
                         <button
                           type="button"
