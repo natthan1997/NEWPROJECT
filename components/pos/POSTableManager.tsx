@@ -1,6 +1,5 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react'
-import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Plus, Search, Edit3, Trash2, Loader2, 
@@ -613,7 +612,7 @@ export default function POSTableManager({
 
   return (
     <>
-      <div className="p-4 sm:p-6 lg:p-6 font-sans print:hidden bg-transparent h-full flex flex-col relative overflow-hidden">
+      <div className="p-4 sm:p-6 lg:p-6 font-sans print:hidden bg-transparent h-full flex flex-col">
 
         {/* TOP BAR / ZONES */}
         {!showOnlyGrid && (
@@ -697,9 +696,14 @@ export default function POSTableManager({
                 ) : (
                    <>
                       <AnimatePresence>
-                      {tables.filter(t => (t.zone || 'Main') === activeZone).map(table => (
-                          <motion.div 
-                          key={table.id} 
+                      {(() => {
+                          const displayTables = [...tables];
+                          if (editingTable && !editingTable.id && (editingTable.zone || 'Main') === activeZone) {
+                              displayTables.push({ ...editingTable, id: 'temp-editing-table', position_x: 20, position_y: 20 });
+                          }
+                          return displayTables.filter(t => (t.zone || 'Main') === activeZone).map(table => (
+                              <motion.div 
+                              key={table.id} 
                           drag={isLayoutMode}
                           dragConstraints={containerRef}
                           dragMomentum={false}
@@ -749,16 +753,17 @@ export default function POSTableManager({
                             </div>
                           )}
                       </motion.div>
-                  ))}
+                          ));
+                      })()}
                   </AnimatePresence>
 
                   {/* Clean Add Table Button (Borderless) */}
                   {!isLayoutMode && (
                       <button 
                          onClick={() => setIsShapePickerOpen(true)}
-                         className="absolute top-6 right-6 p-2 text-[#D3202B] hover:text-red-700 transition-all hover:scale-110 active:scale-95 z-20 flex items-center justify-center drop-shadow-md bg-white/80 rounded-full backdrop-blur-sm"
+                         className="absolute top-6 right-6 p-2 text-[#D3202B] hover:text-red-700 transition-all hover:scale-110 active:scale-95 z-20 flex items-center justify-center drop-shadow-sm"
                       >
-                         <Plus size={32} strokeWidth={2.5} />
+                         <Plus size={40} strokeWidth={2} />
                       </button>
                   )}
                </>
@@ -771,7 +776,7 @@ export default function POSTableManager({
       {/* TABLE EDITOR (Sleek Glassmorphic Slide-over) */}
       <AnimatePresence>
       {isEditorOpen && (
-          <div className="absolute inset-0 z-[1200] flex items-center justify-end font-sans">
+          <div className="fixed inset-0 z-[1200] flex items-center justify-end font-sans">
               <motion.div 
                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                  className="absolute inset-0 bg-[#D3202B]/20 backdrop-blur-sm" 
@@ -874,18 +879,18 @@ export default function POSTableManager({
                     </button>
                   </div>
               </motion.div>
-            </div>
+          </div>
       )}
       </AnimatePresence>
 
       {/* VISUAL SHAPE PICKER MODAL */}
       <AnimatePresence>
       {isShapePickerOpen && (
-          <div className="absolute inset-0 z-[1300] flex items-center justify-end font-sans pr-8 sm:pr-12">
+          <div className="fixed inset-0 z-[1300] flex items-center justify-center font-sans">
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[#D3202B]/40 backdrop-blur-sm" onClick={() => setIsShapePickerOpen(false)} />
               <motion.div 
-                 initial={{ opacity: 0, scale: 0.95, x: 20 }} animate={{ opacity: 1, scale: 1, x: 0 }} exit={{ opacity: 0, scale: 0.95, x: 20 }}
-                 className="relative bg-white p-8 rounded-[2rem] shadow-2xl max-w-sm w-full flex flex-col gap-4 border border-neutral-100"
+                 initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                 className="relative bg-white p-8 rounded-[2rem] shadow-2xl max-w-sm w-full mx-4 flex flex-col gap-4 border border-neutral-100"
               >
                   <button onClick={() => setIsShapePickerOpen(false)} className="absolute top-6 right-6 w-8 h-8 flex items-center justify-center bg-neutral-100 rounded-full text-neutral-500 hover:bg-neutral-200 hover:text-black transition-colors"><X size={16} /></button>
                   <h3 className="text-xl font-black text-center mb-4 tracking-tight">เลือกทรงโต๊ะ</h3>
@@ -910,7 +915,7 @@ export default function POSTableManager({
                       <div className="flex flex-col"><span className="font-bold text-neutral-900">โต๊ะกลม</span><span className="text-[10px] font-medium text-neutral-500">4-6 ที่นั่ง (โต๊ะกลม)</span></div>
                   </button>
               </motion.div>
-            </div>
+          </div>
       )}
       </AnimatePresence>
 
