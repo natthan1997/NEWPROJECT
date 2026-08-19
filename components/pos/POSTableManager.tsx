@@ -801,16 +801,13 @@ export default function POSTableManager({
                           {/* Animated Border for Selected or New Table */}
                           {(editingTable?.id === table.id || pendingEditTableId === table.id) && (
                              <svg className="absolute inset-0 w-full h-full pointer-events-none z-20 overflow-visible">
-                                <motion.rect
+                                <rect
                                    x="-3" y="-3" 
                                    width="calc(100% + 6px)" height="calc(100% + 6px)"
                                    rx={table.shape === 'circle' ? '9999' : (table.shape === 'rectangle' || table.shape === 'rectangle_vertical' ? '27' : '19')}
                                    fill="none"
                                    stroke="#D3202B"
                                    strokeWidth="2.5"
-                                   strokeDasharray="8 8"
-                                   animate={{ strokeDashoffset: [0, -16] }}
-                                   transition={{ repeat: Infinity, ease: "linear", duration: 0.5 }}
                                 />
                              </svg>
                           )}
