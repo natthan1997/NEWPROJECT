@@ -5680,13 +5680,13 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                 onClick={() => {
                   if (orderType === 'dine_in') {
                       fetchTables();
-                      setActiveLandscapeTab('table_select');
+                      handleSwitchTab('table_select');
                   } else if (editingOrderId) {
                       setPendingOrderTypeSwitch('dine_in');
                   } else {
                       setOrderType('dine_in');
                       fetchTables();
-                      setActiveLandscapeTab('table_select');
+                      handleSwitchTab('table_select');
                   }
                 }}
                 className={`flex h-12 flex-1 items-center justify-center gap-2 text-[12px] font-bold transition-all rounded-[0.8rem] ${orderType === 'dine_in' ? 'text-[#D3202B]' : 'text-gray-400 hover:text-gray-900'}`}
@@ -6010,7 +6010,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                               refreshPendingOrders();
                           } else {
                               // They are switching to dine_in, open table modal to pick a table
-                              setActiveLandscapeTab('table_select');
+                              handleSwitchTab('table_select');
                           }
                       }
                     }}
