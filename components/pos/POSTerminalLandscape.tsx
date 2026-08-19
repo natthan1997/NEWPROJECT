@@ -1859,7 +1859,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                     const isOccupied = pendingForThisTable.length > 0 || targetTable.status === 'occupied';
                     const isSelected = selectedTable?.id === targetTable.id;
 
-                    const shape = table.shape || 'square';
+                    const shape = selectedTableZone === 'All' ? 'circle' : (table.shape || 'square');
                     const dims =
                       shape === 'rectangle'          ? { w: 160, h: 96 } :
                       shape === 'rectangle_vertical' ? { w: 96, h: 160 } :
