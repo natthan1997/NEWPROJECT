@@ -1907,109 +1907,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
               </div>
             </div>
 
-            {/* Table Action bottom-sheet — same pattern as pendingOrderTypeSwitch */}
-            <AnimatePresence>
-              {tableActionTarget && (
-                <div className="absolute inset-0 z-20 flex items-end justify-center font-bold">
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="absolute inset-0 bg-neutral-900/60 backdrop-blur-sm"
-                    onClick={() => setTableActionTarget(null)}
-                  />
-                  <motion.div
-                    initial={{ y: '100%', opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: '100%', opacity: 0 }}
-                    transition={{ type: 'spring', damping: 28, stiffness: 260 }}
-                    className="relative w-full bg-white rounded-t-[2rem] p-5 shadow-2xl z-10"
-                  >
-                    <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-500">
-                      <ArrowRight size={22} />
-                    </div>
-                    <h3 className="text-center text-base font-black tracking-tight text-[#1A1A18] mb-1">จัดการบิล</h3>
-                    <p className="text-center text-[11px] text-gray-500 font-bold mb-5">
-                      โต๊ะ <span className="text-[#1A1A18]">{selectedTable?.table_number}</span>
-                      {' → '}
-                      โต๊ะ <span className="text-[#D3202B]">{tableActionTarget.table_number}</span>
-                    </p>
-                    <div className="flex flex-col gap-2">
-                      {(tables.find((t: any) => t.id === tableActionTarget.id)?.status === 'occupied' ||
-                        pendingOrders.some((o: any) => o.table_id === tableActionTarget.id && o.status === 'pending')) ? (
-                        <>
-                          <button
-                            type="button"
-                            disabled={isProcessing}
-                            onClick={() => {
-                              const targetOrder = suspendedOrders.find((o: any) => o.table_id === tableActionTarget.id && o.status === 'pending');
-                              if (!targetOrder) { alert('ไม่พบบิลของโต๊ะปลายทาง'); return; }
-                              setIsProcessing(true); setCheckoutError(null);
-                              (async () => {
-                                try {
-                                  const { data: oldOrderData } = await supabase.from('pos_orders').select('*').eq('id', editingOrderId).single();
-                                  if (oldOrderData) {
-                                    const mergedTableNumber = targetOrder.table_number?.includes(oldOrderData.table_number) ? targetOrder.table_number : `${targetOrder.table_number} + ${oldOrderData.table_number}`;
-                                    await supabase.from('pos_orders').update({ subtotal: Number(targetOrder.subtotal||0)+Number(oldOrderData.subtotal||0), tax: Number(targetOrder.tax||0)+Number(oldOrderData.tax||0), service_charge: Number(targetOrder.service_charge||0)+Number(oldOrderData.service_charge||0), total: Number(targetOrder.total||0)+Number(oldOrderData.total||0), table_number: mergedTableNumber }).eq('id', targetOrder.id);
-                                  }
-                                  const { data: currentItems } = await supabase.from('pos_order_items').select('*').eq('order_id', editingOrderId);
-                                  if (currentItems?.length) {
-                                    await supabase.from('pos_order_items').upsert(currentItems.map((item: any) => ({ ...item, order_id: targetOrder.id, selected_modifiers: [...(item.selected_modifiers||[]), { name: `[ย้ายมาจากโต๊ะ ${selectedTable?.table_number||'เดิม'}]`, price_adjustment: 0, qty: 1 }] })));
-                                  }
-                                  await supabase.from('pos_orders').update({ status: 'cancelled' }).eq('id', editingOrderId);
-                                  if (selectedTable?.id) { await supabase.from('pos_tables').update({ parent_table_id: tableActionTarget.id }).eq('id', selectedTable.id); }
-                                  fetchTables(); refreshPendingOrders(); resetDeliveryDraft();
-                                  setTableActionTarget(null); handleSwitchTab('terminal');
-                                } catch (err: any) { alert('Error: ' + err.message); } finally { setIsProcessing(false); }
-                              })();
-                            }}
-                            className="flex items-center justify-center gap-2 w-full bg-emerald-500 active:bg-emerald-600 text-white rounded-2xl py-3.5 text-[12px] font-black uppercase tracking-wider transition-all active:scale-[0.98]"
-                          >
-                            {isProcessing ? <Loader2 size={15} className="animate-spin" /> : <Merge size={15} />}
-                            รวมบิลเข้าด้วยกัน
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const targetOrder = suspendedOrders.find((o: any) => o.table_id === tableActionTarget.id && o.status === 'pending');
-                              setSelectedTable(tableActionTarget); setOrderType('dine_in'); resetDeliveryDraft();
-                              setTableActionTarget(null); handleSwitchTab('terminal');
-                              if (targetOrder) handleResumeOrder(targetOrder);
-                            }}
-                            className="flex items-center justify-center gap-2 w-full bg-gray-100 active:bg-gray-200 text-[#1A1A18] rounded-2xl py-3.5 text-[12px] font-black uppercase tracking-wider transition-all active:scale-[0.98]"
-                          >
-                            <Eye size={15} /> สลับไปดูบิลโต๊ะนี้
-                          </button>
-                        </>
-                      ) : (
-                        <button
-                          type="button"
-                          disabled={isProcessing}
-                          onClick={() => {
-                            setIsProcessing(true); setCheckoutError(null);
-                            (async () => {
-                              try {
-                                await supabase.from('pos_orders').update({ table_id: tableActionTarget.id, table_number: tableActionTarget.table_number }).eq('id', editingOrderId);
-                                if (selectedTable?.id) { await supabase.from('pos_tables').update({ parent_table_id: null }).eq('id', selectedTable.id); }
-                                fetchTables(); refreshPendingOrders();
-                                setSelectedTable(tableActionTarget); setTableActionTarget(null); handleSwitchTab('terminal');
-                              } catch (err: any) { alert('Error: ' + err.message); } finally { setIsProcessing(false); }
-                            })();
-                          }}
-                          className="flex items-center justify-center gap-2 w-full bg-amber-500 active:bg-amber-600 text-white rounded-2xl py-3.5 text-[12px] font-black uppercase tracking-wider transition-all active:scale-[0.98]"
-                        >
-                          {isProcessing ? <Loader2 size={15} className="animate-spin" /> : <ArrowRight size={15} />}
-                          ย้ายบิลมาโต๊ะนี้
-                        </button>
-                      )}
-                      <button type="button" onClick={() => setTableActionTarget(null)} className="w-full py-2.5 text-[11px] font-black uppercase tracking-widest text-neutral-400 hover:text-neutral-600 transition-colors">
-                        ยกเลิก
-                      </button>
-                    </div>
-                  </motion.div>
-                </div>
-              )}
-            </AnimatePresence>
+            {/* Table Action bottom-sheet moved to Cart side */}
           </motion.div>
           </motion.div>
 
@@ -6036,6 +5934,117 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                     className="w-full py-2 text-[11px] font-black uppercase tracking-widest text-neutral-400 hover:text-neutral-600 transition-colors"
                   >
                     {locale === 'en' ? 'Cancel' : locale === 'zh' ? 'Cancel' : 'ยกเลิก'}
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* TABLE ACTION MODAL (Moved from left panel to right panel) */}
+        <AnimatePresence>
+          {tableActionTarget && (
+            <div className="absolute inset-0 z-[100] flex items-end justify-center font-bold p-4">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-neutral-900/60 backdrop-blur-sm lg:rounded-[2rem]"
+                onClick={() => setTableActionTarget(null)}
+              />
+              <motion.div
+                initial={{ y: '100%', opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: '100%', opacity: 0 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+                className="relative w-full bg-white p-6 rounded-[2rem] text-center shadow-2xl border border-neutral-100/50 z-10"
+              >
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-500">
+                  <ArrowRight size={28} />
+                </div>
+                <h3 className="mb-2 text-lg font-black uppercase tracking-tight text-neutral-800">
+                  จัดการบิล
+                </h3>
+                <p className="mb-6 text-xs font-bold text-neutral-500 leading-relaxed mx-auto">
+                  โต๊ะ <span className="text-neutral-800">{selectedTable?.table_number}</span>
+                  {' → '}
+                  โต๊ะ <span className="text-[#D3202B]">{tableActionTarget.table_number}</span>
+                </p>
+                
+                <div className="flex flex-col gap-2">
+                  {(tables.find((t: any) => t.id === tableActionTarget.id)?.status === 'occupied' ||
+                    pendingOrders.some((o: any) => o.table_id === tableActionTarget.id && o.status === 'pending')) ? (
+                    <>
+                      <button
+                        type="button"
+                        disabled={isProcessing}
+                        onClick={() => {
+                          const targetOrder = suspendedOrders.find((o: any) => o.table_id === tableActionTarget.id && o.status === 'pending');
+                          if (!targetOrder) { alert('ไม่พบบิลของโต๊ะปลายทาง'); return; }
+                          setIsProcessing(true); setCheckoutError(null);
+                          (async () => {
+                            try {
+                              const { data: oldOrderData } = await supabase.from('pos_orders').select('*').eq('id', editingOrderId).single();
+                              if (oldOrderData) {
+                                const mergedTableNumber = targetOrder.table_number?.includes(oldOrderData.table_number) ? targetOrder.table_number : `${targetOrder.table_number} + ${oldOrderData.table_number}`;
+                                await supabase.from('pos_orders').update({ subtotal: Number(targetOrder.subtotal||0)+Number(oldOrderData.subtotal||0), tax: Number(targetOrder.tax||0)+Number(oldOrderData.tax||0), service_charge: Number(targetOrder.service_charge||0)+Number(oldOrderData.service_charge||0), total: Number(targetOrder.total||0)+Number(oldOrderData.total||0), table_number: mergedTableNumber }).eq('id', targetOrder.id);
+                              }
+                              const { data: currentItems } = await supabase.from('pos_order_items').select('*').eq('order_id', editingOrderId);
+                              if (currentItems?.length) {
+                                await supabase.from('pos_order_items').upsert(currentItems.map((item: any) => ({ ...item, order_id: targetOrder.id, selected_modifiers: [...(item.selected_modifiers||[]), { name: `[ย้ายมาจากโต๊ะ ${selectedTable?.table_number||'เดิม'}]`, price_adjustment: 0, qty: 1 }] })));
+                              }
+                              await supabase.from('pos_orders').update({ status: 'cancelled' }).eq('id', editingOrderId);
+                              if (selectedTable?.id) { await supabase.from('pos_tables').update({ parent_table_id: tableActionTarget.id }).eq('id', selectedTable.id); }
+                              fetchTables(); refreshPendingOrders(); resetDeliveryDraft();
+                              setTableActionTarget(null); handleSwitchTab('terminal');
+                            } catch (err: any) { alert('Error: ' + err.message); } finally { setIsProcessing(false); }
+                          })();
+                        }}
+                        className="flex items-center justify-center gap-2 w-full rounded-2xl bg-emerald-500 py-3.5 text-[12px] font-black uppercase tracking-widest text-white shadow-md active:scale-95 transition-all disabled:opacity-50"
+                      >
+                        {isProcessing ? <Loader2 size={15} className="animate-spin" /> : <Merge size={15} />}
+                        รวมบิลเข้าด้วยกัน
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const targetOrder = suspendedOrders.find((o: any) => o.table_id === tableActionTarget.id && o.status === 'pending');
+                          setSelectedTable(tableActionTarget); setOrderType('dine_in'); resetDeliveryDraft();
+                          setTableActionTarget(null); handleSwitchTab('terminal');
+                          if (targetOrder) handleResumeOrder(targetOrder);
+                        }}
+                        className="flex items-center justify-center gap-2 w-full rounded-2xl bg-neutral-100 py-3.5 text-[12px] font-black uppercase tracking-widest text-neutral-800 shadow-sm active:scale-95 transition-all"
+                      >
+                        <Eye size={15} /> สลับไปดูบิลโต๊ะนี้
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={isProcessing}
+                      onClick={() => {
+                        setIsProcessing(true); setCheckoutError(null);
+                        (async () => {
+                          try {
+                            await supabase.from('pos_orders').update({ table_id: tableActionTarget.id, table_number: tableActionTarget.table_number }).eq('id', editingOrderId);
+                            if (selectedTable?.id) { await supabase.from('pos_tables').update({ parent_table_id: null }).eq('id', selectedTable.id); }
+                            fetchTables(); refreshPendingOrders();
+                            setSelectedTable(tableActionTarget); setTableActionTarget(null); handleSwitchTab('terminal');
+                          } catch (err: any) { alert('Error: ' + err.message); } finally { setIsProcessing(false); }
+                        })();
+                      }}
+                      className="flex items-center justify-center gap-2 w-full rounded-2xl bg-amber-500 py-3.5 text-[12px] font-black uppercase tracking-widest text-white shadow-md active:scale-95 transition-all disabled:opacity-50"
+                    >
+                      {isProcessing ? <Loader2 size={15} className="animate-spin" /> : <ArrowRight size={15} />}
+                      ย้ายบิลมาโต๊ะนี้
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setTableActionTarget(null)}
+                    className="w-full py-2 text-[11px] font-black uppercase tracking-widest text-neutral-400 hover:text-neutral-600 transition-colors"
+                  >
+                    ยกเลิก
                   </button>
                 </div>
               </motion.div>
