@@ -1781,7 +1781,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
               pointerEvents: renderedLandscapeTab === 'table_select' ? 'auto' : 'none'
             }}
             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute inset-0 flex flex-col min-h-0 bg-[#F2F2F0] lg:rounded-[2rem] overflow-hidden"
+            className="absolute inset-0 flex flex-col min-h-0 bg-white lg:rounded-[2rem] overflow-hidden"
           >
 <motion.div
             key="table-select-view"
@@ -1789,7 +1789,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
             transition={{ duration: 0.2 }}
-            className="flex h-full w-full flex-col bg-[#F2F2F0] absolute inset-0 font-bold will-change-transform"
+            className="flex h-full w-full flex-col bg-white absolute inset-0 font-bold will-change-transform"
           >
             {/* Header */}
             <header className="flex items-center justify-between bg-white border-b border-gray-100 px-5 py-3.5 shrink-0">
