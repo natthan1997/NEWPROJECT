@@ -117,6 +117,7 @@ import {
   Package,
   BarChart3,
   ClipboardList,
+  ChevronLeft,
 } from 'lucide-react'
 import Swal from 'sweetalert2'
 import { QRCodeSVG } from 'qrcode.react'
