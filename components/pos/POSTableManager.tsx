@@ -509,31 +509,34 @@ export default function POSTableManager({
         )}
 
         {/* 2. MAIN TABLE CANVAS (Scrollable on small devices) */}
-        <div className={`flex-grow mt-2 relative w-full rounded-[2.5rem] overflow-hidden ${isLayoutMode ? 'bg-black border border-neutral-900 shadow-inner' : 'bg-transparent border-none'}`}>
+        <div className={`flex-grow mt-2 relative w-full rounded-[2.5rem] overflow-hidden ${isLayoutMode ? 'bg-red-50/50 border border-red-100 shadow-inner' : 'bg-transparent border-none'}`}>
              {isLayoutMode && (
-               <div className="absolute top-5 left-1/2 -translate-x-1/2 bg-black/95 backdrop-blur border border-neutral-800 px-6 py-3 rounded-2xl flex items-center gap-6 shadow-2xl z-30 font-sans">
-                 <div className="flex items-center gap-2.5 text-white text-xs font-black tracking-wide">
-                   <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse"></span>
-                   <span>โหมดจัดตำแหน่งโต๊ะ</span>
-                   <span className="text-[10px] text-neutral-400 font-bold hidden sm:inline">(ลากเพื่อย้ายตำแหน่ง)</span>
+               <div className="absolute top-6 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-md border border-red-100 px-5 py-2.5 rounded-full flex items-center gap-5 shadow-xl shadow-red-500/10 z-30 font-sans">
+                 <div className="flex items-center gap-2 text-gray-800 text-xs font-bold tracking-tight">
+                   <span className="relative flex h-2 w-2">
+                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                     <span className="relative inline-flex rounded-full h-2 w-2 bg-[#D3202B]"></span>
+                   </span>
+                   <span className="ml-1 text-[#D3202B]">จัดวางตำแหน่งโต๊ะ</span>
                  </div>
-                 <div className="flex items-center gap-2">
-                   <button 
-                     onClick={handleSaveLayout} 
-                     disabled={savingLayout} 
-                     className="px-4 py-2 bg-[#D3202B] hover:bg-red-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 active:scale-95 shadow-lg shadow-red-600/10 font-bold"
-                   >
-                     {savingLayout ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
-                     บันทึกตำแหน่ง
-                   </button>
+                 <div className="w-px h-4 bg-gray-200"></div>
+                 <div className="flex items-center gap-1.5">
                    <button 
                      onClick={() => {
                        setIsLayoutMode(false);
                        fetchTables();
                      }} 
-                     className="px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 border border-neutral-800 rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 font-bold"
+                     className="px-4 py-2 hover:bg-red-50 text-gray-500 hover:text-[#D3202B] rounded-full text-[11px] font-bold uppercase tracking-widest transition-all active:scale-95"
                    >
                      ยกเลิก
+                   </button>
+                   <button 
+                     onClick={handleSaveLayout} 
+                     disabled={savingLayout} 
+                     className="px-5 py-2 bg-[#D3202B] hover:bg-red-700 text-white rounded-full text-[11px] font-bold uppercase tracking-widest transition-all flex items-center gap-1.5 active:scale-95 shadow-md shadow-red-600/20"
+                   >
+                     {savingLayout ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+                     บันทึก
                    </button>
                  </div>
                </div>
@@ -542,7 +545,7 @@ export default function POSTableManager({
                <div 
                  ref={containerRef}
                  className="relative w-full h-full"
-                 style={{ backgroundImage: isLayoutMode ? 'radial-gradient(#262626 2.5px, transparent 2.5px)' : 'none', backgroundSize: '32px 32px' }}>
+                 style={{ backgroundImage: isLayoutMode ? 'radial-gradient(#fca5a5 1.5px, transparent 1.5px)' : 'none', backgroundSize: '32px 32px' }}>
                 {loading ? (
                    <div className="absolute inset-0 flex items-center justify-center opacity-30">
                        <Loader2 className="animate-spin text-neutral-400" size={48} />
