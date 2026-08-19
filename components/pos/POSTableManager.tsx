@@ -52,6 +52,9 @@ export default function POSTableManager({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [showQrModal, setShowQrModal] = useState<any>(null)
   
+  const [isCreatingZone, setIsCreatingZone] = useState(false)
+  const [newZoneName, setNewZoneName] = useState('')
+  
   const [isLayoutModeInternalState, setIsLayoutModeInternalState] = useState(false)
   const isLayoutMode = isLayoutModeProps !== undefined ? isLayoutModeProps : isLayoutModeInternalState;
   const setIsLayoutMode = setIsLayoutModeProps !== undefined ? setIsLayoutModeProps : setIsLayoutModeInternalState;
@@ -297,14 +300,19 @@ export default function POSTableManager({
   const allZones = Array.from(new Set([...tables.map(t => t.zone || 'Main'), ...dbZones.map(z => z.name)]));
   if (!allZones.includes('Main')) allZones.unshift('Main');
 
-  const handleAddZone = async () => {
-      const newZone = prompt('ระบุชื่อโซนใหม่ (เช่น Indoor, Outdoor, VIP):');
-      if (newZone && newZone.trim()) {
-          const zoneName = newZone.trim();
+  const submitNewZone = async () => {
+      if (newZoneName && newZoneName.trim()) {
+          const zoneName = newZoneName.trim();
           await supabase.from('pos_zones').insert({ name: zoneName, branch_id: shopSettings?.branch_id || null });
           fetchZones();
           setActiveZone(zoneName);
       }
+      setIsCreatingZone(false);
+      setNewZoneName('');
+  }
+
+  const handleAddZone = async () => {
+      setIsCreatingZone(true);
   }
 
   const handleDeleteZone = async (zoneName: string, e: React.MouseEvent) => {
@@ -473,12 +481,30 @@ export default function POSTableManager({
            })}
         </div>
         {!isLayoutMode && (
-          <button 
-            onClick={handleAddZone} 
-            className="w-full py-4 rounded-2xl font-black text-xs bg-white text-indigo-500 hover:bg-indigo-50 border border-indigo-100 flex items-center justify-center gap-1.5 transition-colors shadow-sm shrink-0 mt-4"
-          >
-            <Plus size={16} /> สร้างโซนใหม่
-          </button>
+          isCreatingZone ? (
+            <div className="mt-4 flex flex-col gap-2 p-3 rounded-2xl border border-indigo-200 bg-indigo-50/50 shrink-0">
+               <input 
+                  autoFocus
+                  type="text" 
+                  placeholder="ชื่อโซนใหม่..." 
+                  value={newZoneName} 
+                  onChange={(e) => setNewZoneName(e.target.value)} 
+                  onKeyDown={(e) => { if(e.key === 'Enter') submitNewZone(); else if (e.key === 'Escape') setIsCreatingZone(false); }}
+                  className="w-full px-3 py-2 rounded-xl text-sm border border-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-indigo-900 bg-white" 
+               />
+               <div className="flex gap-2">
+                 <button onClick={() => setIsCreatingZone(false)} className="flex-1 py-2 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-200 transition-colors bg-white border border-gray-200 shadow-sm">ยกเลิก</button>
+                 <button onClick={submitNewZone} className="flex-1 py-2 rounded-xl text-xs font-bold text-white bg-indigo-500 hover:bg-indigo-600 transition-colors shadow-sm">บันทึก</button>
+               </div>
+            </div>
+          ) : (
+            <button 
+              onClick={() => setIsCreatingZone(true)} 
+              className="w-full py-4 rounded-2xl font-black text-xs bg-white text-indigo-500 hover:bg-indigo-50 border border-indigo-100 flex items-center justify-center gap-1.5 transition-colors shadow-sm shrink-0 mt-4"
+            >
+              <Plus size={16} /> สร้างโซนใหม่
+            </button>
+          )
         )}
       </div>
     );
@@ -502,9 +528,25 @@ export default function POSTableManager({
                </button>
            ))}
            {!isLayoutMode && (
-               <button onClick={handleAddZone} className="px-5 py-3 rounded-2xl font-bold text-sm whitespace-nowrap bg-white text-indigo-500 hover:bg-indigo-50 border border-indigo-100 flex items-center gap-1.5 transition-colors shadow-sm shrink-0">
-                   <Plus size={16} /> สร้างโซน
-               </button>
+               isCreatingZone ? (
+                 <div className="flex items-center gap-2 p-1 bg-indigo-50/50 border border-indigo-100 rounded-2xl shrink-0 h-[46px]">
+                   <input 
+                      autoFocus
+                      type="text" 
+                      placeholder="ชื่อโซนใหม่..." 
+                      value={newZoneName} 
+                      onChange={(e) => setNewZoneName(e.target.value)} 
+                      onKeyDown={(e) => { if(e.key === 'Enter') submitNewZone(); else if (e.key === 'Escape') setIsCreatingZone(false); }}
+                      className="w-32 px-3 py-1.5 rounded-xl text-sm border-none focus:outline-none bg-white font-bold text-indigo-900 ml-1" 
+                   />
+                   <button onClick={submitNewZone} className="px-3 h-full rounded-xl text-xs font-bold text-white bg-indigo-500 hover:bg-indigo-600 transition-colors">บันทึก</button>
+                   <button onClick={() => setIsCreatingZone(false)} className="px-3 h-full rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-200 transition-colors bg-white mr-1">ยกเลิก</button>
+                 </div>
+               ) : (
+                 <button onClick={() => setIsCreatingZone(true)} className="px-5 py-3 rounded-2xl font-bold text-sm whitespace-nowrap bg-white text-indigo-500 hover:bg-indigo-50 border border-indigo-100 flex items-center gap-1.5 transition-colors shadow-sm shrink-0 h-[46px]">
+                     <Plus size={16} /> สร้างโซน
+                 </button>
+               )
            )}
         </div>
         )}
