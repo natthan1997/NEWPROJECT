@@ -804,27 +804,51 @@ export default function POSStaffManager({
         fetchStaff()
     }
 
+    const handleOpenAddStaffModal = () => {
+        let nextNumber = 1;
+        const empCodes = staff
+            .map(s => s.staff_code)
+            .filter(code => code && code.toUpperCase().startsWith('EMP-'))
+            .map(code => parseInt(code.substring(4), 10))
+            .filter(num => !isNaN(num));
+            
+        if (empCodes.length > 0) {
+            nextNumber = Math.max(...empCodes) + 1;
+        }
+        
+        const generatedCode = `EMP-${nextNumber.toString().padStart(3, '0')}`;
+        
+        setNewStaffForm({
+            ...newStaffForm,
+            staff_code: generatedCode,
+            display_name: '',
+            phone: ''
+        });
+        setShowAddStaffModal(true);
+    }
+
     const handleCreateStaff = async () => {
-        if (!newStaffForm.display_name) return alert('กรุณากรอกชื่อพนักงาน');
+        if (!newStaffForm.staff_code) return alert('กรุณากรอกรหัสพนักงาน');
+
+        const finalDisplayName = newStaffForm.display_name || `พนักงานใหม่ (${newStaffForm.staff_code})`;
 
         setIsSaving(true);
         try {
             if (newStaffForm.has_login && newStaffForm.login_method === 'credentials') {
-                if (!newStaffForm.email || !newStaffForm.password) {
-                    setIsSaving(false);
-                    return alert('กรุณากรอกอีเมลและรหัสผ่านสำหรับพนักงาน');
-                }
+                const merchantIdStr = profile?.merchant_id || `M${Date.now()}`;
+                const autoEmail = `${newStaffForm.staff_code.toLowerCase()}@${merchantIdStr}.rushup.app`;
+                const autoPassword = `RUSHUP${newStaffForm.staff_code}`;
 
                 // Call our new API route
                 const res = await fetch('/api/auth/staff/create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        email: newStaffForm.email,
-                        password: newStaffForm.password,
+                        email: autoEmail,
+                        password: autoPassword,
                         profile_data: {
-                            display_name: newStaffForm.display_name,
-                            full_name: newStaffForm.display_name,
+                            display_name: finalDisplayName,
+                            full_name: finalDisplayName,
                             staff_code: newStaffForm.staff_code,
                             phone: newStaffForm.phone,
                             staff_type: newStaffForm.staff_type,
@@ -854,12 +878,15 @@ export default function POSStaffManager({
                     has_login: false, login_method: 'invite', email: '', password: ''
                 });
                 fetchStaff();
+                
+                // Show success modal with credentials
+                alert(`สร้างบัญชีสำเร็จ!\n\nอีเมล: ${autoEmail}\nรหัสผ่าน: ${autoPassword}\n\nกรุณาคัดลอกข้อมูลนี้ส่งให้พนักงานเพื่อใช้ล็อคอินเข้าระบบ POS`);
 
             } else {
                 // Offline or LINE Invite method (Standard Insert)
                 const { data, error } = await supabase.from('profiles').insert({
-                    display_name: newStaffForm.display_name,
-                    full_name: newStaffForm.display_name,
+                    display_name: finalDisplayName,
+                    full_name: finalDisplayName,
                     staff_code: newStaffForm.staff_code,
                     phone: newStaffForm.phone,
                     staff_type: newStaffForm.staff_type,
@@ -1878,7 +1905,7 @@ export default function POSStaffManager({
                                 />
                             </div>
                             <button
-                                onClick={() => setShowAddStaffModal(true)}
+                                onClick={handleOpenAddStaffModal}
                                 className="bg-[#0F172A] text-white px-6 py-3 rounded-xl text-[11px] font-bold tracking-wide hover:bg-neutral-800 transition-colors whitespace-nowrap w-full sm:w-auto text-center"
                             >
                                 + เพิ่มพนักงาน
@@ -2201,32 +2228,12 @@ export default function POSStaffManager({
 
                         <div className="p-6 overflow-y-auto space-y-5 flex-1">
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">ชื่อพนักงาน *</label>
-                                <input
-                                    type="text"
-                                    value={newStaffForm.display_name}
-                                    onChange={e => setNewStaffForm({ ...newStaffForm, display_name: e.target.value })}
-                                    placeholder="เช่น คุณสมชาย"
-                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">รหัสพนักงาน</label>
+                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">รหัสพนักงาน *</label>
                                 <input
                                     type="text"
                                     value={newStaffForm.staff_code}
                                     onChange={e => setNewStaffForm({ ...newStaffForm, staff_code: e.target.value })}
                                     placeholder="เช่น EMP-001"
-                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">เบอร์โทรศัพท์</label>
-                                <input
-                                    type="tel"
-                                    value={newStaffForm.phone}
-                                    onChange={e => setNewStaffForm({ ...newStaffForm, phone: e.target.value })}
-                                    placeholder="080-123-4567"
                                     className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
                                 />
                             </div>
@@ -2347,32 +2354,13 @@ export default function POSStaffManager({
                                                     className="hidden"
                                                 />
                                                 <Mail size={16} />
-                                                <span className="text-xs font-bold">ตั้งอีเมล/รหัส</span>
+                                                <span className="text-xs font-bold">สร้างรหัสผ่าน</span>
                                             </label>
                                         </div>
 
                                         {newStaffForm.login_method === 'credentials' && (
-                                            <div className="space-y-3 pt-2">
-                                                <div className="space-y-1.5">
-                                                    <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">อีเมล (ใช้เข้าสู่ระบบ) *</label>
-                                                    <input
-                                                        type="email"
-                                                        value={newStaffForm.email}
-                                                        onChange={e => setNewStaffForm({ ...newStaffForm, email: e.target.value })}
-                                                        placeholder="staff@rushup.com"
-                                                        className="w-full bg-white rounded-xl border border-neutral-200 py-2.5 px-3 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
-                                                    />
-                                                </div>
-                                                <div className="space-y-1.5">
-                                                    <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">รหัสผ่าน (6 ตัวอักษรขึ้นไป) *</label>
-                                                    <input
-                                                        type="password"
-                                                        value={newStaffForm.password}
-                                                        onChange={e => setNewStaffForm({ ...newStaffForm, password: e.target.value })}
-                                                        placeholder="••••••"
-                                                        className="w-full bg-white rounded-xl border border-neutral-200 py-2.5 px-3 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
-                                                    />
-                                                </div>
+                                            <div className="text-center p-3">
+                                                <p className="text-[10px] font-bold text-neutral-400">ระบบจะสร้างบัญชีและรหัสผ่านจาก "รหัสพนักงาน" อัตโนมัติ<br/>ข้อมูลล็อคอินจะแสดงให้บันทึกหลังจากกดสร้างสำเร็จ</p>
                                             </div>
                                         )}
                                         {newStaffForm.login_method === 'invite' && (
