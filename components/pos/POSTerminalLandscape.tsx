@@ -4957,6 +4957,130 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
               )}
             </div>
 
+            {/* DYNAMIC CART FOOTER / PAYMENT OPTIONS */}
+            <AnimatePresence mode="popLayout" initial={false}>
+              {showPaymentModal && !paymentSuccessData ? (
+                <motion.footer
+                  key="payment-options-footer"
+                  initial={{ y: '100%', opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: '100%', opacity: 0 }}
+                  transition={{ type: "spring", damping: 25, stiffness: 220 }}
+                  className="shrink-0 bg-white border-t border-gray-100 relative z-20 flex flex-col max-h-[70vh] rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.08)]"
+                >
+                  <header className="flex items-center justify-between px-6 py-5 border-b border-gray-100 bg-white shrink-0">
+                  <div className="text-left">
+                    <h2 className="text-lg font-black text-gray-900 tracking-tight">ชำระเงิน</h2>
+                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">เลือกช่องทางการชำระเงิน</p>
+                  </div>
+                  <button
+                    onClick={() => setShowPaymentModal(false)}
+                    className="p-2 text-gray-400 hover:text-black hover:bg-gray-100 rounded-xl transition-all"
+                  >
+                    <X size={20} />
+                  </button>
+                </header>
+                  <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-white">
+                    {/* Total Due display */}
+                  <div className="text-center bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+                    <div className="text-[11px] font-black text-gray-400 mb-2 tracking-widest uppercase">ยอดชำระสุทธิ</div>
+                    <div className="text-5xl font-black text-gray-900 tracking-tight">
+                      <span className="text-2xl font-medium text-gray-400 mr-2">฿</span>
+                      {remainingTotal.toLocaleString()}
+                    </div>
+                    {totalPaid > 0 && (
+                      <div className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1.5 text-[10px] font-black tracking-wider text-green-600 border border-green-100">
+                        <Check size={14} strokeWidth={3} />
+                        <span>ชำระแล้ว: ฿{totalPaid.toLocaleString()} / รวม: ฿{cartTotal.toLocaleString()}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {checkoutError && (
+                    <div className="p-4 rounded-xl bg-red-50 border border-red-100 text-red-600 text-xs font-bold leading-normal">
+                      {checkoutError}
+                    </div>
+                  )}
+
+                  {/* Split Bill option */}
+                  <button
+                    disabled={isProcessing || remainingTotal <= 0}
+                    onClick={() => {
+                      fetchTables();
+                      refreshPendingOrders();
+                      setShowPaymentModal(false);
+                      setShowSplitPaymentModal(true);
+                    }}
+                    className="w-full py-4 rounded-2xl bg-white border border-gray-200 shadow-sm text-gray-700 text-[13px] font-bold hover:bg-gray-50 transition-all flex items-center justify-center gap-2"
+                  >
+                    หารจ่าย / แยกจ่าย (Split Bill)
+                  </button>
+
+                  {/* Quick Payment buttons grid */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <button
+                      disabled={isProcessing}
+                      onClick={() => {
+                        setCheckoutError(null);
+                        setShowPaymentModal(false);
+                        setCashReceived('');
+                        setPaymentSuccessData(null);
+                        setCurrentPaymentAmount(remainingTotal);
+                        setShowCashPaymentModal(true);
+                      }}
+                      className={`h-28 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-2 shadow-sm ${processingMethod === 'cash' ? 'bg-black text-white border-black' : 'bg-white border-gray-100 text-gray-700 hover:border-gray-300'} disabled:opacity-40`}
+                    >
+                      {processingMethod === 'cash' ? (
+                        <Loader2 className="animate-spin text-white" size={28} />
+                      ) : (
+                        <Banknote size={32} strokeWidth={1.5} />
+                      )}
+                      <span className="text-[12px] font-bold tracking-wide">เงินสด</span>
+                    </button>
+
+                    <button
+                      disabled={isProcessing}
+                      onClick={() => {
+                        setCheckoutError(null);
+                        handleProcessPayment('promptpay');
+                      }}
+                      className={`h-28 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-2 shadow-sm ${processingMethod === 'promptpay' ? 'bg-black text-white border-black' : 'bg-white border-gray-100 text-gray-700 hover:border-gray-300'} disabled:opacity-40`}
+                    >
+                      {processingMethod === 'promptpay' ? (
+                        <Loader2 className="animate-spin text-white" size={28} />
+                      ) : (
+                        <QrCode size={32} strokeWidth={1.5} />
+                      )}
+                      <span className="text-[12px] font-bold tracking-wide">สแกน</span>
+                    </button>
+
+                    <button
+                      disabled={isProcessing}
+                      onClick={() => {
+                        setCheckoutError(null);
+                        handleProcessPayment('credit_card');
+                      }}
+                      className={`h-28 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-2 shadow-sm ${processingMethod === 'credit_card' ? 'bg-black text-white border-black' : 'bg-white border-gray-100 text-gray-700 hover:border-gray-300'} disabled:opacity-40`}
+                    >
+                      {processingMethod === 'credit_card' ? (
+                        <Loader2 className="animate-spin text-white" size={28} />
+                      ) : (
+                        <CreditCard size={32} strokeWidth={1.5} />
+                      )}
+                      <span className="text-[12px] font-bold tracking-wide">บัตร</span>
+                    </button>
+                  </div>
+                  </div>
+                </motion.footer>
+              ) : (
+                <motion.div
+                  key="cart-footer"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="shrink-0 relative z-20"
+                >
             <footer className="border-t border-gray-100 bg-white p-4 sm:p-6 flex flex-col gap-4">
               {/* VAT & Discount Controls in one clean line */}
               <div className="flex items-center justify-between text-[11px] font-bold">
@@ -5109,6 +5233,9 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                 )}
               </div>
             </footer>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         )}
           </>
@@ -5116,132 +5243,6 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
           </motion.div>
         </div>
 
-        {/* PAYMENT OPTIONS MODAL (Popup like Order Type) */}
-        <AnimatePresence>
-          {showPaymentModal && !paymentSuccessData && (
-            <div className="absolute inset-0 z-[100] flex items-end justify-center font-bold p-4">
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-neutral-900/60 backdrop-blur-sm lg:rounded-[2rem]"
-                onClick={() => setShowPaymentModal(false)}
-              />
-              <motion.div
-                initial={{ y: "100%", opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: "100%", opacity: 0 }}
-                transition={{ type: "spring", damping: 25, stiffness: 220 }}
-                className="relative w-full bg-white rounded-[2rem] shadow-2xl border border-neutral-100/50 z-10 flex flex-col max-h-[85vh] overflow-hidden"
-              >
-                <header className="flex items-center justify-between px-6 py-5 border-b border-gray-100 bg-white shrink-0">
-                  <div className="text-left">
-                    <h2 className="text-lg font-black text-gray-900 tracking-tight">ชำระเงิน</h2>
-                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">เลือกช่องทางการชำระเงิน</p>
-                  </div>
-                  <button
-                    onClick={() => setShowPaymentModal(false)}
-                    className="p-2 text-gray-400 hover:text-black hover:bg-gray-100 rounded-xl transition-all"
-                  >
-                    <X size={20} />
-                  </button>
-                </header>
-
-                <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-white">
-                  {/* Total Due display */}
-                  <div className="text-center bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-                    <div className="text-[11px] font-black text-gray-400 mb-2 tracking-widest uppercase">ยอดชำระสุทธิ</div>
-                    <div className="text-5xl font-black text-gray-900 tracking-tight">
-                      <span className="text-2xl font-medium text-gray-400 mr-2">฿</span>
-                      {remainingTotal.toLocaleString()}
-                    </div>
-                    {totalPaid > 0 && (
-                      <div className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1.5 text-[10px] font-black tracking-wider text-green-600 border border-green-100">
-                        <Check size={14} strokeWidth={3} />
-                        <span>ชำระแล้ว: ฿{totalPaid.toLocaleString()} / รวม: ฿{cartTotal.toLocaleString()}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {checkoutError && (
-                    <div className="p-4 rounded-xl bg-red-50 border border-red-100 text-red-600 text-xs font-bold leading-normal">
-                      {checkoutError}
-                    </div>
-                  )}
-
-                  {/* Split Bill option */}
-                  <button
-                    disabled={isProcessing || remainingTotal <= 0}
-                    onClick={() => {
-                      fetchTables();
-                      refreshPendingOrders();
-                      setShowPaymentModal(false);
-                      setShowSplitPaymentModal(true);
-                    }}
-                    className="w-full py-4 rounded-2xl bg-white border border-gray-200 shadow-sm text-gray-700 text-[13px] font-bold hover:bg-gray-50 transition-all flex items-center justify-center gap-2"
-                  >
-                    หารจ่าย / แยกจ่าย (Split Bill)
-                  </button>
-
-                  {/* Quick Payment buttons grid */}
-                  <div className="grid grid-cols-3 gap-3">
-                    <button
-                      disabled={isProcessing}
-                      onClick={() => {
-                        setCheckoutError(null);
-                        setShowPaymentModal(false);
-                        setCashReceived('');
-                        setPaymentSuccessData(null);
-                        setCurrentPaymentAmount(remainingTotal);
-                        setShowCashPaymentModal(true);
-                      }}
-                      className={`h-28 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-2 shadow-sm ${processingMethod === 'cash' ? 'bg-black text-white border-black' : 'bg-white border-gray-100 text-gray-700 hover:border-gray-300'} disabled:opacity-40`}
-                    >
-                      {processingMethod === 'cash' ? (
-                        <Loader2 className="animate-spin text-white" size={28} />
-                      ) : (
-                        <Banknote size={32} strokeWidth={1.5} />
-                      )}
-                      <span className="text-[12px] font-bold tracking-wide">เงินสด</span>
-                    </button>
-
-                    <button
-                      disabled={isProcessing}
-                      onClick={() => {
-                        setCheckoutError(null);
-                        handleProcessPayment('promptpay');
-                      }}
-                      className={`h-28 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-2 shadow-sm ${processingMethod === 'promptpay' ? 'bg-black text-white border-black' : 'bg-white border-gray-100 text-gray-700 hover:border-gray-300'} disabled:opacity-40`}
-                    >
-                      {processingMethod === 'promptpay' ? (
-                        <Loader2 className="animate-spin text-white" size={28} />
-                      ) : (
-                        <QrCode size={32} strokeWidth={1.5} />
-                      )}
-                      <span className="text-[12px] font-bold tracking-wide">สแกน</span>
-                    </button>
-
-                    <button
-                      disabled={isProcessing}
-                      onClick={() => {
-                        setCheckoutError(null);
-                        handleProcessPayment('credit_card');
-                      }}
-                      className={`h-28 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-2 shadow-sm ${processingMethod === 'credit_card' ? 'bg-black text-white border-black' : 'bg-white border-gray-100 text-gray-700 hover:border-gray-300'} disabled:opacity-40`}
-                    >
-                      {processingMethod === 'credit_card' ? (
-                        <Loader2 className="animate-spin text-white" size={28} />
-                      ) : (
-                        <CreditCard size={32} strokeWidth={1.5} />
-                      )}
-                      <span className="text-[12px] font-bold tracking-wide">บัตร</span>
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
 
         {/* ORDER TYPE SWITCH MODAL (Inline Drawer Over Cart Panel) */}
         <AnimatePresence>
