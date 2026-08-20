@@ -10,7 +10,6 @@ interface POSPinModalProps {
   correctPin: string
   title?: string
   description?: string
-  inline?: boolean
 }
 
 export default function POSPinModal({
@@ -19,8 +18,7 @@ export default function POSPinModal({
   onSuccess,
   correctPin,
   title = 'MANAGER AUTHORIZATION',
-  description = 'กรุณาใส่รหัสผ่านผู้จัดการเพื่อทำรายการนี้',
-  inline = false
+  description = 'กรุณาใส่รหัสผ่านผู้จัดการเพื่อทำรายการนี้'
 }: POSPinModalProps) {
   const [pin, setPin] = useState<string>('')
   const [error, setError] = useState<boolean>(false)
@@ -66,20 +64,24 @@ export default function POSPinModal({
     setError(false)
   }
 
-  const content = (
-      <div className={inline 
-        ? `flex-grow flex flex-col items-center justify-center py-4 my-auto w-full text-black font-bold select-none h-full bg-white lg:rounded-[2rem] ${error ? 'animate-shake' : ''}` 
-        : `relative w-full max-w-sm bg-white border border-neutral-100 p-8 rounded-3xl shadow-2xl transition-all duration-300 transform scale-100 flex flex-col items-center justify-center text-black font-bold select-none ${error ? 'animate-shake' : ''}`}>
+  return (
+    <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
+      {/* Clean Dark Backdrop with Blur (Removes red glow/shadow) */}
+      <div 
+        className="absolute inset-0 bg-neutral-900/60 backdrop-blur-md transition-opacity duration-300"
+        onClick={onClose}
+      />
+
+      {/* Modal Container (Clean rounded-3xl, subtle border) */}
+      <div className={`relative w-full max-w-sm bg-white border border-neutral-100 p-8 rounded-3xl shadow-2xl transition-all duration-300 transform scale-100 flex flex-col items-center justify-center text-black font-bold select-none ${error ? 'animate-shake' : ''}`}>
         
         {/* Close Button (Rounded-full, clean hover) */}
-        {!inline && (
         <button 
           onClick={onClose}
           className="absolute top-5 right-5 w-8 h-8 rounded-full bg-neutral-50 hover:bg-neutral-100 transition-colors flex items-center justify-center text-neutral-400 hover:text-neutral-900"
         >
           <X size={16} />
         </button>
-        )}
 
         {/* Shield Icon / Title */}
         <div className="flex flex-col items-center text-center space-y-3 mb-6 w-full">
@@ -143,38 +145,12 @@ export default function POSPinModal({
         </div>
 
       </div>
-  );
 
-  if (inline) {
-    return (
-      <>
-        {content}
-        <style jsx global>{`
+      <style jsx global>{`
         @keyframes shake {
           0%, 100% { transform: translateX(0); }
           25% { transform: translateX(-6px); }
           75% { transform: translateX(6px); }
-        }
-        .animate-shake {
-          animation: shake 0.2s ease-in-out 0s 2;
-        }
-      `}</style>
-      </>
-    )
-  }
-
-  return (
-    <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
-      <div 
-        className="absolute inset-0 bg-neutral-900/60 backdrop-blur-md transition-opacity duration-300"
-        onClick={onClose}
-      />
-      {content}
-      <style jsx global>{`
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-5px); }
-          75% { transform: translateX(5px); }
         }
         .animate-shake {
           animation: shake 0.2s ease-in-out 0s 2;

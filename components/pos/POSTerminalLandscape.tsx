@@ -2802,47 +2802,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
           >
                         <>
 
-        {isPinModalOpen ? (
-          <motion.div
-            key="manager-pin-view"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            transition={{ duration: 0.2 }}
-            className="flex h-full w-full flex-col bg-white absolute inset-0 z-[55] font-bold"
-          >
-             <header className="flex items-center justify-between border-b border-gray-100 bg-white p-6 sm:p-8 shrink-0">
-                 <div className="flex flex-col gap-0.5">
-                     <h3 className="text-xl font-black uppercase tracking-tighter text-black flex items-center gap-2">
-                         <ShieldCheck size={20} className="text-neutral-400" />
-                         <span>การยืนยันผู้จัดการ</span>
-                     </h3>
-                     <p className="text-[10px] font-bold tracking-widest text-gray-500 uppercase mt-0.5">
-                         Manager Verification
-                     </p>
-                 </div>
-                 <button onClick={() => { setIsPinModalOpen(false); setPinCallback(null); }} className="w-8 h-8 rounded-full bg-neutral-50 hover:bg-neutral-100 flex items-center justify-center text-neutral-400 hover:text-neutral-900 transition-colors">
-                     <X size={14} />
-                 </button>
-             </header>
-             <div className="flex-1 overflow-y-auto flex flex-col">
-                 <POSPinModal
-                   isOpen={isPinModalOpen}
-                   onClose={() => {
-                     setIsPinModalOpen(false)
-                     setPinCallback(null)
-                   }}
-                   onSuccess={() => {
-                     if (pinCallback) pinCallback()
-                   }}
-                   correctPin={shopSettings?.role_permissions?.manager_pin || ''}
-                   title={pinTitle}
-                   description={pinDesc}
-                   inline={true}
-                 />
-             </div>
-          </motion.div>
-        ) : !activeShift?.id ? (
+        {!activeShift?.id ? (
           <motion.div
             key="open-shift-inline"
             initial={{ opacity: 0, scale: 0.98 }}
@@ -2984,11 +2944,11 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
           /* Payment Options Panel in Right Sidebar! */
           <motion.div
             key="payment-options-view"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            transition={{ duration: 0.2 }}
-            className="flex h-full w-full flex-col bg-[#FAFAFA] absolute inset-0"
+            initial={{ y: "100%", opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: "100%", opacity: 0 }}
+            transition={{ type: "spring", damping: 26, stiffness: 260 }}
+            className="flex h-full w-full flex-col bg-[#FAFAFA] absolute inset-0 z-50 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.1)]"
           >
             <header className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-white shrink-0">
               <div>
@@ -3354,11 +3314,11 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
           /* Payment Options Panel in Right Sidebar! */
           <motion.div
             key="payment-options-view"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            transition={{ duration: 0.2 }}
-            className="flex h-full w-full flex-col bg-[#FAFAFA] absolute inset-0"
+            initial={{ y: "100%", opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: "100%", opacity: 0 }}
+            transition={{ type: "spring", damping: 26, stiffness: 260 }}
+            className="flex h-full w-full flex-col bg-[#FAFAFA] absolute inset-0 z-50 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.1)]"
           >
             <header className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-white shrink-0">
               <div>
@@ -3724,11 +3684,11 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
           /* Payment Options Panel in Right Sidebar! */
           <motion.div
             key="payment-options-view"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            transition={{ duration: 0.2 }}
-            className="flex h-full w-full flex-col bg-[#FAFAFA] absolute inset-0"
+            initial={{ y: "100%", opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: "100%", opacity: 0 }}
+            transition={{ type: "spring", damping: 26, stiffness: 260 }}
+            className="flex h-full w-full flex-col bg-[#FAFAFA] absolute inset-0 z-50 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.1)]"
           >
             <header className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-white shrink-0">
               <div>
@@ -4183,11 +4143,11 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
           /* Payment Options Panel in Right Sidebar! */
           <motion.div
             key="payment-options-view"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            transition={{ duration: 0.2 }}
-            className="flex h-full w-full flex-col bg-[#FAFAFA] absolute inset-0"
+            initial={{ y: "100%", opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: "100%", opacity: 0 }}
+            transition={{ type: "spring", damping: 26, stiffness: 260 }}
+            className="flex h-full w-full flex-col bg-[#FAFAFA] absolute inset-0 z-50 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.1)]"
           >
             <header className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-white shrink-0">
               <div>
@@ -4465,11 +4425,11 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
           /* Payment Options Panel in Right Sidebar! */
           <motion.div
             key="payment-options-view"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            transition={{ duration: 0.2 }}
-            className="flex h-full w-full flex-col bg-[#FAFAFA] absolute inset-0"
+            initial={{ y: "100%", opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: "100%", opacity: 0 }}
+            transition={{ type: "spring", damping: 26, stiffness: 260 }}
+            className="flex h-full w-full flex-col bg-[#FAFAFA] absolute inset-0 z-50 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.1)]"
           >
             <header className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-white shrink-0">
               <div>
@@ -4871,11 +4831,11 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
           /* Payment Options Panel in Right Sidebar! */
           <motion.div
             key="payment-options-view"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            transition={{ duration: 0.2 }}
-            className="flex h-full w-full flex-col bg-[#FAFAFA] absolute inset-0"
+            initial={{ y: "100%", opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: "100%", opacity: 0 }}
+            transition={{ type: "spring", damping: 26, stiffness: 260 }}
+            className="flex h-full w-full flex-col bg-[#FAFAFA] absolute inset-0 z-50 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.1)]"
           >
             <header className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-white shrink-0">
               <div>
@@ -5409,11 +5369,11 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
           /* Payment Options Panel in Right Sidebar! */
           <motion.div
             key="payment-options-view"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            transition={{ duration: 0.2 }}
-            className="flex h-full w-full flex-col bg-[#FAFAFA] absolute inset-0"
+            initial={{ y: "100%", opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: "100%", opacity: 0 }}
+            transition={{ type: "spring", damping: 26, stiffness: 260 }}
+            className="flex h-full w-full flex-col bg-[#FAFAFA] absolute inset-0 z-50 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.1)]"
           >
             <header className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-white shrink-0">
               <div>
