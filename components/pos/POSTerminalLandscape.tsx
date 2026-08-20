@@ -4998,16 +4998,26 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                 </header>
                   <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-white">
                     {/* Total Due display */}
-                  <div className="text-center bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+                  <div className="text-center bg-white p-6 rounded-3xl border border-gray-100 shadow-sm transition-all duration-300">
                     <div className="text-[11px] font-black text-gray-400 mb-2 tracking-widest uppercase">ยอดชำระสุทธิ</div>
-                    <div className="text-5xl font-black text-gray-900 tracking-tight">
-                      <span className="text-2xl font-medium text-gray-400 mr-2">฿</span>
+                    <div className={`${inlineEqualSplit ? 'text-3xl' : 'text-5xl'} font-black text-gray-900 tracking-tight transition-all duration-300`}>
+                      <span className={`${inlineEqualSplit ? 'text-xl' : 'text-2xl'} font-medium text-gray-400 mr-2 transition-all duration-300`}>฿</span>
                       {remainingTotal.toLocaleString()}
                     </div>
                     {totalPaid > 0 && (
                       <div className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1.5 text-[10px] font-black tracking-wider text-green-600 border border-green-100">
                         <Check size={14} strokeWidth={3} />
                         <span>ชำระแล้ว: ฿{totalPaid.toLocaleString()} / รวม: ฿{cartTotal.toLocaleString()}</span>
+                      </div>
+                    )}
+                    
+                    {inlineEqualSplit && (
+                      <div className="mt-6 pt-6 border-t border-gray-100 border-dashed flex flex-col items-center">
+                        <div className="text-[11px] font-black text-[#D3202B] mb-2 tracking-widest uppercase">ยอดชำระต่อคน</div>
+                        <div className="text-6xl font-black text-[#D3202B] tracking-tighter">
+                          <span className="text-3xl font-medium text-red-300 mr-2">฿</span>
+                          {Math.max(0, remainingTotal / Math.max(1, inlineSplitCount)).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -5121,13 +5131,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                               <Plus size={20} strokeWidth={2} />
                             </button>
                           </div>
-                          <div className="text-center w-full bg-gray-50 rounded-2xl p-4">
-                            <div className="text-[10px] text-gray-400 mb-1 font-bold">ยอดชำระต่อคน</div>
-                            <div className="text-3xl font-black text-black tracking-tight">
-                              <span className="text-lg text-gray-400 mr-1">฿</span>
-                              {Math.max(0, remainingTotal / Math.max(1, inlineSplitCount)).toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                            </div>
-                          </div>
+
                         </div>
 
                         <div className="grid grid-cols-3 gap-3 mt-4">
