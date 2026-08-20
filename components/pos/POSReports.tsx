@@ -365,7 +365,8 @@ export default function POSReports({
     const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false)
     const [reportSearchTerm, setReportSearchTerm] = useState('')
 
-    const role = profile?.role === 'admin' ? 'admin' : (profile?.staff_level || 'staff')
+    const staffLevel = profile?.staff_level || 'staff'
+    const role = (profile?.role === 'admin' || staffLevel === 'owner' || staffLevel === 'superadmin') ? 'admin' : staffLevel
     const hasProfitPermission = role === 'admin' || (shopSettings?.role_permissions?.[role] || []).includes('reports:profit')
 
 
@@ -475,7 +476,7 @@ export default function POSReports({
             }
 
             // 1. REVENUE
-            const { data: allOrders } = await supabase.from('pos_orders').select('*').gte('updated_at', startISO).lte('updated_at', endISO).in('status', ['paid', 'completed'])
+            const { data: allOrders } = await supabase.from('pos_orders').select('*, pos_order_payments(amount, payment_method, status)').gte('updated_at', startISO).lte('updated_at', endISO).in('status', ['paid', 'completed'])
             const branchOrders = (allOrders || []).filter(o => !bId || o.branch_id === bId || (bCode && o.branch_code === bCode))
             const totalRevenue = branchOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0)
             const totalOrders = branchOrders.length
@@ -498,7 +499,7 @@ export default function POSReports({
                 const compareEndISO = comparisonRange.endDate.toISOString()
                 const { data: previousOrders } = await supabase
                     .from('pos_orders')
-                    .select('*')
+                    .select('*, pos_order_payments(amount, payment_method, status)')
                     .gte('updated_at', compareStartISO)
                     .lte('updated_at', compareEndISO)
                     .in('status', ['paid', 'completed'])
@@ -552,8 +553,16 @@ export default function POSReports({
                 hourlyHeatmapRaw[hour].revenue += (o.total_amount || 0)
                 hourlyHeatmapRaw[hour].orders += 1
 
-                const pm = o.payment_method || 'unknown'
-                paymentBreakdown[pm] = (paymentBreakdown[pm] || 0) + (o.total_amount || 0)
+                const payments = o.pos_order_payments ? o.pos_order_payments.filter((p: any) => p.status === 'paid') : []
+                if (payments.length > 0) {
+                    payments.forEach((p: any) => {
+                        const pm = p.payment_method || 'unknown'
+                        paymentBreakdown[pm] = (paymentBreakdown[pm] || 0) + (Number(p.amount) || 0)
+                    })
+                } else if (o.status === 'paid' || o.status === 'completed') {
+                    const pm = o.payment_method || 'unknown'
+                    paymentBreakdown[pm] = (paymentBreakdown[pm] || 0) + (o.net_total ?? o.total_amount ?? 0)
+                }
             })
             const paymentData = Object.entries(paymentBreakdown).map(([method, amount]) => ({ method, amount }))
             const hourlyHeatmap = Object.entries(hourlyHeatmapRaw).map(([hour, data]) => ({ hour: `${hour.toString().padStart(2, '0')}:00`, revenue: data.revenue, orders: data.orders }))

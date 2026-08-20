@@ -202,26 +202,25 @@ export default function RiderDashboard({ profile }: RiderDashboardProps) {
 
     setUploadingPhoto(true)
     try {
-      const fileExt = file.name.split('.').pop()
-      const fileName = `rider_proof_${Date.now()}.${fileExt}`
-      const filePath = `proofs/${fileName}`
+      const formData = new FormData()
+      formData.append('action', 'upload')
+      formData.append('profileId', profile.id)
+      formData.append('file', file)
 
-      const { error: uploadError } = await supabase.storage
-        .from('pos_menu_images')
-        .upload(filePath, file)
+      const res = await fetch('/api/staff/verify-upload', {
+        method: 'POST',
+        body: formData,
+      })
+      const result = await res.json()
 
-      if (uploadError) throw uploadError
-
-      const { data } = supabase.storage
-        .from('pos_menu_images')
-        .getPublicUrl(filePath)
-
-      if (data?.publicUrl) {
-        setProofPhotoUrl(data.publicUrl)
+      if (!res.ok || !result.publicUrl) {
+        throw new Error(result.error || 'Upload failed')
       }
-    } catch (err) {
+
+      setProofPhotoUrl(result.publicUrl)
+    } catch (err: any) {
       console.error('Failed to upload proof:', err)
-      alert('อัปโหลดรูปล้มเหลว')
+      alert('อัปโหลดรูปล้มเหลว: ' + err.message)
     } finally {
       setUploadingPhoto(false)
     }

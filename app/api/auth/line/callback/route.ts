@@ -178,7 +178,7 @@ export async function GET(request: NextRequest) {
     const mockEmail = `${lineProfile.userId}@line.rushupcafe.com`
     const generatedPassword = buildDeterministicPassword(lineProfile.userId, linePasswordSecret)
 
-    if (linkVerification?.valid && linkVerification.payload?.userId) {
+    if (linkVerification?.valid && linkVerification.payload?.action === 'link_line_account' && linkVerification.payload?.userId) {
       const targetUserId = linkVerification.payload.userId
 
       const { data: targetUserResult, error: targetUserError } = await supabaseAdmin.auth.admin.getUserById(targetUserId)
@@ -326,7 +326,7 @@ export async function GET(request: NextRequest) {
 
     if (!userId) {
       const lineVerification = await ensureLineVerification()
-      const { data: createdUser, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
+      const createUserParams: any = {
         email: mockEmail,
         password: generatedPassword,
         email_confirm: true,
@@ -338,7 +338,13 @@ export async function GET(request: NextRequest) {
           profile: lineProfile,
           verification: lineVerification,
         }),
-      })
+      }
+
+      if (linkVerification?.valid && linkVerification.payload?.action === 'staff_line_invite' && linkVerification.payload?.profileId) {
+        createUserParams.id = linkVerification.payload.profileId
+      }
+
+      const { data: createdUser, error: createUserError } = await supabaseAdmin.auth.admin.createUser(createUserParams)
 
       if (createUserError || !createdUser.user) {
         return toFrontendErrorRedirect(frontendErrorUrl, `Failed to create Supabase user: ${createUserError?.message || 'unknown error'}`)
@@ -393,18 +399,24 @@ export async function GET(request: NextRequest) {
     }
 
     if (!existingProfile) {
+      const isStaffInvite = linkVerification?.valid && linkVerification.payload?.action === 'staff_line_invite'
+      
+      const upsertPayload: any = {
+        id: userId,
+        email: mockEmail,
+        updated_at: new Date().toISOString(),
+      }
+      
+      // Only set role and display_name if it's NOT a staff invite 
+      // (staff invite means the profile already has the correct role/name from the owner)
+      if (!isStaffInvite) {
+        upsertPayload.role = 'customer'
+        upsertPayload.display_name = lineProfile.displayName
+      }
+
       const { error: profileUpsertError } = await supabaseAdmin
         .from('profiles')
-        .upsert(
-          {
-            id: userId,
-            email: mockEmail,
-            role: 'customer',
-            display_name: lineProfile.displayName,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: 'id' }
-        )
+        .upsert(upsertPayload, { onConflict: 'id' })
 
       if (profileUpsertError) {
         return toFrontendErrorRedirect(frontendErrorUrl, `Failed to upsert Supabase profile: ${profileUpsertError.message}`)

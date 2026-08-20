@@ -97,9 +97,11 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
       const endOfDay = new Date(startOfDay)
       endOfDay.setDate(endOfDay.getDate() + 1)
       
+      const merchantId = profile?.merchant_id || '00000000-0000-0000-0000-000000000000'
       const { data, error } = await supabase
         .from('pos_orders')
         .select('*, pos_order_items(*, item:pos_menu_items!item_id(*)), pos_order_payments(amount, payment_method, status), customer:pos_members!customer_id(display_name, full_name, phone)')
+        .eq('merchant_id', merchantId)
         .in('status', ['paid', 'completed', 'cancelled'])
         .gte('created_at', startOfDay.toISOString())
         .lt('created_at', endOfDay.toISOString())
@@ -280,8 +282,15 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
 
   const getOrderPaymentMethod = (order: any) => {
     const paymentRows = Array.isArray(order.pos_order_payments) ? order.pos_order_payments : []
-    const firstPaidMethod = paymentRows.find((row: any) => String(row.status || '').toLowerCase() === 'paid')?.payment_method
-    return firstPaidMethod || order.payment_method || 'cash'
+    const paidRows = paymentRows.filter((row: any) => String(row.status || '').toLowerCase() === 'paid')
+    if (paidRows.length > 0) {
+      const methods = Array.from(new Set(paidRows.map((r: any) => r.payment_method?.replace('_', ' ')?.toUpperCase()))).filter(Boolean)
+      if (methods.length > 1) {
+        return methods.join(' + ')
+      }
+      return paidRows[0].payment_method
+    }
+    return order.payment_method || 'cash'
   }
 
   const buildPrintOrder = (order: any) => ({
@@ -298,6 +307,7 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
       quantity: Number(item.quantity || 0),
       subtotal: Number(item.subtotal || (Number(item.unit_price || 0) * Number(item.quantity || 0))),
       selected_modifiers: item.selected_modifiers || [],
+      category_id: item.item?.category_id || 'uncategorized',
     })),
     subtotal: Number(order.total_amount || 0),
     discount: Number(order.discount_amount || 0),
@@ -312,6 +322,12 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
     deliveryFee: Number(order.delivery_fee || 0),
     loyaltyClaimToken: order.loyalty_claim_token || undefined,
     pointsEarned: order.points_earned || undefined,
+    paymentsBreakdown: (order.pos_order_payments || [])
+      .filter((p: any) => String(p.status || '').toLowerCase() === 'paid')
+      .map((p: any) => ({
+        method: p.payment_method || 'cash',
+        amount: Number(p.amount || 0)
+      })),
   })
 
   const handlePrintReceipt = async (order: any) => {
@@ -321,12 +337,14 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
       receiptPrinters = printers.filter((p: any) => p?.type === 'kitchen' || p?.type === 'both')
     }
     if (receiptPrinters.length === 0) {
-      const fallbackIp = typeof window !== 'undefined' ? localStorage.getItem('rushup_printer_ip') : ''
+      const fallbackIp = typeof window !== 'undefined'
+        ? (localStorage.getItem('rushup_printer_ip') || localStorage.getItem('xylem_printer_ip') || '')
+        : ''
       if (!fallbackIp) {
         alert('ยังไม่พบเครื่องปริ้นใบเสร็จในระบบ')
         return
       }
-      receiptPrinters.push({ ip: fallbackIp, model: 'xprinter-xp-n160ii', encoding: 'cp874' })
+      receiptPrinters.push({ ip: fallbackIp, model: 'xprinter-xp-n160ii', encoding: 'graphic' })
     }
 
     setPrintingOrderId(order.id)
@@ -353,6 +371,7 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
         receiptFooter: shopSettings?.opening_hours?.receipt_footer || shopSettings?.receipt_footer || '',
         receiptFontSize: shopSettings?.receipt_font_size || 'normal',
         orderNumberFormat: shopSettings?.order_number_format || shopSettings?.opening_hours?.order_number_format,
+        receiptShowLogo: shopSettings?.receipt_show_logo || false,
         receipt_story_mode: shopSettings?.receipt_story_mode ?? shopSettings?.opening_hours?.receipt_story_mode ?? false,
         receipt_stories: (shopSettings?.receipt_stories && shopSettings.receipt_stories.length > 0)
           ? shopSettings.receipt_stories
@@ -729,6 +748,27 @@ export default function POSHistory({ shopSettings, profile, activeShift, onSetVi
                         <div className="flex flex-col">
                           <span className="text-[10px] font-black uppercase text-neutral-400 tracking-wider leading-none mb-1">{locale === 'en' ? 'Net Total' : 'ยอดสุทธิ'}</span>
                           <span className="text-[24px] font-black tracking-tight text-black">{locale === 'en' ? '฿' : '฿'}{(Number(order.net_total ?? order.total_amount)).toLocaleString()}</span>
+                          
+                          {/* Payment breakdown */}
+                          {order.pos_order_payments && order.pos_order_payments.length > 0 ? (
+                            <div className="flex flex-col gap-1 mt-2">
+                              {order.pos_order_payments.filter((p: any) => p.status === 'paid').map((p: any, idx: number) => (
+                                <div key={idx} className="text-[12px] font-bold text-neutral-500 flex items-center gap-1.5">
+                                  <span>{String(p.payment_method || '').toUpperCase() === 'CASH' ? (locale === 'en' ? 'CASH' : 'เงินสด') : 
+                                         String(p.payment_method || '').toUpperCase() === 'TRANSFER' || String(p.payment_method || '').toUpperCase() === 'PROMPTPAY' ? (locale === 'en' ? 'TRANSFER' : 'เงินโอน') : 
+                                         String(p.payment_method || '').toUpperCase()}</span>
+                                  <span>: ฿{Number(p.amount).toLocaleString(undefined, {minimumFractionDigits:0, maximumFractionDigits:2})}</span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-[12px] font-bold text-neutral-500 mt-2 flex items-center gap-1.5">
+                              <span>{String(order.payment_method || '').toUpperCase() === 'CASH' ? (locale === 'en' ? 'CASH' : 'เงินสด') : 
+                                     String(order.payment_method || '').toUpperCase() === 'TRANSFER' || String(order.payment_method || '').toUpperCase() === 'PROMPTPAY' ? (locale === 'en' ? 'TRANSFER' : 'เงินโอน') : 
+                                     String(order.payment_method || '').toUpperCase()}</span>
+                              <span>: ฿{(Number(order.net_total ?? order.total_amount)).toLocaleString(undefined, {minimumFractionDigits:0, maximumFractionDigits:2})}</span>
+                            </div>
+                          )}
                           {Number(order.delivery_gp_amount) > 0 && order.status !== 'cancelled' && (() => {
                             const badge = getDeliveryPlatformBadge(order.delivery_platform);
                             return (

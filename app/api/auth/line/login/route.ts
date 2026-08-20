@@ -66,6 +66,17 @@ export async function GET(request: NextRequest) {
       // Ignore auto-link token failure and continue normal LINE login flow.
     }
 
+    const staffInvite = request.nextUrl.searchParams.get('staff_invite')
+    if (staffInvite) {
+      response.cookies.set('line_link_token', staffInvite, {
+        path: '/',
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7, // 7 days matching staff invite TTL
+      })
+    }
+
     response.cookies.set('line_oauth_state', state, {
       path: '/',
       httpOnly: true,

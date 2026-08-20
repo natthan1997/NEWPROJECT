@@ -46,6 +46,7 @@ export interface PrintOrderData {
   loyaltyClaimToken?: string
   loyaltyClaimQrUrl?: string
   pointsEarned?: number
+  paymentsBreakdown?: Array<{ method: string; amount: number }>
 }
 
 export interface PrintShopData {
@@ -87,6 +88,7 @@ export interface PrintZReportData {
   paymentBreakdown?: Array<{ label: string; amount: number; count?: number }>
   orderTypeBreakdown?: Array<{ label: string; count: number }>
   transactionBreakdown?: Array<{ label: string; amount: number }>
+  transactionsList?: Array<{ type: string; reason: string; amount: number }>
   notes?: string
 }
 
@@ -175,14 +177,22 @@ const formatOrderTypeLabel = (orderType?: string) => {
   if (orderType === 'delivery') return 'เดลิเวอรี่ (Delivery)'
   return orderType.replace(/_/g, ' ').toUpperCase()
 }
-
+const formatPaymentMethodThai = (method: string) => {
+  const m = String(method || '').trim().toLowerCase();
+  if (m === 'cash') return 'เงินสด';
+  if (m === 'transfer') return 'เงินโอน';
+  if (m === 'credit_card') return 'บัตรเครดิต';
+  if (m === 'qr_payment' || m === 'qr') return 'Thai QR';
+  return method.toUpperCase().replace('_', ' ');
+};
 const formatModifierLabel = (modifier: any) => {
   if (!modifier) return ''
   const name = modifier.display_name || modifier.label || modifier.group_name || modifier.name || 'Option'
   const value = modifier.value || modifier.selected_value || modifier.option_value || modifier.option_name || ''
   if ((modifier.is_note || name === 'หมายเหตุ') && value) return `หมายเหตุ: ${value}`
   if (value && value !== name) return `${name}: ${value}`
-  if (modifier.price && Number(modifier.price) !== 0) return `${name} (+${formatCurrency(Number(modifier.price))})`
+  const priceVal = modifier.price_adjustment !== undefined ? modifier.price_adjustment : modifier.price
+  if (priceVal && Number(priceVal) !== 0) return `${name} (+${formatCurrency(Number(priceVal))})`
   return name
 }
 
@@ -810,7 +820,14 @@ export const printCustomerReceipt = async (
     b.bold(true).size(1, 2).row('ยอดรวม', formatCurrency(order.total || 0), 30).size(1, 1).bold(false)
 
     if (order.receivedAmount && order.receivedAmount > 0) {
-      b.size(1, 2).row(`รับเงิน (${order.paymentMethod || 'CASH'})`, formatCurrency(order.receivedAmount), 30).size(1, 1)
+      if (order.paymentsBreakdown && order.paymentsBreakdown.length > 0) {
+        order.paymentsBreakdown.forEach((pay) => {
+          const payLabel = formatPaymentMethodThai(pay.method);
+          b.size(1, 2).row(`รับเงิน (${payLabel})`, formatCurrency(pay.amount), 30).size(1, 1);
+        });
+      } else {
+        b.size(1, 2).row(`รับเงิน (${formatPaymentMethodThai(order.paymentMethod || 'CASH')})`, formatCurrency(order.receivedAmount), 30).size(1, 1);
+      }
       b.bold(true).size(1, 2).row('เงินทอน', formatCurrency(order.changeAmount || 0), 30).size(1, 1).bold(false)
     }
 

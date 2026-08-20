@@ -194,6 +194,17 @@ const computeNewCartItems = (cartItems: any[], existingItems: any[]) => {
   return delta
 }
 
+const getFallbackPrinterIp = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('rushup_printer_ip') || localStorage.getItem('xylem_printer_ip') || null;
+};
+
+const setFallbackPrinterIp = (ip: string) => {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem('rushup_printer_ip', ip);
+  localStorage.setItem('xylem_printer_ip', ip);
+};
+
 interface POSTerminalProps {
   profile: any
   activeShift: any
@@ -455,7 +466,9 @@ const [isPinModalOpen, setIsPinModalOpen] = useState(false)
   const [memberAvailableCoupons, setMemberAvailableCoupons] = useState<any[]>([])
 
   // Cash Payment Modal States
-const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+  const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
+  const [inlineCashPayment, setInlineCashPayment] = useState(false)
+  
   const [totalPaid, setTotalPaid] = useState<number>(0)
   const [showSplitPaymentModal, setShowSplitPaymentModal] = useState(false)
   const [currentPaymentAmount, setCurrentPaymentAmount] = useState<number>(0)
@@ -493,6 +506,20 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   const [posQrLoyaltyToken, setPosQrLoyaltyToken] = useState<string | null>(null)
   const [posQrPointsEarned, setPosQrPointsEarned] = useState<number>(0)
   const [qrSessionId, setQrSessionId] = useState<string>('')
+
+  // Reset payment/member steps and sub-views to the first step whenever payment modal or member flow opens
+  useEffect(() => {
+    if (showPaymentModal) {
+      setInlineCashPayment(false);
+      setShowSplitPaymentModal(false);
+    }
+  }, [showPaymentModal]);
+
+  useEffect(() => {
+    if (showMemberCheckoutFlow) {
+      setMemberCheckoutStep('lookup');
+    }
+  }, [showMemberCheckoutFlow]);
 
 
   const openDeliveryPlatformModal = (platformOverride?: string) => {
@@ -565,6 +592,11 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     setDiscountName('')
     setAppliedCouponId('')
     setActiveCoupon(null)
+    setMemberCheckoutStep('lookup')
+    setInlineCashPayment(false)
+    setShowSplitPaymentModal(false)
+    setShowPaymentModal(false)
+    setShowMemberCheckoutFlow(false)
     
     if (typeof window !== 'undefined') {
       localStorage.removeItem('pos_saved_cart')
@@ -865,13 +897,13 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     
     // Fallback if no printers configured in DB or none of them have an IP
     if (targetPrinters.length === 0 || targetPrinters.every((p: any) => !p.ip)) {
-        let ip = typeof window !== 'undefined' ? localStorage.getItem('xylem_printer_ip') : null;
+        let ip = getFallbackPrinterIp();
         if (!ip) {
             ip = prompt('กรุณาระบุ IP Address ของเครื่องปริ้น (เช่น 192.168.1.100):', '192.168.1.100');
-            if (ip) localStorage.setItem('xylem_printer_ip', ip);
+            if (ip) setFallbackPrinterIp(ip);
             else return;
         }
-        targetPrinters = [{ ip, type, model: 'xprinter-xp-n160ii', encoding: 'cp874', categories: ['all'] }];
+        targetPrinters = [{ ip, type, model: 'xprinter-xp-n160ii', encoding: 'graphic', categories: ['all'] }];
     }
 
     try {
@@ -1013,77 +1045,145 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     }
   };
 
-  const printFromDatabaseOrder = async (orderId: string, type: 'receipt' | 'kitchen', openDrawer: boolean = false) => {
+  const printFromDatabaseOrder = async (orderId: string, type: 'receipt' | 'kitchen', openDrawer: boolean = false, preloadedOrderData?: any) => {
     logPOSPrintFlow('print_from_db:start', { orderId, type })
 
-    // 1. Fetch order exactly like POSHistory
-    const { data: order, error } = await supabase
-      .from('pos_orders')
-      .select('*, pos_order_items(*, item:pos_menu_items!item_id(*)), pos_order_payments(amount, payment_method, status), customer:pos_members!customer_id(display_name, full_name, phone)')
-      .eq('id', orderId)
-      .maybeSingle();
+    let orderData: any;
+    if (preloadedOrderData) {
+      logPOSPrintFlow('print_from_db:using_preloaded', { orderId, type })
+      orderData = {
+        orderNumber: preloadedOrderData.orderNumber,
+        queueNumber: preloadedOrderData.queueNumber,
+        date: preloadedOrderData.date || new Date(preloadedOrderData.timestamp || Date.now()).toLocaleString('th-TH'),
+        orderSource: preloadedOrderData.orderSource || 'pos',
+        staffName: preloadedOrderData.staffName || profile?.full_name || profile?.display_name || 'POS',
+        customerName: preloadedOrderData.customerName || undefined,
+        tableNumber: preloadedOrderData.tableNumber || undefined,
+        comment: preloadedOrderData.comment || preloadedOrderData.notes || '',
+        pickupTime: preloadedOrderData.pickupTime || '',
+        items: (preloadedOrderData.items || []).map((item: any) => ({
+          name: item.name,
+          quantity: Number(item.quantity || 0),
+          subtotal: Number(item.subtotal || 0),
+          selected_modifiers: item.selected_modifiers || [],
+          category_id: item.category_id || 'uncategorized'
+        })),
+        subtotal: Number(preloadedOrderData.subtotal || 0),
+        discount: Number(preloadedOrderData.discount || 0),
+        tax: Number(preloadedOrderData.tax || 0),
+        total: Number(preloadedOrderData.total || 0),
+        paymentMethod: preloadedOrderData.paymentMethod,
+        receivedAmount: Number(preloadedOrderData.receivedAmount ?? preloadedOrderData.received ?? 0),
+        changeAmount: Number(preloadedOrderData.changeAmount ?? preloadedOrderData.change ?? 0),
+        orderType: preloadedOrderData.orderType || 'dine_in',
+        deliveryPlatform: preloadedOrderData.deliveryPlatform,
+        referenceName: preloadedOrderData.referenceName,
+        deliveryFee: Number(preloadedOrderData.deliveryFee || 0),
+        loyaltyClaimToken: preloadedOrderData.loyaltyClaimToken,
+        pointsEarned: preloadedOrderData.pointsEarned,
+      };
 
-    if (error) {
-      console.error('Database fetch error for print:', error);
-      logPOSPrintFlow('print_from_db:order_fetch_fail', { orderId, type, error: error.message || error })
-      throw error;
-    }
-    if (!order) {
-      logPOSPrintFlow('print_from_db:order_missing', { orderId, type })
-      throw new Error('ไม่พบข้อมูลออเดอร์ในระบบ');
-    }
-
-    const getPaidAmountLocal = (o: any) => {
-      const paymentRows = Array.isArray(o.pos_order_payments) ? o.pos_order_payments : []
-      const paidFromRows = paymentRows
-        .filter((row: any) => String(row.status || '').toLowerCase() === 'paid')
-        .reduce((sum: number, row: any) => sum + Number(row.amount || 0), 0)
-      return paidFromRows > 0 ? paidFromRows : Number(o.net_total ?? o.total_amount ?? 0)
-    }
-
-    const getOrderPaymentMethodLocal = (o: any) => {
-      const paymentRows = Array.isArray(o.pos_order_payments) ? o.pos_order_payments : []
-      const firstPaidMethod = paymentRows.find((row: any) => String(row.status || '').toLowerCase() === 'paid')?.payment_method
-      return firstPaidMethod || o.payment_method || 'cash'
-    }
-
-    const orderData: any = {
-      orderNumber: order.order_number,
-      queueNumber: order.queue_number ? String(order.queue_number) : undefined,
-      date: new Date(order.created_at).toLocaleString('th-TH'),
-      orderSource: order.order_source || 'pos',
-      staffName: profile?.full_name || profile?.display_name || 'POS',
-      customerName: order.customer?.full_name || order.customer?.display_name || order.customer_name || undefined,
-      tableNumber: order.table_number || undefined,
-      items: (order.pos_order_items || []).map((item: any) => ({
-        name: item.item?.name || item.name || 'Unknown Item',
-        quantity: Number(item.quantity || 0),
-        subtotal: Number(item.subtotal || (Number(item.unit_price || 0) * Number(item.quantity || 0))),
-        selected_modifiers: item.selected_modifiers || [],
-        category_id: item.item?.category_id || 'uncategorized'
-      })),
-      subtotal: Number(order.total_amount || 0),
-      discount: Number(order.discount_amount || 0),
-      tax: Number(order.tax_amount || 0),
-      total: Number(order.net_total ?? order.total_amount ?? 0),
-      paymentMethod: getOrderPaymentMethodLocal(order),
-      receivedAmount: getPaidAmountLocal(order),
-      changeAmount: Math.max(0, getPaidAmountLocal(order) - Number(order.net_total ?? order.total_amount ?? 0)),
-      orderType: order.order_type || 'dine_in',
-      deliveryPlatform: order.delivery_platform || undefined,
-      referenceName: order.reference_name || undefined,
-      deliveryFee: Number(order.delivery_fee || 0),
-      loyaltyClaimToken: order.loyalty_claim_token || undefined,
-      pointsEarned: order.points_earned || undefined,
-    };
-
-    if (type === 'receipt' && order.id && !order.customer_id && !order.customer_name && (!order.points_earned || order.points_earned === 0)) {
-      const netTotal = Number(order.net_total ?? order.total_amount ?? 0)
-      const { token, points } = await fetchOrGenerateLoyaltyToken(order.id, netTotal, shopSettings)
-      if (token) {
-        orderData.loyaltyClaimToken = token
-        orderData.pointsEarned = points
+      if (type === 'receipt' && orderId && orderId !== 'NEW' && !orderData.customerName && (!orderData.pointsEarned || orderData.pointsEarned === 0)) {
+        const netTotal = Number(orderData.total || 0)
+        const { token, points } = await fetchOrGenerateLoyaltyToken(orderId, netTotal, shopSettings)
+        if (token) {
+          orderData.loyaltyClaimToken = token
+          orderData.pointsEarned = points
+        }
       }
+    } else {
+      // 1. Fetch order exactly like POSHistory
+      const { data: order, error } = await supabase
+        .from('pos_orders')
+        .select('*, pos_order_items(*, item:pos_menu_items!item_id(*)), pos_order_payments(amount, payment_method, status), customer:pos_members!customer_id(display_name, full_name, phone)')
+        .eq('id', orderId)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Database fetch error for print:', error);
+        logPOSPrintFlow('print_from_db:order_fetch_fail', { orderId, type, error: error.message || error })
+        throw error;
+      }
+      if (!order) {
+        logPOSPrintFlow('print_from_db:order_missing', { orderId, type })
+        throw new Error('ไม่พบข้อมูลออเดอร์ในระบบ');
+      }
+
+      const getPaidAmountLocal = (o: any) => {
+        const paymentRows = Array.isArray(o.pos_order_payments) ? o.pos_order_payments : []
+        const paidFromRows = paymentRows
+          .filter((row: any) => String(row.status || '').toLowerCase() === 'paid')
+          .reduce((sum: number, row: any) => sum + Number(row.amount || 0), 0)
+        return paidFromRows > 0 ? paidFromRows : Number(o.net_total ?? o.total_amount ?? 0)
+      }
+
+      const getOrderPaymentMethodLocal = (o: any) => {
+        const paymentRows = Array.isArray(o.pos_order_payments) ? o.pos_order_payments : []
+        const firstPaidMethod = paymentRows.find((row: any) => String(row.status || '').toLowerCase() === 'paid')?.payment_method
+        return firstPaidMethod || o.payment_method || 'cash'
+      }
+
+      orderData = {
+        orderNumber: order.order_number,
+        queueNumber: order.queue_number ? String(order.queue_number) : undefined,
+        date: new Date(order.created_at).toLocaleString('th-TH'),
+        orderSource: order.order_source || 'pos',
+        staffName: profile?.full_name || profile?.display_name || 'POS',
+        customerName: order.customer?.full_name || order.customer?.display_name || order.customer_name || undefined,
+        tableNumber: order.table_number || undefined,
+        items: (order.pos_order_items || []).map((item: any) => ({
+          name: item.item?.name || item.name || 'Unknown Item',
+          quantity: Number(item.quantity || 0),
+          subtotal: Number(item.subtotal || (Number(item.unit_price || 0) * Number(item.quantity || 0))),
+          selected_modifiers: item.selected_modifiers || [],
+          category_id: item.item?.category_id || 'uncategorized'
+        })),
+        subtotal: Number(order.total_amount || 0),
+        discount: Number(order.discount_amount || 0),
+        tax: Number(order.tax_amount || 0),
+        total: Number(order.net_total ?? order.total_amount ?? 0),
+        paymentMethod: getOrderPaymentMethodLocal(order),
+        receivedAmount: getPaidAmountLocal(order),
+        changeAmount: Math.max(0, getPaidAmountLocal(order) - Number(order.net_total ?? order.total_amount ?? 0)),
+        orderType: order.order_type || 'dine_in',
+        deliveryPlatform: order.delivery_platform || undefined,
+        referenceName: order.reference_name || undefined,
+        deliveryFee: Number(order.delivery_fee || 0),
+        loyaltyClaimToken: order.loyalty_claim_token || undefined,
+        pointsEarned: order.points_earned || undefined,
+      };
+
+      if (type === 'receipt' && order.id && !order.customer_id && !order.customer_name && (!order.points_earned || order.points_earned === 0)) {
+        const netTotal = Number(order.net_total ?? order.total_amount ?? 0)
+        const { token, points } = await fetchOrGenerateLoyaltyToken(order.id, netTotal, shopSettings)
+        if (token) {
+          orderData.loyaltyClaimToken = token
+          orderData.pointsEarned = points
+        }
+      }
+    }
+
+    let paymentsBreakdown: any[] = [];
+    if (orderId && orderId !== 'NEW') {
+      try {
+        const { data: payRecords } = await supabase
+          .from('pos_order_payments')
+          .select('payment_method, amount, status')
+          .eq('order_id', orderId);
+        if (payRecords) {
+          paymentsBreakdown = payRecords
+            .filter((p: any) => String(p.status || '').toLowerCase() === 'paid')
+            .map((p: any) => ({
+              method: p.payment_method || 'cash',
+              amount: Number(p.amount || 0)
+            }));
+        }
+      } catch (e) {
+        console.error('Failed to fetch payments breakdown:', e);
+      }
+    }
+    if (orderData) {
+      orderData.paymentsBreakdown = paymentsBreakdown;
     }
 
     // 3. Map shop settings exactly like POSHistory
@@ -1099,8 +1199,11 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       kitchenFontSize: shopSettings?.kitchen_font_size || 'normal',
       kitchenShowType: shopSettings?.kitchen_show_type,
       orderNumberFormat: shopSettings?.order_number_format || shopSettings?.opening_hours?.order_number_format,
-      receipt_story_mode: shopSettings?.receipt_story_mode || false,
-      receipt_stories: shopSettings?.receipt_stories || [],
+      receiptShowLogo: shopSettings?.receipt_show_logo || false,
+      receipt_story_mode: shopSettings?.receipt_story_mode ?? shopSettings?.opening_hours?.receipt_story_mode ?? false,
+      receipt_stories: (shopSettings?.receipt_stories && shopSettings.receipt_stories.length > 0)
+        ? shopSettings.receipt_stories
+        : (shopSettings?.opening_hours?.receipt_stories || []),
       receiptPaymentQrImage: shopSettings?.opening_hours?.receipt_payment_qr_image
         || shopSettings?.receipt_payment_qr_image
         || (shopSettings as any)?.receipt_payment_qr_image,
@@ -1113,11 +1216,11 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     }
     
     if (targetPrinters.length === 0 || targetPrinters.every((p: any) => !p.ip)) {
-      const fallbackIp = typeof window !== 'undefined' ? localStorage.getItem('xylem_printer_ip') : null;
+      const fallbackIp = getFallbackPrinterIp();
       if (fallbackIp) {
         targetPrinters = [{ ip: fallbackIp, type, model: 'xprinter-xp-n160ii', encoding: 'graphic', categories: ['all'] }];
       } else {
-        logPOSPrintFlow('print_from_db:no_printer', { orderId, type, configuredPrinters: printers.length })
+        logPOSPrintFlow('print_from_db:no_printer', { orderId: orderId, type, configuredPrinters: printers.length })
         throw new Error('ไม่พบเครื่องปริ้น หรือเครื่องปริ้นยังไม่มี IP Address')
       }
     }
@@ -1186,7 +1289,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   const handlePrintReceipt = async () => {
     if (paymentSuccessData?.orderId && paymentSuccessData.orderId !== 'NEW') {
       try {
-        await printFromDatabaseOrder(paymentSuccessData.orderId, 'receipt', false);
+        await printFromDatabaseOrder(paymentSuccessData.orderId, 'receipt', false, paymentSuccessData);
       } catch (err: any) {
         alert('พิมพ์ใบเสร็จไม่สำเร็จ: ' + err.message);
       }
@@ -1198,7 +1301,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   const handlePrintKitchen = async () => {
     if (paymentSuccessData?.orderId && paymentSuccessData.orderId !== 'NEW') {
       try {
-        await printFromDatabaseOrder(paymentSuccessData.orderId, 'kitchen', false);
+        await printFromDatabaseOrder(paymentSuccessData.orderId, 'kitchen', false, paymentSuccessData);
       } catch (err: any) {
         alert('พิมพ์ออเดอร์เข้าครัวไม่สำเร็จ: ' + err.message);
       }
@@ -1769,7 +1872,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
   const handleDeleteOrder = async (id: string) => {
     if (
       !confirm(
-        profile?.role === 'admin'
+        (profile?.role === 'admin' || profile?.staff_level === 'owner' || profile?.staff_level === 'superadmin')
           ? 'คุณแน่ใจว่าต้องการยกเลิกบิลนี้อย่างถาวร? (รายการจะถูกเปลี่ยนสถานะเป็นยกเลิก)'
           : 'คุณต้องการขอยกเลิกรายการนี้ใช่หรือไม่?'
       )
@@ -2090,7 +2193,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
           if (receiptPrinters.length > 0) {
             Promise.all(receiptPrinters.map((rp: any) => rp.ip ? printOpenDrawer(rp.ip) : Promise.resolve())).catch(console.error);
           } else {
-            const fallbackIp = localStorage.getItem('xylem_printer_ip');
+            const fallbackIp = getFallbackPrinterIp();
             if (fallbackIp) printOpenDrawer(fallbackIp).catch(console.error);
           }
         } catch (err) {
@@ -3165,6 +3268,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
           const { data } = await supabase
             .from('pos_members')
             .select('*')
+            .eq('merchant_id', shopSettings?.merchant_id)
             .or(`phone.ilike.%${memberSearchQuery}%,full_name.ilike.%${memberSearchQuery}%,display_name.ilike.%${memberSearchQuery}%`)
             .limit(5)
           if (data) {
@@ -3191,6 +3295,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
       const { data, error } = await supabase
         .from('pos_members')
         .select('*')
+        .eq('merchant_id', shopSettings?.merchant_id)
         .or(`phone.ilike.%${memberSearchQuery}%,full_name.ilike.%${memberSearchQuery}%,display_name.ilike.%${memberSearchQuery}%`)
         .limit(1)
         .maybeSingle();
@@ -3211,26 +3316,26 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     }
   };
 
-  const handleProcessPayment = async (method: string, amount?: number) => {
+  const handleProcessPayment = async (method: string, amount?: number, receivedAmount?: number): Promise<boolean> => {
     if (paymentLockRef.current || isProcessing) {
       alert('กำลังประมวลผล กรุณารอสักครู่... หากค้างนานเกินไปให้รีเฟรชแอปพลิเคชัน');
-      return;
+      return false;
     }
     if (cart.length === 0) {
       alert('ไม่สามารถชำระเงินได้เนื่องจากไม่มีรายการสินค้าในบิล');
-      return;
+      return false;
     }
     
     if (typeof window !== 'undefined' && !navigator.onLine) {
       alert('เน็ตไม่พร้อม: หน้า POS เป็นโหมด Online เท่านั้น กรุณาเชื่อมต่ออินเทอร์เน็ตก่อนชำระเงิน')
-      return
+      return false;
     }
     if (!activeShift) {
       alert('กรุณาเปิดกะ (Shift) ก่อนชำระเงินครับ')
       onShiftModalOpen()
-      return
+      return false;
     }
-    if (!ensureDeliveryDetailsReady()) return
+    if (!ensureDeliveryDetailsReady()) return false;
 
     paymentLockRef.current = true;
     setIsProcessing(true); setCheckoutError(null); setProcessingMethod(method);
@@ -3244,6 +3349,28 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         let pointsEarned = 0;
       const newTotalPaid = totalPaid + amountToPay
       const newStatus = newTotalPaid >= cartTotal ? 'completed' : 'payment_pending'
+
+      // Calculate combined payment method string if it's a split payment
+      let combinedMethodStr = method;
+      if (totalPaid > 0 && editingOrderId) {
+        try {
+          const { data: payRecords } = await supabase
+            .from('pos_order_payments')
+            .select('payment_method')
+            .eq('order_id', editingOrderId);
+          
+          let methods = [method]; // start with current method
+          if (payRecords && payRecords.length > 0) {
+             methods = [...payRecords.map(p => p.payment_method?.replace('_', ' ') || ''), method];
+          }
+          const uniqueMethods = Array.from(new Set(methods.map(m => m?.toUpperCase() || ''))).filter(Boolean);
+          if (uniqueMethods.length > 0) {
+             combinedMethodStr = uniqueMethods.join(' + ');
+          }
+        } catch (e) {
+          console.error('Failed to fetch previous payments for combined method', e);
+        }
+      }
       
       // Fetch fresh GP settings from DB to ensure we always have latest values
       let gpPercent = 0;
@@ -3341,7 +3468,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
           table_id: selectedTable?.id,
           table_number: selectedTable?.table_number,
           queue_number: finalQueueNumber,
-          payment_method: method,
+          payment_method: newStatus === 'completed' ? combinedMethodStr : method,
           order_source: 'pos',
           paid_at: new Date().toISOString(),
           delivery_platform: orderType === 'delivery' ? deliveryPlatform : null,
@@ -3672,6 +3799,27 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
 
       // --- Hardware Printing Logic ---
       const printers = shopSettings?.printers || []
+      
+      // Drawer kick logic based on shift settings (moved outside printer condition)
+      const shiftSettings = shopSettings?.opening_hours?.shift_settings || {};
+      const kickOnCash = method === 'cash';
+      const kickOnCredit = method === 'credit_card' && shiftSettings.drawer_kick_on_credit;
+      const kickOnCustom = method !== 'cash' && method !== 'credit_card' && shiftSettings.drawer_kick_on_custom;
+
+      if (kickOnCash || kickOnCredit || kickOnCustom) {
+        try {
+          const receiptPrinters = printers.filter((p: any) => p.type === 'receipt' || p.type === 'both')
+          if (receiptPrinters.length > 0) {
+            Promise.all(receiptPrinters.map(rp => rp.ip ? printOpenDrawer(rp.ip) : Promise.resolve())).catch(console.error);
+          } else {
+            const fallbackIp = getFallbackPrinterIp()
+            if (fallbackIp) printOpenDrawer(fallbackIp).catch(console.error);
+          }
+        } catch (kickErr) {
+          console.error('Drawer kick failed:', kickErr);
+        }
+      }
+
 	      if (printers.length > 0) {
 	        try {
 	          const orderNumToPrint = finalOrderNumber || (finalOrderId ? (finalOrderId as string).slice(0, 8) : 'NEW')
@@ -3726,33 +3874,19 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
             receiptPaymentQrImage: shopSettings?.opening_hours?.receipt_payment_qr_image || shopSettings?.receipt_payment_qr_image
           }
 
-          // Drawer kick logic based on shift settings
-          const shiftSettings = shopSettings?.opening_hours?.shift_settings || {};
-          const kickOnCash = method === 'cash';
-          const kickOnCredit = method === 'credit_card' && shiftSettings.drawer_kick_on_credit;
-          const kickOnCustom = method !== 'cash' && method !== 'credit_card' && shiftSettings.drawer_kick_on_custom;
-
-          if (kickOnCash || kickOnCredit || kickOnCustom) {
-            const receiptPrinters = printers.filter((p: any) => p.type === 'receipt' || p.type === 'both')
-            if (receiptPrinters.length > 0) {
-              Promise.all(receiptPrinters.map(rp => rp.ip ? printOpenDrawer(rp.ip) : Promise.resolve())).catch(console.error);
-            } else {
-              const fallbackIp = typeof window !== 'undefined' ? localStorage.getItem('xylem_printer_ip') : null
-              if (fallbackIp) printOpenDrawer(fallbackIp).catch(console.error);
-            }
-          }
-
         } catch (printErr) {
           console.error('Printing failed during checkout:', printErr)
         }
       }
 
-	      const receivedNum = method === 'cash' ? (cashReceived ? Number(cashReceived) : amountToPay) : amountToPay;
+	      const receivedNum = method === 'cash' ? (receivedAmount !== undefined ? receivedAmount : (cashReceived ? Number(cashReceived) : amountToPay)) : amountToPay;
 	      const changeNum = receivedNum - amountToPay;
 	      const orderNumToPrint = finalOrderNumber || (finalOrderId ? (finalOrderId as string).slice(0, 8) : 'NEW');
 	      const queueNumToPrint = finalQueueNumber
 
-      if (newStatus === 'completed') {
+      let finalMethodStr = newStatus === 'completed' ? combinedMethodStr : method;
+
+      if (newStatus === 'completed' && !showSplitPaymentModal) {
         setPaymentSuccessData({
           received: receivedNum,
           change: changeNum > 0 ? changeNum : 0,
@@ -3764,20 +3898,23 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
           tableNumber: selectedTable?.table_number,
           customerName: selectedCustomer?.full_name || selectedCustomer?.name,
           orderType,
-          items: cart.map(item => ({
-            name: item.name,
-            quantity: item.quantity,
-            subtotal: getEffectiveItemUnitPrice(item) * item.quantity,
-            modifiers: item.selected_modifiers?.map((m: any) => m.name) || [],
-            selected_modifiers: item.selected_modifiers || [],
-            category_id: item.category_id || 'uncategorized'
-          })),
+          items: cart.map(item => {
+            const modsPrice = item.selected_modifiers?.reduce((a: number, m: any) => a + ((m.price_adjustment || 0) * (m.qty || 1)), 0) || 0;
+            return {
+              name: item.name,
+              quantity: item.quantity,
+              subtotal: ((getEffectiveItemUnitPrice(item) + modsPrice) * item.quantity) - (item.discount_amount || 0),
+              modifiers: item.selected_modifiers?.map((m: any) => m.name) || [],
+              selected_modifiers: item.selected_modifiers || [],
+              category_id: item.category_id || 'uncategorized'
+            };
+          }),
           subtotal: rawCartSubTotal,
           discount: discountTotalValue + itemDiscountTotal,
           tax: vatAmount,
           serviceCharge: serviceChargeAmount,
           total: cartTotal,
-          paymentMethod: method,
+          paymentMethod: finalMethodStr,
           timestamp: new Date().toISOString()
         });
 
@@ -3786,7 +3923,7 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         setShowCashPaymentModal(false)
         setShowSplitPaymentModal(false)
       } else {
-        // Partial split payment: update totalPaid state so remainingTotal updates, do NOT close split modal or show full success popup
+        // Partial split payment or final split payment via split modal: update totalPaid state so remainingTotal updates, do NOT close split modal or show full success popup
         setTotalPaid(newTotalPaid);
         if (finalOrderId) {
           setEditingOrderId(finalOrderId);
@@ -3800,9 +3937,11 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
         refreshPendingOrders()
         fetchShiftStats(activeShift.id)
       }
+      return true;
     } catch (e: any) {
       console.error('Payment Error:', e)
       setCheckoutError(`การชำระเงินขัดข้อง: ${e.message || String(e)}`)
+      return false;
     } finally {
       paymentLockRef.current = false;
       setIsProcessing(false)
@@ -3928,6 +4067,8 @@ const [showCashPaymentModal, setShowCashPaymentModal] = useState(false)
     setMemberAvailableCoupons,
     showCashPaymentModal,
     setShowCashPaymentModal,
+    inlineCashPayment,
+    setInlineCashPayment,
     totalPaid,
     setTotalPaid,
     showSplitPaymentModal,

@@ -32,6 +32,15 @@ const formatDeliveryPlatformLabel = (platform?: string) => {
   return platform.replace(/_/g, ' ').toUpperCase();
 };
 
+const formatPaymentMethodThai = (method: string) => {
+  const m = String(method || '').trim().toLowerCase();
+  if (m === 'cash') return 'เงินสด';
+  if (m === 'transfer') return 'เงินโอน';
+  if (m === 'credit_card') return 'บัตรเครดิต';
+  if (m === 'qr_payment' || m === 'qr') return 'Thai QR';
+  return method.toUpperCase().replace('_', ' ');
+};
+
 const extractPickupTime = (comment?: string, pickupTime?: string) => {
   const explicit = String(pickupTime || '').trim();
   if (explicit) return explicit;
@@ -57,7 +66,8 @@ const formatModifierLabel = (modifier: any) => {
   const value = modifier.value || modifier.selected_value || modifier.option_value || modifier.option_name || '';
   if ((modifier.is_note || name === 'หมายเหตุ') && value) return `หมายเหตุ: ${value}`;
   if (value && value !== name) return `${name}: ${value}`;
-  if (modifier.price && Number(modifier.price) !== 0) return `${name} (+${formatCurrency(Number(modifier.price))})`;
+  const priceVal = modifier.price_adjustment !== undefined ? modifier.price_adjustment : modifier.price;
+  if (priceVal && Number(priceVal) !== 0) return `${name} (+${formatCurrency(Number(priceVal))})`;
   return name;
 };
 
@@ -107,7 +117,7 @@ const shouldPrintReceiptPaymentQr = (order: PrintOrderData, shop: PrintShopData)
   return source === 'liff' && ['cod', 'cash_on_delivery', 'cash-on-delivery', 'cash'].includes(paymentMethod)
 };
 
-const GRAPHIC_RECEIPT_WIDTH = 576;
+const GRAPHIC_RECEIPT_WIDTH = 560;
 
 const renderReceiptHtml = (order: PrintOrderData, shop: PrintShopData) => {
   let html = '';
@@ -185,7 +195,14 @@ const renderReceiptHtml = (order: PrintOrderData, shop: PrintShopData) => {
 
   if (order.receivedAmount && order.receivedAmount > 0) {
     html += `<div style="border-top: 3px dashed black; margin: 14px 0;"></div>`;
-    html += `<div style="display:flex; justify-content:space-between; font-size:23px; line-height:1.35;"><span>รับเงิน (${escapeHtml(order.paymentMethod || 'CASH')})</span><span>${formatCurrency(order.receivedAmount)}</span></div>`;
+    if (order.paymentsBreakdown && order.paymentsBreakdown.length > 0) {
+      order.paymentsBreakdown.forEach((pay) => {
+        const payLabel = formatPaymentMethodThai(pay.method);
+        html += `<div style="display:flex; justify-content:space-between; font-size:23px; line-height:1.35;"><span>รับเงิน (${escapeHtml(payLabel)})</span><span>${formatCurrency(pay.amount)}</span></div>`;
+      });
+    } else {
+      html += `<div style="display:flex; justify-content:space-between; font-size:23px; line-height:1.35;"><span>รับเงิน (${escapeHtml(formatPaymentMethodThai(order.paymentMethod || 'CASH'))})</span><span>${formatCurrency(order.receivedAmount)}</span></div>`;
+    }
     html += `<div style="display:flex; justify-content:space-between; font-size:25px; font-weight:900; line-height:1.3;"><span>เงินทอน</span><span>${formatCurrency(order.changeAmount || 0)}</span></div>`;
   }
 
@@ -395,14 +412,14 @@ const renderGraphicCanvasDirect = async (
           logging: true,
           windowWidth: width,
           window: iframe.contentWindow || window, // CRITICAL: Prevent cloning main document
-          ignoreElements: (element) => {
+          ignoreElements: (element: any) => {
             // Prevent WebKit WEBP err=-50 crash by ignoring any image outside our content
             if ((element.tagName === 'IMG' || element.tagName === 'img') && !contentDiv.contains(element)) {
               return true;
             }
             return false;
           }
-        });
+        } as any);
         resolve(canvas);
       } catch (err) {
         console.error('html2canvas iframe render failed:', err);

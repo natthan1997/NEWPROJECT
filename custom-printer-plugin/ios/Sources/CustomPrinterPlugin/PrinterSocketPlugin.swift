@@ -19,16 +19,7 @@ public class PrinterSocketPlugin: CAPPlugin {
         connection.stateUpdateHandler = { state in
             switch state {
             case .ready:
-                var data = Data()
-                var hexStr = hexData
-                while hexStr.count >= 2 {
-                    let index = hexStr.index(hexStr.startIndex, offsetBy: 2)
-                    let byteString = String(hexStr[..<index])
-                    if let byte = UInt8(byteString, radix: 16) {
-                        data.append(byte)
-                    }
-                    hexStr = String(hexStr[index...])
-                }
+                let data = self.dataFromHexString(hexData)
 
                 connection.send(content: data, completion: .contentProcessed({ sendError in
                     if let error = sendError {
@@ -48,5 +39,30 @@ public class PrinterSocketPlugin: CAPPlugin {
         }
 
         connection.start(queue: .global())
+    }
+    
+    private func dataFromHexString(_ hexString: String) -> Data {
+        let chars = Array(hexString.utf8)
+        var data = Data(capacity: chars.count / 2)
+        
+        var i = 0
+        while i < chars.count - 1 {
+            let n1 = hexValue(of: chars[i])
+            let n2 = hexValue(of: chars[i+1])
+            if n1 >= 0 && n2 >= 0 {
+                data.append(UInt8((n1 << 4) | n2))
+            }
+            i += 2
+        }
+        return data
+    }
+    
+    private func hexValue(of char: UInt8) -> Int {
+        switch char {
+        case 48...57:  return Int(char - 48) // '0'...'9'
+        case 65...70:  return Int(char - 55) // 'A'...'F'
+        case 97...102: return Int(char - 87) // 'a'...'f'
+        default:       return -1
+        }
     }
 }

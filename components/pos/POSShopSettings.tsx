@@ -498,28 +498,27 @@ export default function POSShopSettings({
     try {
       const croppedBlob = await getCroppedImg(selectedImage, croppedAreaPixels)
       
-      const fileExt = 'jpg'
-      const fileName = `banner_${Date.now()}.${fileExt}`
-      const filePath = `banners/${fileName}`
+      const formData = new FormData()
+      formData.append('file', croppedBlob, `banner_${Date.now()}.jpg`)
+      formData.append('bucket', 'images')
+      formData.append('path', `banners/banner_${Date.now()}.jpg`)
 
-      const { error: uploadError } = await supabase.storage
-        .from('images')
-        .upload(filePath, croppedBlob, {
-          contentType: 'image/jpeg'
-        })
+      const res = await fetch('/api/admin/storage/upload', {
+        method: 'POST',
+        body: formData,
+      })
+      const result = await res.json()
 
-      if (uploadError) throw uploadError
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('images')
-        .getPublicUrl(filePath)
+      if (!res.ok || !result.publicUrl) {
+        throw new Error(result.error || 'Upload failed')
+      }
 
       const maxOrder = banners.length > 0 ? Math.max(...banners.map(b => b.order_index || 0)) : 0
 
       const { data: newBanner, error: insertError } = await supabase
         .from('pos_banners')
         .insert({
-          image_url: publicUrl,
+          image_url: result.publicUrl,
           is_active: true,
           order_index: maxOrder + 1
         })

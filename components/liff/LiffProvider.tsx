@@ -288,6 +288,13 @@ export const LiffProvider = ({ children }: { children: React.ReactNode }) => {
 
         const cachedUserId = localStorage.getItem('rushup_line_user_id');
 
+        // Get branchId from URL parameters
+        let branchId = null;
+        if (typeof window !== 'undefined') {
+          const params = new URLSearchParams(window.location.search);
+          branchId = params.get('branchId') || params.get('branch_id');
+        }
+
         if (liff.isLoggedIn()) {
           sessionStorage.removeItem('liff_redirect_path');
           const profile = await liff.getProfile();
@@ -297,7 +304,7 @@ export const LiffProvider = ({ children }: { children: React.ReactNode }) => {
 
           const res = await fetch('/api/liff/member/init', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ lineUserId: profile.userId, displayName: profile.displayName, avatarUrl: profile.pictureUrl })
+            body: JSON.stringify({ lineUserId: profile.userId, displayName: profile.displayName, avatarUrl: profile.pictureUrl, branchId })
           });
           const json = await res.json().catch(() => null);
           initResponseData = json;
@@ -324,7 +331,7 @@ export const LiffProvider = ({ children }: { children: React.ReactNode }) => {
           if (!cachedUserId || loading) {
             const res = await fetch('/api/liff/member/init', {
               method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ lineUserId: cachedUserId || null })
+              body: JSON.stringify({ lineUserId: cachedUserId || null, branchId })
             });
             initResponseData = await res.json().catch(() => null);
             fetchCoreData(cachedUserId || undefined, initResponseData);
@@ -343,12 +350,17 @@ export const LiffProvider = ({ children }: { children: React.ReactNode }) => {
 
     const runOptimisticLoad = async () => {
       const cachedUserId = typeof window !== 'undefined' ? localStorage.getItem('rushup_line_user_id') : null;
+      let branchId = null;
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        branchId = params.get('branchId') || params.get('branch_id');
+      }
       if (cachedUserId) {
         try {
           const res = await fetch('/api/liff/member/init', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ lineUserId: cachedUserId })
+            body: JSON.stringify({ lineUserId: cachedUserId, branchId })
           });
           const json = await res.json().catch(() => null);
           

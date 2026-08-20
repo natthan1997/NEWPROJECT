@@ -32,26 +32,27 @@ export default function PromoBannerSettings() {
 
     setIsUploading(true)
     try {
-      const fileExt = file.name.split('.').pop()
-      const fileName = `banner_${Date.now()}.${fileExt}`
-      const filePath = `banners/${fileName}`
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('bucket', 'images')
+      formData.append('path', `banners/banner_${Date.now()}.${file.name.split('.').pop() || 'png'}`)
 
-      const { error: uploadError, data: uploadData } = await supabase.storage
-        .from('images')
-        .upload(filePath, file)
+      const res = await fetch('/api/admin/storage/upload', {
+        method: 'POST',
+        body: formData,
+      })
+      const result = await res.json()
 
-      if (uploadError) throw uploadError
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('images')
-        .getPublicUrl(filePath)
+      if (!res.ok || !result.publicUrl) {
+        throw new Error(result.error || 'Upload failed')
+      }
 
       const maxOrder = banners.length > 0 ? Math.max(...banners.map(b => b.order_index || 0)) : 0
 
       const { data: newBanner, error: insertError } = await supabase
         .from('pos_banners')
         .insert({
-          image_url: publicUrl,
+          image_url: result.publicUrl,
           is_active: true,
           order_index: maxOrder + 1
         })

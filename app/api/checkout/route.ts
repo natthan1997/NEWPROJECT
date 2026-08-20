@@ -90,6 +90,19 @@ export async function POST(req: Request) {
       }
     )
 
+    // Fetch merchant_id from the branch
+    let merchantId = '00000000-0000-0000-0000-000000000000';
+    if (branchId) {
+      const { data: branchData } = await supabase
+        .from('branches')
+        .select('merchant_id')
+        .eq('id', branchId)
+        .maybeSingle();
+      if (branchData?.merchant_id) {
+        merchantId = branchData.merchant_id;
+      }
+    }
+
     // Group initial queries to run concurrently for performance
     let settingsQuery = supabase.from('pos_shop_settings').select('status, is_open, status_expiry, branch_id').limit(1)
     if (branchId) settingsQuery = settingsQuery.eq('branch_id', branchId)
@@ -104,6 +117,7 @@ export async function POST(req: Request) {
       .eq('order_source', 'liff')
       .eq('order_type', orderType)
       .eq('payment_method', 'cod')
+      .eq('merchant_id', merchantId)
       .in('status', ['pending', 'accepted', 'preparing', 'shipping'])
       .gte('created_at', duplicateCutoff)
       .order('created_at', { ascending: false })
@@ -113,7 +127,7 @@ export async function POST(req: Request) {
     else if (phoneNumber) duplicateQuery = duplicateQuery.eq('reference_name', phoneNumber)
 
     let memberQuery: any = lineUserId 
-      ? supabase.from('pos_members').select('id').eq('line_user_id', lineUserId).maybeSingle()
+      ? supabase.from('pos_members').select('id').eq('line_user_id', lineUserId).eq('merchant_id', merchantId).maybeSingle()
       : Promise.resolve({ data: null })
 
     const startOfToday = new Date()
@@ -121,15 +135,16 @@ export async function POST(req: Request) {
     let queueQuery = supabase
       .from('pos_orders')
       .select('estimated_prep_completion')
+      .eq('merchant_id', merchantId)
       .in('status', ['pending', 'paid', 'accepted', 'preparing'])
       .gte('created_at', startOfToday.toISOString())
       .order('estimated_prep_completion', { ascending: false })
       .limit(1)
 
-    let catQuery = supabase.from('pos_menu_categories').select('id, estimated_prep_minutes')
+    let catQuery = supabase.from('pos_menu_categories').select('id, estimated_prep_minutes').eq('merchant_id', merchantId)
 
     const itemIds = items.map((i: any) => i.id || i.item_id)
-    let dbItemsQuery = supabase.from('pos_menu_items').select('id, cost_price').in('id', itemIds)
+    let dbItemsQuery = supabase.from('pos_menu_items').select('id, cost_price').in('id', itemIds).eq('merchant_id', merchantId)
 
     const [
       { data: settingsRows },
@@ -295,6 +310,7 @@ export async function POST(req: Request) {
       reference_name: phoneNumber,
       comment: combinedComment,
       branch_id: branchId,
+      merchant_id: merchantId,
       estimated_prep_completion: estimatedPrepCompletion.toISOString(),
       delivery_distance_km: typeof deliveryDistance === 'number' ? deliveryDistance : null,
     }

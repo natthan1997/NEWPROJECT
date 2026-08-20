@@ -373,6 +373,7 @@ function LiffMemberContent() {
 
     setIsLinkingPhone(true);
     try {
+        const branchId = searchParams.get('branchId') || searchParams.get('branch_id');
         const res = await fetch('/api/liff/member/link-phone', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -384,7 +385,8 @@ function LiffMemberContent() {
               lastName: data.lastName,
               dateOfBirth: data.dateOfBirth,
               gender: data.gender,
-              pdpaConsent: data.pdpaConsent
+              pdpaConsent: data.pdpaConsent,
+              branchId
             })
         });
         const result = await res.json();

@@ -15,13 +15,14 @@
 
 ### Authentication:
 - `lib/supabaseClient.ts` - การจัดการ Supabase
-- `app/create-admin/page.tsx` - หน้าสร้าง Admin://localhost:3000
-2. คลิก "🔐 สร้างบัญชีผู้ดูแลระบบ"
+- `app/register-merchant/page.tsx` - หน้าลงทะเบียนร้านค้า (Merchant Onboarding)
+2. คลิก "ลงทะเบียนร้านค้าใหม่"
 3. กรอกข้อมูล:
-   - ชื่อ-นามสกุล: Admin User
-   - อีเมล: admin@rushupcafe.comm
-   - รหัสผ่าน: admin123456
-4. คลิก "สร้างบัญชีผู้ดูแลระบบ"
+   - ชื่อ-นามสกุล: Merchant Owner
+   - ชื่อร้านค้า / แบรนด์: My Cafe
+   - อีเมล: owner@mycafe.com
+   - รหัสผ่าน: password123
+4. คลิก "ลงทะเบียนเปิดร้านค้า"
 
 ### 2. ยืนยันอีเมล (ถ้าจำเป็น)
 - ตรวจสอบอีเมลและคลิกลิงก์ยืนยัน (หรือปิดการยืนยันอีเมลใน Supabase Dashboard)
@@ -96,7 +97,7 @@
 ### ถ้าเข้าสู่ระบบไม่ได้:
 1. ตรวจสอบ `.env.local` ว่ามี Supabase URL และ Key ถูกต้อง
 2. ตรวจสอบว่า Supabase Project ยังใช้งานได้
-3. ลองสร้างบัญชีใหม่ผ่าน `/create-admin`
+3. ลองสร้างบัญชีใหม่ผ่าน `/register-merchant`
 4. ตรวจสอบ Console ใน Browser Developer Tools
 
 ### ถ้าสร้างบริการไม่ได้:
@@ -116,4 +117,4 @@
 
 ### Authentication:
 - `lib/supabaseClient.ts` - การจัดการ Supabase
-- `app/create-admin/page.tsx` - หน้าสร้าง Admin
+- `app/register-merchant/page.tsx` - หน้าลงทะเบียนร้านค้า (Merchant Onboarding)

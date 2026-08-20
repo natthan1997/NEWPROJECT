@@ -14,6 +14,7 @@ import { useI18n } from "@/lib/I18nContext";
 import { motion } from 'framer-motion'
 import POSSOPEditorModal from './POSSOPEditorModal'
 import SOPStaticContent from './SOPStaticContent'
+import { QRCodeSVG } from 'qrcode.react'
 
 function bahtText(num: number): string {
     if (isNaN(num) || num === 0) return 'ศูนย์บาทถ้วน';
@@ -217,12 +218,15 @@ export default function POSStaffManager({
         staff_type: 'general',
         staff_level: 'staff',
         salary_type: 'daily',
-        is_rider: false,
         holiday_compensation_type: 'money',
         daily_wage: 0,
         is_pos_device: false,
         has_social_security: false,
-        work_days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
+        work_days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
+        has_login: false,
+        login_method: 'invite' as 'invite' | 'credentials',
+        email: '',
+        password: ''
     })
 
     const [showLeaveModal, setShowLeaveModal] = useState(false)
@@ -231,7 +235,6 @@ export default function POSStaffManager({
         leave_date: '',
         leave_type: 'sick',
         is_active: false,
-        is_rider: false,
         permissions: [] as string[],
         is_paid: false,
         reason: ''
@@ -248,6 +251,22 @@ export default function POSStaffManager({
     // Advanced HR States
     const [cashAdvances, setCashAdvances] = useState<any[]>([])
     const [showCashAdvanceModal, setShowCashAdvanceModal] = useState(false)
+
+    // LINE Invite State
+    const [showLineInviteModal, setShowLineInviteModal] = useState(false)
+    const [lineInviteData, setLineInviteData] = useState<{ profileId: string; inviteUrl: string; displayName: string } | null>(null)
+
+    const generateLineInvite = async (staff: any) => {
+        try {
+            const res = await fetch(`/api/auth/staff/invite?profile_id=${staff.id}`)
+            if (!res.ok) throw new Error('Failed to generate invite')
+            const data = await res.json()
+            setLineInviteData({ profileId: staff.id, inviteUrl: data.inviteUrl, displayName: staff.display_name || staff.full_name })
+            setShowLineInviteModal(true)
+        } catch (error) {
+            alert('เกิดข้อผิดพลาดในการสร้างลิงก์เชิญ')
+        }
+    }
     const [cashAdvanceForm, setCashAdvanceForm] = useState({
         profile_id: '',
         amount: 0,
@@ -327,7 +346,7 @@ export default function POSStaffManager({
         setLoading(true)
         const branchId = shopSettings?.branch_id
 
-        let query = supabase.from('profiles').select('*').eq('role', 'staff').order('display_name')
+        let query = supabase.from('profiles').select('*').eq('role', 'staff').eq('merchant_id', profile.merchant_id).order('display_name')
 
         if (branchId) {
             const { data: branchData } = await supabase.from('branches').select('branch_code').eq('id', branchId).maybeSingle()
@@ -670,7 +689,6 @@ export default function POSStaffManager({
             department: selectedStaff.department,
             daily_wage: selectedStaff.daily_wage,
             salary_type: selectedStaff.salary_type,
-            is_rider: selectedStaff.is_rider || false,
             holiday_compensation_type: selectedStaff.holiday_compensation_type,
             is_pos_account: selectedStaff.is_pos_account,
             shift_start: selectedStaff.shift_start,
@@ -789,34 +807,94 @@ export default function POSStaffManager({
     const handleCreateStaff = async () => {
         if (!newStaffForm.display_name) return alert('กรุณากรอกชื่อพนักงาน');
 
-        const { error } = await supabase.from('profiles').insert({
-            display_name: newStaffForm.display_name,
-            full_name: newStaffForm.display_name,
-            staff_code: newStaffForm.staff_code,
-            phone: newStaffForm.phone,
-            staff_type: newStaffForm.staff_type,
-            department: newStaffForm.staff_type,
-            salary_type: newStaffForm.salary_type || 'daily',
-            is_rider: newStaffForm.is_rider || false,
-            holiday_compensation_type: newStaffForm.holiday_compensation_type,
-            daily_wage: newStaffForm.daily_wage,
-            is_pos_device: newStaffForm.is_pos_device,
-            work_days: newStaffForm.work_days,
-            role: 'user',
-            staff_level: newStaffForm.staff_level || 'staff',
-            is_verified: true,
-            quota_public_holiday: 0,
-            has_social_security: newStaffForm.has_social_security || false
-        });
+        setIsSaving(true);
+        try {
+            if (newStaffForm.has_login && newStaffForm.login_method === 'credentials') {
+                if (!newStaffForm.email || !newStaffForm.password) {
+                    setIsSaving(false);
+                    return alert('กรุณากรอกอีเมลและรหัสผ่านสำหรับพนักงาน');
+                }
 
-        if (error) {
-            alert('เกิดข้อผิดพลาด: ' + error.message);
-        } else {
-            setShowAddStaffModal(false);
-            setNewStaffForm({
-                display_name: '', staff_code: '', phone: '', staff_type: 'general', staff_level: 'staff', salary_type: 'daily', is_rider: false, holiday_compensation_type: 'money', daily_wage: 0, is_pos_device: false, has_social_security: false, work_days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
-            });
-            fetchStaff();
+                // Call our new API route
+                const res = await fetch('/api/auth/staff/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: newStaffForm.email,
+                        password: newStaffForm.password,
+                        profile_data: {
+                            display_name: newStaffForm.display_name,
+                            full_name: newStaffForm.display_name,
+                            staff_code: newStaffForm.staff_code,
+                            phone: newStaffForm.phone,
+                            staff_type: newStaffForm.staff_type,
+                            department: newStaffForm.staff_type,
+                            salary_type: newStaffForm.salary_type || 'daily',
+                            holiday_compensation_type: newStaffForm.holiday_compensation_type,
+                            daily_wage: newStaffForm.daily_wage,
+                            is_pos_device: newStaffForm.is_pos_device,
+                            work_days: newStaffForm.work_days,
+                            role: 'user',
+                            staff_level: newStaffForm.staff_level || 'staff',
+                            is_verified: true,
+                            quota_public_holiday: 0,
+                            has_social_security: newStaffForm.has_social_security || false
+                        }
+                    })
+                });
+
+                if (!res.ok) {
+                    const errorData = await res.json();
+                    throw new Error(errorData.error || 'Failed to create staff with credentials');
+                }
+
+                setShowAddStaffModal(false);
+                setNewStaffForm({
+                    display_name: '', staff_code: '', phone: '', staff_type: 'general', staff_level: 'staff', salary_type: 'daily', holiday_compensation_type: 'money', daily_wage: 0, is_pos_device: false, has_social_security: false, work_days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
+                    has_login: false, login_method: 'invite', email: '', password: ''
+                });
+                fetchStaff();
+
+            } else {
+                // Offline or LINE Invite method (Standard Insert)
+                const { data, error } = await supabase.from('profiles').insert({
+                    display_name: newStaffForm.display_name,
+                    full_name: newStaffForm.display_name,
+                    staff_code: newStaffForm.staff_code,
+                    phone: newStaffForm.phone,
+                    staff_type: newStaffForm.staff_type,
+                    department: newStaffForm.staff_type,
+                    salary_type: newStaffForm.salary_type || 'daily',
+                    holiday_compensation_type: newStaffForm.holiday_compensation_type,
+                    daily_wage: newStaffForm.daily_wage,
+                    is_pos_device: newStaffForm.is_pos_device,
+                    work_days: newStaffForm.work_days,
+                    role: 'user',
+                    staff_level: newStaffForm.staff_level || 'staff',
+                    is_verified: true,
+                    quota_public_holiday: 0,
+                    has_social_security: newStaffForm.has_social_security || false
+                }).select().single();
+
+                if (error) {
+                    throw error;
+                } else if (data) {
+                    setShowAddStaffModal(false);
+                    setNewStaffForm({
+                        display_name: '', staff_code: '', phone: '', staff_type: 'general', staff_level: 'staff', salary_type: 'daily', holiday_compensation_type: 'money', daily_wage: 0, is_pos_device: false, has_social_security: false, work_days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
+                        has_login: false, login_method: 'invite', email: '', password: ''
+                    });
+                    fetchStaff();
+                    
+                    if (newStaffForm.has_login && newStaffForm.login_method === 'invite') {
+                        generateLineInvite(data);
+                    }
+                }
+            }
+        } catch (err: any) {
+            alert('เกิดข้อผิดพลาด: ' + err.message);
+        } finally {
+            setIsSaving(false);
         }
     }
 
@@ -836,15 +914,15 @@ export default function POSStaffManager({
             alert('เกิดข้อผิดพลาด: ' + error.message);
         } else {
             setShowLeaveModal(false);
-            setLeaveForm({ profile_id: '', leave_date: '', leave_type: 'sick', is_active: false, is_rider: false, permissions: [], is_paid: false, reason: '' });
+            setLeaveForm({ profile_id: '', leave_date: '', leave_type: 'sick', is_active: false, permissions: [], is_paid: false, reason: '' });
             fetchAttendances();
             if (selectedStaff) fetchStaffIndividualAttendance(selectedStaff.id);
         }
     }
 
     // Access Control: Only manager or admin
-    const isOwnerOrAdmin = profile?.role === 'admin' || profile?.role === 'owner';
-    const isManager = profile?.staff_level === 'manager' || profile?.staff_level === 'admin';
+    const isOwnerOrAdmin = profile?.role === 'admin' || profile?.role === 'owner' || profile?.staff_level === 'owner' || profile?.staff_level === 'superadmin';
+    const isManager = profile?.staff_level === 'manager' || profile?.staff_level === 'admin' || profile?.staff_level === 'owner' || profile?.staff_level === 'superadmin';
 
     if (!isOwnerOrAdmin && !isManager) {
         return (
@@ -1058,17 +1136,6 @@ export default function POSStaffManager({
                                             <option value="landscape">ทีมจัดสวน</option>
                                             <option value="general">ทั่วไป</option>
                                         </select>
-                                    </div>
-                                    <div className="space-y-1.5 flex items-end pb-2">
-                                        <label className="flex items-center gap-2 cursor-pointer">
-                                            <input 
-                                                type="checkbox" 
-                                                checked={selectedStaff.is_rider || false}
-                                                onChange={e => setSelectedStaff({ ...selectedStaff, is_rider: e.target.checked })}
-                                                className="w-4 h-4 text-black border-neutral-300 rounded focus:ring-black"
-                                            />
-                                            <span className="text-xs font-bold text-neutral-700">เป็นไรเดอร์ส่งของควบคู่</span>
-                                        </label>
                                     </div>
                                     <div className="space-y-1.5">
                                         <label className="text-[10px] font-bold text-neutral-400">ประเภทเงินเดือน</label>
@@ -1821,7 +1888,7 @@ export default function POSStaffManager({
                         {loading ? (
                             <div className="py-20 flex justify-center"><Loader2 className="animate-spin text-neutral-300" size={48} /></div>
                         ) : (
-                            <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-hidden">
+                            <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-x-auto">
                                 <table className="w-full text-left whitespace-nowrap">
                                     <thead>
                                         <tr className="bg-neutral-50 text-[10px] font-bold text-neutral-400 border-b border-neutral-100">
@@ -1898,10 +1965,19 @@ export default function POSStaffManager({
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4 text-right">
-                                                    <span className="inline-flex items-center gap-1 text-xs font-bold text-neutral-400 group-hover:text-[#1A1A18] transition-all">
-                                                        จัดการ <ChevronRight size={14} />
-                                                    </span>
+                                                <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                                                    <div className="flex items-center justify-end gap-3">
+                                                        <button 
+                                                            onClick={() => generateLineInvite(person)}
+                                                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#00B900]/10 text-[#00B900] hover:bg-[#00B900]/20 transition-colors text-[10px] font-bold"
+                                                        >
+                                                            <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5"><path d="M22.5 11.23c0-4.9-5.04-8.88-11.25-8.88C5.04 2.35 0 6.33 0 11.23c0 4.41 4.07 8.16 9.53 8.78.37.07.88.23 1.01.52.12.27.08.7.04.99l-.26 1.6c-.05.32-.24 1.54 1.35.87 1.6-1.12 8.65-5.09 10.83-12.76z" /></svg>
+                                                            เชื่อมต่อ LINE
+                                                        </button>
+                                                        <button onClick={() => { setSelectedStaff(person); setIsDetailOpen(true); setDetailTab('info'); }} className="inline-flex items-center gap-1 text-xs font-bold text-neutral-400 group-hover:text-[#1A1A18] transition-all">
+                                                            จัดการ <ChevronRight size={14} />
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
@@ -2181,19 +2257,6 @@ export default function POSStaffManager({
                                 </select>
                             </div>
 
-                            <div className="space-y-1.5 flex items-center gap-3">
-                                <input 
-                                    type="checkbox" 
-                                    id="add-is-rider"
-                                    checked={newStaffForm.is_rider || false}
-                                    onChange={e => setNewStaffForm({ ...newStaffForm, is_rider: e.target.checked })}
-                                    className="w-4 h-4 text-black border-gray-300 rounded focus:ring-black"
-                                />
-                                <label htmlFor="add-is-rider" className="text-sm font-bold text-gray-700 cursor-pointer">
-                                    เป็นพนักงานส่งของ (Rider) ควบคู่ด้วย
-                                </label>
-                            </div>
-
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1.5">
                                     <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">ประเภทค่าจ้าง</label>
@@ -2240,14 +2303,95 @@ export default function POSStaffManager({
                                     </div>
                                 </div>
                             </div>
+                            
+                            <div className="pt-4 mt-2 border-t border-neutral-100 space-y-4">
+                                <div>
+                                    <h3 className="text-sm font-black text-neutral-900">สิทธิ์การเข้าสู่ระบบ (System Access)</h3>
+                                    <p className="text-[10px] font-bold text-neutral-400 mt-1">กำหนดวิธีการล็อคอินสำหรับพนักงานคนนี้</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <input 
+                                        type="checkbox" 
+                                        id="add-has-login"
+                                        checked={newStaffForm.has_login}
+                                        onChange={e => setNewStaffForm({ ...newStaffForm, has_login: e.target.checked })}
+                                        className="w-4 h-4 text-black border-gray-300 rounded focus:ring-black"
+                                    />
+                                    <label htmlFor="add-has-login" className="text-xs font-bold text-gray-700 cursor-pointer">
+                                        อนุญาตให้พนักงานล็อคอินเข้าสู่ระบบ
+                                    </label>
+                                </div>
+
+                                {newStaffForm.has_login && (
+                                    <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-4 space-y-4 mt-2">
+                                        <div className="flex gap-4">
+                                            <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all cursor-pointer ${newStaffForm.login_method === 'invite' ? 'border-[#00B900] bg-[#00B900]/10 text-[#00B900]' : 'border-neutral-200 bg-white text-neutral-500'}`}>
+                                                <input 
+                                                    type="radio" 
+                                                    name="login_method" 
+                                                    value="invite"
+                                                    checked={newStaffForm.login_method === 'invite'}
+                                                    onChange={() => setNewStaffForm({...newStaffForm, login_method: 'invite'})}
+                                                    className="hidden"
+                                                />
+                                                <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M22.5 11.23c0-4.9-5.04-8.88-11.25-8.88C5.04 2.35 0 6.33 0 11.23c0 4.41 4.07 8.16 9.53 8.78.37.07.88.23 1.01.52.12.27.08.7.04.99l-.26 1.6c-.05.32-.24 1.54 1.35.87 1.6-1.12 8.65-5.09 10.83-12.76z" /></svg>
+                                                <span className="text-xs font-bold">ส่งลิงก์ LINE</span>
+                                            </label>
+                                            <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all cursor-pointer ${newStaffForm.login_method === 'credentials' ? 'border-neutral-800 bg-neutral-800 text-white' : 'border-neutral-200 bg-white text-neutral-500'}`}>
+                                                <input 
+                                                    type="radio" 
+                                                    name="login_method" 
+                                                    value="credentials"
+                                                    checked={newStaffForm.login_method === 'credentials'}
+                                                    onChange={() => setNewStaffForm({...newStaffForm, login_method: 'credentials'})}
+                                                    className="hidden"
+                                                />
+                                                <Mail size={16} />
+                                                <span className="text-xs font-bold">ตั้งอีเมล/รหัส</span>
+                                            </label>
+                                        </div>
+
+                                        {newStaffForm.login_method === 'credentials' && (
+                                            <div className="space-y-3 pt-2">
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">อีเมล (ใช้เข้าสู่ระบบ) *</label>
+                                                    <input
+                                                        type="email"
+                                                        value={newStaffForm.email}
+                                                        onChange={e => setNewStaffForm({ ...newStaffForm, email: e.target.value })}
+                                                        placeholder="staff@rushup.com"
+                                                        className="w-full bg-white rounded-xl border border-neutral-200 py-2.5 px-3 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
+                                                    />
+                                                </div>
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">รหัสผ่าน (6 ตัวอักษรขึ้นไป) *</label>
+                                                    <input
+                                                        type="password"
+                                                        value={newStaffForm.password}
+                                                        onChange={e => setNewStaffForm({ ...newStaffForm, password: e.target.value })}
+                                                        placeholder="••••••"
+                                                        className="w-full bg-white rounded-xl border border-neutral-200 py-2.5 px-3 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+                                        {newStaffForm.login_method === 'invite' && (
+                                            <div className="text-center p-3">
+                                                <p className="text-[10px] font-bold text-neutral-400">ระบบจะสร้าง QR Code และลิงก์เชิญ<br/>ให้คุณส่งต่อให้พนักงานหลังจากกดบันทึก</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         <div className="p-6 border-t border-neutral-100 bg-white">
                             <button
                                 onClick={handleCreateStaff}
-                                className="w-full bg-[#0F172A] text-white py-4 rounded-xl text-sm font-bold tracking-wide hover:bg-neutral-800 transition-all shadow-lg shadow-neutral-200"
+                                disabled={isSaving}
+                                className={`w-full py-4 rounded-xl text-sm font-bold tracking-wide transition-all shadow-lg ${isSaving ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed shadow-none' : 'bg-[#0F172A] text-white hover:bg-neutral-800 shadow-neutral-200'}`}
                             >
-                                สร้างโปรไฟล์พนักงาน
+                                {isSaving ? 'กำลังบันทึก...' : 'สร้างโปรไฟล์พนักงาน'}
                             </button>
                         </div>
                     </div>
@@ -2751,6 +2895,43 @@ export default function POSStaffManager({
               .no-print { display: none !important; }
           }
       `}</style>
+            {/* Staff Line Invite Modal */}
+            {showLineInviteModal && lineInviteData && (
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl relative">
+                        <div className="bg-[#00B900] p-6 text-center text-white relative">
+                            <button onClick={() => setShowLineInviteModal(false)} className="absolute top-4 right-4 bg-black/20 p-2 rounded-full hover:bg-black/40 transition-colors">
+                                <X size={16} />
+                            </button>
+                            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm">
+                                <svg viewBox="0 0 24 24" fill="#00B900" className="w-8 h-8"><path d="M22.5 11.23c0-4.9-5.04-8.88-11.25-8.88C5.04 2.35 0 6.33 0 11.23c0 4.41 4.07 8.16 9.53 8.78.37.07.88.23 1.01.52.12.27.08.7.04.99l-.26 1.6c-.05.32-.24 1.54 1.35.87 1.6-1.12 8.65-5.09 10.83-12.76z" /></svg>
+                            </div>
+                            <h3 className="font-black text-xl">เชิญพนักงาน</h3>
+                            <p className="text-white/80 text-xs font-bold mt-1">ให้พนักงานสแกน QR หรือกดลิงก์ด้านล่างเพื่อล็อคอินด้วย LINE</p>
+                        </div>
+                        <div className="p-8 pb-10 bg-white flex flex-col items-center">
+                            <div className="bg-white p-4 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-neutral-100 mb-6">
+                                <QRCodeSVG value={lineInviteData.inviteUrl} size={180} level="H" />
+                            </div>
+                            <div className="text-center w-full">
+                                <p className="text-[#1A1A18] font-black text-lg mb-1">{lineInviteData.displayName}</p>
+                                <p className="text-neutral-400 text-xs font-bold mb-6">QR Code นี้ใช้ได้เพียงครั้งเดียวสำหรับพนักงานคนนี้</p>
+                                <div className="flex gap-3">
+                                    <button 
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(lineInviteData.inviteUrl);
+                                            alert('คัดลอกลิงก์สำเร็จ!');
+                                        }}
+                                        className="flex-1 bg-neutral-100 text-[#1A1A18] px-4 py-3 rounded-xl font-bold text-sm hover:bg-neutral-200 transition-colors"
+                                    >
+                                        คัดลอกลิงก์ (Copy Link)
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
         </div>
     )
 }

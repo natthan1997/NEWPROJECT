@@ -41,6 +41,8 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Token ไม่ถูกต้อง หรือถูกใช้งานไปแล้ว' }, { status: 400 })
         }
 
+        const merchantId = tokenInfo.merchant_id || '00000000-0000-0000-0000-000000000000';
+
         if (tokenInfo.is_used && tokenInfo.claimed_by === lineUserId) {
             return NextResponse.json({ error: 'คุณได้รับคะแนนสำหรับออเดอร์นี้ไปแล้ว' }, { status: 400 })
         }
@@ -54,6 +56,7 @@ export async function POST(req: NextRequest) {
             .from('pos_members')
             .select('*')
             .eq('line_user_id', lineUserId)
+            .eq('merchant_id', merchantId)
             .maybeSingle()
             
         // Check by phone if lineUserId not found, in case they registered at POS
@@ -62,6 +65,7 @@ export async function POST(req: NextRequest) {
                .from('pos_members')
                .select('*')
                .eq('phone', phone)
+               .eq('merchant_id', merchantId)
                .maybeSingle()
                
             if (memberByPhone) {
@@ -131,6 +135,7 @@ export async function POST(req: NextRequest) {
                 gender: gender || null,
                 pdpa_consent: pdpaConsent,
                 points: 0,
+                merchant_id: merchantId,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
             }).select().single()
@@ -248,6 +253,7 @@ export async function POST(req: NextRequest) {
                                 type: 'earn',
                                 status: 'pending',
                                 description: 'สะสมพอยท์ (รอชำระเงิน)',
+                                merchant_id: merchantId,
                                 created_at: new Date().toISOString()
                             };
 
@@ -371,6 +377,7 @@ export async function POST(req: NextRequest) {
                     points: tokenInfo.points,
                     points_change: tokenInfo.points,
                     type: 'earn',
+                    merchant_id: merchantId,
                     created_at: new Date().toISOString()
                 }
                 

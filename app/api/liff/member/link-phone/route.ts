@@ -17,7 +17,7 @@ import { normalizePhone, getPhoneSearchOrFilter } from '@/lib/phoneUtils'
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json().catch(() => ({}))
-        const { lineUserId, phone, fullName, dateOfBirth, firstName, lastName, gender, pdpaConsent } = body
+        const { lineUserId, phone, fullName, dateOfBirth, firstName, lastName, gender, pdpaConsent, branchId } = body
 
         if (!lineUserId || !phone) {
             return NextResponse.json({ error: 'Missing lineUserId or phone' }, { status: 400 })
@@ -27,18 +27,33 @@ export async function POST(req: NextRequest) {
         const cleanPhone = norm.international || phone;
 
         const supabase = createSupabaseServiceClient()
+
+        // Get merchant_id from branchId
+        let merchantId = '00000000-0000-0000-0000-000000000000';
+        if (branchId) {
+          const { data: branchData } = await supabase
+            .from('branches')
+            .select('merchant_id')
+            .eq('id', branchId)
+            .maybeSingle();
+          if (branchData?.merchant_id) {
+            merchantId = branchData.merchant_id;
+          }
+        }
         
         // 1. Get LINE member
         const { data: lineMember } = await supabase
             .from('pos_members')
             .select('*')
             .eq('line_user_id', lineUserId)
+            .eq('merchant_id', merchantId)
             .maybeSingle()
 
         // 2. Get Phone member using fuzzy phone search (local, intl, last 9 digits)
         let phoneQuery = supabase
             .from('pos_members')
             .select('*')
+            .eq('merchant_id', merchantId)
             .or(getPhoneSearchOrFilter(phone));
 
         if (lineMember?.id) {
@@ -74,7 +89,8 @@ export async function POST(req: NextRequest) {
                         gender: gender || undefined,
                         pdpa_consent: pdpaConsent !== undefined ? pdpaConsent : true,
                         points: 0,
-                        total_accumulated_points: 0
+                        total_accumulated_points: 0,
+                        merchant_id: merchantId
                     }])
                     .select()
                     .single();

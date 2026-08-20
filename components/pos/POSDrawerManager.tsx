@@ -239,7 +239,7 @@ export default function POSDrawerManager({
       
       let orderQuery = supabase
         .from('pos_orders')
-        .select('status, order_type, payment_method, discount_amount, paid_at, branch_id, pos_order_payments(amount, payment_method)')
+        .select('status, order_type, payment_method, discount_amount, paid_at, branch_id, pos_order_payments(amount, payment_method, status)')
         .gte('created_at', shift.opened_at)
         .lte('created_at', shift.closed_at || new Date().toISOString())
         
@@ -258,7 +258,7 @@ export default function POSDrawerManager({
         const isSoldOrder = ['paid', 'completed', 'delivered'].includes(status) || Boolean(order.paid_at) || hasPaymentRows
         if (!isSoldOrder) return
 
-        const payments = order.pos_order_payments || []
+        const payments = order.pos_order_payments ? order.pos_order_payments.filter((p: any) => p.status === 'paid') : []
         payments.forEach((payment: any) => {
           const method = String(payment.payment_method || '').toLowerCase()
           if (method === 'cash' || method === 'cod') {
@@ -420,7 +420,7 @@ export default function POSDrawerManager({
               try {
                   let orderQuery = supabase
                       .from('pos_orders')
-                      .select('status, order_type, payment_method, discount_amount, paid_at, branch_id, pos_order_payments(amount, payment_method)')
+                      .select('status, order_type, payment_method, discount_amount, paid_at, branch_id, pos_order_payments(amount, payment_method, status)')
                       .gte('created_at', start.toISOString())
                       .lt('created_at', end.toISOString())
 
@@ -481,7 +481,7 @@ export default function POSDrawerManager({
                       existingOrderType.count += 1
                       orderTypeGroups.set(orderTypeKey, existingOrderType)
 
-                      const payments = order.pos_order_payments || []
+                      const payments = order.pos_order_payments ? order.pos_order_payments.filter((p: any) => p.status === 'paid') : []
                       payments.forEach((payment: any) => {
                           const bucket = normalizePaymentBucket(payment.payment_method)
                           paymentSummary[bucket] += Number(payment.amount || 0)
@@ -714,7 +714,7 @@ export default function POSDrawerManager({
         existingOrderType.count += 1
         orderTypeGroups.set(orderTypeKey, existingOrderType)
 
-        const payments = order.pos_order_payments || []
+        const payments = order.pos_order_payments ? order.pos_order_payments.filter((p: any) => p.status === 'paid') : []
         payments.forEach((payment: any) => {
           const bucket = normalizePaymentBucket(payment.payment_method)
           paymentSummary[bucket] += Number(payment.amount || 0)

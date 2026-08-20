@@ -40,12 +40,6 @@ export default function Login() {
   const [lineLoading, setLineLoading] = useState(false)
   const [error, setError] = useState('')
   const [nextPath, setNextPath] = useState('')
-  const [storeName, setStoreName] = useState('')
-  const [acceptTerms, setAcceptTerms] = useState(false)
-  const [authMode, setAuthMode] = useState<'login' | 'register'>('login')
-  const [loginMethod, setLoginMethod] = useState<'email' | 'phone'>('email')
-  const [phone, setPhone] = useState('')
-  const [displayName, setDisplayName] = useState('')
   const [activeSlideIndex, setActiveSlideIndex] = useState(0)
   const scrollRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
@@ -88,7 +82,7 @@ export default function Login() {
           (profile?.role === 'admin' || profile?.staff_level === 'admin')
             ? '/dashboard/admin' 
             : profile?.role === 'staff' 
-              ? (profile?.is_pos_account ? '/dashboard/pos' : '/dashboard/staff')
+              ? ((profile?.staff_level === 'owner' || profile?.staff_level === 'superadmin') ? '/dashboard/merchant' : (profile?.is_pos_account ? '/dashboard/pos' : '/dashboard/staff'))
               : '/dashboard/customer'
         )
 
@@ -303,7 +297,7 @@ const onboardingSlides = [
         {/* Slide 4 (Index 3): Login/Register Form */}
         <div className="w-full h-full shrink-0 snap-start bg-zinc-50/50 flex flex-col justify-center items-center p-6 overflow-y-auto">
           <div className="w-full max-w-sm bg-white rounded-3xl border border-zinc-200/60 shadow-xl shadow-zinc-100/50 p-6 md:p-8">
-            {authMode === 'login' ? renderLoginForm() : renderRegisterForm()}
+            {renderLoginForm()}
           </div>
         </div>
       </div>
@@ -344,7 +338,6 @@ const onboardingSlides = [
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
-                setPhone(e.target.value);
               }}
               required
               placeholder="อีเมลหรือรหัสพนักงาน"
@@ -405,16 +398,12 @@ const onboardingSlides = [
       <div className="mt-6 text-center border-t border-zinc-100 pt-4">
         <p className="text-xs text-zinc-500 font-semibold">
           ยังไม่มีบัญชีร้านค้า?{' '}
-          <button
-            type="button"
-            onClick={() => {
-              setError('');
-              setAuthMode('register');
-            }}
+          <Link
+            href="/register"
             className="text-[#C62229] font-bold hover:underline"
           >
             สมัครใช้งาน
-          </button>
+          </Link>
         </p>
       </div>
     </div>

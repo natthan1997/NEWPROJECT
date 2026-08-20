@@ -59,6 +59,7 @@ export interface Profile {
   staff_level?: 'staff' | 'manager' | 'admin';
   is_active?: boolean;
   is_pos_account?: boolean;
+  merchant_id?: string;
   created_at: string;
   updated_at: string;
 }
@@ -77,6 +78,7 @@ export interface Branch {
   latitude?: number;
   longitude?: number;
   gamification_settings?: any;
+  merchant_id?: string;
   created_at: string;
   updated_at: string;
 }

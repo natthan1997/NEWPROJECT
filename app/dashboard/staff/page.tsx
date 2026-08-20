@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { supabase } from '@/lib/supabaseClient';
 import { useI18n } from '@/lib/I18nContext'
 import { appCopy, pickLocalizedText } from '@/lib/appLocale'
-import { formatDateByLocale, formatDateTimeByLocale } from '@/lib/localeFormat'
+import { formatDateByLocale, formatDateTimeByLocale, formatCurrencyByLocale } from '@/lib/localeFormat'
 import { usePathname, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 

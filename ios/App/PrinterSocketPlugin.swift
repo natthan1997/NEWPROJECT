@@ -13,18 +13,7 @@ public class PrinterSocketPlugin: CAPPlugin {
             return
         }
         
-        let length = hexString.count / 2
-        var data = Data(capacity: length)
-        
-        var index = hexString.startIndex
-        for _ in 0..<length {
-            let nextIndex = hexString.index(index, offsetBy: 2)
-            let byteString = hexString[index..<nextIndex]
-            if let byte = UInt8(byteString, radix: 16) {
-                data.append(byte)
-            }
-            index = nextIndex
-        }
+        let data = dataFromHexString(hexString)
         
         let host = NWEndpoint.Host(ip)
         let nwPort = NWEndpoint.Port(integerLiteral: UInt16(port))
@@ -68,5 +57,30 @@ public class PrinterSocketPlugin: CAPPlugin {
             }
         }
         connection.start(queue: .global())
+    }
+    
+    private func dataFromHexString(_ hexString: String) -> Data {
+        let chars = Array(hexString.utf8)
+        var data = Data(capacity: chars.count / 2)
+        
+        var i = 0
+        while i < chars.count - 1 {
+            let n1 = hexValue(of: chars[i])
+            let n2 = hexValue(of: chars[i+1])
+            if n1 >= 0 && n2 >= 0 {
+                data.append(UInt8((n1 << 4) | n2))
+            }
+            i += 2
+        }
+        return data
+    }
+    
+    private func hexValue(of char: UInt8) -> Int {
+        switch char {
+        case 48...57:  return Int(char - 48) // '0'...'9'
+        case 65...70:  return Int(char - 55) // 'A'...'F'
+        case 97...102: return Int(char - 87) // 'a'...'f'
+        default:       return -1
+        }
     }
 }

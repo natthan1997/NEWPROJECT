@@ -89,7 +89,7 @@ export default function POSInventoryManager({
   const [historyTab, setHistoryTab] = useState<'movements' | 'audits'>('movements')
   const [auditSessions, setAuditSessions] = useState<any[]>([])
   const [selectedAuditSession, setSelectedAuditSession] = useState<any>(null)
-  const isAdmin = profile?.role === 'admin';
+  const isAdmin = profile?.role === 'admin' || profile?.staff_level === 'owner';
   const isAdminOrManager = isAdmin || profile?.staff_level === 'manager';
 
   const [visibleColumns, setVisibleColumns] = useState<string[]>(

@@ -237,9 +237,9 @@ export default function POSMenuManager({
   const [isCropping, setIsCropping] = useState(false)
 
   const userLevel = profile?.staff_level || 'staff'
-  const userRole = profile?.role === 'admin' ? 'admin' : userLevel === 'manager' ? 'manager' : 'staff'
+  const userRole = (profile?.role === 'admin' || userLevel === 'owner' || userLevel === 'superadmin') ? 'admin' : userLevel === 'manager' ? 'manager' : 'staff'
   const rolePerms = shopSettings?.role_permissions?.[userRole]
-  const canEditMenu = profile?.role === 'admin' || !rolePerms || rolePerms.includes('menu-edit-price') || userRole === 'manager'
+  const canEditMenu = (profile?.role === 'admin' || userLevel === 'owner' || userLevel === 'superadmin') || !rolePerms || rolePerms.includes('menu-edit-price') || userRole === 'manager'
 
   const [allModifierGroups, setAllModifierGroups] = useState<any[]>([])
   const [itemModifierLinks, setItemModifierLinks] = useState<string[]>([])

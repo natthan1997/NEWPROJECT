@@ -1,12 +1,14 @@
 import { createHmac, timingSafeEqual } from 'crypto'
 
 type LineLinkPayload = {
-  action: 'link_line_account'
-  userId: string
+  action: 'link_line_account' | 'staff_line_invite'
+  userId?: string
+  profileId?: string
   exp: number
 }
 
 const DEFAULT_LINK_TTL_SECONDS = 60 * 10
+const STAFF_INVITE_TTL_SECONDS = 60 * 60 * 24 * 7 // 7 days
 
 const getLinkSecret = () => {
   return (
@@ -27,6 +29,21 @@ export const createLineLinkToken = (userId: string, ttlSeconds = DEFAULT_LINK_TT
   const payload: LineLinkPayload = {
     action: 'link_line_account',
     userId,
+    exp: Math.floor(Date.now() / 1000) + Math.max(60, ttlSeconds),
+  }
+
+  const payloadPart = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url')
+  const signaturePart = sign(payloadPart, secret)
+  return `${payloadPart}.${signaturePart}`
+}
+
+export const createStaffInviteToken = (profileId: string, ttlSeconds = STAFF_INVITE_TTL_SECONDS): string | null => {
+  const secret = getLinkSecret()
+  if (!secret) return null
+
+  const payload: LineLinkPayload = {
+    action: 'staff_line_invite',
+    profileId,
     exp: Math.floor(Date.now() / 1000) + Math.max(60, ttlSeconds),
   }
 
@@ -62,9 +79,7 @@ export const verifyLineLinkToken = (
   }
 
   if (
-    parsed.action !== 'link_line_account' ||
-    typeof parsed.userId !== 'string' ||
-    !parsed.userId ||
+    !['link_line_account', 'staff_line_invite'].includes(parsed.action) ||
     typeof parsed.exp !== 'number'
   ) {
     return { valid: false, reason: 'invalid_payload' }

@@ -131,21 +131,22 @@ export default function LoyaltySettingsPage() {
   const handleUploadCouponImage = async (couponId: string, file: File) => {
     setUploadingCouponId(couponId);
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `coupon_${Date.now()}.${fileExt}`;
-      const filePath = `coupons/${fileName}`;
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('bucket', 'images');
+      formData.append('path', `coupons/coupon_${Date.now()}.${file.name.split('.').pop() || 'png'}`);
 
-      const { error: uploadError } = await supabase.storage
-        .from('images')
-        .upload(filePath, file);
+      const res = await fetch('/api/admin/storage/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const result = await res.json();
 
-      if (uploadError) throw uploadError;
+      if (!res.ok || !result.publicUrl) {
+        throw new Error(result.error || 'Upload failed');
+      }
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('images')
-        .getPublicUrl(filePath);
-
-      setCoupons(prev => prev.map(c => c.id === couponId ? { ...c, image_url: publicUrl } : c));
+      setCoupons(prev => prev.map(c => c.id === couponId ? { ...c, image_url: result.publicUrl } : c));
     } catch (err: any) {
       console.error('Error uploading coupon image:', err);
       alert('Upload failed: ' + err.message);

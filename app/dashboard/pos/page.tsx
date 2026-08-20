@@ -190,11 +190,22 @@ function RestaurantOSPageContent() {
         .select('id')
         .eq('branch_code', profile.branch_code)
         .maybeSingle()
-      return data?.id || null
+      if (data?.id) return data.id
+    }
+
+    if (profile?.merchant_id) {
+      const { data } = await supabase
+        .from('branches')
+        .select('id')
+        .eq('merchant_id', profile.merchant_id)
+        .order('branch_code', { ascending: true })
+        .limit(1)
+        .maybeSingle()
+      if (data?.id) return data.id
     }
 
     return null
-  }, [profile?.branch_code, profile?.role, shopSettings?.branch_id, urlBranchId])
+  }, [profile?.branch_code, profile?.merchant_id, profile?.role, shopSettings?.branch_id, urlBranchId])
 
   const getLocalDayBounds = useCallback(() => {
     const now = new Date()
@@ -403,6 +414,21 @@ function RestaurantOSPageContent() {
         branchName = b.branch_name
       }
     }
+
+    if (!branchId && profile.merchant_id) {
+      const { data: b } = await supabase
+        .from('branches')
+        .select('id, branch_name')
+        .eq('merchant_id', profile.merchant_id)
+        .order('branch_code', { ascending: true })
+        .limit(1)
+        .maybeSingle()
+      if (b) {
+        branchId = b.id
+        branchName = b.branch_name
+      }
+    }
+
     let query = supabase.from('pos_shop_settings').select('*')
     if (branchId) {
       query = query.eq('branch_id', branchId)
@@ -506,7 +532,7 @@ function RestaurantOSPageContent() {
 
     let ordersQuery = supabase
       .from('pos_orders')
-      .select('status, net_total, total_amount, payment_method, discount_amount, paid_at, branch_id, pos_order_payments(amount, payment_method)')
+      .select('status, net_total, total_amount, payment_method, discount_amount, paid_at, branch_id, pos_order_payments(amount, payment_method, status)')
       .gte('updated_at', start.toISOString())
       .lt('updated_at', end.toISOString())
 
@@ -1137,8 +1163,8 @@ function RestaurantOSPageContent() {
 
   const allowedNav = navItems.filter(item => {
     const level = (profile as any)?.staff_level || 'staff'
-    const role = profile?.role === 'admin' ? 'admin' : level === 'manager' ? 'manager' : 'staff'
-    if (profile?.role === 'admin') return true
+    const role = profile?.role === 'admin' ? 'admin' : (level === 'owner' || level === 'superadmin') ? 'admin' : level === 'manager' ? 'manager' : 'staff'
+    if (profile?.role === 'admin' || level === 'owner' || level === 'superadmin') return true
 
     // Check dynamic permissions from shopSettings
     const dynamicPerms = (shopSettings as any)?.role_permissions
