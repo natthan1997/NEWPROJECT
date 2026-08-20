@@ -2692,8 +2692,38 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
           </>
         )}
           </>
-
           </motion.div>
+
+          {/* 5. SPLIT BILL OVERLAY ON LEFT PANEL */}
+          <AnimatePresence>
+            {showSplitPaymentModal && (
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                className="absolute inset-0 z-[100] flex flex-col min-h-0 bg-white lg:rounded-[2rem] shadow-[0_25px_60px_rgba(0,0,0,0.12),0_4px_20px_rgba(0,0,0,0.04)] lg:border lg:border-neutral-200/30 overflow-hidden w-full h-full"
+              >
+                <POSSplitPaymentModal
+                  cart={cart}
+                  cartTotal={cartTotal}
+                  remainingTotal={remainingTotal}
+                  isProcessing={isProcessing}
+                  onClose={() => setShowSplitPaymentModal(false)}
+                  handleProcessPayment={async (method: string, amount: number) => {
+                     return await handleProcessPayment(method, amount);
+                  }}
+                  onFinishOrder={() => {
+                     setShowSplitPaymentModal(false);
+                     resetOrderComposer();
+                  }}
+                  activePrintData={activePrintData}
+                  shopSettings={shopSettings}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
         </div>      </motion.div>
 
       {/* RIGHT CONTENT: CART DRAWER / SPLIT VIEW */}
