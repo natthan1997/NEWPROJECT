@@ -13,11 +13,12 @@ export default function POSSplitPaymentModal({
   handleProcessPayment,
   onFinishOrder,
   activePrintData,
-  shopSettings
+  shopSettings,
+  fixedMode
 }: any) {
   const { locale } = useI18n();
 
-  const [splitMode, setSplitMode] = useState<'equal' | 'item'>('equal')
+  const [splitMode, setSplitMode] = useState<'equal' | 'item'>(fixedMode || 'equal')
   const [splitCount, setSplitCount] = useState(2)
 
   const [completedSplits, setCompletedSplits] = useState<Array<{
@@ -178,22 +179,24 @@ export default function POSSplitPaymentModal({
         <div className="flex-1 flex flex-col min-h-0">
           
           {/* TAB SWITCHER */}
-          <div className="px-8 py-4 bg-white border-b border-gray-100 shrink-0">
-            <div className="flex bg-gray-100/80 p-1 rounded-xl font-medium">
-              <button
-                onClick={() => { setSplitMode('equal'); setSelectedUnitKeys([]); setPaymentMethod(null); }}
-                className={`flex-1 h-10 rounded-lg text-sm transition-all ${splitMode === 'equal' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-black'}`}
-              >
-                {locale === 'en' ? 'Equal Split' : 'หารเท่ากัน'}
-              </button>
-              <button
-                onClick={() => { setSplitMode('item'); setSelectedUnitKeys([]); setPaymentMethod(null); }}
-                className={`flex-1 h-10 rounded-lg text-sm transition-all ${splitMode === 'item' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-black'}`}
-              >
-                {locale === 'en' ? 'By Item' : 'เลือกรายการ'}
-              </button>
+          {!fixedMode && (
+            <div className="px-8 py-4 bg-white border-b border-gray-100 shrink-0">
+              <div className="flex bg-gray-100/80 p-1 rounded-xl font-medium">
+                <button
+                  onClick={() => { setSplitMode('equal'); setSelectedUnitKeys([]); setPaymentMethod(null); }}
+                  className={`flex-1 h-10 rounded-lg text-sm transition-all ${splitMode === 'equal' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-black'}`}
+                >
+                  {locale === 'en' ? 'Equal Split' : 'หารเท่ากัน'}
+                </button>
+                <button
+                  onClick={() => { setSplitMode('item'); setSelectedUnitKeys([]); setPaymentMethod(null); }}
+                  className={`flex-1 h-10 rounded-lg text-sm transition-all ${splitMode === 'item' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-black'}`}
+                >
+                  {locale === 'en' ? 'By Item' : 'เลือกรายการ'}
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* MAIN CONTENT */}
           <div className="flex-1 overflow-y-auto px-8 py-6 space-y-8 custom-scrollbar">
