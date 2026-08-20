@@ -653,6 +653,8 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
   const [showSplitMenu, setShowSplitMenu] = useState(false);
   const [inlineEqualSplit, setInlineEqualSplit] = useState(false);
   const [inlineSplitCount, setInlineSplitCount] = useState(2);
+  const [inlineCustomSplit, setInlineCustomSplit] = useState(false);
+  const [customSplitAmount, setCustomSplitAmount] = useState<number>(0);
 
 
   // Split Thai string into base consonants + combining vowels/tones to prevent typography issues
@@ -4966,7 +4968,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
             {/* PAYMENT MODAL (Floating Popup Drawer) */}
             <AnimatePresence>
               {showPaymentModal && !paymentSuccessData && (
-                <div className={`absolute inset-0 z-[60] flex items-end justify-center font-bold pointer-events-none transition-all duration-300 ${inlineEqualSplit ? 'p-0' : 'p-2 sm:p-4'}`}>
+                <div className={`absolute inset-0 z-[60] flex items-end justify-center font-bold pointer-events-none transition-all duration-300 ${inlineEqualSplit || inlineCustomSplit ? 'p-0' : 'p-2 sm:p-4'}`}>
                   {/* Backdrop */}
                   <motion.div
                     initial={{ opacity: 0 }}
@@ -4982,7 +4984,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                     animate={{ y: 0, opacity: 1 }}
                     exit={{ y: '100%', opacity: 0 }}
                     transition={{ type: "spring", damping: 25, stiffness: 220 }}
-                    className={`relative w-full bg-white flex flex-col overflow-hidden shadow-2xl z-10 pointer-events-auto ${inlineEqualSplit ? 'h-full rounded-none' : 'max-h-[85vh] rounded-[2rem]'}`}
+                    className={`relative w-full bg-white flex flex-col overflow-hidden shadow-2xl z-10 pointer-events-auto ${inlineEqualSplit || inlineCustomSplit ? 'h-full rounded-none' : 'max-h-[85vh] rounded-[2rem]'}`}
                   >
                   <header className="flex items-center justify-between px-6 py-5 border-b border-gray-100 bg-white shrink-0">
                   <div className="text-left">
@@ -5000,8 +5002,8 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                     {/* Total Due display */}
                   <div className="text-center bg-white p-6 rounded-3xl border border-gray-100 shadow-sm transition-all duration-300">
                     <div className="text-[11px] font-black text-gray-400 mb-2 tracking-widest uppercase">ยอดชำระสุทธิ</div>
-                    <div className={`${inlineEqualSplit ? 'text-3xl' : 'text-5xl'} font-black text-gray-900 tracking-tight transition-all duration-300`}>
-                      <span className={`${inlineEqualSplit ? 'text-xl' : 'text-2xl'} font-medium text-gray-400 mr-2 transition-all duration-300`}>฿</span>
+                    <div className={`${inlineEqualSplit || inlineCustomSplit ? 'text-3xl' : 'text-5xl'} font-black text-gray-900 tracking-tight transition-all duration-300`}>
+                      <span className={`${inlineEqualSplit || inlineCustomSplit ? 'text-xl' : 'text-2xl'} font-medium text-gray-400 mr-2 transition-all duration-300`}>฿</span>
                       {remainingTotal.toLocaleString()}
                     </div>
                     {totalPaid > 0 && (
@@ -5030,7 +5032,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
 
                   
                   <AnimatePresence mode="wait">
-                    {!inlineEqualSplit ? (
+                    {!inlineEqualSplit && !inlineCustomSplit ? (
                       <motion.div
                         key="default-payment"
                         initial={{ opacity: 0, height: 0 }}
@@ -5100,7 +5102,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                           </button>
                         </div>
                       </motion.div>
-                    ) : (
+                    ) : inlineEqualSplit ? (
                       <motion.div
                         key="inline-equal-split"
                         initial={{ opacity: 0, height: 0 }}
@@ -5166,6 +5168,89 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                             onClick={() => {
                               setCheckoutError(null);
                               handleProcessPayment('credit_card', Math.max(0, remainingTotal / Math.max(1, inlineSplitCount)));
+                            }}
+                            className={`h-24 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-2 shadow-sm ${processingMethod === 'credit_card' ? 'bg-black text-white border-black' : 'bg-white border-gray-100 text-gray-700 hover:border-gray-300'} disabled:opacity-40`}
+                          >
+                            <CreditCard size={24} strokeWidth={1.5} />
+                            <span className="text-[11px] font-bold tracking-wide">บัตร</span>
+                          </button>
+                        </div>
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="inline-custom-split"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="space-y-6 pt-4 border-t border-gray-100"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="text-sm font-bold text-gray-900">จ่ายหลายช่องทาง (Custom Split)</div>
+                          <button
+                            onClick={() => setInlineCustomSplit(false)}
+                            className="text-[11px] font-bold text-gray-500 hover:text-black transition-colors bg-gray-100 px-3 py-1.5 rounded-full"
+                          >
+                            ยกเลิก
+                          </button>
+                        </div>
+
+                        <div className="flex flex-col items-center justify-center space-y-4">
+                          <div className="text-xs font-bold text-gray-400">ระบุยอดเงินที่ต้องการชำระ</div>
+                          <div className="relative w-full max-w-[240px]">
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-black text-gray-400">฿</span>
+                            <input
+                              type="number"
+                              value={customSplitAmount || ''}
+                              onChange={(e) => setCustomSplitAmount(Number(e.target.value))}
+                              onFocus={(e) => {
+                                if (customSplitAmount === remainingTotal) {
+                                  setCustomSplitAmount(0);
+                                }
+                              }}
+                              className="w-full bg-gray-50 rounded-2xl py-4 pl-12 pr-4 text-3xl font-black text-black tracking-tighter text-center outline-none focus:ring-2 focus:ring-black transition-all"
+                              placeholder="0"
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <button onClick={() => setCustomSplitAmount(Math.min(remainingTotal, customSplitAmount + 20))} className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-xs font-bold hover:bg-gray-200 transition-colors">+20</button>
+                            <button onClick={() => setCustomSplitAmount(Math.min(remainingTotal, customSplitAmount + 50))} className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-xs font-bold hover:bg-gray-200 transition-colors">+50</button>
+                            <button onClick={() => setCustomSplitAmount(Math.min(remainingTotal, customSplitAmount + 100))} className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-xs font-bold hover:bg-gray-200 transition-colors">+100</button>
+                            <button onClick={() => setCustomSplitAmount(remainingTotal)} className="px-3 py-1.5 bg-black text-white rounded-lg text-xs font-bold hover:bg-neutral-800 transition-colors">เต็มจำนวน</button>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-3 mt-4">
+                          <button
+                            disabled={isProcessing || customSplitAmount <= 0}
+                            onClick={() => {
+                              setCheckoutError(null);
+                              setShowPaymentModal(false);
+                              setCashReceived('');
+                              setPaymentSuccessData(null);
+                              setCurrentPaymentAmount(customSplitAmount);
+                              setShowCashPaymentModal(true);
+                            }}
+                            className={`h-24 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-2 shadow-sm ${processingMethod === 'cash' ? 'bg-black text-white border-black' : 'bg-white border-gray-100 text-gray-700 hover:border-gray-300'} disabled:opacity-40`}
+                          >
+                            <Banknote size={24} strokeWidth={1.5} />
+                            <span className="text-[11px] font-bold tracking-wide">เงินสด</span>
+                          </button>
+                          <button
+                            disabled={isProcessing || customSplitAmount <= 0}
+                            onClick={() => {
+                              setCheckoutError(null);
+                              handleProcessPayment('promptpay', customSplitAmount);
+                            }}
+                            className={`h-24 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-2 shadow-sm ${processingMethod === 'promptpay' ? 'bg-black text-white border-black' : 'bg-white border-gray-100 text-gray-700 hover:border-gray-300'} disabled:opacity-40`}
+                          >
+                            <QrCode size={24} strokeWidth={1.5} />
+                            <span className="text-[11px] font-bold tracking-wide">สแกน</span>
+                          </button>
+                          <button
+                            disabled={isProcessing || customSplitAmount <= 0}
+                            onClick={() => {
+                              setCheckoutError(null);
+                              handleProcessPayment('credit_card', customSplitAmount);
                             }}
                             className={`h-24 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-2 shadow-sm ${processingMethod === 'credit_card' ? 'bg-black text-white border-black' : 'bg-white border-gray-100 text-gray-700 hover:border-gray-300'} disabled:opacity-40`}
                           >
@@ -5385,7 +5470,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                 <p className="mb-6 text-xs font-bold text-neutral-500 leading-relaxed max-w-[280px] mx-auto">
                   {locale === 'en' ? 'How would you like to split this bill?' : locale === 'zh' ? 'How would you like to split this bill?' : 'คุณต้องการหารจ่ายบิลนี้ด้วยวิธีไหน?'}
                 </p>
-                <div className="flex flex-col gap-2">
+                <div className="grid grid-cols-3 gap-3">
                   <button
                     onClick={() => {
                       setShowSplitMenu(false);
@@ -5394,29 +5479,40 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                       setShowPaymentModal(false);
                       setShowSplitPaymentModal(true);
                     }}
-                    className="w-full rounded-2xl bg-black py-4 text-[13px] font-black uppercase tracking-widest text-white shadow-md active:scale-95 transition-all flex items-center justify-center gap-3"
+                    className="h-28 rounded-2xl bg-white border-2 border-gray-100 text-gray-700 hover:border-black hover:text-black shadow-sm active:scale-95 transition-all flex flex-col items-center justify-center gap-2 group"
                   >
-                    <ShoppingBag size={18} />
-                    {locale === 'en' ? 'Split by Item' : locale === 'zh' ? 'Split by Item' : 'แยกบิล (Split by Item)'}
+                    <div className="p-2 bg-gray-50 rounded-xl group-hover:bg-gray-100 transition-colors"><ShoppingBag size={24} /></div>
+                    <span className="text-[11px] font-bold tracking-wide">แยกบิล<br/>(Split by Item)</span>
                   </button>
                   <button
                     onClick={() => {
                       setShowSplitMenu(false);
                       setInlineEqualSplit(true);
                     }}
-                    className="w-full rounded-2xl bg-black py-4 text-[13px] font-black uppercase tracking-widest text-white shadow-md active:scale-95 transition-all flex items-center justify-center gap-3"
+                    className="h-28 rounded-2xl bg-white border-2 border-gray-100 text-gray-700 hover:border-black hover:text-black shadow-sm active:scale-95 transition-all flex flex-col items-center justify-center gap-2 group"
                   >
-                    <Users size={18} />
-                    {locale === 'en' ? 'Equal Split' : locale === 'zh' ? 'Equal Split' : 'หารจ่าย (Equal Split)'}
+                    <div className="p-2 bg-gray-50 rounded-xl group-hover:bg-gray-100 transition-colors"><Users size={24} /></div>
+                    <span className="text-[11px] font-bold tracking-wide">หารจ่าย<br/>(Equal Split)</span>
                   </button>
                   <button
-                    type="button"
-                    onClick={() => setShowSplitMenu(false)}
-                    className="w-full mt-2 py-3 text-[11px] font-black uppercase tracking-widest text-neutral-400 hover:text-neutral-600 transition-colors"
+                    onClick={() => {
+                      setShowSplitMenu(false);
+                      setCustomSplitAmount(remainingTotal);
+                      setInlineCustomSplit(true);
+                    }}
+                    className="h-28 rounded-2xl bg-white border-2 border-gray-100 text-gray-700 hover:border-black hover:text-black shadow-sm active:scale-95 transition-all flex flex-col items-center justify-center gap-2 group"
                   >
-                    {locale === 'en' ? 'Cancel' : locale === 'zh' ? 'Cancel' : 'ยกเลิก'}
+                    <div className="p-2 bg-gray-50 rounded-xl group-hover:bg-gray-100 transition-colors"><Banknote size={24} /></div>
+                    <span className="text-[11px] font-bold tracking-wide">จ่ายบางส่วน<br/>(Custom Split)</span>
                   </button>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setShowSplitMenu(false)}
+                  className="w-full mt-4 py-3 text-[11px] font-black uppercase tracking-widest text-neutral-400 hover:text-neutral-600 bg-gray-50 rounded-xl transition-colors"
+                >
+                  {locale === 'en' ? 'Cancel' : locale === 'zh' ? 'Cancel' : 'ยกเลิก'}
+                </button>
               </motion.div>
             </div>
           )}
