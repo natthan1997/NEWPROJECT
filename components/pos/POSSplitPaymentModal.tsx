@@ -71,11 +71,11 @@ export default function POSSplitPaymentModal({
           key: `item_${idx}_unit_${u}`,
           itemIndex: idx,
           unitIndex: u + 1,
-          totalUnits: qty,
           name: itemName,
           customer_name: item.customer_name,
           unitPrice,
           modifiersText: modText,
+          image_url: item.image_url,
         });
       }
     });
@@ -128,21 +128,25 @@ export default function POSSplitPaymentModal({
     }
   };
 
-  const handleConfirmCurrentSplit = async () => {
-    if (targetPartialAmount <= 0 || !paymentMethod || isSubmitting || !isCashValid) return;
+  const handleConfirmCurrentSplit = async (method: 'cash' | 'promptpay' | 'credit_card') => {
+    if (targetPartialAmount <= 0 || isSubmitting) return;
 
     setIsSubmitting(true);
+    setPaymentMethod(method);
     try {
-      await handleProcessPayment(paymentMethod, targetPartialAmount);
+      const success = await handleProcessPayment(method, targetPartialAmount, method === 'cash' ? numCashReceived || targetPartialAmount : undefined);
+      if (!success) {
+        return;
+      }
 
       const newSplitRecord = {
         id: `split_${Date.now()}`,
-        method: paymentMethod,
+        method: method,
         amount: targetPartialAmount,
         timestamp: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
         unitKeys: [...selectedUnitKeys],
-        cashReceived: paymentMethod === 'cash' ? numCashReceived : undefined,
-        change: paymentMethod === 'cash' ? cashChange : undefined
+        cashReceived: method === 'cash' ? numCashReceived || targetPartialAmount : undefined,
+        change: method === 'cash' ? cashChange : undefined
       };
 
       setCompletedSplits(prev => [...prev, newSplitRecord]);
@@ -151,6 +155,7 @@ export default function POSSplitPaymentModal({
       setCashReceivedInput('');
     } catch (e: any) {
       alert('Error: ' + (e?.message || e));
+      setPaymentMethod(null);
     } finally {
       setIsSubmitting(false);
     }
@@ -159,24 +164,20 @@ export default function POSSplitPaymentModal({
   return (
     <div className="relative flex w-full h-full flex-col bg-white font-sans overflow-hidden">
         
-        {/* HEADER */}
-        <header className="flex items-center justify-between px-8 py-6 border-b border-gray-100">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900 tracking-tight">{locale === 'en' ? 'Split Payment' : 'แยกชำระบิล'}</h2>
-            <div className="flex gap-4 mt-1 text-sm font-medium text-gray-500">
-              <span>{locale === 'en' ? 'Total' : 'รวม'}: ฿{cartTotal.toLocaleString()}</span>
-              <span className="text-gray-300">|</span>
-              <span className="text-gray-900">{locale === 'en' ? 'Paid' : 'จ่ายแล้ว'}: ฿{totalOverallPaid.toLocaleString()}</span>
-              <span className="text-gray-300">|</span>
-              <span className="text-gray-900">{locale === 'en' ? 'Left' : 'คงเหลือ'}: ฿{liveRemainingTotal.toLocaleString()}</span>
-            </div>
-          </div>
-          <button onClick={onClose} className="p-2 text-gray-400 hover:text-black transition-colors rounded-full hover:bg-gray-100">
-            <X size={24} strokeWidth={1.5} />
+        {/* SINGLE HEADER */}
+        <header className="flex items-center justify-between px-8 py-6 border-b border-gray-100 shrink-0 w-full">
+          <h2 className="text-xl font-bold text-gray-900 tracking-tight">{locale === 'en' ? 'Split Payment' : 'แยกชำระบิล'}</h2>
+          <button onClick={onClose} className="p-2 text-red-500 hover:text-white transition-colors rounded-full hover:bg-red-500 bg-red-50">
+            <X size={24} strokeWidth={2} />
           </button>
         </header>
 
-        <div className="flex-1 flex flex-col min-h-0">
+        {/* 2-COLUMN BODY */}
+        <div className="flex-1 flex flex-col lg:flex-row min-h-0 w-full">
+            
+            {/* LEFT COLUMN: Checklist */}
+            <div className="flex-1 flex flex-col min-h-0 h-full">
+
           
           {/* TAB SWITCHER */}
           {!fixedMode && (
@@ -234,30 +235,44 @@ export default function POSSplitPaymentModal({
               <div className="space-y-8 animate-in fade-in duration-200">
                 
                 {unpaidUnitsList.length > 0 && (
-                  <div className="space-y-4">
+                  <div className="flex flex-col">
                     {unpaidUnitsList.map((unit) => {
                       const isSelected = selectedUnitKeys.includes(unit.key);
                       return (
                         <div
                           key={unit.key}
                           onClick={() => toggleUnitKey(unit.key)}
-                          className={`group flex items-center justify-between p-4 rounded-2xl cursor-pointer transition-all border ${isSelected ? 'border-black bg-black text-white' : 'border-transparent hover:bg-gray-50 bg-white'}`}
+                          className={`group flex items-center gap-4 py-4 px-2 cursor-pointer transition-all border-b border-gray-100 last:border-0 ${isSelected ? 'bg-gray-50/50' : 'hover:bg-gray-50 bg-white'}`}
                         >
-                          <div className="flex items-center gap-4">
-                            <div className={`h-5 w-5 rounded-md border flex items-center justify-center transition-colors ${isSelected ? 'border-white bg-white' : 'border-gray-300'}`}>
-                              {isSelected && <Check size={14} className="text-black" strokeWidth={3} />}
-                            </div>
-                            <div>
-                              <div className={`text-base font-medium ${isSelected ? 'text-white' : 'text-black'}`}>
-                                {unit.name}
-                                {unit.totalUnits > 1 && <span className="ml-2 text-xs opacity-50">({unit.unitIndex}/{unit.totalUnits})</span>}
-                              </div>
-                              {unit.modifiersText && (
-                                <div className={`text-sm mt-0.5 ${isSelected ? 'text-gray-300' : 'text-gray-400'}`}>{unit.modifiersText}</div>
-                              )}
-                            </div>
+                          {/* Checkbox */}
+                          <div className={`shrink-0 h-5 w-5 rounded-md border flex items-center justify-center transition-colors ${isSelected ? 'border-black bg-black text-white' : 'border-gray-300 bg-white'}`}>
+                            {isSelected && <Check size={14} strokeWidth={3} />}
                           </div>
-                          <div className={`text-lg font-medium ${isSelected ? 'text-white' : 'text-black'}`}>
+
+                          {/* Thumbnail */}
+                          <div className={`relative h-12 w-12 shrink-0 overflow-hidden bg-white rounded-lg border ${isSelected ? 'border-gray-700' : 'border-gray-100'}`}>
+                            {unit.image_url ? (
+                              <img loading="lazy" crossOrigin="anonymous" src={unit.image_url} className="h-full w-full object-cover" />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center text-gray-300">
+                                <span className="text-[8px] uppercase font-bold tracking-wider">NO IMG</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Center: Details */}
+                          <div className="flex-1 min-w-0">
+                            <div className={`text-[14px] font-bold leading-tight truncate ${isSelected ? 'text-black' : 'text-gray-900'}`}>
+                              {unit.name}
+                              {unit.totalUnits > 1 && <span className="ml-2 text-[10px] font-bold opacity-70">({unit.unitIndex}/{unit.totalUnits})</span>}
+                            </div>
+                            {unit.modifiersText && (
+                              <div className="text-[11px] mt-0.5 line-clamp-1 text-gray-500">{unit.modifiersText}</div>
+                            )}
+                          </div>
+
+                          {/* Right: Price */}
+                          <div className={`text-[15px] font-black shrink-0 ${isSelected ? 'text-black' : 'text-gray-900'}`}>
                             ฿{unit.unitPrice.toLocaleString()}
                           </div>
                         </div>
@@ -267,23 +282,52 @@ export default function POSSplitPaymentModal({
                 )}
 
                 {paidUnitsList.length > 0 && (
-                  <div className="space-y-4 pt-6 border-t border-gray-100">
-                    <div className="text-sm font-medium text-gray-400 px-4">{locale === 'en' ? 'Paid' : 'ชำระแล้ว'}</div>
+                  <div className="flex flex-col pt-6 border-t border-gray-100">
+                    <div className="text-sm font-bold text-gray-400 px-2 pb-2">{locale === 'en' ? 'Paid' : 'ชำระแล้ว'}</div>
                     {paidUnitsList.map((unit) => (
-                      <div key={unit.key} className="flex items-center justify-between px-4 py-2 opacity-50">
-                        <div className="flex items-center gap-4">
-                          <Check size={20} className="text-gray-400" />
-                          <div>
-                            <div className="text-base text-gray-900 line-through decoration-gray-300">{unit.name}</div>
-                          </div>
+                      <div key={unit.key} className="flex items-center gap-4 px-2 py-4 border-b border-gray-100 last:border-0 opacity-50 grayscale">
+                        <Check size={20} className="text-gray-400 shrink-0" />
+                        
+                        <div className="relative h-10 w-10 shrink-0 overflow-hidden bg-gray-50 rounded-lg border border-gray-200">
+                          {unit.image_url ? (
+                            <img loading="lazy" crossOrigin="anonymous" src={unit.image_url} className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-gray-300 bg-white"></div>
+                          )}
                         </div>
-                        <div className="text-lg text-gray-900">฿{unit.unitPrice.toLocaleString()}</div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[13px] font-bold text-gray-900 line-through decoration-gray-400 truncate">{unit.name}</div>
+                        </div>
+                        <div className="text-[14px] font-black text-gray-900">฿{unit.unitPrice.toLocaleString()}</div>
                       </div>
                     ))}
                   </div>
                 )}
               </div>
             )}
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN: Payment Summary and Controls */}
+        <div className="w-full lg:w-[380px] xl:w-[450px] flex flex-col min-h-0 shrink-0 h-full bg-white relative">
+
+
+          <div className="flex-1 p-8 space-y-6 overflow-y-auto">
+            <div className="flex flex-col gap-4">
+              <div className="flex justify-between text-[15px] font-medium text-gray-500">
+                <span>{locale === 'en' ? 'Total' : 'รวม'}</span>
+                <span>฿{cartTotal.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between text-[15px] font-medium text-gray-500">
+                <span>{locale === 'en' ? 'Paid' : 'จ่ายแล้ว'}</span>
+                <span>฿{totalOverallPaid.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between text-lg font-bold text-gray-900 pt-4 border-t border-gray-100">
+                <span>{locale === 'en' ? 'Left' : 'คงเหลือ'}</span>
+                <span>฿{liveRemainingTotal.toLocaleString()}</span>
+              </div>
+            </div>
           </div>
 
           {/* FOOTER */}
@@ -308,57 +352,35 @@ export default function POSSplitPaymentModal({
 
                 <div className="grid grid-cols-3 gap-3">
                   <button
-                    disabled={targetPartialAmount <= 0}
-                    onClick={() => setPaymentMethod('cash')}
-                    className={`h-16 rounded-2xl border transition-all flex flex-col items-center justify-center gap-1 ${paymentMethod === 'cash' ? 'bg-black text-white border-black' : 'bg-white border-gray-200 text-gray-600 hover:border-black'} disabled:opacity-30`}
+                    disabled={targetPartialAmount <= 0 || isSubmitting}
+                    onClick={() => handleConfirmCurrentSplit('cash')}
+                    className={`h-24 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-2 ${paymentMethod === 'cash' ? 'bg-black text-white border-black shadow-md' : 'bg-white border-gray-100 text-gray-700 hover:border-gray-300'} disabled:opacity-40 disabled:hover:translate-y-0`}
                   >
-                    <Banknote size={20} strokeWidth={1.5} />
-                    <span className="text-xs font-medium">{locale === 'en' ? 'Cash' : 'เงินสด'}</span>
+                    {paymentMethod === 'cash' ? <div className="h-6 w-6 animate-spin rounded-full border-2 border-white border-t-transparent" /> : <Banknote size={24} strokeWidth={1.5} />}
+                    <span className="text-xs font-bold">{locale === 'en' ? 'Cash' : 'เงินสด'}</span>
                   </button>
                   <button
-                    disabled={targetPartialAmount <= 0}
-                    onClick={() => setPaymentMethod('promptpay')}
-                    className={`h-16 rounded-2xl border transition-all flex flex-col items-center justify-center gap-1 ${paymentMethod === 'promptpay' ? 'bg-black text-white border-black' : 'bg-white border-gray-200 text-gray-600 hover:border-black'} disabled:opacity-30`}
+                    disabled={targetPartialAmount <= 0 || isSubmitting}
+                    onClick={() => handleConfirmCurrentSplit('promptpay')}
+                    className={`h-24 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-2 ${paymentMethod === 'promptpay' ? 'bg-black text-white border-black shadow-md' : 'bg-white border-gray-100 text-gray-700 hover:border-gray-300'} disabled:opacity-40 disabled:hover:translate-y-0`}
                   >
-                    <QrCode size={20} strokeWidth={1.5} />
-                    <span className="text-xs font-medium">{locale === 'en' ? 'QR' : 'สแกน'}</span>
+                    {paymentMethod === 'promptpay' ? <div className="h-6 w-6 animate-spin rounded-full border-2 border-white border-t-transparent" /> : <QrCode size={24} strokeWidth={1.5} />}
+                    <span className="text-xs font-bold">{locale === 'en' ? 'QR' : 'สแกน'}</span>
                   </button>
                   <button
-                    disabled={targetPartialAmount <= 0}
-                    onClick={() => setPaymentMethod('credit_card')}
-                    className={`h-16 rounded-2xl border transition-all flex flex-col items-center justify-center gap-1 ${paymentMethod === 'credit_card' ? 'bg-black text-white border-black' : 'bg-white border-gray-200 text-gray-600 hover:border-black'} disabled:opacity-30`}
+                    disabled={targetPartialAmount <= 0 || isSubmitting}
+                    onClick={() => handleConfirmCurrentSplit('credit_card')}
+                    className={`h-24 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-2 ${paymentMethod === 'credit_card' ? 'bg-black text-white border-black shadow-md' : 'bg-white border-gray-100 text-gray-700 hover:border-gray-300'} disabled:opacity-40 disabled:hover:translate-y-0`}
                   >
-                    <CreditCard size={20} strokeWidth={1.5} />
-                    <span className="text-xs font-medium">{locale === 'en' ? 'Card' : 'บัตร'}</span>
+                    {paymentMethod === 'credit_card' ? <div className="h-6 w-6 animate-spin rounded-full border-2 border-white border-t-transparent" /> : <CreditCard size={24} strokeWidth={1.5} />}
+                    <span className="text-xs font-bold">{locale === 'en' ? 'Card' : 'บัตร'}</span>
                   </button>
                 </div>
-
-                {paymentMethod === 'cash' && (
-                  <div className="flex gap-3 animate-in slide-in-from-bottom-2 duration-200">
-                    <input
-                      type="number"
-                      value={cashReceivedInput}
-                      onChange={(e) => setCashReceivedInput(e.target.value)}
-                      placeholder={locale === 'en' ? 'Received amount' : 'รับเงินมา...'}
-                      className="flex-1 h-14 bg-gray-50 border-transparent rounded-2xl px-5 text-lg font-medium text-black focus:bg-white focus:border-black focus:ring-0 outline-none transition-all"
-                    />
-                    <button onClick={() => setCashReceivedInput(String(Math.ceil(targetPartialAmount)))} className="px-5 h-14 rounded-2xl bg-gray-100 text-sm font-medium text-black hover:bg-gray-200 transition-all">{locale === 'en' ? 'Exact' : 'พอดี'}</button>
-                  </div>
-                )}
-
-                {paymentMethod && (
-                  <button
-                    disabled={targetPartialAmount <= 0 || isSubmitting || !isCashValid}
-                    onClick={handleConfirmCurrentSplit}
-                    className="w-full h-16 rounded-2xl bg-black hover:bg-[#D3202B] text-white font-medium text-lg transition-all flex items-center justify-center gap-2 disabled:opacity-30"
-                  >
-                    {isSubmitting ? (locale === 'en' ? 'Processing...' : 'กำลังบันทึก...') : (locale === 'en' ? 'Pay' : 'ชำระเงิน')}
-                  </button>
-                )}
               </div>
             )}
           </footer>
         </div>
+      </div>
     </div>
   )
 }
