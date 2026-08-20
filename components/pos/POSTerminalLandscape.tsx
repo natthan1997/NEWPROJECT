@@ -2278,7 +2278,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                     {posQrPointsEarned > 0 && (
                       <div className="mb-6 animate-in fade-in duration-300">
                         <span className="text-[10px] font-black uppercase tracking-[0.25em] text-gray-400">คะแนนที่จะได้รับ</span>
-                        <div className="text-[56px] font-black text-gray-900 tracking-tighter leading-none mt-1">
+                        <div className="text-[56px] font-black text-amber-500 tracking-tighter leading-none mt-1">
                           +{posQrPointsEarned} <span className="text-lg font-bold text-gray-400 uppercase tracking-widest">PTS</span>
                         </div>
                       </div>
