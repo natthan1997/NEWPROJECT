@@ -4963,17 +4963,26 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
               )}
             </div>
 
-            {/* DYNAMIC CART FOOTER / PAYMENT OPTIONS */}
-            <AnimatePresence mode="popLayout" initial={false}>
-              {showPaymentModal && !paymentSuccessData ? (
-                <motion.footer
-                  key="payment-options-footer"
-                  initial={{ y: '100%', opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  exit={{ y: '100%', opacity: 0 }}
-                  transition={{ type: "spring", damping: 25, stiffness: 220 }}
-                  className={`shrink-0 bg-white border-t border-gray-100 relative z-20 flex flex-col transition-all duration-300 ${inlineEqualSplit ? 'h-full max-h-full rounded-none border-0' : 'max-h-[70vh] rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.08)]'}`}
-                >
+            {/* PAYMENT MODAL (Floating Popup Drawer) */}
+            <AnimatePresence>
+              {showPaymentModal && !paymentSuccessData && (
+                <div className="absolute inset-0 z-[60] flex items-end justify-center font-bold p-2 sm:p-4 pointer-events-none">
+                  {/* Backdrop */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute inset-0 bg-neutral-900/60 backdrop-blur-sm lg:rounded-[2rem] pointer-events-auto"
+                    onClick={() => setShowPaymentModal(false)}
+                  />
+                  <motion.div
+                    key="payment-options-footer"
+                    initial={{ y: '100%', opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: '100%', opacity: 0 }}
+                    transition={{ type: "spring", damping: 25, stiffness: 220 }}
+                    className={`relative w-full bg-white flex flex-col overflow-hidden transition-all duration-300 shadow-2xl z-10 pointer-events-auto ${inlineEqualSplit ? 'h-full rounded-[2rem]' : 'max-h-[85vh] rounded-[2rem]'}`}
+                  >
                   <header className="flex items-center justify-between px-6 py-5 border-b border-gray-100 bg-white shrink-0">
                   <div className="text-left">
                     <h2 className="text-lg font-black text-gray-900 tracking-tight">ชำระเงิน</h2>
@@ -5163,8 +5172,14 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                     )}
                   </AnimatePresence>
                   </div>
-                </motion.footer>
-              ) : (
+                  </motion.div>
+                </div>
+              )}
+            </AnimatePresence>
+
+            {/* DYNAMIC CART FOOTER */}
+            <AnimatePresence mode="popLayout" initial={false}>
+              {!paymentSuccessData && (
                 <motion.div
                   key="cart-footer"
                   initial={{ opacity: 0 }}
