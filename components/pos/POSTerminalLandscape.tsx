@@ -5000,29 +5000,41 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                 </header>
                   <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-white">
                     {/* Total Due display */}
-                  <div className="text-center bg-white p-6 rounded-3xl border border-gray-100 shadow-sm transition-all duration-300">
-                    <div className="text-[11px] font-black text-gray-400 mb-2 tracking-widest uppercase">ยอดชำระสุทธิ</div>
-                    <div className={`${inlineEqualSplit || inlineCustomSplit || showSplitMenu ? 'text-3xl' : 'text-5xl'} font-black text-gray-900 tracking-tight transition-all duration-300`}>
-                      <span className={`${inlineEqualSplit || inlineCustomSplit || showSplitMenu ? 'text-xl' : 'text-2xl'} font-medium text-gray-400 mr-2 transition-all duration-300`}>฿</span>
-                      {remainingTotal.toLocaleString()}
-                    </div>
-                    {totalPaid > 0 && (
-                      <div className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1.5 text-[10px] font-black tracking-wider text-green-600 border border-green-100">
-                        <Check size={14} strokeWidth={3} />
-                        <span>ชำระแล้ว: ฿{totalPaid.toLocaleString()} / รวม: ฿{cartTotal.toLocaleString()}</span>
-                      </div>
-                    )}
-                    
-                    {inlineEqualSplit && (
-                      <div className="mt-6 pt-6 border-t border-gray-100 border-dashed flex flex-col items-center">
-                        <div className="text-[11px] font-black text-amber-500 mb-2 tracking-widest uppercase">ยอดชำระต่อคน</div>
-                        <div className="text-6xl font-black text-amber-500 tracking-tighter">
-                          <span className="text-3xl font-medium text-amber-300 mr-2">฿</span>
-                          {Math.max(0, remainingTotal / Math.max(1, inlineSplitCount)).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                  <AnimatePresence initial={false}>
+                    {!showSplitMenu && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.25 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="text-center bg-white p-6 rounded-3xl border border-gray-100 shadow-sm transition-all duration-300">
+                          <div className="text-[11px] font-black text-gray-400 mb-2 tracking-widest uppercase">ยอดชำระสุทธิ</div>
+                          <div className={`${inlineEqualSplit || inlineCustomSplit || showSplitMenu ? 'text-3xl' : 'text-5xl'} font-black text-gray-900 tracking-tight transition-all duration-300`}>
+                            <span className={`${inlineEqualSplit || inlineCustomSplit || showSplitMenu ? 'text-xl' : 'text-2xl'} font-medium text-gray-400 mr-2 transition-all duration-300`}>฿</span>
+                            {remainingTotal.toLocaleString()}
+                          </div>
+                          {totalPaid > 0 && (
+                            <div className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1.5 text-[10px] font-black tracking-wider text-green-600 border border-green-100">
+                              <Check size={14} strokeWidth={3} />
+                              <span>ชำระแล้ว: ฿{totalPaid.toLocaleString()} / รวม: ฿{cartTotal.toLocaleString()}</span>
+                            </div>
+                          )}
+                          
+                          {inlineEqualSplit && (
+                            <div className="mt-6 pt-6 border-t border-gray-100 border-dashed flex flex-col items-center">
+                              <div className="text-[11px] font-black text-amber-500 mb-2 tracking-widest uppercase">ยอดชำระต่อคน</div>
+                              <div className="text-6xl font-black text-amber-500 tracking-tighter">
+                                <span className="text-3xl font-medium text-amber-300 mr-2">฿</span>
+                                {Math.max(0, remainingTotal / Math.max(1, inlineSplitCount)).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      </div>
+                      </motion.div>
                     )}
-                  </div>
+                  </AnimatePresence>
 
                   {checkoutError && (
                     <div className="p-4 rounded-xl bg-red-50 border border-red-100 text-red-600 text-xs font-bold leading-normal">
@@ -5108,9 +5120,9 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
-                        className="space-y-6 pt-4 border-t border-gray-100"
+                        className="space-y-6"
                       >
-                        <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center justify-between mb-2">
                           <div className="text-sm font-bold text-gray-900">เลือกวิธีหารจ่าย (Split Method)</div>
                           <button
                             onClick={() => setShowSplitMenu(false)}
