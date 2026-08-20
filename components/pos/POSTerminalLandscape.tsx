@@ -5013,9 +5013,9 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                     
                     {inlineEqualSplit && (
                       <div className="mt-6 pt-6 border-t border-gray-100 border-dashed flex flex-col items-center">
-                        <div className="text-[11px] font-black text-[#D3202B] mb-2 tracking-widest uppercase">ยอดชำระต่อคน</div>
-                        <div className="text-6xl font-black text-[#D3202B] tracking-tighter">
-                          <span className="text-3xl font-medium text-red-300 mr-2">฿</span>
+                        <div className="text-[11px] font-black text-amber-500 mb-2 tracking-widest uppercase">ยอดชำระต่อคน</div>
+                        <div className="text-6xl font-black text-amber-500 tracking-tighter">
+                          <span className="text-3xl font-medium text-amber-300 mr-2">฿</span>
                           {Math.max(0, remainingTotal / Math.max(1, inlineSplitCount)).toLocaleString(undefined, { maximumFractionDigits: 2 })}
                         </div>
                       </div>
