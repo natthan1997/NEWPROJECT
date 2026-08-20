@@ -4966,7 +4966,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
             {/* PAYMENT MODAL (Floating Popup Drawer) */}
             <AnimatePresence>
               {showPaymentModal && !paymentSuccessData && (
-                <div className="absolute inset-0 z-[60] flex items-end justify-center font-bold p-2 sm:p-4 pointer-events-none">
+                <div className={`absolute inset-0 z-[60] flex items-end justify-center font-bold pointer-events-none transition-all duration-300 ${inlineEqualSplit ? 'p-0' : 'p-2 sm:p-4'}`}>
                   {/* Backdrop */}
                   <motion.div
                     initial={{ opacity: 0 }}
@@ -4982,7 +4982,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                     animate={{ y: 0, opacity: 1 }}
                     exit={{ y: '100%', opacity: 0 }}
                     transition={{ type: "spring", damping: 25, stiffness: 220 }}
-                    className={`relative w-full bg-white flex flex-col overflow-hidden shadow-2xl z-10 pointer-events-auto ${inlineEqualSplit ? 'h-full rounded-[2rem]' : 'max-h-[85vh] rounded-[2rem]'}`}
+                    className={`relative w-full bg-white flex flex-col overflow-hidden shadow-2xl z-10 pointer-events-auto ${inlineEqualSplit ? 'h-full rounded-none' : 'max-h-[85vh] rounded-[2rem]'}`}
                   >
                   <header className="flex items-center justify-between px-6 py-5 border-b border-gray-100 bg-white shrink-0">
                   <div className="text-left">
