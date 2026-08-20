@@ -4972,7 +4972,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                   animate={{ y: 0, opacity: 1 }}
                   exit={{ y: '100%', opacity: 0 }}
                   transition={{ type: "spring", damping: 25, stiffness: 220 }}
-                  className="shrink-0 bg-white border-t border-gray-100 relative z-20 flex flex-col max-h-[70vh] rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.08)]"
+                  className={`shrink-0 bg-white border-t border-gray-100 relative z-20 flex flex-col transition-all duration-300 ${inlineEqualSplit ? 'h-full max-h-full rounded-none border-0' : 'max-h-[70vh] rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.08)]'}`}
                 >
                   <header className="flex items-center justify-between px-6 py-5 border-b border-gray-100 bg-white shrink-0">
                   <div className="text-left">
@@ -5018,64 +5018,14 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                         exit={{ opacity: 0, height: 0 }}
                         className="space-y-6"
                       >
-                        {/* Split Bill Dropdown */}
-                        <div className="relative">
-                          <button
-                            disabled={isProcessing || remainingTotal <= 0}
-                            onClick={() => setShowSplitMenu(!showSplitMenu)}
-                            className="w-full py-4 rounded-2xl bg-white border border-gray-200 shadow-sm text-gray-700 text-[13px] font-bold hover:bg-gray-50 transition-all flex items-center justify-center gap-2"
-                          >
-                            หารจ่าย / แยกจ่าย (Split Bill)
-                          </button>
-                          
-                          <AnimatePresence>
-                            {showSplitMenu && (
-                              <>
-                                <div className="fixed inset-0 z-40" onClick={() => setShowSplitMenu(false)}></div>
-                                <motion.div
-                                  initial={{ opacity: 0, y: 10 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  exit={{ opacity: 0, y: 10 }}
-                                  className="absolute bottom-full left-0 right-0 mb-2 z-50 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden"
-                                >
-                                  <button
-                                    onClick={() => {
-                                      setShowSplitMenu(false);
-                                      fetchTables();
-                                      refreshPendingOrders();
-                                      setShowPaymentModal(false);
-                                      setShowSplitPaymentModal(true);
-                                    }}
-                                    className="w-full px-5 py-4 text-left hover:bg-gray-50 border-b border-gray-50 flex items-center gap-3 transition-colors"
-                                  >
-                                    <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500">
-                                      <ShoppingBag size={16} />
-                                    </div>
-                                    <div>
-                                      <div className="text-sm font-bold text-gray-900">แยกบิล (Split by Item)</div>
-                                      <div className="text-[10px] text-gray-500 font-medium">โยนรายการไปฝั่งซ้ายแล้วเลือกทีละรายการ</div>
-                                    </div>
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      setShowSplitMenu(false);
-                                      setInlineEqualSplit(true);
-                                    }}
-                                    className="w-full px-5 py-4 text-left hover:bg-gray-50 flex items-center gap-3 transition-colors"
-                                  >
-                                    <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500">
-                                      <Users size={16} />
-                                    </div>
-                                    <div>
-                                      <div className="text-sm font-bold text-gray-900">หารจ่าย (Equal Split)</div>
-                                      <div className="text-[10px] text-gray-500 font-medium">แบ่งยอดเท่าๆ กันตามจำนวนคน</div>
-                                    </div>
-                                  </button>
-                                </motion.div>
-                              </>
-                            )}
-                          </AnimatePresence>
-                        </div>
+                        {/* Split Bill Button */}
+                        <button
+                          disabled={isProcessing || remainingTotal <= 0}
+                          onClick={() => setShowSplitMenu(true)}
+                          className="w-full py-4 rounded-2xl bg-white border border-gray-200 shadow-sm text-gray-700 text-[13px] font-bold hover:bg-gray-50 transition-all flex items-center justify-center gap-2"
+                        >
+                          หารจ่าย / แยกจ่าย (Split Bill)
+                        </button>
 
                         {/* Quick Payment buttons grid */}
                         <div className="grid grid-cols-3 gap-3">
@@ -5387,6 +5337,71 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
 
 
         {/* ORDER TYPE SWITCH MODAL (Inline Drawer Over Cart Panel) */}
+        <AnimatePresence>
+          {showSplitMenu && (
+            <div className="absolute inset-0 z-[100] flex items-end justify-center font-bold p-4">
+              {/* Backdrop layer bounded inside the rounded cart panel */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-neutral-900/60 backdrop-blur-sm lg:rounded-[2rem]"
+                onClick={() => setShowSplitMenu(false)}
+              />
+              {/* Card sliding up from bottom */}
+              <motion.div
+                initial={{ y: "100%", opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: "100%", opacity: 0 }}
+                transition={{ type: "spring", damping: 25, stiffness: 220 }}
+                className="relative w-full bg-white p-6 rounded-[2rem] text-center shadow-2xl border border-neutral-100/50 z-10"
+              >
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-50 text-gray-700">
+                  <Banknote size={28} />
+                </div>
+                <h3 className="mb-2 text-lg font-black uppercase tracking-tight text-neutral-800">
+                  {locale === 'en' ? 'Select Split Method' : locale === 'zh' ? 'Select Split Method' : 'เลือกวิธีหารจ่าย'}
+                </h3>
+                <p className="mb-6 text-xs font-bold text-neutral-500 leading-relaxed max-w-[280px] mx-auto">
+                  {locale === 'en' ? 'How would you like to split this bill?' : locale === 'zh' ? 'How would you like to split this bill?' : 'คุณต้องการหารจ่ายบิลนี้ด้วยวิธีไหน?'}
+                </p>
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={() => {
+                      setShowSplitMenu(false);
+                      fetchTables();
+                      refreshPendingOrders();
+                      setShowPaymentModal(false);
+                      setShowSplitPaymentModal(true);
+                    }}
+                    className="w-full rounded-2xl bg-black py-4 text-[13px] font-black uppercase tracking-widest text-white shadow-md active:scale-95 transition-all flex items-center justify-center gap-3"
+                  >
+                    <ShoppingBag size={18} />
+                    {locale === 'en' ? 'Split by Item' : locale === 'zh' ? 'Split by Item' : 'แยกบิล (Split by Item)'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowSplitMenu(false);
+                      setInlineEqualSplit(true);
+                    }}
+                    className="w-full rounded-2xl bg-black py-4 text-[13px] font-black uppercase tracking-widest text-white shadow-md active:scale-95 transition-all flex items-center justify-center gap-3"
+                  >
+                    <Users size={18} />
+                    {locale === 'en' ? 'Equal Split' : locale === 'zh' ? 'Equal Split' : 'หารจ่าย (Equal Split)'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowSplitMenu(false)}
+                    className="w-full mt-2 py-3 text-[11px] font-black uppercase tracking-widest text-neutral-400 hover:text-neutral-600 transition-colors"
+                  >
+                    {locale === 'en' ? 'Cancel' : locale === 'zh' ? 'Cancel' : 'ยกเลิก'}
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
         <AnimatePresence>
           {pendingOrderTypeSwitch && (
             <div className="absolute inset-0 z-[100] flex items-end justify-center font-bold p-4">
