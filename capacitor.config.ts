@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'RUSH UP RIDER',
   webDir: 'out',
   server: {
-    url: 'https://101-blush.vercel.app/rider',
+    url: 'https://101-blush.vercel.app',
     cleartext: true,
     allowNavigation: ['access.line.me', 'api.line.me', '*.line.me', 'profile.line-scdn.net']
   }
