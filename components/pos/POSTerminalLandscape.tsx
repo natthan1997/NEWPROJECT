@@ -4976,12 +4976,13 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                     onClick={() => setShowPaymentModal(false)}
                   />
                   <motion.div
+                    layout
                     key="payment-options-footer"
                     initial={{ y: '100%', opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     exit={{ y: '100%', opacity: 0 }}
                     transition={{ type: "spring", damping: 25, stiffness: 220 }}
-                    className={`relative w-full bg-white flex flex-col overflow-hidden transition-all duration-300 shadow-2xl z-10 pointer-events-auto ${inlineEqualSplit ? 'h-full rounded-[2rem]' : 'max-h-[85vh] rounded-[2rem]'}`}
+                    className={`relative w-full bg-white flex flex-col overflow-hidden shadow-2xl z-10 pointer-events-auto ${inlineEqualSplit ? 'h-full rounded-[2rem]' : 'max-h-[85vh] rounded-[2rem]'}`}
                   >
                   <header className="flex items-center justify-between px-6 py-5 border-b border-gray-100 bg-white shrink-0">
                   <div className="text-left">
