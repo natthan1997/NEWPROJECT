@@ -156,10 +156,7 @@ export default function POSSplitPaymentModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose}></div>
-      
-      <div className="relative flex w-full max-w-2xl flex-col bg-white font-sans shadow-xl h-[85vh] rounded-3xl overflow-hidden">
+    <div className="relative flex w-full h-full flex-col bg-white font-sans overflow-hidden">
         
         {/* HEADER */}
         <header className="flex items-center justify-between px-8 py-6 border-b border-gray-100">
@@ -359,7 +356,6 @@ export default function POSSplitPaymentModal({
             )}
           </footer>
         </div>
-      </div>
     </div>
   )
 }

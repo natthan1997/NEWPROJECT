@@ -5448,30 +5448,6 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
           }}
         />
       )}
-
-
-
-
-
-      {/* PAYMENT OPTIONS EMBEDDED IN RIGHT PANEL */}
-            {showSplitPaymentModal && (
-        <POSSplitPaymentModal
-          cart={cart}
-          cartTotal={cartTotal}
-          remainingTotal={remainingTotal}
-          isProcessing={isProcessing}
-          onClose={() => setShowSplitPaymentModal(false)}
-          handleProcessPayment={async (method: string, amount: number) => {
-             return await handleProcessPayment(method, amount);
-          }}
-          onFinishOrder={() => {
-             setShowSplitPaymentModal(false);
-             resetOrderComposer();
-          }}
-          activePrintData={activePrintData}
-          shopSettings={shopSettings}
-        />
-      )}
       
       {/* 10. MODIFIER SELECTION MODAL - PREMIUM REDESIGN */}
       {/* MENU ITEM OPTIONS MODAL */}
