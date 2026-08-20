@@ -1,6 +1,7 @@
 'use client';
 import React, { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Eye, EyeOff, Mail, Lock, ArrowRight, Apple, Chrome, Fingerprint, Loader2, ArrowLeft, Phone, User, Store } from 'lucide-react'
 import PublicRoute from '@/components/PublicRoute'
 import { getUserProfile, signIn, getCustomerHouses, supabase } from '../../lib/supabaseClient'
@@ -41,6 +42,11 @@ export default function Login() {
   const [error, setError] = useState('')
   const [nextPath, setNextPath] = useState('')
   const [activeSlideIndex, setActiveSlideIndex] = useState(0)
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login')
+  const [storeName, setStoreName] = useState('')
+  const [displayName, setDisplayName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [acceptTerms, setAcceptTerms] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
