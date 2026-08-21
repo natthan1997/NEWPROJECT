@@ -368,7 +368,7 @@ export default function POSStaffManager({
 
     const fetchVerifications = async () => {
         setLoading(true)
-        const { data } = await supabase.from('staff_identity').select('*, profiles(display_name, full_name, email, staff_code, is_verified)').order('created_at', { ascending: false })
+        const { data } = await supabase.from('staff_identity').select('*, profiles(display_name, email, staff_code, is_verified)').order('created_at', { ascending: false })
         if (data) setVerifications(data)
         setLoading(false)
     }
@@ -898,7 +898,6 @@ export default function POSStaffManager({
                         password: autoPassword,
                         profile_data: {
                             display_name: finalDisplayName,
-                            full_name: finalDisplayName,
                             staff_code: newStaffForm.staff_code,
                             phone: newStaffForm.phone,
                             staff_type: newStaffForm.staff_type,
@@ -936,7 +935,6 @@ export default function POSStaffManager({
                 // Offline or LINE Invite method (Standard Insert)
                 const { data, error } = await supabase.from('profiles').insert({
                     display_name: finalDisplayName,
-                    full_name: finalDisplayName,
                     staff_code: newStaffForm.staff_code,
                     phone: newStaffForm.phone,
                     staff_type: newStaffForm.staff_type,
