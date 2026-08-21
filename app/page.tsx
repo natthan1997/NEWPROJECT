@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { 
@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 
-export default function HomePage() {
+function LandingPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [hoveredFeature, setHoveredFeature] = useState<number | null>(null);
@@ -381,5 +381,17 @@ export default function HomePage() {
         </p>
       </footer>
     </div>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[#FDFDFD]">
+        <div className="w-8 h-8 border-4 border-[#D3202B] border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <LandingPageContent />
+    </Suspense>
   );
 }
