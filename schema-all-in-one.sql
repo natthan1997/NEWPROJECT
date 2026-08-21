@@ -242,6 +242,8 @@ create table if not exists public.profiles (
   email text,
   role text,
   display_name text,
+  first_name text,
+  last_name text,
   timezone text default 'Asia/Bangkok',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
