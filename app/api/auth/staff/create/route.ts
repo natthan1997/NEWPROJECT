@@ -77,9 +77,58 @@ export async function POST(req: NextRequest) {
       dbStaffType = 'garden';
     }
 
+    // Resolve duplicates of staff_code defensively to prevent database constraint violations
+    let finalStaffCode = profile_data.staff_code;
+    if (finalStaffCode) {
+      const { data: duplicateCode } = await supabaseAdmin
+        .from('profiles')
+        .select('staff_code')
+        .eq('staff_code', finalStaffCode)
+        .eq('merchant_id', adminProfile.merchant_id)
+        .maybeSingle()
+
+      if (duplicateCode) {
+        const { data: allMerchantProfiles } = await supabaseAdmin
+          .from('profiles')
+          .select('staff_code')
+          .eq('merchant_id', adminProfile.merchant_id);
+
+        const codes = (allMerchantProfiles || []).map(p => p.staff_code || '');
+
+        const matchPrefix = finalStaffCode.match(/^([A-Za-z]+)-(\d+)$/);
+        const matchNumeric = finalStaffCode.match(/^(\d+)$/);
+
+        if (matchPrefix) {
+          const prefix = matchPrefix[1];
+          const prefixUpper = prefix.toUpperCase();
+          const digits = matchPrefix[2].length;
+
+          const nums = codes
+            .filter(c => c.toUpperCase().startsWith(prefixUpper + '-'))
+            .map(c => parseInt(c.substring(prefixUpper.length + 1), 10))
+            .filter(n => !isNaN(n));
+
+          const nextNum = nums.length > 0 ? Math.max(...nums) + 1 : 1;
+          finalStaffCode = `${prefix}-${nextNum.toString().padStart(digits, '0')}`;
+        } else if (matchNumeric) {
+          const digits = matchNumeric[1].length;
+          const nums = codes
+            .filter(c => /^\d+$/.test(c))
+            .map(c => parseInt(c, 10))
+            .filter(n => !isNaN(n));
+
+          const nextNum = nums.length > 0 ? Math.max(...nums) + 1 : 1;
+          finalStaffCode = nextNum.toString().padStart(digits, '0');
+        } else {
+          finalStaffCode = `${finalStaffCode}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+        }
+      }
+    }
+
     // 2. Upsert the Profile Data (forcing the ID and merchant_id)
     const finalProfileData = {
       ...profile_data,
+      staff_code: finalStaffCode,
       staff_type: dbStaffType,
       id: newUserId,
       email: email || null,
