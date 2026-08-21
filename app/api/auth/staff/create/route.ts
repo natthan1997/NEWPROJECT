@@ -12,9 +12,9 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { email, password, profile_data } = body
+    const { email, password, profile_data, is_offline } = body
 
-    if (!email || !password || !profile_data) {
+    if (!profile_data || (!is_offline && (!email || !password))) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
@@ -45,28 +45,35 @@ export async function POST(req: NextRequest) {
        return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
 
-    // 1. Create the Auth User
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: {
-        display_name: profile_data.display_name,
-        full_name: profile_data.full_name,
+    let newUserId = '';
+
+    if (is_offline) {
+      // Offline/LINE invite user: No Auth user, just generate a UUID for the profile
+      newUserId = crypto.randomUUID();
+    } else {
+      // 1. Create the Auth User
+      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: {
+          display_name: profile_data.display_name,
+          full_name: profile_data.display_name,
+        }
+      })
+
+      if (authError || !authData.user) {
+        return NextResponse.json({ error: authError?.message || 'Failed to create auth user' }, { status: 400 })
       }
-    })
 
-    if (authError || !authData.user) {
-      return NextResponse.json({ error: authError?.message || 'Failed to create auth user' }, { status: 400 })
+      newUserId = authData.user.id
     }
-
-    const newUserId = authData.user.id
 
     // 2. Upsert the Profile Data (forcing the ID and merchant_id)
     const finalProfileData = {
       ...profile_data,
       id: newUserId,
-      email: email,
+      email: email || null,
       merchant_id: adminProfile.merchant_id,
       updated_at: new Date().toISOString()
     }
@@ -76,8 +83,9 @@ export async function POST(req: NextRequest) {
       .upsert(finalProfileData, { onConflict: 'id' })
 
     if (profileError) {
-      // Rollback Auth user if profile fails? (Optional but good practice)
-      await supabaseAdmin.auth.admin.deleteUser(newUserId)
+      if (!is_offline) {
+        await supabaseAdmin.auth.admin.deleteUser(newUserId)
+      }
       return NextResponse.json({ error: 'Failed to create profile: ' + profileError.message }, { status: 500 })
     }
 

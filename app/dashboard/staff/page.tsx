@@ -102,6 +102,7 @@ export default function StaffDashboard() {
         .from('branches')
         .select('id')
         .eq('branch_code', profile.branch_code)
+        .eq('merchant_id', profile.merchant_id)
         .maybeSingle()
       
       if (branch) {

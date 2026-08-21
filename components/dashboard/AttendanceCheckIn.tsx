@@ -86,6 +86,7 @@ export const AttendanceCheckIn: React.FC = () => {
       .from('branches')
       .select('id, latitude, longitude')
       .eq('branch_code', profile.branch_code)
+      .eq('merchant_id', profile.merchant_id)
       .maybeSingle()
 
     if (branch) {
@@ -193,7 +194,7 @@ export const AttendanceCheckIn: React.FC = () => {
       // We still need staffIds for the inventory audit check, but that one might also be restricted by RLS.
       // For now, use the current user's ID to check if THEY have done the audit, 
       // or we might need another API. But since the user only complained about photos, let's keep it as is.
-      const { data: staffInBranch } = await supabase.from('profiles').select('id').eq('branch_code', profile.branch_code);
+      const { data: staffInBranch } = await supabase.from('profiles').select('id').eq('branch_code', profile.branch_code).eq('merchant_id', profile.merchant_id);
       const staffIds = staffInBranch?.map((s: any) => s.id) || [profile.id];
 
       // Check required audits

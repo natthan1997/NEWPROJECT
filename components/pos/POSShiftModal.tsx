@@ -423,86 +423,70 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
             </div>
 
             {showPinVerify ? (
-              /* Inline PIN Pad View (Clean, matching style) */
               <div className="flex-1 flex flex-col items-center justify-center py-4 my-auto w-full">
-                <div className="flex flex-col items-center text-center space-y-3 mb-6 w-full shrink-0">
-                  <div className="w-14 h-14 flex items-center justify-center rounded-2xl bg-neutral-100 text-neutral-800 shrink-0">
-                    <ShieldCheck size={26} />
-                  </div>
-                  <h3 className="text-xs font-black uppercase tracking-[0.25em] leading-tight text-neutral-800">
-                    เปิดลิ้นชัก (NO SALE DRAWER OPEN)
+                {/* Shield Icon / Title */}
+                <div className="flex flex-col items-center text-center space-y-1 mb-8 w-full shrink-0">
+                  <h3 className="text-[17px] font-normal tracking-wide text-neutral-800">
+                    ยืนยันการเปิดลิ้นชัก
                   </h3>
-                  <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest max-w-[240px] leading-relaxed">
-                    {pinError ? 'รหัส PIN ไม่ถูกต้อง' : 'จำเป็นต้องใช้รหัสผ่านผู้จัดการเพื่อเปิดลิ้นชักเก็บเงิน'}
-                  </p>
+                  {pinError && <p className="text-[13px] font-medium text-red-500">รหัสไม่ถูกต้อง</p>}
                 </div>
 
                 {/* PIN Display Bullets */}
-                <div className="flex gap-3 mb-8 h-6 items-center justify-center shrink-0">
+                <div className="flex gap-4 mb-10 h-4 items-center justify-center shrink-0">
                   {Array.from({ length: Math.max(targetPin.length, 4) }).map((_, idx) => {
                     const isFilled = idx < enteredPin.length
                     return (
                       <div 
                         key={idx}
-                        className={`w-3 h-3 rounded-full transition-all duration-150 ${pinError ? 'bg-red-500 scale-110' : isFilled ? 'bg-[#C62229] scale-110' : 'bg-neutral-200 border border-neutral-300'}`}
+                        className={`w-3.5 h-3.5 rounded-full transition-all duration-150 border-[1.5px] ${pinError ? 'border-red-500 bg-red-500' : isFilled ? 'border-[#D3202B] bg-[#D3202B]' : 'border-neutral-800 bg-transparent'}`}
                       />
                     )
                   })}
                 </div>
 
-                {/* Numeric Numpad (Tactile red hover/press dimension, expanded) */}
-                <div className="grid grid-cols-3 gap-3 w-full max-w-[310px] shrink-0 mx-auto">
+                {/* Numeric Numpad (Pure Apple Transparent Style with Red Active) */}
+                <div className="grid grid-cols-3 gap-y-4 gap-x-6 w-full max-w-[280px] shrink-0 mx-auto">
                   {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(num => (
                     <button
                       key={num}
                       type="button"
                       onClick={() => handlePinKeyPress(num)}
-                      className="h-16 bg-neutral-100 hover:bg-[#D3202B]/10 hover:text-[#D3202B] active:bg-[#D3202B] active:text-white transition-all text-xl font-black rounded-2xl flex items-center justify-center active:scale-95 text-[#1A1A18]"
+                      className="w-[72px] h-[72px] mx-auto rounded-full bg-neutral-100/60 hover:bg-neutral-200/60 active:bg-red-50 active:text-[#D3202B] transition-colors flex items-center justify-center text-neutral-900 border border-black/[0.03]"
                     >
-                      {num}
+                      <span className="text-[34px] font-light leading-none">{num}</span>
                     </button>
                   ))}
                   
-                  {/* Clear button */}
-                  <button
-                    type="button"
-                    onClick={handlePinClear}
-                    className="h-16 bg-transparent hover:bg-[#D3202B]/10 hover:text-[#D3202B] active:bg-[#D3202B] active:text-white transition-all text-[11px] font-black uppercase tracking-widest flex items-center justify-center rounded-2xl active:scale-95 text-neutral-400"
-                  >
-                    Clear
-                  </button>
+                  {/* Empty bottom left */}
+                  <div className="w-[72px] h-[72px]"></div>
                   
                   {/* Zero */}
                   <button
                     type="button"
                     onClick={() => handlePinKeyPress('0')}
-                    className="h-16 bg-neutral-100 hover:bg-[#D3202B]/10 hover:text-[#D3202B] active:bg-[#D3202B] active:text-white transition-all text-xl font-black rounded-2xl flex items-center justify-center active:scale-95 text-[#1A1A18]"
+                    className="w-[72px] h-[72px] mx-auto rounded-full bg-neutral-100/60 hover:bg-neutral-200/60 active:bg-red-50 active:text-[#D3202B] transition-colors flex items-center justify-center text-neutral-900 border border-black/[0.03]"
                   >
-                    0
+                    <span className="text-[34px] font-light leading-none">0</span>
                   </button>
 
-                  {/* Delete Backspace */}
+                  {/* Delete or Cancel Button */}
                   <button
                     type="button"
-                    onClick={handlePinDelete}
-                    className="h-16 bg-transparent hover:bg-[#D3202B]/10 hover:text-[#D3202B] active:bg-[#D3202B] active:text-white transition-all text-[11px] font-black uppercase tracking-widest flex items-center justify-center rounded-2xl active:scale-95 text-neutral-400"
+                    onClick={() => {
+                        if (enteredPin.length > 0) {
+                            handlePinDelete()
+                        } else {
+                            setShowPinVerify(false)
+                            setEnteredPin('')
+                            setPinError(false)
+                        }
+                    }}
+                    className="w-[72px] h-[72px] mx-auto transition-colors text-[15px] font-normal flex items-center justify-center text-neutral-900 active:text-neutral-500"
                   >
-                    <Delete size={18} />
+                    {enteredPin.length > 0 ? 'ลบ' : 'ยกเลิก'}
                   </button>
                 </div>
-
-                {/* Cancel Button */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowPinVerify(false)
-                    setEnteredPin('')
-                    setPinError(false)
-                  }}
-                  className="mt-6 text-[10px] font-black uppercase tracking-widest text-neutral-400 hover:text-neutral-700 transition-colors shrink-0 mx-auto block"
-                >
-                  ยกเลิก
-                </button>
               </div>
             ) : (
               /* Starting Cash Form Content */
@@ -515,12 +499,12 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
                   <div className="flex justify-center items-baseline focus-within:ring-0">
                     <span className="text-[36px] font-light text-[#1A1A18] mr-1 tracking-tighter leading-none select-none">฿</span>
                     <input 
-                      type="number"
-                      pattern="[0-9]*"
+                      type="text"
                       inputMode="numeric"
-                      value={openingCash === 0 ? '' : openingCash}
+                      value={openingCash === 0 ? '' : openingCash.toLocaleString()}
                       onChange={(e) => {
-                        const val = e.target.value === '' ? 0 : Number(e.target.value);
+                        const rawValue = e.target.value.replace(/,/g, '');
+                        const val = rawValue === '' ? 0 : Number(rawValue);
                         if (!isNaN(val) && val <= 999999) {
                           setOpeningCash(val);
                         }
@@ -780,53 +764,43 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
 
                 {showPinVerify ? (
                   /* Inline PIN Pad View (Clean, matching style) */
-                  <div className="flex-1 flex flex-col items-center justify-center py-4 my-auto w-full">
-                    <div className="flex flex-col items-center text-center space-y-3 mb-6 w-full shrink-0">
-                      <div className="w-14 h-14 flex items-center justify-center rounded-2xl bg-neutral-100 text-neutral-800 shrink-0">
-                        <ShieldCheck size={26} />
-                      </div>
-                      <h3 className="text-xs font-black uppercase tracking-[0.25em] leading-tight text-neutral-800">
-                        เปิดลิ้นชัก (NO SALE DRAWER OPEN)
+                  <div className="flex flex-col items-center justify-center py-4 my-auto w-full">
+                    {/* Shield Icon / Title */}
+                    <div className="flex flex-col items-center text-center space-y-1 mb-8 w-full shrink-0">
+                      <h3 className="text-[17px] font-normal tracking-wide text-neutral-800">
+                        ยืนยันการเปิดลิ้นชัก
                       </h3>
-                      <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest max-w-[240px] leading-relaxed">
-                        {pinError ? 'รหัส PIN ไม่ถูกต้อง' : 'จำเป็นต้องใช้รหัสผ่านผู้จัดการเพื่อเปิดลิ้นชักเก็บเงิน'}
-                      </p>
+                      {pinError && <p className="text-[13px] font-medium text-red-500">รหัสไม่ถูกต้อง</p>}
                     </div>
 
                     {/* PIN Display Bullets */}
-                    <div className="flex gap-3 mb-8 h-6 items-center justify-center shrink-0">
+                    <div className="flex gap-4 mb-10 h-4 items-center justify-center shrink-0">
                       {Array.from({ length: Math.max(targetPin.length, 4) }).map((_, idx) => {
                         const isFilled = idx < enteredPin.length
                         return (
                           <div 
                             key={idx}
-                            className={`w-3 h-3 rounded-full transition-all duration-150 ${pinError ? 'bg-red-500 scale-110' : isFilled ? 'bg-[#C62229] scale-110' : 'bg-neutral-200 border border-neutral-300'}`}
+                            className={`w-3.5 h-3.5 rounded-full transition-all duration-150 border-[1.5px] ${pinError ? 'border-red-500 bg-red-500' : isFilled ? 'border-[#D3202B] bg-[#D3202B]' : 'border-neutral-800 bg-transparent'}`}
                           />
                         )
                       })}
                     </div>
 
-                    {/* Numeric Numpad (Tactile red hover/press dimension, expanded) */}
-                    <div className="grid grid-cols-3 gap-3 w-full max-w-[310px] shrink-0 mx-auto">
+                    {/* Numeric Numpad (Pure Apple Transparent Style with Red Active) */}
+                    <div className="grid grid-cols-3 gap-y-4 gap-x-6 w-full max-w-[280px] shrink-0 mx-auto">
                       {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(num => (
                         <button
                           key={num}
                           type="button"
                           onClick={() => handlePinKeyPress(num)}
-                          className="h-16 bg-neutral-100 hover:bg-[#D3202B]/10 hover:text-[#D3202B] active:bg-[#D3202B] active:text-white transition-all text-xl font-black rounded-2xl flex items-center justify-center active:scale-95 text-[#1A1A18]"
+                          className="w-[72px] h-[72px] mx-auto rounded-full bg-neutral-100/60 hover:bg-neutral-200/60 active:bg-red-50 active:text-[#D3202B] transition-colors flex items-center justify-center text-neutral-900 border border-black/[0.03]"
                         >
-                          {num}
+                          <span className="text-[34px] font-light leading-none">{num}</span>
                         </button>
                       ))}
                       
-                      {/* Clear button */}
-                      <button
-                        type="button"
-                        onClick={handlePinClear}
-                        className="h-16 bg-transparent hover:bg-[#D3202B]/10 hover:text-[#D3202B] active:bg-[#D3202B] active:text-white transition-all text-[11px] font-black uppercase tracking-widest flex items-center justify-center rounded-2xl active:scale-95 text-neutral-400"
-                      >
-                        Clear
-                      </button>
+                      {/* Empty bottom left */}
+                      <div className="w-[72px] h-[72px]"></div>
                       
                       {/* Zero */}
                       <button
@@ -837,28 +811,23 @@ export default function POSShiftModal({ isOpen, onClose, onOpenShift, shopSettin
                         0
                       </button>
 
-                      {/* Delete Backspace */}
+                      {/* Delete or Cancel Button */}
                       <button
                         type="button"
-                        onClick={handlePinDelete}
-                        className="h-16 bg-transparent hover:bg-[#D3202B]/10 hover:text-[#D3202B] active:bg-[#D3202B] active:text-white transition-all text-[11px] font-black uppercase tracking-widest flex items-center justify-center rounded-2xl active:scale-95 text-neutral-400"
+                        onClick={() => {
+                            if (enteredPin.length > 0) {
+                                handlePinDelete()
+                            } else {
+                                setShowPinVerify(false)
+                                setEnteredPin('')
+                                setPinError(false)
+                            }
+                        }}
+                        className="w-[72px] h-[72px] mx-auto transition-colors text-[15px] font-normal flex items-center justify-center text-neutral-900 active:text-neutral-500"
                       >
-                        <Delete size={18} />
+                        {enteredPin.length > 0 ? 'ลบ' : 'ยกเลิก'}
                       </button>
                     </div>
-
-                    {/* Cancel Button */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowPinVerify(false)
-                        setEnteredPin('')
-                        setPinError(false)
-                      }}
-                      className="mt-6 text-[10px] font-black uppercase tracking-widest text-neutral-400 hover:text-neutral-700 transition-colors shrink-0 mx-auto block"
-                    >
-                      ยกเลิก
-                    </button>
                   </div>
                 ) : (
                   /* Starting Cash Form Content */

@@ -63,84 +63,71 @@ export default function POSPinModal({
     setPin('')
     setError(false)
   }
-
   return (
-    <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
-      {/* Clean Dark Backdrop with Blur (Removes red glow/shadow) */}
-      <div 
-        className="absolute inset-0 bg-neutral-900/60 backdrop-blur-md transition-opacity duration-300"
-        onClick={onClose}
-      />
+    <div className="absolute inset-0 z-[2000] flex items-center justify-center bg-white lg:rounded-[2rem]">
 
-      {/* Modal Container (Clean rounded-3xl, subtle border) */}
-      <div className={`relative w-full max-w-sm bg-white border border-neutral-100 p-8 rounded-3xl shadow-2xl transition-all duration-300 transform scale-100 flex flex-col items-center justify-center text-black font-bold select-none ${error ? 'animate-shake' : ''}`}>
+      {/* Modal Container */}
+      <div className={`relative w-full h-full flex flex-col items-center justify-center text-black font-bold select-none bg-white ${error ? 'animate-shake' : ''}`}>
         
-        {/* Close Button (Rounded-full, clean hover) */}
-        <button 
-          onClick={onClose}
-          className="absolute top-5 right-5 w-8 h-8 rounded-full bg-neutral-50 hover:bg-neutral-100 transition-colors flex items-center justify-center text-neutral-400 hover:text-neutral-900"
-        >
-          <X size={16} />
-        </button>
-
-        {/* Shield Icon / Title */}
-        <div className="flex flex-col items-center text-center space-y-3 mb-6 w-full">
-          <div className="w-14 h-14 flex items-center justify-center rounded-2xl bg-neutral-50 text-neutral-800 shrink-0">
-            <ShieldCheck size={26} />
-          </div>
-          <h3 className="text-xs font-black uppercase tracking-[0.2em] leading-tight text-neutral-800">{title}</h3>
-          <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest max-w-[240px] leading-relaxed">
-            {error ? 'รหัส PIN ไม่ถูกต้อง' : description}
-          </p>
+        {/* Title */}
+        <div className="flex flex-col items-center text-center space-y-1 mb-8 w-full shrink-0">
+          <h3 className="text-[17px] font-normal tracking-wide text-neutral-800">
+            {title}
+          </h3>
+          {error && <p className="text-[13px] font-medium text-red-500">รหัสไม่ถูกต้อง</p>}
         </div>
 
-        {/* PIN Display Bullets (Brand red when filled, clean animations) */}
-        <div className="flex gap-3 mb-8 h-6 items-center justify-center">
+        {/* PIN Display Bullets */}
+        <div className="flex gap-4 mb-10 h-4 items-center justify-center shrink-0">
           {Array.from({ length: Math.max(pinToCompare.length, 4) }).map((_, idx) => {
             const isFilled = idx < pin.length
             return (
               <div 
                 key={idx}
-                className={`w-3 h-3 rounded-full transition-all duration-150 ${error ? 'bg-red-500 scale-110' : isFilled ? 'bg-[#C62229] scale-110' : 'bg-neutral-100 border border-neutral-200'}`}
+                className={`w-3.5 h-3.5 rounded-full transition-all duration-150 border-[1.5px] ${error ? 'border-red-500 bg-red-500' : isFilled ? 'border-[#D3202B] bg-[#D3202B]' : 'border-neutral-800 bg-transparent'}`}
               />
             )
           })}
         </div>
 
-        {/* Numeric Numpad (Clean, rounded-2xl buttons, no harsh borders) */}
-        <div className="grid grid-cols-3 gap-2.5 w-full max-w-[280px]">
+        {/* Numeric Numpad (Pure Apple Transparent Style with Red Active) */}
+        <div className="grid grid-cols-3 gap-y-4 gap-x-6 w-full max-w-[280px] shrink-0 mx-auto">
           {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(num => (
             <button
               key={num}
+              type="button"
               onClick={() => handleKeyPress(num)}
-              className="h-14 bg-neutral-50 hover:bg-neutral-900 hover:text-white transition-all text-lg font-black rounded-2xl flex items-center justify-center active:scale-95 text-[#1A1A18]"
+              className="w-[72px] h-[72px] mx-auto rounded-full bg-neutral-100/60 hover:bg-neutral-200/60 active:bg-red-50 active:text-[#D3202B] transition-colors flex items-center justify-center text-neutral-900 border border-black/[0.03]"
             >
-              {num}
+              <span className="text-[34px] font-light leading-none">{num}</span>
             </button>
           ))}
           
-          {/* Clear button */}
-          <button
-            onClick={handleClear}
-            className="h-14 bg-transparent hover:bg-neutral-50 transition-all text-[10px] font-black uppercase tracking-widest flex items-center justify-center rounded-2xl active:scale-95 text-neutral-400 hover:text-[#1A1A18]"
-          >
-            Clear
-          </button>
+          {/* Empty bottom left */}
+          <div className="w-[72px] h-[72px]"></div>
           
           {/* Zero */}
           <button
+            type="button"
             onClick={() => handleKeyPress('0')}
-            className="h-14 bg-neutral-50 hover:bg-neutral-900 hover:text-white transition-all text-lg font-black rounded-2xl flex items-center justify-center active:scale-95 text-[#1A1A18]"
+            className="w-[72px] h-[72px] mx-auto rounded-full bg-neutral-100/60 hover:bg-neutral-200/60 active:bg-red-50 active:text-[#D3202B] transition-colors flex items-center justify-center text-neutral-900 border border-black/[0.03]"
           >
-            0
+            <span className="text-[34px] font-light leading-none">0</span>
           </button>
 
-          {/* Delete Backspace */}
+          {/* Delete or Cancel Button */}
           <button
-            onClick={handleDelete}
-            className="h-14 bg-transparent hover:bg-neutral-50 transition-all text-[10px] font-black uppercase tracking-widest flex items-center justify-center rounded-2xl active:scale-95 text-neutral-400 hover:text-[#1A1A18]"
+            type="button"
+            onClick={() => {
+                if (pin.length > 0) {
+                    handleDelete()
+                } else {
+                    onClose()
+                }
+            }}
+            className="w-[72px] h-[72px] mx-auto transition-colors text-[15px] font-normal flex items-center justify-center text-neutral-900 active:text-neutral-500"
           >
-            <Delete size={16} />
+            {pin.length > 0 ? 'ลบ' : 'ยกเลิก'}
           </button>
         </div>
 

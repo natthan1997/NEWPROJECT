@@ -411,6 +411,8 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
     setTempSelectedModifiers,
     tempQuantity,
     setTempQuantity,
+    tempNote,
+    setTempNote,
     editingCartItemIndex,
     setEditingCartItemIndex,
     itemDiscountModalItem,
@@ -509,6 +511,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
     saveDeliveryPlatformDetails,
     resetDeliveryDraft,
     resetOrderComposer,
+    discardDraftOrder,
     ensureDeliveryDetailsReady,
     userRole,
     canToggleStock,
@@ -698,6 +701,32 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
   const [editingTable, setEditingTable] = useState<any>(null);
   const [isLayoutMode, setIsLayoutMode] = useState(false);
   const handleSwitchTab = (tab: string) => {
+    const managerRequiredTabs = ['settings', 'staff', 'inventory', 'reports', 'menu-management'];
+    const correctPin = shopSettings?.role_permissions?.manager_pin;
+
+    if (managerRequiredTabs.includes(tab) && correctPin) {
+      let desc = 'กรุณากรอกรหัสผ่านผู้จัดการเพื่อเข้าสู่หน้านี้';
+      if (tab === 'settings') desc = 'กรุณากรอกรหัสผ่านผู้จัดการเพื่อเข้าสู่เมนูตั้งค่าร้านค้า';
+      if (tab === 'staff') desc = 'กรุณากรอกรหัสผ่านผู้จัดการเพื่อเข้าสู่เมนูจัดการพนักงาน';
+      if (tab === 'inventory') desc = 'กรุณากรอกรหัสผ่านผู้จัดการเพื่อเข้าสู่เมนูจัดการสต็อก';
+      if (tab === 'reports') desc = 'กรุณากรอกรหัสผ่านผู้จัดการเพื่อดูรายงานยอดขาย';
+      if (tab === 'menu-management') desc = 'กรุณากรอกรหัสผ่านผู้จัดการเพื่อจัดการเมนูอาหาร';
+
+      checkManagerPin(
+        () => {
+          setActiveLandscapeTab(tab);
+          setRenderedLandscapeTab(tab);
+          if (tab !== 'tables') {
+            setEditingTable(null);
+            setIsLayoutMode(false);
+          }
+        },
+        'ระบบต้องการสิทธิ์ผู้จัดการ',
+        desc
+      );
+      return;
+    }
+
     setActiveLandscapeTab(tab);
     setRenderedLandscapeTab(tab);
     if (tab !== 'tables') {
@@ -743,6 +772,9 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
     onCashActionModalOpen,
     onManageTables,
     onOpenShiftModal,
+    tables,
+    setTables,
+    handleClearIdleTable,
   };
   const [historyOrders, setHistoryOrders] = useState<any[]>([]);
   const [historyDate, setHistoryDate] = useState<string>(new Date().toLocaleDateString('en-CA'));
@@ -1737,7 +1769,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
 
         <div className="relative flex-1 flex flex-col min-h-0 w-full h-full">
           {/* 1. OTHER SUB-VIEWS */}
-          {renderedLandscapeTab !== 'terminal' && renderedLandscapeTab !== 'tables' && renderedLandscapeTab !== 'table_select' && (
+          {renderedLandscapeTab !== 'terminal' && renderedLandscapeTab !== 'tables' && renderedLandscapeTab !== 'table_select' && renderedLandscapeTab !== 'settings' && renderedLandscapeTab !== 'staff' && (
             <AnimatePresence mode="wait">
               <motion.div
                 key={renderedLandscapeTab}
@@ -1745,10 +1777,10 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 12 }}
                 transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-                className={`absolute inset-0 flex flex-col min-h-0 bg-white z-20 w-full h-full ${
-                  renderedLandscapeTab === 'drawer'
-                    ? ''
-                    : 'lg:rounded-[2rem] lg:shadow-[0_25px_60px_rgba(0,0,0,0.12),0_4px_20px_rgba(0,0,0,0.04)] lg:border lg:border-neutral-200/30'
+                className={`absolute inset-0 flex flex-col min-h-0 z-20 w-full h-full ${
+                  renderedLandscapeTab === 'drawer' || renderedLandscapeTab === 'settings' || renderedLandscapeTab === 'staff'
+                    ? 'bg-transparent'
+                    : 'bg-white lg:rounded-[2rem] lg:shadow-[0_25px_60px_rgba(0,0,0,0.12),0_4px_20px_rgba(0,0,0,0.04)] lg:border lg:border-neutral-200/30'
                 }`}
               >
                 {renderedLandscapeTab === 'history' ? (
@@ -1757,8 +1789,6 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                   renderDeliveryLeftPanel()
                 ) : renderedLandscapeTab === 'shifts' ? (
                   renderShiftLeftPanel()
-                ) : renderedLandscapeTab === 'settings' ? (
-                  renderUnifiedLeftPanel('ตั้งค่าระบบ POS', Settings, <POSShopSettings {...commonProps} />)
                 ) : renderedLandscapeTab === 'drawer' ? (
                   renderUnifiedLeftPanel('ลิ้นชักเงินสด', Wallet, <POSDrawerManager {...commonProps} renderPart="left" />, true)
                 ) : renderedLandscapeTab === 'members' ? (
@@ -1767,8 +1797,6 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                   renderUnifiedLeftPanel('วัตถุดิบ & สต็อกสินค้า', Package, <POSInventoryManager {...commonProps} />)
                 ) : renderedLandscapeTab === 'reports' ? (
                   renderUnifiedLeftPanel('รายงาน & สถิติ', BarChart3, <POSReports {...commonProps} />)
-                ) : renderedLandscapeTab === 'staff' ? (
-                  renderUnifiedLeftPanel('พนักงาน & SOP', ClipboardList, <POSStaffManager {...commonProps} />)
                 ) : renderedLandscapeTab === 'menu-management' ? (
                   renderUnifiedLeftPanel('แก้ไขรายการอาหาร', ShoppingBag, <POSMenuManager {...commonProps} />)
                 ) : renderedLandscapeTab === 'promotions' ? (
@@ -1801,6 +1829,23 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
               isLayoutModeProps={isLayoutMode}
               setIsLayoutModeProps={setIsLayoutMode}
             />
+          </motion.div>
+
+
+          {/* 2.2 SETTINGS (Always mounted, toggled visibility) */}
+          <motion.div
+            animate={{
+              opacity: renderedLandscapeTab === 'settings' ? 1 : 0,
+              x: renderedLandscapeTab === 'settings' ? 0 : 20,
+              zIndex: renderedLandscapeTab === 'settings' ? 10 : 0
+            }}
+            style={{
+              pointerEvents: renderedLandscapeTab === 'settings' ? 'auto' : 'none'
+            }}
+            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            className="absolute inset-0 flex flex-col min-h-0 bg-transparent"
+          >
+            <POSShopSettings {...commonProps} />
           </motion.div>
           {/* 3.5 TABLE SELECTOR CANVAS (Always mounted, toggled visibility) */}
           <motion.div
@@ -1902,9 +1947,9 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                                                        { w: 96, h: 96 };
                     const borderRadius = shape === 'circle' ? '50%' : shape === 'square' ? '1rem' : '1.5rem';
                     
-                    // Fallback to auto-grid if not positioned (or if sitting at exactly 0,0 which causes overlaps)
-                    const posX = (table.position_x || 0) > 0 ? table.position_x : ((idx % 4) * 180 + 40);
-                    const posY = (table.position_y || 0) > 0 ? table.position_y : (Math.floor(idx / 4) * 180 + 40);
+                    // Fallback to auto-grid if not positioned
+                    const posX = table.position_x != null ? table.position_x : ((idx % 4) * 180 + 40);
+                    const posY = table.position_y != null ? table.position_y : (Math.floor(idx / 4) * 180 + 40);
                     
                     const isShortName = (table.table_number || '').length <= 3;
 
@@ -1944,10 +1989,23 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                             isSelected
                               ? 'bg-[#D3202B] text-white border-[#D3202B] shadow-xl shadow-red-500/30 scale-105'
                               : isOccupied
-                                ? 'bg-[#1A1A18] text-white border-[#1A1A18] shadow-lg'
+                                ? 'bg-[#1A1A18] text-white border-[#1A1A18] shadow-lg hover:border-gray-800'
                                 : 'bg-white text-gray-700 border-gray-200 hover:border-gray-400 hover:shadow-md'
                           }`}
                         >
+                          {isOccupied && pendingForThisTable.length === 0 && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleClearIdleTable(targetTable.id);
+                              }}
+                              className="absolute -top-2 -right-2 w-6 h-6 flex items-center justify-center bg-white text-orange-500 rounded-full shadow-md hover:bg-orange-50 border border-orange-100 z-20 transition-all hover:scale-110 active:scale-95"
+                              title="เคลียร์สถานะโต๊ะ"
+                            >
+                              <RefreshCcw size={12} strokeWidth={3} />
+                            </button>
+                          )}
                           {isOccupied && !isSelected && (
                             <span className="absolute top-1.5 right-1.5 flex h-1.5 w-1.5">
                               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
@@ -2427,10 +2485,10 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
         {/* 2. MAIN TERMINAL SIBLING */}
         <motion.div
           animate={{
-            opacity: !(showMemberCheckoutFlow || paymentSuccessData) ? 1 : 0,
-            zIndex: !(showMemberCheckoutFlow || paymentSuccessData) ? 10 : -1,
+            opacity: renderedLandscapeTab === 'terminal' && !(showMemberCheckoutFlow || paymentSuccessData) ? 1 : 0,
+            zIndex: renderedLandscapeTab === 'terminal' && !(showMemberCheckoutFlow || paymentSuccessData) ? 10 : -1,
           }}
-          style={{ pointerEvents: !(showMemberCheckoutFlow || paymentSuccessData) ? 'auto' : 'none' }}
+          style={{ pointerEvents: renderedLandscapeTab === 'terminal' && !(showMemberCheckoutFlow || paymentSuccessData) ? 'auto' : 'none' }}
           transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
           className="absolute inset-0 flex flex-col min-h-0"
         >
@@ -2754,6 +2812,21 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
 
         </div>      </motion.div>
 
+      {/* 2.1 STAFF MANAGER (Always mounted, toggled visibility at root overlay level) */}
+      <motion.div
+        animate={{
+          opacity: renderedLandscapeTab === 'staff' ? 1 : 0,
+          zIndex: renderedLandscapeTab === 'staff' ? 40 : -1
+        }}
+        style={{
+          pointerEvents: renderedLandscapeTab === 'staff' ? 'auto' : 'none'
+        }}
+        transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+        className="absolute inset-0 lg:inset-4 flex flex-col lg:flex-row lg:gap-4 min-h-0 bg-transparent"
+      >
+        <POSStaffManager {...commonProps} activeView={renderedLandscapeTab} />
+      </motion.div>
+
       {/* RIGHT CONTENT: CART DRAWER / SPLIT VIEW */}
       <motion.div
         layout
@@ -2800,12 +2873,36 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
              )}
           </motion.div>
 
+          {/* SIBLING 3: INLINE PIN MODAL */}
+          <motion.div
+             initial={false}
+             animate={{ opacity: isPinModalOpen ? 1 : 0 }}
+             style={{ pointerEvents: isPinModalOpen ? 'auto' : 'none' }}
+             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+             className="absolute right-0 top-0 bottom-0 w-full lg:w-[380px] xl:w-[450px] flex flex-col min-h-0 bg-white shrink-0 z-[60] shadow-2xl lg:shadow-none lg:rounded-[2rem] overflow-hidden"
+          >
+             {isPinModalOpen && (
+               <POSPinModal
+                 isOpen={isPinModalOpen}
+                 onClose={() => {
+                   setIsPinModalOpen(false)
+                   setPinCallback(null)
+                 }}
+                 onSuccess={() => {
+                   if (pinCallback) pinCallback()
+                 }}
+                 correctPin={shopSettings?.role_permissions?.manager_pin || ''}
+                 title={pinTitle}
+                 description={pinDesc}
+               />
+             )}
+          </motion.div>
           {/* SIBLING 1: NORMAL CART */}
           <div 
              className="absolute right-0 top-0 bottom-0 flex flex-col min-h-0 w-full lg:w-[380px] xl:w-[450px] shrink-0 h-full bg-white z-0"
              style={{ 
-               opacity: showSplitPaymentModal ? 0 : 1, 
-               pointerEvents: showSplitPaymentModal ? 'none' : 'auto',
+               opacity: showSplitPaymentModal || isPinModalOpen ? 0 : 1, 
+               pointerEvents: showSplitPaymentModal || isPinModalOpen ? 'none' : 'auto',
                transition: 'opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1)'
              }}
           >
@@ -2879,6 +2976,8 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                 setEditingTableProps={setEditingTable}
                 isLayoutModeProps={isLayoutMode}
                 setIsLayoutModeProps={setIsLayoutMode}
+                pendingOrders={pendingOrders}
+                handleClearIdleTable={handleClearIdleTable}
               />
             ))}
           </motion.div>
@@ -3564,7 +3663,14 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
             }}
             className="flex h-full w-full flex-col bg-white absolute inset-0 will-change-transform"
           >
-            <header className="flex items-center justify-between border-b border-gray-100 bg-white p-6 sm:p-8 shrink-0">
+            <header className="flex items-center gap-3 border-b border-gray-100 bg-white p-6 sm:px-8 sm:py-6 shrink-0">
+              <button
+                type="button"
+                onClick={() => setCurrentRightPanel('cart')}
+                className="text-[#D3202B] hover:text-red-700 transition-colors p-1 -ml-1 border-none bg-transparent active:scale-95 shrink-0"
+              >
+                <ChevronLeft size={24} strokeWidth={3} />
+              </button>
               <div className="flex flex-col gap-0.5">
                 <h3 className="text-xl font-black uppercase tracking-tighter text-black">
                   ศูนย์แจ้งเตือนและรายการ
@@ -3573,13 +3679,6 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                   รายการออเดอร์ค้างและโปรโมชั่น
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => setCurrentRightPanel('cart')}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:text-black transition-colors"
-              >
-                <ArrowLeft size={20} />
-              </button>
             </header>
 
             {/* Tabs inside sidebar pending view */}
@@ -3908,7 +4007,14 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
             }}
             className="flex h-full w-full flex-col bg-white absolute inset-0 will-change-transform"
           >
-            <header className="flex items-center justify-between border-b border-gray-100 bg-white p-6 sm:p-8 shrink-0">
+            <header className="flex items-center gap-3 border-b border-gray-100 bg-white p-6 sm:px-8 sm:py-6 shrink-0">
+              <button
+                type="button"
+                onClick={() => setCurrentRightPanel('cart')}
+                className="text-[#D3202B] hover:text-red-700 transition-colors p-1 -ml-1 border-none bg-transparent active:scale-95 shrink-0"
+              >
+                <ChevronLeft size={24} strokeWidth={3} />
+              </button>
               <div className="flex flex-col gap-0.5">
                 <h3 className="text-xl font-black uppercase tracking-tighter text-black">
                   เดลิเวอรี่ฮับ
@@ -3917,13 +4023,6 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                   จัดการเดลิเวอรี่และค่ายส่งอาหาร
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => setCurrentRightPanel('cart')}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:text-black transition-colors"
-              >
-                <ArrowLeft size={20} />
-              </button>
             </header>
             <div className="min-h-0 flex-1 relative bg-white">
               <DeliveryManager
@@ -4369,28 +4468,25 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
             }}
             className="flex h-full w-full flex-col bg-white absolute inset-0 font-bold will-change-transform"
           >
-            <header className="flex items-center gap-4 border-b border-gray-100 bg-white p-6 sm:p-8 shrink-0">
+            <header className="flex items-center gap-4 border-b border-gray-100/60 bg-white p-4 sm:p-5 shrink-0 z-10">
               <button
                 type="button"
                 onClick={() => {
                   setModifierModalItem(null);
                   setEditingCartItemIndex(null);
                 }}
-                className="flex items-center justify-center text-[#D3202B] hover:text-[#B91C1C] transition-colors pr-2 active:scale-95"
+                className="flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-600 transition-colors active:scale-95 w-10 h-10 rounded-full"
               >
-                <ArrowLeft size={22} strokeWidth={3} />
+                <X size={18} strokeWidth={2.5} />
               </button>
-              <div className="min-w-0 flex-1">
-                <h3 className="text-[17px] font-black text-black leading-tight truncate">
+              <div className="min-w-0 flex-1 flex items-center">
+                <h3 className="text-[16px] font-black text-[#1A1A18] leading-tight truncate">
                   {getPrimaryMenuName(modifierModalItem)}
                 </h3>
-                <p className="text-[10px] font-bold tracking-widest text-gray-500 uppercase mt-0.5">
-                  เลือกตัวเลือกเพิ่มเติม
-                </p>
               </div>
             </header>
 
-            <div className="custom-scrollbar flex-1 space-y-6 overflow-y-auto bg-white p-6 sm:p-8">
+            <div className="custom-scrollbar flex-1 overflow-y-auto px-4 sm:px-5">
               {modifierGroups.map((group, gIdx) => {
                 const minReq = group.min_selection || group.min_select || 0;
                 const maxAllowed = group.max_selection || group.max_select || 99;
@@ -4403,38 +4499,45 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                   <div 
                     key={group.id} 
                     id={`modifier-group-${group.id}`} 
-                    className="space-y-4 transition-all duration-500 scroll-mt-24"
+                    className="bg-white py-5 transition-all duration-500 scroll-mt-24 border-b border-gray-100/80 last:border-0"
                   >
-                    <div className="pb-2 border-b border-gray-100/60">
+                    <div className="pb-3 flex flex-col">
                       <div className="flex items-center justify-between">
-                        <h4 className="text-[14px] font-black text-[#1A1A18] tracking-tight">
+                        <h4 className="text-[15px] font-black text-[#1A1A18] tracking-tight">
                           {group.name}
                         </h4>
                         {minReq > 0 ? (
-                          <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${isComplete ? 'bg-emerald-50 text-emerald-600' : 'bg-orange-50 text-orange-500'}`}>
-                            {isComplete ? '✓ ครบ' : `* บังคับเลือก ${minReq}`}
-                          </span>
+                          <motion.span 
+                            layout
+                            className={`px-3 py-1 rounded-full text-[10px] font-black transition-colors ${
+                              isComplete ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'
+                            }`}
+                          >
+                            {isComplete ? '✓ ครบแล้ว' : 'จำเป็น'}
+                          </motion.span>
                         ) : (
-                          <span className="bg-gray-50 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider text-gray-400">
+                          <span className="px-3 py-1 rounded-full text-[10px] font-black text-gray-400 bg-gray-50">
                             ไม่บังคับ
                           </span>
                         )}
                       </div>
-                      {maxAllowed > 1 && maxAllowed < 99 && (
-                        <p className="text-[10px] text-gray-400 font-bold mt-0.5">เลือกได้สูงสุด {maxAllowed} อย่าง</p>
-                      )}
+                      <p className="text-[11px] text-gray-400 font-medium mt-1">
+                        {maxAllowed > 1 && maxAllowed < 99 ? `เลือกได้สูงสุด ${maxAllowed} ข้อ` : `เลือก 1 ข้อ`}
+                      </p>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="flex flex-col mt-2 gap-1.5">
                       {group.options?.map((opt: any) => {
                         const existingOptIndex = tempSelectedModifiers.findIndex(m => m.id === opt.id);
                         const isSelected = existingOptIndex > -1;
                         const optQty = isSelected ? (tempSelectedModifiers[existingOptIndex].qty || 1) : 0;
+                        const isDisabled = !isSelected && isAtMax && maxAllowed > 1;
                         return (
-                          <button
+                          <motion.button
                             type="button"
                             key={opt.id}
-                            disabled={!isSelected && isAtMax && maxAllowed > 1}
+                            whileTap={isDisabled ? {} : { scale: 0.98 }}
+                            disabled={isDisabled}
                             onClick={() => {
                               let nextSelected = [...tempSelectedModifiers];
                               if (isSelected) {
@@ -4457,93 +4560,102 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                               }
                               setTempSelectedModifiers(nextSelected);
                             }}
-                            className={`group relative flex h-20 flex-col justify-between rounded-xl p-3 text-left transition-all ${
+                            className={`group relative flex items-center justify-between p-3 rounded-xl transition-all outline-none ${
                               isSelected 
-                                ? 'bg-emerald-50/20 border border-emerald-500 shadow-sm' 
+                                ? 'bg-amber-50/50' 
                                 : isAtMax && maxAllowed > 1 
-                                  ? 'cursor-not-allowed bg-gray-50 border border-transparent text-gray-400 opacity-60' 
-                                  : 'bg-white border border-gray-200/85 hover:border-emerald-250 hover:shadow-[0_2px_8px_rgba(0,0,0,0.01)] active:scale-95'
+                                  ? 'cursor-not-allowed opacity-40' 
+                                  : 'bg-white hover:bg-gray-50'
                             }`}
                           >
-                            <div className="flex w-full items-start justify-between gap-1">
-                              <span className={`text-[12px] font-black leading-tight pr-6 truncate ${isSelected ? 'text-emerald-950' : 'text-[#1A1A18]'}`}>
-                                {opt.name}
-                              </span>
-                              <div className="absolute right-2 top-2">
-                                {isSelected && maxAllowed > 1 ? (
-                                  <div className="flex items-center gap-1 bg-emerald-100 rounded-full border border-emerald-200 pr-1">
-                                    <div
-                                      onClick={(e) => {
-                                        e.stopPropagation();
+                            <div className="flex items-center gap-3.5">
+                               <motion.div 
+                                 layout
+                                 className={`flex items-center justify-center transition-all duration-300 ${maxAllowed > 1 ? 'w-5 h-5 rounded-md' : 'w-[22px] h-[22px] rounded-full'} ${
+                                   isSelected ? (maxAllowed > 1 ? 'bg-[#F59E0B] border border-[#F59E0B] text-white' : 'border-[6.5px] border-[#F59E0B] bg-white') : 'border-[1.5px] border-gray-300 bg-white'
+                                 }`}
+                               >
+                                 {isSelected && maxAllowed > 1 && <Check size={12} strokeWidth={4} />}
+                               </motion.div>
+                               <span className={`text-[13.5px] transition-colors ${isSelected ? 'text-[#F59E0B] font-black' : 'text-gray-700 font-bold'}`}>
+                                 {opt.name}
+                               </span>
+                            </div>
+                            
+                            <div className="flex items-center gap-3">
+                              {isSelected && maxAllowed > 1 && (
+                                <div className="flex items-center justify-between w-[70px] shrink-0" onClick={(e) => e.stopPropagation()}>
+                                  <div 
+                                    onClick={() => {
+                                      const nextSelected = [...tempSelectedModifiers];
+                                      const idx = nextSelected.findIndex(m => m.id === opt.id);
+                                      if (idx > -1) {
+                                        if ((nextSelected[idx].qty || 1) > 1) {
+                                          nextSelected[idx] = { ...nextSelected[idx], qty: nextSelected[idx].qty - 1 };
+                                        } else {
+                                          nextSelected.splice(idx, 1);
+                                        }
+                                        setTempSelectedModifiers(nextSelected);
+                                      }
+                                    }} 
+                                    className="w-7 h-7 rounded-full bg-[#F9F9F9] text-gray-400 flex items-center justify-center hover:text-black hover:bg-gray-100 active:scale-95 transition-all"
+                                  >
+                                    <Minus size={14} strokeWidth={3} />
+                                  </div>
+                                  <span className="flex-1 text-center font-black text-[13px] text-[#1A1A18] tracking-tight">{optQty}</span>
+                                  <div 
+                                    onClick={() => {
+                                      if (!isAtMax) {
                                         const nextSelected = [...tempSelectedModifiers];
                                         const idx = nextSelected.findIndex(m => m.id === opt.id);
                                         if (idx > -1) {
-                                          if ((nextSelected[idx].qty || 1) > 1) {
-                                            nextSelected[idx] = { ...nextSelected[idx], qty: nextSelected[idx].qty - 1 };
-                                          } else {
-                                            nextSelected.splice(idx, 1);
-                                          }
+                                          nextSelected[idx] = { ...nextSelected[idx], qty: nextSelected[idx].qty + 1 };
                                           setTempSelectedModifiers(nextSelected);
                                         }
-                                      }}
-                                      className="w-5 h-5 rounded-full bg-white text-red-500 flex items-center justify-center hover:bg-red-50 cursor-pointer border border-emerald-50"
-                                    >
-                                      <Minus size={10} strokeWidth={4} />
-                                    </div>
-                                    <span className="text-[9px] font-black text-emerald-800">{optQty}</span>
+                                      }
+                                    }} 
+                                    className={`w-7 h-7 rounded-full bg-[#F9F9F9] flex items-center justify-center transition-all ${!isAtMax ? 'text-gray-400 hover:text-black hover:bg-gray-100 active:scale-95' : 'text-gray-300 opacity-50 cursor-not-allowed'}`}
+                                  >
+                                    <Plus size={14} strokeWidth={3} />
                                   </div>
-                                ) : (
-                                  <div className="flex h-5 w-5 items-center justify-center">
-                                    {isSelected && <Check size={16} strokeWidth={3} className="text-emerald-600" />}
-                                  </div>
-                                )}
-                              </div>
+                                </div>
+                              )}
+                              <span className={`text-[13px] font-black ${isSelected ? 'text-[#F59E0B]' : 'text-gray-300'}`}>
+                                 {opt.price_adjustment > 0
+                                   ? `+฿${(opt.price_adjustment * Math.max(1, optQty)).toLocaleString()}`
+                                   : opt.price_adjustment < 0
+                                     ? `-฿${Math.abs(opt.price_adjustment * Math.max(1, optQty)).toLocaleString()}`
+                                     : ''}
+                              </span>
                             </div>
-                            <span
-                              className={`self-start text-[9px] font-black uppercase tracking-wider ${
-                                isSelected 
-                                  ? 'text-emerald-600' 
-                                  : 'text-gray-400'
-                              }`}
-                            >
-                              {opt.price_adjustment > 0
-                                ? `+ ฿${opt.price_adjustment * Math.max(1, optQty)}`
-                                : opt.price_adjustment < 0
-                                  ? `- ฿${Math.abs(opt.price_adjustment * Math.max(1, optQty))}`
-                                  : 'FREE'}
-                            </span>
-                          </button>
+                          </motion.button>
                         );
                       })}
                     </div>
                   </div>
                 );
               })}
+
+              {/* NOTE INPUT */}
+              <div className="bg-white py-5 transition-all duration-500 border-b border-gray-100/80 last:border-0">
+                <div className="pb-3 flex flex-col">
+                  <h4 className="text-[15px] font-black text-[#1A1A18] tracking-tight">
+                    หมายเหตุ (Note)
+                  </h4>
+                  <p className="text-[11px] text-gray-400 font-medium mt-1">
+                    ระบุรายละเอียดเพิ่มเติมสำหรับเมนูนี้
+                  </p>
+                </div>
+                <textarea
+                  value={tempNote}
+                  onChange={(e) => setTempNote(e.target.value)}
+                  placeholder="เช่น ไม่ใส่ผัก, เผ็ดน้อย, หวานปกติ..."
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3.5 text-[13.5px] font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:border-gray-300 focus:ring-4 focus:ring-gray-100 transition-all resize-none h-[80px]"
+                />
+              </div>
             </div>
 
-            <footer className="border-t border-gray-100 bg-white p-5 flex flex-col gap-3 shrink-0">
-              <div className="flex flex-col gap-1.5">
-                <span className="text-[9px] font-black uppercase tracking-wider text-gray-400">
-                  ตัวเลือกที่เลือก (Selected Options)
-                </span>
-                <div className="flex flex-wrap gap-1">
-                  {tempSelectedModifiers.length > 0 ? (
-                    tempSelectedModifiers.map(m => (
-                      <span
-                        key={m.id}
-                        className="bg-gray-50 border border-gray-100 px-2 py-0.5 rounded text-[9px] font-black text-gray-600 shadow-sm"
-                      >
-                        {m.name}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-[10px] font-bold italic text-gray-300">
-                      ยังไม่ได้เลือกตัวเลือกเพิ่มเติม
-                    </span>
-                  )}
-                </div>
-              </div>
-
+            <footer className="border-t border-gray-100/50 bg-white/80 backdrop-blur-md p-4 sm:p-5 shrink-0 z-10 shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.05)]">
               {(() => {
                 const incomplete = modifierGroups.filter(g => {
                   const minReq = Number(g.min_selection ?? g.min_select ?? 0);
@@ -4552,30 +4664,36 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                   return totalQtyInGroup < minReq;
                 });
                 const canConfirm = incomplete.length === 0;
+                
+                // Calculate total price
+                const basePrice = getEffectiveItemUnitPrice(modifierModalItem);
+                const modsPrice = tempSelectedModifiers.reduce((ma: number, m: any) => ma + ((m.price_adjustment || 0) * (m.qty || 1)), 0);
+                const totalPrice = (basePrice + modsPrice) * tempQuantity;
 
                 return (
-                  <div className="flex items-center gap-2 mt-2">
+                  <div className="flex items-center gap-3">
                     {/* QUANTITY SELECTOR */}
-                    <div className="flex items-center h-12 bg-gray-50 rounded-xl border border-gray-200 p-1 w-28 shrink-0">
+                    <div className="flex items-center justify-between w-[110px] shrink-0">
                       <button 
                         type="button"
                         onClick={() => setTempQuantity(q => Math.max(1, q - 1))}
-                        className="w-8 h-full rounded-lg bg-white text-gray-400 shadow-sm hover:text-[#1A1A18] hover:shadow active:scale-95 flex items-center justify-center border border-gray-100"
+                        className="w-[42px] h-[42px] rounded-full bg-[#F9F9F9] text-gray-400 hover:text-black hover:bg-gray-100 active:scale-95 flex items-center justify-center transition-all"
                       >
-                        <Minus size={14} strokeWidth={3} />
+                        <Minus size={16} strokeWidth={3} />
                       </button>
-                      <div className="flex-1 text-center font-black text-lg text-[#1A1A18]">
+                      <div className="flex-1 text-center font-black text-[20px] text-[#1A1A18] tracking-tight">
                         {tempQuantity}
                       </div>
                       <button 
                         type="button"
                         onClick={() => setTempQuantity(q => q + 1)}
-                        className="w-8 h-full rounded-lg bg-white text-gray-400 shadow-sm hover:text-[#1A1A18] hover:shadow active:scale-95 flex items-center justify-center border border-gray-100"
+                        className="w-[42px] h-[42px] rounded-full bg-[#F9F9F9] text-gray-400 hover:text-black hover:bg-gray-100 active:scale-95 flex items-center justify-center transition-all"
                       >
-                        <Plus size={14} strokeWidth={3} />
+                        <Plus size={16} strokeWidth={3} />
                       </button>
                     </div>
 
+                    {/* ADD TO CART BUTTON */}
                     <button
                       type="button"
                       onClick={() => {
@@ -4585,34 +4703,30 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                           if (element) {
                             element.scrollIntoView({ behavior: 'smooth', block: 'center' });
                             
-                            // Highly polished shake & color flash animation directly on element styles
-                            element.style.transition = 'all 0.4s cubic-bezier(0.25, 1, 0.5, 1)';
-                            element.style.transform = 'scale(1.025)';
-                            element.style.backgroundColor = '#FEF2F2'; // light red background flash
-                            element.style.borderRadius = '16px';
-                            element.style.padding = '12px';
-                            element.style.boxShadow = '0 10px 25px -5px rgba(239, 68, 68, 0.05)';
+                            // Highlight animation
+                            element.style.transition = 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                            element.style.transform = 'scale(1.03)';
+                            element.style.borderColor = '#ef4444';
+                            element.style.boxShadow = '0 10px 30px -5px rgba(239, 68, 68, 0.15)';
                             
-                            // Horizontal shake motion
+                            // Horizontal shake
                             let isLeft = true;
                             let count = 0;
                             const shakeInterval = setInterval(() => {
-                              element.style.transform = `scale(1.025) translateX(${isLeft ? '-6px' : '6px'})`;
+                              element.style.transform = `scale(1.03) translateX(${isLeft ? '-4px' : '4px'})`;
                               isLeft = !isLeft;
                               count++;
-                              if (count >= 6) {
+                              if (count >= 4) {
                                 clearInterval(shakeInterval);
-                                element.style.transform = 'scale(1.025)';
+                                element.style.transform = 'scale(1.03)';
                               }
-                            }, 80);
+                            }, 60);
 
                             setTimeout(() => {
                               element.style.transform = 'scale(1)';
-                              element.style.backgroundColor = '';
-                              element.style.borderRadius = '';
-                              element.style.padding = '';
+                              element.style.borderColor = 'rgba(243, 244, 246, 0.5)';
                               element.style.boxShadow = '';
-                            }, 1500);
+                            }, 1000);
                           }
                           return;
                         }
@@ -4623,12 +4737,13 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                             copy[editingCartItemIndex] = {
                               ...copy[editingCartItemIndex],
                               selected_modifiers: tempSelectedModifiers,
-                              quantity: tempQuantity
+                              quantity: tempQuantity,
+                              note: tempNote || undefined
                             };
                             if (copy[editingCartItemIndex].is_free_coupon_item) {
-                              const basePrice = getEffectiveItemUnitPrice(copy[editingCartItemIndex]);
-                              const modsPrice = tempSelectedModifiers.reduce((ma: number, m: any) => ma + ((m.price_adjustment || 0) * (m.qty || 1)), 0);
-                              copy[editingCartItemIndex].discount_amount = basePrice + modsPrice;
+                              const bPrice = getEffectiveItemUnitPrice(copy[editingCartItemIndex]);
+                              const mPrice = tempSelectedModifiers.reduce((ma: number, m: any) => ma + ((m.price_adjustment || 0) * (m.qty || 1)), 0);
+                              copy[editingCartItemIndex].discount_amount = bPrice + mPrice;
                             }
                             return copy;
                           });
@@ -4638,11 +4753,18 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                           addToCart(modifierModalItem, tempSelectedModifiers, tempQuantity, true);
                         }
                       }}
-                      className="relative flex h-12 flex-1 items-center justify-center gap-2 rounded-xl px-4 text-[12px] font-black uppercase tracking-wider transition-all overflow-hidden bg-[#D3202B] text-white hover:bg-[#B91C1C] hover:shadow-md active:scale-95"
+                      className={`relative flex h-[52px] flex-1 items-center justify-between px-5 rounded-2xl transition-all active:scale-[0.98] ${
+                        canConfirm ? 'bg-gradient-to-r from-[#D3202B] to-[#E53935] text-white shadow-[0_8px_20px_-6px_rgba(211,32,43,0.4)]' : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      }`}
                     >
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] animate-[shimmer_2s_infinite]"></div>
-                      <span>{canConfirm ? 'ยืนยัน' : `ยืนยัน (ขาดอีก ${incomplete.length} หมวด)`}</span>
-                      <ArrowRight size={14} />
+                      <span className="text-[14.5px] font-black tracking-wide">
+                        {canConfirm ? (editingCartItemIndex !== null ? 'อัปเดตตะกร้า' : 'ใส่ตะกร้า') : `เลือกให้ครบ`}
+                      </span>
+                      {canConfirm && (
+                        <span className="text-[15px] font-black tracking-tight">
+                          ฿{totalPrice.toLocaleString()}
+                        </span>
+                      )}
                     </button>
                   </div>
                 );
@@ -4804,6 +4926,8 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                     onClick={async () => {
                       if (editingOrderId && cart.length === 0) {
                         await handleDeleteOrder(editingOrderId);
+                      } else if (editingOrderId && !editingOrderNumber) {
+                        await discardDraftOrder();
                       }
                       resetOrderComposer();
                       if (renderedLandscapeTab === 'table_select') {
@@ -5067,9 +5191,9 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                       >
                         <button
                           onClick={() => setShowSplitMenu(false)}
-                          className="p-2 -ml-2 text-red-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all mr-2"
+                          className="text-[#D3202B] hover:text-red-700 transition-colors p-1 -ml-1 border-none bg-transparent active:scale-95 shrink-0 mr-2"
                         >
-                          <ChevronLeft size={24} strokeWidth={2.5} />
+                          <ChevronLeft size={24} strokeWidth={3} />
                         </button>
                         <h2 className="text-lg font-black text-gray-900 tracking-tight">เลือกวิธีแบ่งชำระ</h2>
                       </motion.div>
@@ -5088,9 +5212,9 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                               setInlineEqualSplit(false);
                               setInlineCustomSplit(false);
                             }}
-                            className="p-2 -ml-2 text-red-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all mr-2"
+                            className="text-[#D3202B] hover:text-red-700 transition-colors p-1 -ml-1 border-none bg-transparent active:scale-95 shrink-0 mr-2"
                           >
-                            <ChevronLeft size={24} strokeWidth={2.5} />
+                            <ChevronLeft size={24} strokeWidth={3} />
                           </button>
                         )}
                         <h2 className="text-lg font-black text-gray-900 tracking-tight">
@@ -5167,9 +5291,9 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                                 <div className="flex items-center gap-1">
                                   <button
                                     onClick={() => setInlineCashPayment(false)}
-                                    className="p-1 -ml-1 text-gray-400 hover:text-black rounded-lg transition-all"
+                                    className="text-[#D3202B] hover:text-red-700 transition-colors p-1 -ml-1 border-none bg-transparent active:scale-95 shrink-0"
                                   >
-                                    <ChevronLeft size={20} strokeWidth={2.5} />
+                                    <ChevronLeft size={24} strokeWidth={3} />
                                   </button>
                                   <div className="text-[14px] font-black text-gray-900 uppercase tracking-widest">{locale === 'en' ? 'CASH PAYMENT' : 'ชำระเงินสด'}</div>
                                 </div>
@@ -6210,21 +6334,7 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
         </div>
       )}
 
-            {/* GLOBAL PAYMENT SUCCESS MODAL REMOVED - NOW IN LEFT PANEL */}
-      <POSPinModal
-        isOpen={isPinModalOpen}
-        onClose={() => {
-          setIsPinModalOpen(false)
-          setPinCallback(null)
-        }}
-        onSuccess={() => {
-          if (pinCallback) pinCallback()
-        }}
-        correctPin={shopSettings?.role_permissions?.manager_pin || ''}
-        title={pinTitle}
-        description={pinDesc}
-      />
-
+      {/* GLOBAL PAYMENT SUCCESS MODAL REMOVED - NOW IN LEFT PANEL */}
       <POSPromotionsModal 
         isOpen={showPromotionsModal}
         onClose={() => setShowPromotionsModal(false)}

@@ -66,7 +66,7 @@ export default function GoogleMapsLocationPicker({
 
   // Function to reverse geocode lat/lng to address
   const getAddressFromCoords = useCallback((lat: number, lng: number) => {
-    if (!window.google) return
+    if (!isLoaded || !window.google || !window.google.maps || !window.google.maps.Geocoder) return
     setIsLoadingAddress(true)
     const geocoder = new window.google.maps.Geocoder()
     geocoder.geocode({ location: { lat, lng } }, (results, status) => {
@@ -75,7 +75,7 @@ export default function GoogleMapsLocationPicker({
         setAddress(results[0].formatted_address)
       }
     })
-  }, [])
+  }, [isLoaded])
 
   const onMapClick = useCallback((e: google.maps.MapMouseEvent) => {
     if (e.latLng) {
@@ -116,11 +116,12 @@ export default function GoogleMapsLocationPicker({
 
   // Effect to sync initialLocation if it changes
   useEffect(() => {
+    if (!isLoaded || !window.google || !window.google.maps || !window.google.maps.Geocoder) return
     if (initialLocation && (initialLocation.lat !== position.lat || initialLocation.lng !== position.lng)) {
       setPosition(initialLocation)
       getAddressFromCoords(initialLocation.lat, initialLocation.lng)
     }
-  }, [getAddressFromCoords, initialLocation, position.lat, position.lng])
+  }, [isLoaded, getAddressFromCoords, initialLocation, position.lat, position.lng])
 
   const repaintMap = useCallback(() => {
     if (!map || !window.google) return

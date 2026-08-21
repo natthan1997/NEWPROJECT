@@ -1,13 +1,17 @@
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config({ path: '.env.local' });
-const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
-async function run() {
-  const { data, error } = await supabaseAdmin.rpc('get_policies', { table_name: 'orders' });
-  console.log(error || data);
-  
-  // if no rpc, just query pg_policies
-  const { data: policies, error: err2 } = await supabaseAdmin.from('pg_policies').select('*').eq('tablename', 'orders');
-  console.log("Policies:", policies);
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+
+async function checkRLS() {
+  const { data, error } = await supabase.rpc('get_policies_for_table', { table_name: 'pos_shop_settings' });
+  if (error) {
+    // Fallback to raw query using admin
+    const { data: rawData, error: rawError } = await supabase.from('pg_policies').select('*').eq('tablename', 'pos_shop_settings');
+    console.log('Policies for pos_shop_settings:', rawData || rawError);
+  } else {
+    console.log(data);
+  }
 }
-run();
+
+checkRLS();

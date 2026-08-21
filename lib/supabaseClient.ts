@@ -1436,7 +1436,7 @@ export const getMeasurementRequests = async (filters?: {
     }
     
     if (filters?.branch_code) {
-      query = query.eq('branch_code', filters.branch_code);
+      query = query.eq('branch_code', filters.branch_code).eq('merchant_id', (filters as any).merchant_id || '00000000-0000-0000-0000-000000000000');
     }
 
     if (filters?.customer_id) {

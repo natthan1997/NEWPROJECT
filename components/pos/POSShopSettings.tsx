@@ -4,12 +4,13 @@ import { Capacitor } from '@capacitor/core'
 import { PrinterSocket } from 'custom-printer-plugin'
 import { printCustomerReceipt, printKitchenTicket } from '@/lib/printerUtils'
 import { printGraphicModeCustomerReceipt, printGraphicModeKitchenTicket } from '@/lib/graphicPrinter'
-import { Plus, Loader2, Save, X, Settings, Clock, Bell, Info, Image as ImageIcon, Star, Gift, ChevronDown, ChevronUp, Upload, Trash2, Menu as MenuIcon, ChevronRight, ArrowLeft, ShieldCheck, QrCode, MapPin, Printer, Truck, Flag, RefreshCw, Store, Navigation, Percent, Camera, Users, Edit2, Check, Sparkles, Wallet } from 'lucide-react'
+import { Plus, Loader2, Save, X, Settings, Clock, Bell, Info, Image as ImageIcon, Star, Gift, ChevronDown, ChevronUp, Upload, Trash2, Menu as MenuIcon, ChevronRight, ChevronLeft, ArrowLeft, ShieldCheck, QrCode, MapPin, Printer, Truck, Flag, RefreshCw, Store, Navigation, Percent, Camera, Users, Edit2, Check, Sparkles, Wallet, Copy } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
 import POSCampaignsTab from './POSCampaignsTab'
 import AddressMapInput from '@/components/AddressMapInput'
+import GoogleMapsLocationPicker from '@/components/GoogleMapsLocationPicker'
 import { useI18n } from "@/lib/I18nContext";
 import Cropper from 'react-easy-crop'
 
@@ -189,8 +190,10 @@ export default function POSShopSettings({
     const { locale } = useI18n();
   const [loading, setLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [copiedType, setCopiedType] = useState<'merchant' | 'branch' | null>(null)
   const [availableCoupons, setAvailableCoupons] = useState<any[]>([])
   const [activeTab, setActiveTab] = useState<string>('general')
+  const [isMapOpen, setIsMapOpen] = useState<boolean>(false)
   const [showMobileMenu, setShowMobileMenu] = useState<boolean>(true)
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [previewStoryIndex, setPreviewStoryIndex] = useState<number>(0)
@@ -331,6 +334,7 @@ export default function POSShopSettings({
                 .from('branches')
                 .select('id')
                 .eq('branch_code', profile.branch_code)
+                .eq('merchant_id', profile.merchant_id)
                 .maybeSingle()
             if (branch) branchId = branch.id
         }
@@ -363,8 +367,24 @@ export default function POSShopSettings({
 
         if (data) {
             const effectiveStatus = data.status || (data.is_open ? 'open' : 'closed');
+            
+            // Fetch merchant_code
+            let merchantCode = null;
+            const merchantId = profile?.merchant_id || data.merchant_id || '00000000-0000-0000-0000-000000000000';
+            try {
+                const { data: merch } = await supabase
+                    .from('pos_merchants')
+                    .select('merchant_code')
+                    .eq('id', merchantId)
+                    .maybeSingle();
+                if (merch) merchantCode = merch.merchant_code;
+            } catch (e) {
+                console.error('Error fetching merchant_code:', e);
+            }
+
             setSettings({
                 ...data,
+                merchant_code: merchantCode,
                 branch_id: data.branch_id || branchId,
                 status: effectiveStatus,
                 is_open: effectiveStatus === 'open',
@@ -601,11 +621,13 @@ const handleSave = async () => {
       },
       checkout_photo_zones: settings.checkout_photo_zones || [],
       is_open: settings.status === 'open',
+      merchant_id: profile?.merchant_id || undefined,
       updated_at: new Date().toISOString()
     }
 
     // Strip keys that don't exist in pos_shop_settings schema
     delete payload.custom_roles;
+    delete payload.merchant_code;
     delete payload.receipt_header;
     delete payload.receipt_story_mode;
     delete payload.show_story_selection_at_checkout;
@@ -803,235 +825,9 @@ const handleSave = async () => {
 
   return (
     <>
-      <main className="flex-1 flex overflow-hidden bg-white border-none text-[#1A1A18]">
-            <div className="flex-1 flex flex-col w-full h-full overflow-hidden">
-                <div className="flex-1 flex flex-col md:flex-row min-h-0">
-                
-                {/* SIDEBAR TABS (iOS Style) */}
-                <AnimatePresence mode="wait">
-                    <motion.div 
-                        key="settings-sidebar"
-                        initial={{ x: -300, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        exit={{ x: -300, opacity: 0 }}
-                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                        className={`w-full md:w-[300px] lg:w-[320px] xl:w-[380px] h-full flex-shrink-0 bg-white border-r border-gray-100 overflow-y-auto custom-scrollbar ${!showMobileMenu ? 'hidden md:block' : 'block'}`}
-                    >
-                    
-                    {/* iOS Navigation Bar for Left Pane */}
-                    <div className="pt-6 pb-2 px-4 flex items-center">
-                        <button 
-                            onClick={() => onSetView('terminal')}
-                            className="flex items-center gap-1 text-gray-900 text-[17px] hover:opacity-70 transition-opacity font-medium"
-                        >
-                            <ChevronRight size={24} className="rotate-180 text-gray-400" strokeWidth={2.5} />
-                            <span>POS</span>
-                        </button>
-                    </div>
-
-                    <div className="px-4 pb-6">
-                        <h1 className="text-3xl font-bold tracking-tight text-gray-900 mb-6 px-2">{locale === 'en' ? 'Settings' : locale === 'zh' ? '设置' : 'การตั้งค่า'}</h1>
-                        
-                        {/* Search Bar & Smart Results */}
-                        <div className="relative mb-6 mx-2">
-                            <div className="bg-gray-50 rounded-xl flex items-center px-4 py-2.5 border border-gray-100 focus-within:border-gray-300 focus-within:ring-2 focus-within:ring-gray-100 transition-all z-50 relative">
-                                <span className="text-gray-400 font-normal text-[15px] mr-2">🔍</span>
-                                <input
-                                    type="text"
-                                    placeholder={locale === 'en' ? 'Search settings...' : 'ค้นหาการตั้งค่า...'}
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="bg-transparent border-none outline-none w-full text-gray-700 text-[15px] placeholder:text-gray-400"
-                                />
-                                {searchQuery && (
-                                    <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600 transition-colors ml-1">
-                                        <X size={16} />
-                                    </button>
-                                )}
-                            </div>
-
-                            {/* Smart Search Results Dropdown */}
-                            <AnimatePresence>
-                                {searchQuery.trim().length > 0 && (
-                                    <motion.div 
-                                        initial={{ opacity: 0, y: -10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: -10 }}
-                                        className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-100 rounded-xl shadow-lg shadow-gray-200/50 z-50 overflow-hidden max-h-[300px] overflow-y-auto"
-                                    >
-                                        {(() => {
-                                            const searchTerms = searchQuery.toLowerCase().trim();
-                                            const GLOBAL_INDEX = [
-                                                { id: 'setting-banners', tabId: 'general', label: 'จัดการรูปภาพแบนเนอร์ LINE LIFF', icon: Info, keywords: ['banner', 'แบนเนอร์', 'liff', 'รูป', 'หน้าแรก'] },
-                                                { id: 'setting-shop-info', tabId: 'general', label: 'ประกาศและข้อความหน้าร้าน', icon: Info, keywords: ['ประกาศ', 'ข้อความ', 'info', 'ที่อยู่', 'address'] },
-                                                { id: 'setting-printers', tabId: 'hardware', label: 'เครื่องพิมพ์ทั้งหมด', icon: Settings, keywords: ['printer', 'พิมพ์', 'ปริ้น', 'ใบเสร็จ'] },
-                                                { id: 'setting-receipt', tabId: 'receipt', label: 'ตั้งค่าใบเสร็จ', icon: Printer, keywords: ['receipt', 'บิล', 'ใบเสร็จ', 'สลิป', 'logo', 'โลโก้'] },
-                                                { id: 'setting-starting-cash', tabId: 'shift', label: 'เงินทอนเริ่มต้นอัตโนมัติ', icon: Wallet, keywords: ['shift', 'กะ', 'เงินทอน', 'เปิดกะ', 'cash'] },
-                                                { id: 'setting-check-bills', tabId: 'shift', label: 'ตรวจบิลที่ค้างอยู่ก่อนปิดกะ', icon: Wallet, keywords: ['ตรวจบิล', 'ค้าง', 'ปิดกะ'] },
-                                                { id: 'setting-lock-editing', tabId: 'shift', label: 'ล็อกการแก้ไขบิลข้ามกะ', icon: Wallet, keywords: ['แก้ไขบิล', 'ล็อก', 'lock'] },
-                                                { id: 'setting-z-report', tabId: 'shift', label: 'ส่งอีเมลสรุปยอดกะอัตโนมัติ', icon: Wallet, keywords: ['z-report', 'อีเมล', 'สรุปยอด'] },
-                                                { id: 'setting-payment', tabId: 'advanced', label: 'ตั้งค่าการชำระเงิน', icon: Star, keywords: ['payment', 'ชำระเงิน', 'จ่าย', 'พร้อมเพย์', 'qr', 'promptpay', 'โอน'] },
-                                                { id: 'setting-delivery', tabId: 'delivery', label: 'เดลิเวอรี่แพลตฟอร์ม', icon: Truck, keywords: ['delivery', 'ส่ง', 'ไรเดอร์', 'lineman', 'grab', 'robinhood'] },
-                                                { id: 'setting-kds', tabId: 'kitchen', label: 'จอภาพห้องครัว (KDS)', icon: MenuIcon, keywords: ['kitchen', 'ครัว', 'ทำอาหาร', 'จอครัว', 'kds'] },
-                                                { id: 'setting-campaigns', tabId: 'campaigns', label: 'แคมเปญและโปรโมชั่น', icon: Flag, keywords: ['campaign', 'แคมเปญ', 'โปรโมชั่น', 'ส่วนลด', 'แบนเนอร์', 'โฆษณา'] },
-                                                { id: 'setting-permissions', tabId: 'permissions', label: 'สิทธิ์การใช้งานพนักงาน', icon: ShieldCheck, keywords: ['permission', 'สิทธิ์', 'พนักงาน', 'เข้าถึง', 'รหัส', 'pin'] }
-                                            ];
-
-                                            const results = GLOBAL_INDEX.filter(item => 
-                                                item.label.toLowerCase().includes(searchTerms) || 
-                                                item.keywords.some(k => k.toLowerCase().includes(searchTerms))
-                                            );
-
-                                            if (results.length === 0) {
-                                                return (
-                                                    <div className="py-8 flex flex-col items-center justify-center text-gray-400">
-                                                        <span className="text-2xl mb-2">🔍</span>
-                                                        <p className="text-xs font-medium">ไม่พบการตั้งค่าที่เกี่ยวข้อง</p>
-                                                    </div>
-                                                );
-                                            }
-
-                                            return results.map((result, idx) => {
-                                                const Icon = result.icon;
-                                                return (
-                                                    <button 
-                                                        key={result.id}
-                                                        onClick={() => {
-                                                            setActiveTab(result.tabId);
-                                                            setSearchQuery('');
-                                                            setShowMobileMenu(false);
-                                                            
-                                                            // Wait for tab to render then scroll and highlight
-                                                            setTimeout(() => {
-                                                                const el = document.getElementById(result.id);
-                                                                if (el) {
-                                                                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                                                    
-                                                                    // Add temporary highlight effect
-                                                                    el.classList.add('ring-2', 'ring-indigo-500', 'ring-offset-2', 'bg-indigo-50/30');
-                                                                    setTimeout(() => {
-                                                                        el.classList.remove('ring-2', 'ring-indigo-500', 'ring-offset-2', 'bg-indigo-50/30');
-                                                                    }, 2000);
-                                                                }
-                                                            }, 300);
-                                                        }}
-                                                        className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left ${idx !== results.length - 1 ? 'border-b border-gray-50' : ''}`}
-                                                    >
-                                                        <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500 shrink-0">
-                                                            <Icon size={16} strokeWidth={2.5} />
-                                                        </div>
-                                                        <div className="flex flex-col min-w-0">
-                                                            <span className="text-[14px] font-semibold text-gray-900 truncate">{result.label}</span>
-                                                            <span className="text-[11px] text-gray-500 uppercase font-bold tracking-wider">{result.tabId}</span>
-                                                        </div>
-                                                        <ChevronRight size={14} className="ml-auto text-gray-300" />
-                                                    </button>
-                                                );
-                                            });
-                                        })()}
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
-
-                        {/* Profile Card */}
-                        <div className="bg-white rounded-xl p-3 flex items-center gap-4 mb-6 mx-2 border border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer">
-                            <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 text-lg font-semibold shrink-0">
-                                {profile?.branch_code?.[0]?.toUpperCase() || 'S'}
-                            </div>
-                            <div className="flex flex-col min-w-0">
-                                <span className="text-[16px] font-semibold text-gray-900 truncate">{locale === 'en' ? 'Shop Settings' : 'ตั้งค่าร้านค้า'}</span>
-                                <span className="text-[13px] text-gray-500 truncate">สาขา {profile?.branch_code}</span>
-                            </div>
-                        </div>
-
-                        {/* Shop Status Toggle */}
-                        <div className="mx-2 mb-8 bg-white border border-gray-100 rounded-xl overflow-hidden shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-                            <div className="px-4 py-3.5 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => {
-                                const newStatus = settings.status === 'open' ? 'closed' : 'open';
-                                setSettings({ ...settings, status: newStatus, is_open: newStatus === 'open' });
-                            }}>
-                                <div className="flex flex-col">
-                                    <span className="text-[14px] font-bold text-gray-900 flex items-center gap-2">
-                                        <div className={`w-2 h-2 rounded-full ${settings.status === 'open' ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)]' : 'bg-rose-500'}`}></div>
-                                        {locale === 'en' ? 'Shop Status' : 'สถานะร้านค้า'}
-                                    </span>
-                                    <span className={`text-[12px] font-medium mt-0.5 ${settings.status === 'open' ? 'text-emerald-600' : 'text-rose-500'}`}>
-                                        {settings.status === 'open' ? (locale === 'en' ? 'Open for orders' : 'เปิดให้บริการตามปกติ') : (locale === 'en' ? 'Temporarily closed' : 'ปิดให้บริการชั่วคราว')}
-                                    </span>
-                                </div>
-                                <div className={`relative w-11 h-6 rounded-full transition-colors duration-300 ${settings.status === 'open' ? 'bg-emerald-500' : 'bg-gray-300'}`}>
-                                    <div className={`absolute top-[2px] w-5 h-5 rounded-full bg-white transition-all duration-300 shadow-sm flex items-center justify-center ${settings.status === 'open' ? 'left-[22px]' : 'left-[2px]'}`}></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Settings Groups */}
-                        <div className={searchQuery.trim().length > 0 ? 'opacity-30 pointer-events-none transition-opacity' : 'transition-opacity'}>
-                            <div className="mb-8 mx-2">
-                                <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-2">General</div>
-                                {[
-                                    { id: 'general', icon: Info, label: 'ทั่วไป' },
-                                    { id: 'hardware', icon: Settings, label: 'เครื่องพิมพ์' },
-                                    { id: 'receipt', icon: Printer, label: 'บิล' },
-                                    { id: 'shift', icon: Wallet, label: 'กะและลิ้นชัก' },
-                                    { id: 'advanced', icon: Star, label: 'ตั้งค่าการชำระเงิน' },
-                                    { id: 'delivery', icon: Truck, label: 'เดลิเวอรี่' }
-                                ].map((tab) => {
-                                    const Icon = tab.icon;
-                                    const isActive = activeTab === tab.id;
-                                    return (
-                                        <button 
-                                            key={tab.id}
-                                            onClick={() => {
-                                                setActiveTab(tab.id)
-                                                setShowMobileMenu(false)
-                                                setSearchQuery('')
-                                            }}
-                                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-left mb-1 ${isActive ? 'bg-gray-100' : 'bg-transparent hover:bg-gray-50'}`}
-                                        >
-                                            <div className={`w-6 h-6 flex items-center justify-center shrink-0 ${isActive ? 'text-gray-900' : 'text-gray-400'}`}>
-                                                <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />
-                                            </div>
-                                            <span className={`text-[15px] flex-1 ${isActive ? 'text-gray-900 font-semibold' : 'text-gray-600 font-medium'}`}>{tab.label}</span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-
-                            <div className="mx-2">
-                                <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-2">App & System</div>
-                                {[
-                                    { id: 'campaigns', icon: Flag, label: 'แคมเปญหน้าแอป' },
-                                    { id: 'permissions', icon: ShieldCheck, label: 'สิทธิ์การใช้งาน' }
-                                ].map((tab) => {
-                                    const Icon = tab.icon;
-                                    const isActive = activeTab === tab.id;
-                                    return (
-                                        <button 
-                                            key={tab.id}
-                                            onClick={() => {
-                                                setActiveTab(tab.id)
-                                                setShowMobileMenu(false)
-                                                setSearchQuery('')
-                                            }}
-                                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-left mb-1 ${isActive ? 'bg-gray-100' : 'bg-transparent hover:bg-gray-50'}`}
-                                        >
-                                            <div className={`w-6 h-6 flex items-center justify-center shrink-0 ${isActive ? 'text-gray-900' : 'text-gray-400'}`}>
-                                                <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />
-                                            </div>
-                                            <span className={`text-[15px] flex-1 ${isActive ? 'text-gray-900 font-semibold' : 'text-gray-600 font-medium'}`}>{tab.label}</span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    </div>
-                </motion.div>
-                </AnimatePresence>
-
+      <main className="absolute inset-0 flex flex-col md:flex-row bg-transparent text-[#1A1A18]">
                 {/* MAIN CONTENT AREA */}
-                <div className={`flex-1 h-full overflow-y-auto bg-[#F5F5F7] relative ${showMobileMenu ? 'hidden md:block' : 'block'}`}>
+                <div className={`flex-1 h-full overflow-y-auto bg-transparent relative ${showMobileMenu ? 'hidden md:block' : 'block'}`}>
                     {loading ? (
                         <div className="absolute inset-0 flex items-center justify-center opacity-20">
                             <Loader2 className="animate-spin" size={64} />
@@ -1191,6 +987,34 @@ const handleSave = async () => {
                                             <div className="text-center sm:text-left flex-1 pb-1">
                                                 <h3 className="text-[20px] font-semibold text-gray-900">{settings.name_th || settings.name || (locale === 'en' ? 'Shop Name' : 'ชื่อร้าน')}</h3>
                                                 <p className="text-[14px] text-gray-500 mt-0.5">{settings.branch_name_th || settings.branch_name || (locale === 'en' ? 'Branch' : 'สาขา')}</p>
+                                                 <div className="mt-2 flex flex-col gap-2 bg-gray-50 p-4 rounded-2xl border border-black/5 max-w-md text-left">
+                                                     <button
+                                                         onClick={() => {
+                                                             const mCode = settings.merchant_code || '3399100';
+                                                             const bCode = String(profile?.branch_code || '01').padStart(3, '0');
+                                                             navigator.clipboard.writeText(`${mCode}${bCode}`);
+                                                             setCopiedType('merchant');
+                                                             setTimeout(() => setCopiedType(null), 2000);
+                                                         }}
+                                                         className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold bg-white hover:bg-gray-100 text-gray-700 active:scale-95 transition-all w-fit select-none border border-black/5 shadow-sm"
+                                                     >
+                                                         {copiedType === 'merchant' ? (
+                                                             <span className="text-emerald-600">คัดลอกรหัสร้านแล้ว!</span>
+                                                         ) : (
+                                                             <>
+                                                                 <span>คัดลอก รหัสร้าน {settings.merchant_code || '3399100'}{String(profile?.branch_code || '01').padStart(3, '0')}</span>
+                                                                 <Copy size={13} strokeWidth={2.5} className="text-gray-400" />
+                                                             </>
+                                                         )}
+                                                     </button>
+
+                                                     <div className="h-px bg-gray-200 my-1"></div>
+
+                                                     <div className="flex flex-col gap-1 text-[9px] font-mono text-gray-400 leading-normal">
+                                                         <div className="flex justify-between"><span>Merchant UUID:</span> <span>{profile?.merchant_id || '00000000-0000-0000-0000-000000000000'}</span></div>
+                                                         <div className="flex justify-between"><span>Branch UUID:</span> <span>{settings.branch_id || 'Not Set'}</span></div>
+                                                     </div>
+                                                 </div>
                                             </div>
                                         </div>
                                     </div>
@@ -1277,6 +1101,40 @@ const handleSave = async () => {
                                                     placeholder=" "
                                                 />
                                                 <label className="absolute left-4 top-2 text-[11px] font-medium text-gray-500">{locale === 'en' ? 'Address' : 'ที่อยู่ร้าน'}</label>
+                                            </div>
+
+                                            {/* GPS Coordinates (Latitude / Longitude) */}
+                                            <div className="flex flex-col sm:flex-row gap-4 items-stretch">
+                                                <div className="relative flex-1">
+                                                    <input 
+                                                        type="number" 
+                                                        step="any"
+                                                        value={settings.latitude ?? ''}
+                                                        onChange={e => setSettings({...settings, latitude: e.target.value === '' ? null : Number(e.target.value)})}
+                                                        className="w-full bg-gray-50 border-0 rounded-xl px-4 pt-6 pb-2 text-[15px] font-medium text-gray-900 outline-none focus:bg-gray-100 transition-colors peer" 
+                                                        placeholder=" "
+                                                    />
+                                                    <label className="absolute left-4 top-2 text-[11px] font-medium text-gray-500">{locale === 'en' ? 'Latitude (GPS)' : 'ละติจูด (พิกัด GPS)'}</label>
+                                                </div>
+                                                <div className="relative flex-1">
+                                                    <input 
+                                                        type="number" 
+                                                        step="any"
+                                                        value={settings.longitude ?? ''}
+                                                        onChange={e => setSettings({...settings, longitude: e.target.value === '' ? null : Number(e.target.value)})}
+                                                        className="w-full bg-gray-50 border-0 rounded-xl px-4 pt-6 pb-2 text-[15px] font-medium text-gray-900 outline-none focus:bg-gray-100 transition-colors peer" 
+                                                        placeholder=" "
+                                                    />
+                                                    <label className="absolute left-4 top-2 text-[11px] font-medium text-gray-500">{locale === 'en' ? 'Longitude (GPS)' : 'ลองจิจูด (พิกัด GPS)'}</label>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setIsMapOpen(true)}
+                                                    className="px-5 bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl text-xs font-black transition-all active:scale-95 border-none cursor-pointer flex items-center justify-center gap-2 shadow-sm shrink-0 min-h-[50px]"
+                                                >
+                                                    <MapPin size={14} />
+                                                    <span>{locale === 'en' ? 'Select on Map' : 'เลือกจากแผนที่'}</span>
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
@@ -3193,9 +3051,245 @@ const handleSave = async () => {
                     </div>
                 )}
 
-                </div>
-            </div>
+                {/* SIDEBAR TABS (iOS Style) */}
+                <AnimatePresence mode="wait">
+                    <motion.div 
+                        key="settings-sidebar"
+                        initial={{ x: 300, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        exit={{ x: 300, opacity: 0 }}
+                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                        className={`w-full h-full md:w-[380px] xl:w-[450px] shrink-0 md:rounded-[2rem] bg-white/95 backdrop-blur-xl border border-neutral-200/30 md:shadow-[0_25px_60px_rgba(0,0,0,0.12),0_4px_20px_rgba(0,0,0,0.04)] flex flex-col overflow-hidden z-20 ${!showMobileMenu ? 'hidden md:flex' : 'flex'}`}
+                    >
+                    
+                    {/* iOS Navigation Bar for Left Pane */}
+                    <div className="pt-6 pb-2 px-4 flex items-center">
+                        <button 
+                            onClick={() => onSetView('terminal')}
+                            className="flex items-center gap-1 text-[#D3202B] hover:text-red-700 transition-colors p-1 -ml-1 border-none bg-transparent active:scale-95 shrink-0"
+                        >
+                            <ChevronLeft size={24} strokeWidth={3} />
+                            <span className="text-[17px] font-bold">{locale === 'en' ? 'Settings' : locale === 'zh' ? '设置' : 'การตั้งค่า'}</span>
+                        </button>
+                    </div>
+
+                    <div className="px-4 pb-6 mt-4">
+                        
+                        {/* Search Bar & Smart Results */}
+                        <div className="relative mb-6 mx-2">
+                            <div className="bg-gray-50 rounded-xl flex items-center px-4 py-2.5 border border-gray-100 focus-within:border-gray-300 focus-within:ring-2 focus-within:ring-gray-100 transition-all z-50 relative">
+                                <span className="text-gray-400 font-normal text-[15px] mr-2">🔍</span>
+                                <input
+                                    type="text"
+                                    placeholder={locale === 'en' ? 'Search settings...' : 'ค้นหาการตั้งค่า...'}
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="bg-transparent border-none outline-none w-full text-gray-700 text-[15px] placeholder:text-gray-400"
+                                />
+                                {searchQuery && (
+                                    <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600 transition-colors ml-1">
+                                        <X size={16} />
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* Smart Search Results Dropdown */}
+                            <AnimatePresence>
+                                {searchQuery.trim().length > 0 && (
+                                    <motion.div 
+                                        initial={{ opacity: 0, y: -10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -10 }}
+                                        className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-100 rounded-xl shadow-lg shadow-gray-200/50 z-50 overflow-hidden max-h-[300px] overflow-y-auto"
+                                    >
+                                        {(() => {
+                                            const searchTerms = searchQuery.toLowerCase().trim();
+                                            const GLOBAL_INDEX = [
+                                                { id: 'setting-banners', tabId: 'general', label: 'จัดการรูปภาพแบนเนอร์ LINE LIFF', icon: Info, keywords: ['banner', 'แบนเนอร์', 'liff', 'รูป', 'หน้าแรก'] },
+                                                { id: 'setting-shop-info', tabId: 'general', label: 'ประกาศและข้อความหน้าร้าน', icon: Info, keywords: ['ประกาศ', 'ข้อความ', 'info', 'ที่อยู่', 'address'] },
+                                                { id: 'setting-printers', tabId: 'hardware', label: 'เครื่องพิมพ์ทั้งหมด', icon: Settings, keywords: ['printer', 'พิมพ์', 'ปริ้น', 'ใบเสร็จ'] },
+                                                { id: 'setting-receipt', tabId: 'receipt', label: 'ตั้งค่าใบเสร็จ', icon: Printer, keywords: ['receipt', 'บิล', 'ใบเสร็จ', 'สลิป', 'logo', 'โลโก้'] },
+                                                { id: 'setting-starting-cash', tabId: 'shift', label: 'เงินทอนเริ่มต้นอัตโนมัติ', icon: Wallet, keywords: ['shift', 'กะ', 'เงินทอน', 'เปิดกะ', 'cash'] },
+                                                { id: 'setting-check-bills', tabId: 'shift', label: 'ตรวจบิลที่ค้างอยู่ก่อนปิดกะ', icon: Wallet, keywords: ['ตรวจบิล', 'ค้าง', 'ปิดกะ'] },
+                                                { id: 'setting-lock-editing', tabId: 'shift', label: 'ล็อกการแก้ไขบิลข้ามกะ', icon: Wallet, keywords: ['แก้ไขบิล', 'ล็อก', 'lock'] },
+                                                { id: 'setting-z-report', tabId: 'shift', label: 'ส่งอีเมลสรุปยอดกะอัตโนมัติ', icon: Wallet, keywords: ['z-report', 'อีเมล', 'สรุปยอด'] },
+                                                { id: 'setting-payment', tabId: 'advanced', label: 'ตั้งค่าการชำระเงิน', icon: Star, keywords: ['payment', 'ชำระเงิน', 'จ่าย', 'พร้อมเพย์', 'qr', 'promptpay', 'โอน'] },
+                                                { id: 'setting-delivery', tabId: 'delivery', label: 'เดลิเวอรี่แพลตฟอร์ม', icon: Truck, keywords: ['delivery', 'ส่ง', 'ไรเดอร์', 'lineman', 'grab', 'robinhood'] },
+                                                { id: 'setting-kds', tabId: 'kitchen', label: 'จอภาพห้องครัว (KDS)', icon: MenuIcon, keywords: ['kitchen', 'ครัว', 'ทำอาหาร', 'จอครัว', 'kds'] },
+                                                { id: 'setting-campaigns', tabId: 'campaigns', label: 'แคมเปญและโปรโมชั่น', icon: Flag, keywords: ['campaign', 'แคมเปญ', 'โปรโมชั่น', 'ส่วนลด', 'แบนเนอร์', 'โฆษณา'] },
+                                                { id: 'setting-permissions', tabId: 'permissions', label: 'สิทธิ์การใช้งานพนักงาน', icon: ShieldCheck, keywords: ['permission', 'สิทธิ์', 'พนักงาน', 'เข้าถึง', 'รหัส', 'pin'] }
+                                            ];
+
+                                            const results = GLOBAL_INDEX.filter(item => 
+                                                item.label.toLowerCase().includes(searchTerms) || 
+                                                item.keywords.some(k => k.toLowerCase().includes(searchTerms))
+                                            );
+
+                                            if (results.length === 0) {
+                                                return (
+                                                    <div className="py-8 flex flex-col items-center justify-center text-gray-400">
+                                                        <span className="text-2xl mb-2">🔍</span>
+                                                        <p className="text-xs font-medium">ไม่พบการตั้งค่าที่เกี่ยวข้อง</p>
+                                                    </div>
+                                                );
+                                            }
+
+                                            return results.map((result, idx) => {
+                                                const Icon = result.icon;
+                                                return (
+                                                    <button 
+                                                        key={result.id}
+                                                        onClick={() => {
+                                                            setActiveTab(result.tabId);
+                                                            setSearchQuery('');
+                                                            setShowMobileMenu(false);
+                                                            
+                                                            // Wait for tab to render then scroll and highlight
+                                                            setTimeout(() => {
+                                                                const el = document.getElementById(result.id);
+                                                                if (el) {
+                                                                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                                                    
+                                                                    // Add temporary highlight effect
+                                                                    el.classList.add('ring-2', 'ring-indigo-500', 'ring-offset-2', 'bg-indigo-50/30');
+                                                                    setTimeout(() => {
+                                                                        el.classList.remove('ring-2', 'ring-indigo-500', 'ring-offset-2', 'bg-indigo-50/30');
+                                                                    }, 2000);
+                                                                }
+                                                            }, 300);
+                                                        }}
+                                                        className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left ${idx !== results.length - 1 ? 'border-b border-gray-50' : ''}`}
+                                                    >
+                                                        <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500 shrink-0">
+                                                            <Icon size={16} strokeWidth={2.5} />
+                                                        </div>
+                                                        <div className="flex flex-col min-w-0">
+                                                            <span className="text-[14px] font-semibold text-gray-900 truncate">{result.label}</span>
+                                                            <span className="text-[11px] text-gray-500 uppercase font-bold tracking-wider">{result.tabId}</span>
+                                                        </div>
+                                                        <ChevronRight size={14} className="ml-auto text-gray-300" />
+                                                    </button>
+                                                );
+                                            });
+                                        })()}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+
+                        {/* Profile Card */}
+                        <div className="bg-white rounded-xl p-3 flex items-center gap-4 mb-6 mx-2 border border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer">
+                            <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 text-lg font-semibold shrink-0">
+                                {profile?.branch_code?.[0]?.toUpperCase() || 'S'}
+                            </div>
+                            <div className="flex flex-col min-w-0">
+                                <span className="text-[16px] font-semibold text-gray-900 truncate">{locale === 'en' ? 'Shop Settings' : 'ตั้งค่าร้านค้า'}</span>
+                                <span className="text-[13px] text-gray-500 truncate">สาขา {profile?.branch_code}</span>
+                            </div>
+                        </div>
+
+                        {/* Shop Status Toggle */}
+                        <div className="mx-2 mb-8 bg-white border border-gray-100 rounded-xl overflow-hidden shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+                            <div className="px-4 py-3.5 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => {
+                                const newStatus = settings.status === 'open' ? 'closed' : 'open';
+                                setSettings({ ...settings, status: newStatus, is_open: newStatus === 'open' });
+                            }}>
+                                <div className="flex flex-col">
+                                    <span className="text-[14px] font-bold text-gray-900 flex items-center gap-2">
+                                        <div className={`w-2 h-2 rounded-full ${settings.status === 'open' ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)]' : 'bg-rose-500'}`}></div>
+                                        {locale === 'en' ? 'Shop Status' : 'สถานะร้านค้า'}
+                                    </span>
+                                    <span className={`text-[12px] font-medium mt-0.5 ${settings.status === 'open' ? 'text-emerald-600' : 'text-rose-500'}`}>
+                                        {settings.status === 'open' ? (locale === 'en' ? 'Open for orders' : 'เปิดให้บริการตามปกติ') : (locale === 'en' ? 'Temporarily closed' : 'ปิดให้บริการชั่วคราว')}
+                                    </span>
+                                </div>
+                                <div className={`relative w-11 h-6 rounded-full transition-colors duration-300 ${settings.status === 'open' ? 'bg-emerald-500' : 'bg-gray-300'}`}>
+                                    <div className={`absolute top-[2px] w-5 h-5 rounded-full bg-white transition-all duration-300 shadow-sm flex items-center justify-center ${settings.status === 'open' ? 'left-[22px]' : 'left-[2px]'}`}></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Settings Groups */}
+                        <div className={searchQuery.trim().length > 0 ? 'opacity-30 pointer-events-none transition-opacity' : 'transition-opacity'}>
+                            <div className="mb-8 mx-2">
+                                <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-2">General</div>
+                                {[
+                                    { id: 'general', icon: Info, label: 'ทั่วไป' },
+                                    { id: 'hardware', icon: Settings, label: 'เครื่องพิมพ์' },
+                                    { id: 'receipt', icon: Printer, label: 'บิล' },
+                                    { id: 'shift', icon: Wallet, label: 'กะและลิ้นชัก' },
+                                    { id: 'advanced', icon: Star, label: 'ตั้งค่าการชำระเงิน' },
+                                    { id: 'delivery', icon: Truck, label: 'เดลิเวอรี่' }
+                                ].map((tab) => {
+                                    const Icon = tab.icon;
+                                    const isActive = activeTab === tab.id;
+                                    return (
+                                        <button 
+                                            key={tab.id}
+                                            onClick={() => {
+                                                setActiveTab(tab.id)
+                                                setShowMobileMenu(false)
+                                                setSearchQuery('')
+                                            }}
+                                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-left mb-1 ${isActive ? 'bg-gray-100' : 'bg-transparent hover:bg-gray-50'}`}
+                                        >
+                                            <div className={`w-6 h-6 flex items-center justify-center shrink-0 ${isActive ? 'text-gray-900' : 'text-gray-400'}`}>
+                                                <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />
+                                            </div>
+                                            <span className={`text-[15px] flex-1 ${isActive ? 'text-gray-900 font-semibold' : 'text-gray-600 font-medium'}`}>{tab.label}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            <div className="mx-2">
+                                <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-2">App & System</div>
+                                {[
+                                    { id: 'campaigns', icon: Flag, label: 'แคมเปญหน้าแอป' },
+                                    { id: 'permissions', icon: ShieldCheck, label: 'สิทธิ์การใช้งาน' }
+                                ].map((tab) => {
+                                    const Icon = tab.icon;
+                                    const isActive = activeTab === tab.id;
+                                    return (
+                                        <button 
+                                            key={tab.id}
+                                            onClick={() => {
+                                                setActiveTab(tab.id)
+                                                setShowMobileMenu(false)
+                                                setSearchQuery('')
+                                            }}
+                                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-left mb-1 ${isActive ? 'bg-gray-100' : 'bg-transparent hover:bg-gray-50'}`}
+                                        >
+                                            <div className={`w-6 h-6 flex items-center justify-center shrink-0 ${isActive ? 'text-gray-900' : 'text-gray-400'}`}>
+                                                <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />
+                                            </div>
+                                            <span className={`text-[15px] flex-1 ${isActive ? 'text-gray-900 font-semibold' : 'text-gray-600 font-medium'}`}>{tab.label}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                </motion.div>
+                </AnimatePresence>
+
       </main>
+        {isMapOpen && (
+            <GoogleMapsLocationPicker 
+                isOpen={isMapOpen}
+                onClose={() => setIsMapOpen(false)}
+                onLocationSelect={(loc) => {
+                    setSettings({
+                        ...settings,
+                        latitude: loc.lat,
+                        longitude: loc.lng,
+                        address: loc.address || settings.address
+                    })
+                    setIsMapOpen(false)
+                }}
+                initialLocation={settings.latitude ? { lat: settings.latitude, lng: settings.longitude } : undefined}
+            />
+        )}
     </>
   )
 }

@@ -5,7 +5,7 @@ import {
     ChevronRight, Save, LayoutGrid, X,
     Menu as MenuIcon, LogOut, Settings, Users,
     ShieldCheck, UserPlus, Phone, Mail,
-    Calendar, Award, Briefcase, Trash, MapPin, CheckCircle2, AlertCircle, ArrowRight, ArrowLeft,
+    Calendar, Award, Briefcase, Trash, MapPin, CheckCircle2, AlertCircle, ArrowRight, ArrowLeft, ChevronLeft,
     Clock, DollarSign, Star, FileText, Filter, Printer
 } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
@@ -351,7 +351,7 @@ export default function POSStaffManager({
         if (branchId) {
             const { data: branchData } = await supabase.from('branches').select('branch_code').eq('id', branchId).maybeSingle()
             if (branchData?.branch_code) {
-                query = query.eq('branch_code', branchData.branch_code)
+                query = query.eq('branch_code', branchData.branch_code).eq('merchant_id', profile.merchant_id)
             }
         }
 
@@ -1036,20 +1036,50 @@ export default function POSStaffManager({
         .reduce((acc, cur) => acc + (cur.ot_hours || 0), 0);
     const totalLateMinutes = monthIndividualAttendances.reduce((acc, cur) => acc + (cur.late_minutes || 0), 0);
 
-    // FULL PAGE STAFF PROFILE VIEW (When a staff is clicked)
-    if (selectedStaff) {
-        return (
-            <div className="h-full flex flex-col bg-white overflow-y-auto no-scrollbar font-bold p-6 sm:p-10 space-y-6">
+
+    // Calculate HR Dashboard Stats
+    const socialSecurityCount = staff.filter(s => s.social_security).length;
+
+    const totalMonthlyPayroll = staff.reduce((acc, s) => {
+        const amt = Number(s.salary_amount || 0);
+        if (s.salary_type === 'monthly') {
+            return acc + amt;
+        } else if (s.salary_type === 'daily') {
+            return acc + (amt * 26);
+        } else if (s.salary_type === 'hourly') {
+            return acc + (amt * 8 * 26);
+        }
+        return acc;
+    }, 0);
+
+    const roleDistribution = staff.reduce((acc: Record<string, number>, s) => {
+        const role = getRoleLabel(s.staff_level, shopSettings?.custom_roles);
+        acc[role] = (acc[role] || 0) + 1;
+        return acc;
+    }, {});
+
+    return (
+        <>
+        <div className="absolute inset-0 flex flex-col lg:flex-row bg-transparent text-[#1A1A18] font-sans lg:gap-4">
+            
+            {/* LEFT PANEL (Workspace / Details) */}
+            <motion.div 
+                animate={{
+                    opacity: activeView === 'staff' ? 1 : 0,
+                    x: activeView === 'staff' ? 0 : -20
+                }}
+                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                className="flex-grow flex-1 h-full flex flex-col bg-transparent overflow-y-auto no-scrollbar relative min-w-0"
+            >
+                {internalTab === 'list' && (
+                    <>
+                        {selectedStaff ? (
+                            <div className="flex-grow flex flex-col bg-transparent overflow-y-auto no-scrollbar">
+                                            <div className="h-full flex flex-col bg-white overflow-y-auto no-scrollbar font-bold p-6 sm:p-10 space-y-6">
                 {/* Header & Back Navigation */}
                 <div className="max-w-6xl mx-auto w-full flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b border-neutral-100 pb-6 shrink-0">
                     <div>
-                        <button
-                            onClick={() => { setSelectedStaff(null); setIsDetailOpen(false); }}
-                            className="flex items-center gap-2 text-xs font-bold text-neutral-400 hover:text-[#1A1A18] transition-colors mb-3 group"
-                        >
-                            <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-                            กลับ
-                        </button>
+
                         <div className="flex items-center gap-3">
                             <h1 className="text-3xl font-black text-[#1A1A18]">
                                 {selectedStaff.display_name || selectedStaff.full_name}
@@ -1139,6 +1169,52 @@ export default function POSStaffManager({
                                     <div>
                                         <span className="text-[10px] font-bold text-neutral-400 block mb-1">สาขา</span>
                                         <span className="text-sm font-bold text-neutral-800">{selectedStaff.branch_code || 'สำนักงานใหญ่'}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h3 className="text-xs font-bold text-neutral-400 mb-4 border-b border-neutral-100 pb-2">ระบบสวัสดิการ & สิทธิ์การเชื่อมต่อ</h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                    <div className="flex flex-col gap-2">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[10px] font-bold text-neutral-400">วันหยุดชดเชยสะสม:</span>
+                                            <span className="text-sm font-black text-neutral-800">{selectedStaff.accrued_holiday_days || 0} วัน</span>
+                                            {Number(selectedStaff.accrued_holiday_days || 0) > 0 && (
+                                                <button
+                                                    onClick={() => {
+                                                        setUseHolidayForm({ ...useHolidayForm, profile_id: selectedStaff.id });
+                                                        setShowUseHolidayModal(true);
+                                                    }}
+                                                    className="ml-2 text-[10px] font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-2 py-1 rounded-md transition-colors border-none cursor-pointer"
+                                                >
+                                                    ใช้วันหยุด
+                                                </button>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center gap-1 bg-neutral-100 p-0.5 rounded-lg w-max mt-1">
+                                            <button 
+                                                onClick={(e) => handleToggleCompensationType(selectedStaff.id, 'money', e)}
+                                                className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all border-none cursor-pointer ${(!selectedStaff.holiday_compensation_type || selectedStaff.holiday_compensation_type === 'money') ? 'bg-white text-[#1A1A18] shadow-sm' : 'text-neutral-500 hover:text-neutral-700 bg-transparent'}`}
+                                            >
+                                                รับเป็นเงิน
+                                            </button>
+                                            <button 
+                                                onClick={(e) => handleToggleCompensationType(selectedStaff.id, 'dayoff', e)}
+                                                className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all border-none cursor-pointer ${selectedStaff.holiday_compensation_type === 'dayoff' ? 'bg-white text-[#1A1A18] shadow-sm' : 'text-neutral-500 hover:text-neutral-700 bg-transparent'}`}
+                                            >
+                                                วันหยุดชดเชย
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center">
+                                        <button 
+                                            onClick={() => generateLineInvite(selectedStaff)}
+                                            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#00B900]/10 text-[#00B900] hover:bg-[#00B900]/20 transition-colors text-xs font-bold border-none cursor-pointer"
+                                        >
+                                            <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M22.5 11.23c0-4.9-5.04-8.88-11.25-8.88C5.04 2.35 0 6.33 0 11.23c0 4.41 4.07 8.16 9.53 8.78.37.07.88.23 1.01.52.12.27.08.7.04.99l-.26 1.6c-.05.32-.24 1.54 1.35.87 1.6-1.12 8.65-5.09 10.83-12.76z" /></svg>
+                                            เชื่อมต่อ LINE พนักงาน
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -1835,1038 +1911,749 @@ export default function POSStaffManager({
                     )}
                 </div>
             </div>
-        );
-    }
-
-    return (
-        <div className="p-4 sm:p-6 lg:p-10 font-sans overflow-y-auto no-scrollbar bg-white min-h-screen pb-32 relative">
-
-            {/* TABS */}
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-neutral-100 mb-8 gap-4 sm:gap-0">
-                <div className="flex overflow-x-auto no-scrollbar gap-6 sm:gap-8">
-                    <button
-                        onClick={() => setInternalTab('list')}
-                        className={`whitespace-nowrap pb-3 text-[13px] font-bold transition-all relative ${internalTab === 'list' ? 'text-[#0F172A]' : 'text-[#9CA3AF] hover:text-neutral-700'}`}
-                    >
-                        {locale === 'en' ? 'Overview' : locale === 'zh' ? '概览' : 'ภาพรวม'}
-                        {internalTab === 'list' && (
-                            <motion.div layoutId="activeTabStaff" className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#0F172A]" />
-                        )}
-                    </button>
-                    <button
-                        onClick={() => setInternalTab('verification')}
-                        className={`whitespace-nowrap pb-3 text-[13px] font-bold transition-all relative flex items-center gap-2 ${internalTab === 'verification' ? 'text-[#0F172A]' : 'text-[#9CA3AF] hover:text-neutral-700'}`}
-                    >
-                        {locale === 'en' ? 'Verification' : locale === 'zh' ? '验证' : 'ยืนยันตัวตน'}
-                        {pendingCount > 0 && <span className="bg-red-500 text-white w-4 h-4 rounded-full flex items-center justify-center text-[8px]">{pendingCount}</span>}
-                        {internalTab === 'verification' && (
-                            <motion.div layoutId="activeTabStaff" className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#0F172A]" />
-                        )}
-                    </button>
-                    <button
-                        onClick={() => setInternalTab('attendance')}
-                        className={`whitespace-nowrap pb-3 text-[13px] font-bold transition-all relative ${internalTab === 'attendance' ? 'text-[#0F172A]' : 'text-[#9CA3AF] hover:text-neutral-700'}`}
-                    >
-                        {locale === 'en' ? 'Attendance' : locale === 'zh' ? '考勤' : 'เวลาเข้างาน'}
-                        {internalTab === 'attendance' && (
-                            <motion.div layoutId="activeTabStaff" className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#0F172A]" />
-                        )}
-                    </button>
-                    <button
-                        onClick={() => setInternalTab('sop')}
-                        className={`whitespace-nowrap pb-3 text-[13px] font-bold transition-all relative ${internalTab === 'sop' ? 'text-[#0F172A]' : 'text-[#9CA3AF] hover:text-neutral-700'}`}
-                    >
-                        {locale === 'en' ? 'SOP Manual' : locale === 'zh' ? 'SOP手册' : 'คู่มือ SOP'}
-                        {internalTab === 'sop' && (
-                            <motion.div layoutId="activeTabStaff" className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#0F172A]" />
-                        )}
-                    </button>
-                </div>
-
-                {/* You can keep or remove the original SOP Editor button if needed. We'll hide it for now since we have the new SOP tab */}
-            </div>
-
-            {/* CONTENT AREA */}
-            <div>
-
-                {/* VIEW: STAFF LIST */}
-                {internalTab === 'list' && (
-                    <div className="max-w-6xl mx-auto space-y-8">
-                        {/* Search */}
-                        <div className="bg-white p-2 rounded-2xl flex flex-col sm:flex-row items-center gap-4 border border-neutral-200 shadow-sm">
-                            <div className="flex-1 flex items-center w-full">
-                                <div className="pl-4 text-neutral-400"><Search size={18} /></div>
-                                <input
-                                    type="text"
-                                    placeholder={locale === 'en' ? 'Search by name or ID...' : locale === 'zh' ? '按姓名或ID搜索...' : 'ค้นหาพนักงานด้วยชื่อ หรือ รหัส...'}
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="flex-1 bg-transparent border-none py-3 px-4 text-sm font-bold text-neutral-800 focus:ring-0 outline-none"
-                                />
                             </div>
-                            <button
-                                onClick={handleOpenAddStaffModal}
-                                className="bg-[#0F172A] text-white px-6 py-3 rounded-xl text-[11px] font-bold tracking-wide hover:bg-neutral-800 transition-colors whitespace-nowrap w-full sm:w-auto text-center"
-                            >
-                                + เพิ่มพนักงาน
-                            </button>
-                        </div>
-
-                        {loading ? (
-                            <div className="py-20 flex justify-center"><Loader2 className="animate-spin text-neutral-300" size={48} /></div>
                         ) : (
-                            <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-x-auto">
-                                <table className="w-full text-left whitespace-nowrap">
-                                    <thead>
-                                        <tr className="bg-neutral-50 text-[10px] font-bold text-neutral-400 border-b border-neutral-100">
-                                            <th className="px-6 py-4">พนักงาน (Name)</th>
-                                            <th className="px-6 py-4">ตำแหน่ง & แผนก (Role)</th>
-                                            <th className="px-6 py-4">รหัส (ID)</th>
-                                            <th className="px-6 py-4">สถานะ (Status)</th>
-                                            <th className="px-6 py-4">วันหยุดชดเชยสะสม</th>
-                                            <th className="px-6 py-4 text-right">จัดการ (Action)</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-neutral-100">
-                                        {filteredStaff.map(person => (
-                                            <tr key={person.id} onClick={() => { setSelectedStaff(person); setIsDetailOpen(true); setDetailTab('info'); }} className="hover:bg-neutral-50 transition-colors cursor-pointer group">
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-10 h-10 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-600 group-hover:bg-[#D3202B] group-hover:text-white transition-all text-sm font-black shrink-0">
-                                                            {(person.display_name || person.full_name || 'S').slice(0, 1).toUpperCase()}
-                                                        </div>
-                                                        <div className="text-sm font-black text-[#1A1A18] truncate max-w-[150px] sm:max-w-[200px]">
-                                                            {person.display_name || person.full_name || 'Staff'}
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="text-xs font-bold text-neutral-500">
-                                                        {getRoleLabel(person.staff_level, shopSettings?.custom_roles)} • {translateStaffType(person.staff_type || person.department)}
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <span className="text-xs font-bold text-neutral-400 font-mono">{person.staff_code || '-'}</span>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    {person.is_verified ? (
-                                                        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-100 inline-flex items-center gap-1">
-                                                            <ShieldCheck size={12} /> Verified
-                                                        </span>
-                                                    ) : (
-                                                        <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-100 inline-flex items-center gap-1">
-                                                            <AlertCircle size={12} /> Unverified
-                                                        </span>
-                                                    )}
-                                                </td>
-                                                <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                                                    <div className="flex flex-col gap-2">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="text-[10px] font-bold text-neutral-500">ยอดสะสม:</span>
-                                                            <span className="text-sm font-black text-[#1A1A18]">{person.accrued_holiday_days || 0} วัน</span>
-                                                            {Number(person.accrued_holiday_days || 0) > 0 && (
-                                                                <button
-                                                                    onClick={() => {
-                                                                        setUseHolidayForm({ ...useHolidayForm, profile_id: person.id });
-                                                                        setShowUseHolidayModal(true);
-                                                                    }}
-                                                                    className="ml-2 text-[10px] font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-2 py-1 rounded-md transition-colors"
-                                                                >
-                                                                    ใช้วันหยุด
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                        <div className="flex items-center gap-1 bg-neutral-100 p-0.5 rounded-lg w-max">
-                                                            <button 
-                                                                onClick={(e) => handleToggleCompensationType(person.id, 'money', e)}
-                                                                className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${(!person.holiday_compensation_type || person.holiday_compensation_type === 'money') ? 'bg-white text-[#1A1A18] shadow-sm' : 'text-neutral-500 hover:text-neutral-700'}`}
-                                                            >
-                                                                รับเป็นเงิน
-                                                            </button>
-                                                            <button 
-                                                                onClick={(e) => handleToggleCompensationType(person.id, 'dayoff', e)}
-                                                                className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${person.holiday_compensation_type === 'dayoff' ? 'bg-white text-[#1A1A18] shadow-sm' : 'text-neutral-500 hover:text-neutral-700'}`}
-                                                            >
-                                                                วันหยุดชดเชย
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
-                                                    <div className="flex items-center justify-end gap-3">
-                                                        <button 
-                                                            onClick={() => generateLineInvite(person)}
-                                                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#00B900]/10 text-[#00B900] hover:bg-[#00B900]/20 transition-colors text-[10px] font-bold"
-                                                        >
-                                                            <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5"><path d="M22.5 11.23c0-4.9-5.04-8.88-11.25-8.88C5.04 2.35 0 6.33 0 11.23c0 4.41 4.07 8.16 9.53 8.78.37.07.88.23 1.01.52.12.27.08.7.04.99l-.26 1.6c-.05.32-.24 1.54 1.35.87 1.6-1.12 8.65-5.09 10.83-12.76z" /></svg>
-                                                            เชื่อมต่อ LINE
-                                                        </button>
-                                                        <button onClick={() => { setSelectedStaff(person); setIsDetailOpen(true); setDetailTab('info'); }} className="inline-flex items-center gap-1 text-xs font-bold text-neutral-400 group-hover:text-[#1A1A18] transition-all">
-                                                            จัดการ <ChevronRight size={14} />
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                        {filteredStaff.length === 0 && (
-                                            <tr>
-                                                <td colSpan={5} className="px-6 py-10 text-center text-neutral-400 text-sm font-bold">ไม่พบรายชื่อพนักงาน</td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* VIEW: VERIFICATION */}
-                {internalTab === 'verification' && (
-                    <div className="max-w-6xl mx-auto">
-                        {loading ? (
-                            <div className="py-20 flex justify-center"><Loader2 className="animate-spin text-neutral-300" size={48} /></div>
-                        ) : (
-                            <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-hidden">
-                                <table className="w-full text-left">
-                                    <thead>
-                                        <tr className="bg-neutral-50 text-[10px] font-bold text-neutral-400 border-b border-neutral-100">
-                                            <th className="px-6 py-4">Employee</th>
-                                            <th className="px-6 py-4">Submitted At</th>
-                                            <th className="px-6 py-4">Status</th>
-                                            <th className="px-6 py-4">Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-neutral-100">
-                                        {verifications.map(v => (
-                                            <tr key={v.id} className="hover:bg-neutral-50 transition-colors">
-                                                <td className="px-6 py-5">
-                                                    <div className="text-sm font-black text-black">{v.profiles?.display_name || v.profiles?.full_name}</div>
-                                                    <div className="text-[10px] text-neutral-400 font-mono mt-0.5">{v.profiles?.staff_code}</div>
-                                                </td>
-                                                <td className="px-6 py-5 text-xs text-neutral-500 font-bold">{new Date(v.created_at).toLocaleString()}</td>
-                                                <td className="px-6 py-5">
-                                                    {v.verified_at ? (
-                                                        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">Verified</span>
-                                                    ) : (
-                                                        <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-md">Pending</span>
-                                                    )}
-                                                </td>
-                                                <td className="px-6 py-5">
-                                                    {!v.verified_at && (
-                                                        <button onClick={() => approveVerification(v.id, v.profile_id)} className="text-[10px] font-bold bg-[#0F172A] text-white px-4 py-2 hover:bg-neutral-800 rounded-lg">
-                                                            Approve
-                                                        </button>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                        {verifications.length === 0 && (
-                                            <tr><td colSpan={4} className="px-6 py-10 text-center text-neutral-400 text-sm">No verification requests found.</td></tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* VIEW: ATTENDANCE */}
-                {internalTab === 'attendance' && (
-                    <div className="max-w-6xl mx-auto space-y-6">
-                        {/* Staff & Month Filter Bar */}
-                        <div className="bg-white p-4 border border-gray-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                            <div className="flex items-center gap-3 text-xs font-black uppercase tracking-widest text-gray-500">
-                                <Filter size={16} /> Filter Attendance:
-                            </div>
-                            <div className="flex flex-wrap items-center gap-3">
-                                {/* View Type Toggle */}
-                                <div className="flex bg-gray-100 p-0.5 border border-gray-200">
-                                    <button
-                                        onClick={() => setAttendanceViewMode('list')}
-                                        className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-wider transition-all ${attendanceViewMode === 'list' ? 'bg-black text-white' : 'text-gray-500 hover:text-black'}`}
-                                    >
-                                        ตาราง (List)
-                                    </button>
-                                    <button
-                                        onClick={() => setAttendanceViewMode('calendar')}
-                                        className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-wider transition-all ${attendanceViewMode === 'calendar' ? 'bg-black text-white' : 'text-gray-500 hover:text-black'}`}
-                                    >
-                                        ปฏิทิน (Calendar)
-                                    </button>
+                            /* Beautiful Clean Minimalist HR Dashboard Overview */
+                            <div className="flex-grow flex flex-col bg-transparent overflow-y-auto no-scrollbar p-8 lg:p-12 space-y-12 select-none">
+                                {/* Welcome & Overview Header */}
+                                <div className="flex items-center justify-between shrink-0">
+                                    <div>
+                                        <h1 className="text-2xl font-black text-neutral-900 tracking-tight">ระบบกำลังพลภาพรวม</h1>
+                                        <p className="text-xs text-neutral-400 font-bold mt-1.5">ข้อมูลประชากรและการจัดการสวัสดิการบุคคลของสาขา</p>
+                                    </div>
+                                    <div className="px-3 py-1 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-full text-[9px] font-black flex items-center gap-1.5 shadow-sm">
+                                        <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                                        Real-time Sync
+                                    </div>
                                 </div>
 
+                                {/* Top Metrics Row (Clean Apple-like typography, no cards) */}
+                                <div className="grid grid-cols-3 gap-8 border-b border-neutral-200/40 pb-8 shrink-0">
+                                    <div>
+                                        <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest block">พนักงานทั้งหมด</span>
+                                        <div className="text-4xl font-black text-neutral-900 tracking-tight mt-2 flex items-baseline">
+                                            {staff.length.toLocaleString()}
+                                            <span className="text-xs font-bold text-neutral-400 ml-1.5 font-sans">คน</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest block">ประมาณการจ่ายเดือนนี้</span>
+                                        <div className="text-4xl font-black text-neutral-900 tracking-tight mt-2 flex items-baseline">
+                                            {totalMonthlyPayroll.toLocaleString()}
+                                            <span className="text-xs font-bold text-neutral-400 ml-1.5 font-sans">บาท</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest block">สิทธิ์ประกันสังคม (ม.33)</span>
+                                        <div className="text-4xl font-black text-neutral-900 tracking-tight mt-2 flex items-baseline">
+                                            {socialSecurityCount.toLocaleString()}
+                                            <span className="text-xs font-bold text-neutral-400 ml-1.5 font-sans">/ {staff.length} คน</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Distribution grid */}
+                                <div className="grid grid-cols-2 gap-12 flex-grow min-h-0">
+                                    
+                                    {/* Left: Role distribution list */}
+                                    <div className="flex flex-col space-y-6">
+                                        <div className="flex items-center gap-2">
+                                            <Award size={15} className="text-[#D3202B] stroke-[2.5]" />
+                                            <h3 className="text-xs font-black text-neutral-800 uppercase tracking-wider">สัดส่วนตำแหน่งงาน</h3>
+                                        </div>
+                                        <div className="flex-grow overflow-y-auto no-scrollbar space-y-5 pr-2">
+                                            {Object.entries(roleDistribution).map(([role, count]) => {
+                                                const percentage = staff.length > 0 ? (count / staff.length) * 100 : 0;
+                                                return (
+                                                    <div key={role} className="space-y-2">
+                                                        <div className="flex justify-between text-xs font-bold">
+                                                            <span className="text-neutral-500 font-medium">{role}</span>
+                                                            <span className="text-neutral-800">{count} คน ({percentage.toFixed(0)}%)</span>
+                                                        </div>
+                                                        <div className="w-full bg-neutral-200/50 h-1.5 rounded-full overflow-hidden">
+                                                            <div 
+                                                                className="bg-neutral-800 h-full rounded-full transition-all duration-500" 
+                                                                style={{ width: `${percentage}%` }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                            {Object.keys(roleDistribution).length === 0 && (
+                                                <div className="text-left text-neutral-400 text-xs font-bold py-4">ไม่มีข้อมูลตำแหน่งงาน</div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Right: Welfare status list */}
+                                    <div className="flex flex-col space-y-6">
+                                        <div className="flex items-center gap-2">
+                                            <ShieldCheck size={15} className="text-emerald-600 stroke-[2.5]" />
+                                            <h3 className="text-xs font-black text-neutral-800 uppercase tracking-wider">สถานะสวัสดิการ</h3>
+                                        </div>
+                                        <div className="space-y-4">
+                                            <div className="flex items-center justify-between py-2 border-b border-neutral-100">
+                                                <div>
+                                                    <span className="text-xs font-black text-neutral-800">กองทุนประกันสังคม (ม.33)</span>
+                                                    <p className="text-[10px] text-neutral-400 font-bold mt-0.5">พนักงานสิทธิ์สมทบของรัฐ</p>
+                                                </div>
+                                                <span className="text-xs font-black text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100">
+                                                    {socialSecurityCount} คน
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center justify-between py-2 border-b border-neutral-100">
+                                                <div>
+                                                    <span className="text-xs font-black text-neutral-800">บุคลากรภายนอก / พาร์ตไทม์</span>
+                                                    <p className="text-[10px] text-neutral-400 font-bold mt-0.5">สัญญาจ้างชั่วคราวหรือไม่ได้ยื่นสิทธิ์</p>
+                                                </div>
+                                                <span className="text-xs font-black text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-100">
+                                                    {staff.length - socialSecurityCount} คน
+                                                </span>
+                                            </div>
+                                            <div className="pt-4 flex items-center justify-between text-[11px] font-bold text-neutral-400">
+                                                <span>อัตราความครอบคลุมสวัสดิการ</span>
+                                                <span className="font-black text-neutral-800">
+                                                    {staff.length > 0 ? ((socialSecurityCount / staff.length) * 100).toFixed(0) : 0}%
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        )}
+                    </>
+                )}
+
+                {internalTab === 'attendance' && (
+                    <div className="p-6">
+                        <CalendarGrid logsList={filteredAttendances} monthStr={selectedMonth} publicHolidays={publicHolidays} />
+                    </div>
+                )}
+
+                {internalTab === 'verification' && (
+                    <div className="p-6 flex-1 flex flex-col justify-center">
+                        {selectedVerification ? (
+                            <div className="bg-white border border-neutral-200/50 rounded-3xl p-8 max-w-lg mx-auto shadow-sm w-full space-y-6">
+                                <div className="text-center pb-4 border-b border-neutral-100">
+                                    <div className="w-20 h-20 bg-neutral-100 text-neutral-600 rounded-full flex items-center justify-center text-3xl font-black mx-auto mb-4">
+                                        {(selectedVerification.profiles?.display_name || 'S').slice(0, 1).toUpperCase()}
+                                    </div>
+                                    <h2 className="text-xl font-black text-neutral-800">
+                                        {selectedVerification.profiles?.display_name || selectedVerification.profiles?.full_name}
+                                    </h2>
+                                    <p className="text-xs font-bold text-neutral-400 font-mono mt-1">
+                                        รหัสพนักงาน: {selectedVerification.profiles?.staff_code || '-'}
+                                    </p>
+                                </div>
+
+                                <div className="space-y-4 text-xs font-bold text-neutral-600">
+                                    <div className="flex justify-between">
+                                        <span className="text-neutral-400">ระดับตำแหน่ง</span>
+                                        <span className="text-neutral-800">
+                                            {getRoleLabel(selectedVerification.profiles?.staff_level, shopSettings?.custom_roles)}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-neutral-400">อีเมล/การติดต่อ</span>
+                                        <span className="text-neutral-800">{selectedVerification.profiles?.email || '-'}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-neutral-400">ส่งคำขอเมื่อ</span>
+                                        <span className="text-neutral-800">{new Date(selectedVerification.created_at).toLocaleString()}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-neutral-400">สถานะการยืนยัน</span>
+                                        {selectedVerification.verified_at ? (
+                                            <span className="text-[10px] text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-100 font-bold font-sans">ยืนยันตัวตนแล้ว</span>
+                                        ) : (
+                                            <span className="text-[10px] text-amber-600 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-100 font-bold font-sans">รออนุมัติ</span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {!selectedVerification.verified_at && (
+                                    <button
+                                        onClick={async () => {
+                                            await approveVerification(selectedVerification.id, selectedVerification.profile_id);
+                                            setSelectedVerification(prev => prev ? { ...prev, verified_at: new Date().toISOString() } : null);
+                                        }}
+                                        className="w-full bg-[#D3202B] text-white py-3.5 rounded-xl text-xs font-black hover:bg-red-700 transition-colors shadow-md active:scale-95 border-none font-sans"
+                                    >
+                                        อนุมัติสิทธิ์พนักงาน
+                                    </button>
+                                )}
+                            </div>
+                        ) : (
+                            /* Beautiful Clean Minimalist HR Dashboard Overview */
+                            <div className="flex-grow flex flex-col bg-transparent overflow-y-auto no-scrollbar p-8 lg:p-12 space-y-12 select-none">
+                                {/* Welcome & Overview Header */}
+                                <div className="flex items-center justify-between shrink-0">
+                                    <div>
+                                        <h1 className="text-2xl font-black text-neutral-900 tracking-tight">ระบบกำลังพลภาพรวม</h1>
+                                        <p className="text-xs text-neutral-400 font-bold mt-1.5">ข้อมูลประชากรและการจัดการสวัสดิการบุคคลของสาขา</p>
+                                    </div>
+                                    <div className="px-3 py-1 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-full text-[9px] font-black flex items-center gap-1.5 shadow-sm">
+                                        <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                                        Real-time Sync
+                                    </div>
+                                </div>
+
+                                {/* Top Metrics Row (Clean Apple-like typography, no cards) */}
+                                <div className="grid grid-cols-3 gap-8 border-b border-neutral-200/40 pb-8 shrink-0">
+                                    <div>
+                                        <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest block">พนักงานทั้งหมด</span>
+                                        <div className="text-4xl font-black text-neutral-900 tracking-tight mt-2 flex items-baseline">
+                                            {staff.length.toLocaleString()}
+                                            <span className="text-xs font-bold text-neutral-400 ml-1.5 font-sans">คน</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest block">ประมาณการจ่ายเดือนนี้</span>
+                                        <div className="text-4xl font-black text-neutral-900 tracking-tight mt-2 flex items-baseline">
+                                            {totalMonthlyPayroll.toLocaleString()}
+                                            <span className="text-xs font-bold text-neutral-400 ml-1.5 font-sans">บาท</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest block">สิทธิ์ประกันสังคม (ม.33)</span>
+                                        <div className="text-4xl font-black text-neutral-900 tracking-tight mt-2 flex items-baseline">
+                                            {socialSecurityCount.toLocaleString()}
+                                            <span className="text-xs font-bold text-neutral-400 ml-1.5 font-sans">/ {staff.length} คน</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Distribution grid */}
+                                <div className="grid grid-cols-2 gap-12 flex-grow min-h-0">
+                                    
+                                    {/* Left: Role distribution list */}
+                                    <div className="flex flex-col space-y-6">
+                                        <div className="flex items-center gap-2">
+                                            <Award size={15} className="text-[#D3202B] stroke-[2.5]" />
+                                            <h3 className="text-xs font-black text-neutral-800 uppercase tracking-wider">สัดส่วนตำแหน่งงาน</h3>
+                                        </div>
+                                        <div className="flex-grow overflow-y-auto no-scrollbar space-y-5 pr-2">
+                                            {Object.entries(roleDistribution).map(([role, count]) => {
+                                                const percentage = staff.length > 0 ? (count / staff.length) * 100 : 0;
+                                                return (
+                                                    <div key={role} className="space-y-2">
+                                                        <div className="flex justify-between text-xs font-bold">
+                                                            <span className="text-neutral-500 font-medium">{role}</span>
+                                                            <span className="text-neutral-800">{count} คน ({percentage.toFixed(0)}%)</span>
+                                                        </div>
+                                                        <div className="w-full bg-neutral-200/50 h-1.5 rounded-full overflow-hidden">
+                                                            <div 
+                                                                className="bg-neutral-800 h-full rounded-full transition-all duration-500" 
+                                                                style={{ width: `${percentage}%` }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                            {Object.keys(roleDistribution).length === 0 && (
+                                                <div className="text-left text-neutral-400 text-xs font-bold py-4">ไม่มีข้อมูลตำแหน่งงาน</div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Right: Welfare status list */}
+                                    <div className="flex flex-col space-y-6">
+                                        <div className="flex items-center gap-2">
+                                            <ShieldCheck size={15} className="text-emerald-600 stroke-[2.5]" />
+                                            <h3 className="text-xs font-black text-neutral-800 uppercase tracking-wider">สถานะสวัสดิการ</h3>
+                                        </div>
+                                        <div className="space-y-4">
+                                            <div className="flex items-center justify-between py-2 border-b border-neutral-100">
+                                                <div>
+                                                    <span className="text-xs font-black text-neutral-800">กองทุนประกันสังคม (ม.33)</span>
+                                                    <p className="text-[10px] text-neutral-400 font-bold mt-0.5">พนักงานสิทธิ์สมทบของรัฐ</p>
+                                                </div>
+                                                <span className="text-xs font-black text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100">
+                                                    {socialSecurityCount} คน
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center justify-between py-2 border-b border-neutral-100">
+                                                <div>
+                                                    <span className="text-xs font-black text-neutral-800">บุคลากรภายนอก / พาร์ตไทม์</span>
+                                                    <p className="text-[10px] text-neutral-400 font-bold mt-0.5">สัญญาจ้างชั่วคราวหรือไม่ได้ยื่นสิทธิ์</p>
+                                                </div>
+                                                <span className="text-xs font-black text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-100">
+                                                    {staff.length - socialSecurityCount} คน
+                                                </span>
+                                            </div>
+                                            <div className="pt-4 flex items-center justify-between text-[11px] font-bold text-neutral-400">
+                                                <span>อัตราความครอบคลุมสวัสดิการ</span>
+                                                <span className="font-black text-neutral-800">
+                                                    {staff.length > 0 ? ((socialSecurityCount / staff.length) * 100).toFixed(0) : 0}%
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {internalTab === 'attendance' && (
+                    <div className="p-6">
+                        <CalendarGrid logsList={filteredAttendances} monthStr={selectedMonth} publicHolidays={publicHolidays} />
+                    </div>
+                )}
+
+                {internalTab === 'verification' && (
+                    <div className="p-6 flex-1 flex flex-col justify-center">
+                        {selectedVerification ? (
+                            <div className="bg-white border border-neutral-200/50 rounded-3xl p-8 max-w-lg mx-auto shadow-sm w-full space-y-6">
+                                <div className="text-center pb-4 border-b border-neutral-100">
+                                    <div className="w-20 h-20 bg-neutral-100 text-neutral-600 rounded-full flex items-center justify-center text-3xl font-black mx-auto mb-4">
+                                        {(selectedVerification.profiles?.display_name || 'S').slice(0, 1).toUpperCase()}
+                                    </div>
+                                    <h2 className="text-xl font-black text-neutral-800">
+                                        {selectedVerification.profiles?.display_name || selectedVerification.profiles?.full_name}
+                                    </h2>
+                                    <p className="text-xs font-bold text-neutral-400 font-mono mt-1">
+                                        รหัสพนักงาน: {selectedVerification.profiles?.staff_code || '-'}
+                                    </p>
+                                </div>
+
+                                <div className="space-y-4 text-xs font-bold text-neutral-600">
+                                    <div className="flex justify-between">
+                                        <span className="text-neutral-400">ระดับตำแหน่ง</span>
+                                        <span className="text-neutral-800">
+                                            {getRoleLabel(selectedVerification.profiles?.staff_level, shopSettings?.custom_roles)}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-neutral-400">อีเมล/การติดต่อ</span>
+                                        <span className="text-neutral-800">{selectedVerification.profiles?.email || '-'}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-neutral-400">ส่งคำขอเมื่อ</span>
+                                        <span className="text-neutral-800">{new Date(selectedVerification.created_at).toLocaleString()}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-neutral-400">สถานะการยืนยัน</span>
+                                        {selectedVerification.verified_at ? (
+                                            <span className="text-[10px] text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-100 font-bold font-sans">ยืนยันตัวตนแล้ว</span>
+                                        ) : (
+                                            <span className="text-[10px] text-amber-600 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-100 font-bold font-sans">รออนุมัติ</span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {!selectedVerification.verified_at && (
+                                    <button
+                                        onClick={async () => {
+                                            await approveVerification(selectedVerification.id, selectedVerification.profile_id);
+                                            setSelectedVerification(prev => prev ? { ...prev, verified_at: new Date().toISOString() } : null);
+                                        }}
+                                        className="w-full bg-[#D3202B] text-white py-3.5 rounded-xl text-xs font-black hover:bg-red-700 transition-colors shadow-md active:scale-95 border-none font-sans"
+                                    >
+                                        อนุมัติสิทธิ์พนักงาน
+                                    </button>
+                                )}
+                            </div>
+                        ) : (
+                            /* Beautiful Clean Minimalist HR Dashboard Overview */
+                            <div className="flex-grow flex flex-col bg-transparent overflow-y-auto no-scrollbar p-8 lg:p-12 space-y-12 select-none">
+                                {/* Welcome & Overview Header */}
+                                <div className="flex items-center justify-between shrink-0">
+                                    <div>
+                                        <h1 className="text-2xl font-black text-neutral-900 tracking-tight">ระบบกำลังพลภาพรวม</h1>
+                                        <p className="text-xs text-neutral-400 font-bold mt-1.5">ข้อมูลประชากรและการจัดการสวัสดิการบุคคลของสาขา</p>
+                                    </div>
+                                    <div className="px-3 py-1 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-full text-[9px] font-black flex items-center gap-1.5 shadow-sm">
+                                        <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                                        Real-time Sync
+                                    </div>
+                                </div>
+
+                                {/* Top Metrics Row (Clean Apple-like typography, no cards) */}
+                                <div className="grid grid-cols-3 gap-8 border-b border-neutral-200/40 pb-8 shrink-0">
+                                    <div>
+                                        <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest block">พนักงานทั้งหมด</span>
+                                        <div className="text-4xl font-black text-neutral-900 tracking-tight mt-2 flex items-baseline">
+                                            {staff.length.toLocaleString()}
+                                            <span className="text-xs font-bold text-neutral-400 ml-1.5 font-sans">คน</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest block">ประมาณการจ่ายเดือนนี้</span>
+                                        <div className="text-4xl font-black text-neutral-900 tracking-tight mt-2 flex items-baseline">
+                                            {totalMonthlyPayroll.toLocaleString()}
+                                            <span className="text-xs font-bold text-neutral-400 ml-1.5 font-sans">บาท</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest block">สิทธิ์ประกันสังคม (ม.33)</span>
+                                        <div className="text-4xl font-black text-neutral-900 tracking-tight mt-2 flex items-baseline">
+                                            {socialSecurityCount.toLocaleString()}
+                                            <span className="text-xs font-bold text-neutral-400 ml-1.5 font-sans">/ {staff.length} คน</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Distribution grid */}
+                                <div className="grid grid-cols-2 gap-12 flex-grow min-h-0">
+                                    
+                                    {/* Left: Role distribution list */}
+                                    <div className="flex flex-col space-y-6">
+                                        <div className="flex items-center gap-2">
+                                            <Award size={15} className="text-[#D3202B] stroke-[2.5]" />
+                                            <h3 className="text-xs font-black text-neutral-800 uppercase tracking-wider">สัดส่วนตำแหน่งงาน</h3>
+                                        </div>
+                                        <div className="flex-grow overflow-y-auto no-scrollbar space-y-5 pr-2">
+                                            {Object.entries(roleDistribution).map(([role, count]) => {
+                                                const percentage = staff.length > 0 ? (count / staff.length) * 100 : 0;
+                                                return (
+                                                    <div key={role} className="space-y-2">
+                                                        <div className="flex justify-between text-xs font-bold">
+                                                            <span className="text-neutral-500 font-medium">{role}</span>
+                                                            <span className="text-neutral-800">{count} คน ({percentage.toFixed(0)}%)</span>
+                                                        </div>
+                                                        <div className="w-full bg-neutral-200/50 h-1.5 rounded-full overflow-hidden">
+                                                            <div 
+                                                                className="bg-neutral-800 h-full rounded-full transition-all duration-500" 
+                                                                style={{ width: `${percentage}%` }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                            {Object.keys(roleDistribution).length === 0 && (
+                                                <div className="text-left text-neutral-400 text-xs font-bold py-4">ไม่มีข้อมูลตำแหน่งงาน</div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Right: Welfare status list */}
+                                    <div className="flex flex-col space-y-6">
+                                        <div className="flex items-center gap-2">
+                                            <ShieldCheck size={15} className="text-emerald-600 stroke-[2.5]" />
+                                            <h3 className="text-xs font-black text-neutral-800 uppercase tracking-wider">สถานะสวัสดิการ</h3>
+                                        </div>
+                                        <div className="space-y-4">
+                                            <div className="flex items-center justify-between py-2 border-b border-neutral-100">
+                                                <div>
+                                                    <span className="text-xs font-black text-neutral-800">กองทุนประกันสังคม (ม.33)</span>
+                                                    <p className="text-[10px] text-neutral-400 font-bold mt-0.5">พนักงานสิทธิ์สมทบของรัฐ</p>
+                                                </div>
+                                                <span className="text-xs font-black text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100">
+                                                    {socialSecurityCount} คน
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center justify-between py-2 border-b border-neutral-100">
+                                                <div>
+                                                    <span className="text-xs font-black text-neutral-800">บุคลากรภายนอก / พาร์ตไทม์</span>
+                                                    <p className="text-[10px] text-neutral-400 font-bold mt-0.5">สัญญาจ้างชั่วคราวหรือไม่ได้ยื่นสิทธิ์</p>
+                                                </div>
+                                                <span className="text-xs font-black text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-100">
+                                                    {staff.length - socialSecurityCount} คน
+                                                </span>
+                                            </div>
+                                            <div className="pt-4 flex items-center justify-between text-[11px] font-bold text-neutral-400">
+                                                <span>อัตราความครอบคลุมสวัสดิการ</span>
+                                                <span className="font-black text-neutral-800">
+                                                    {staff.length > 0 ? ((socialSecurityCount / staff.length) * 100).toFixed(0) : 0}%
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {internalTab === 'sop' && (
+                    <div className="p-6">
+                        <SOPStaticContent 
+                            shopSettings={{...shopSettings, branch_id: shopSettings?.branch_id}} 
+                            isAdmin={true} 
+                            onSaveSuccess={() => {}}
+                        />
+                    </div>
+                )}
+            </motion.div>
+
+            {/* RIGHT PANEL (Floating List / Switcher) */}
+            <motion.div 
+                key="staff-sidebar"
+                animate={{ 
+                    opacity: activeView === 'staff' ? 1 : 0,
+                    x: activeView === 'staff' ? 0 : 40 
+                }}
+                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                className="w-full h-full md:w-[380px] xl:w-[450px] shrink-0 md:rounded-[2rem] bg-white/95 backdrop-blur-xl border border-black/5 md:shadow-[0_20px_40px_rgba(0,0,0,0.08)] flex flex-col overflow-hidden z-20 font-sans"
+            >
+                <div className="pt-6 pb-2 px-6 flex items-center">
+                    <button 
+                        onClick={() => onSetView('terminal')}
+                        className="text-[#D3202B] hover:text-red-700 transition-colors p-1 -ml-1 border-none bg-transparent active:scale-95 shrink-0 mr-2"
+                    >
+                        <ChevronLeft size={24} strokeWidth={3} />
+                    </button>
+                    <span className="text-[17px] font-bold text-neutral-800 ml-1 font-sans">{locale === 'en' ? 'Staff' : 'พนักงาน'}</span>
+                </div>
+
+                {/* Section Navigation Tabs */}
+                <div className="px-6 pb-4 border-b border-neutral-100 shrink-0">
+                    <div className="flex bg-neutral-100 p-0.5 rounded-xl gap-0.5 select-none text-[11px] font-black text-neutral-500 font-sans">
+                        <button
+                            onClick={() => { setInternalTab('list'); setSelectedStaff(null); }}
+                            className={`flex-grow py-2 text-center rounded-lg transition-all border-none ${internalTab === 'list' ? 'bg-white text-neutral-800 shadow-sm font-black' : 'hover:text-neutral-800 bg-transparent'}`}
+                        >
+                            รายชื่อ
+                        </button>
+                        <button
+                            onClick={() => { setInternalTab('attendance'); setSelectedStaff(null); }}
+                            className={`flex-grow py-2 text-center rounded-lg transition-all border-none ${internalTab === 'attendance' ? 'bg-white text-neutral-800 shadow-sm font-black' : 'hover:text-neutral-800 bg-transparent'}`}
+                        >
+                            ลงเวลา
+                        </button>
+                        <button
+                            onClick={() => { setInternalTab('verification'); setSelectedStaff(null); }}
+                            className={`flex-grow py-2 text-center rounded-lg transition-all border-none relative ${internalTab === 'verification' ? 'bg-white text-neutral-800 shadow-sm font-black' : 'hover:text-neutral-800 bg-transparent'}`}
+                        >
+                            ยืนยัน
+                            {pendingCount > 0 && (
+                                <span className="absolute -top-1 -right-1 bg-red-500 text-white w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold">
+                                    {pendingCount}
+                                </span>
+                            )}
+                        </button>
+                        <button
+                            onClick={() => { setInternalTab('sop'); setSelectedStaff(null); }}
+                            className={`flex-grow py-2 text-center rounded-lg transition-all border-none ${internalTab === 'sop' ? 'bg-white text-neutral-800 shadow-sm font-black' : 'hover:text-neutral-800 bg-transparent'}`}
+                        >
+                            SOP
+                        </button>
+                    </div>
+                </div>
+
+                {/* Tab Specific Content lists */}
+                {internalTab === 'list' && (
+                    <div className="flex-1 flex flex-col min-h-0 overflow-y-auto no-scrollbar p-6 space-y-4">
+                        {/* Search */}
+                        <div className="bg-neutral-50 px-3 py-2 rounded-xl flex items-center gap-2 border border-neutral-200/50">
+                            <Search size={16} className="text-neutral-400 shrink-0" />
+                            <input
+                                type="text"
+                                placeholder={locale === 'en' ? 'Search name or ID...' : 'ค้นหาด้วยชื่อ หรือ รหัส...'}
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="flex-grow bg-transparent border-none p-0 text-xs font-bold text-neutral-800 focus:ring-0 outline-none"
+                            />
+                            {searchTerm && (
+                                <button onClick={() => setSearchTerm('')} className="text-neutral-400 hover:text-black">
+                                    <X size={14} />
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Staff list */}
+                        {loading ? (
+                            <div className="py-20 flex justify-center"><Loader2 className="animate-spin text-neutral-300" size={24} /></div>
+                        ) : (
+                            <div className="flex flex-col gap-2">
+                                {filteredStaff.map(person => (
+                                    <button
+                                        key={person.id}
+                                        onClick={() => { setSelectedStaff(person); setDetailTab('info'); }}
+                                        className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all text-left border ${selectedStaff?.id === person.id ? 'bg-[#D3202B]/5 border-[#D3202B]/20 text-[#D3202B]' : 'bg-transparent border-transparent hover:bg-neutral-50 text-neutral-800'}`}
+                                    >
+                                        {/* Avatar / Photo */}
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-black shrink-0 overflow-hidden relative ${selectedStaff?.id === person.id ? 'bg-[#D3202B] text-white' : 'bg-neutral-100 text-neutral-600'}`}>
+                                            {person.avatar_url ? (
+                                                <img src={person.avatar_url} alt={person.display_name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <span>{(person.display_name || person.full_name || 'S').slice(0, 1).toUpperCase()}</span>
+                                            )}
+                                        </div>
+                                        <div className="flex-grow min-w-0">
+                                            <div className={`text-xs font-black truncate ${selectedStaff?.id === person.id ? 'text-[#D3202B]' : 'text-neutral-800'}`}>
+                                                {person.display_name || person.full_name}
+                                            </div>
+                                            <div className="text-[10px] font-bold text-neutral-400 mt-0.5">
+                                                ID: {person.staff_code || '-'}
+                                            </div>
+                                            <div className="text-[10px] font-bold text-neutral-500 mt-0.5">
+                                                {getRoleLabel(person.staff_level, shopSettings?.custom_roles)} • {translateStaffType(person.staff_type || person.department)}
+                                            </div>
+                                        </div>
+                                        <ChevronRight size={14} className={selectedStaff?.id === person.id ? 'text-[#D3202B]' : 'text-neutral-300'} />
+                                    </button>
+                                ))}
+                                {filteredStaff.length === 0 && (
+                                    <p className="text-center text-neutral-400 text-xs font-bold py-10">ไม่พบรายชื่อพนักงาน</p>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {internalTab === 'attendance' && (
+                    <div className="flex-grow flex flex-col min-h-0 overflow-y-auto no-scrollbar p-6 space-y-4">
+                        {/* Month & Employee Filters */}
+                        <div className="space-y-3">
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-neutral-400">เลือกเดือน</label>
                                 <input
                                     type="month"
                                     value={selectedMonth}
                                     onChange={(e) => setSelectedMonth(e.target.value)}
-                                    className="bg-gray-50 border border-gray-200 py-2 px-4 text-xs font-bold outline-none font-black text-black cursor-pointer"
+                                    className="w-full bg-neutral-50 border border-neutral-200 py-2.5 px-3 text-xs font-bold rounded-xl outline-none font-black text-black cursor-pointer"
                                 />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-neutral-400">เลือกพนักงาน</label>
                                 <select
                                     value={selectedStaffFilter}
                                     onChange={(e) => setSelectedStaffFilter(e.target.value)}
-                                    className="bg-gray-50 border border-gray-200 py-2 px-4 text-xs font-bold outline-none font-black text-black"
+                                    className="w-full bg-neutral-50 border border-neutral-200 py-2.5 px-3 text-xs font-bold rounded-xl outline-none font-black text-black"
                                 >
-                                    <option value="all">ALL EMPLOYEES (แสดงพนักงานทุกคน)</option>
+                                    <option value="all">แสดงพนักงานทุกคน (All)</option>
                                     {staff.map(s => (
-                                        <option key={s.id} value={s.id}>{s.display_name || s.full_name} ({s.staff_code || 'No ID'})</option>
+                                        <option key={s.id} value={s.id}>{s.display_name || s.full_name}</option>
                                     ))}
                                 </select>
                             </div>
                         </div>
 
+                        <div className="h-px bg-neutral-100 my-2" />
+
+                        {/* Logs List */}
                         {loading ? (
-                            <div className="py-20 flex justify-center"><Loader2 className="animate-spin text-gray-300" size={48} /></div>
-                        ) : attendanceViewMode === 'calendar' ? (
-                            <CalendarGrid logsList={filteredAttendances} monthStr={selectedMonth} publicHolidays={publicHolidays} />
+                            <div className="py-20 flex justify-center"><Loader2 className="animate-spin text-neutral-300" size={24} /></div>
                         ) : (
-                            <div className="bg-white border border-gray-200 shadow-sm overflow-hidden">
-                                <table className="w-full text-left">
-                                    <thead>
-                                        <tr className="bg-gray-50 text-[10px] font-black uppercase tracking-widest text-gray-400 border-b border-gray-100">
-                                            <th className="px-6 py-4">Date</th>
-                                            <th className="px-6 py-4">Employee</th>
-                                            <th className="px-6 py-4">Clock In</th>
-                                            <th className="px-6 py-4">Clock Out</th>
-                                            <th className="px-6 py-4">Status / Late</th>
-                                            <th className="px-6 py-4">Hours</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-50">
-                                        {filteredAttendances.map(a => (
-                                            <tr key={a.id} className="hover:bg-gray-50/50 transition-colors">
-                                                <td className="px-6 py-5 text-sm font-bold text-gray-800">{new Date(a.date).toLocaleDateString()}</td>
-                                                <td className="px-6 py-5">
-                                                    <div className="text-sm font-black text-black">{a.profiles?.display_name || 'Staff'}</div>
-                                                    <div className="text-[10px] text-gray-400 font-mono mt-0.5">{a.profiles?.staff_code}</div>
-                                                </td>
-                                                <td className="px-6 py-5 text-sm font-bold text-green-600">{a.clock_in ? new Date(a.clock_in).toLocaleTimeString() : '-'}</td>
-                                                <td className="px-6 py-5 text-sm font-bold text-gray-500">{a.clock_out ? new Date(a.clock_out).toLocaleTimeString() : '-'}</td>
-                                                <td className="px-6 py-5">
-                                                    {a.override ? (
-                                                        <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 flex items-center gap-1 w-max ${a.override.reason.includes('มาสาย') ? 'text-blue-600 bg-blue-50' : 'text-amber-600 bg-amber-50'}`}>
-                                                            {a.override.reason}
-                                                        </span>
-                                                    ) : a.leave ? (
-                                                        <span className="text-[9px] font-black uppercase tracking-widest text-red-700 bg-red-50 px-2 py-1 w-max block">
-                                                            ลา{a.leave.leave_type === 'sick' ? 'ป่วย' : a.leave.leave_type === 'personal' ? 'กิจ' : 'พักร้อน'} {a.leave.is_paid ? '(ได้ค่าจ้าง)' : '(ไม่ได้ค่าจ้าง)'}
-                                                        </span>
-                                                    ) : a.late_minutes > 0 ? (
-                                                        <span className="text-[9px] font-black uppercase tracking-widest text-red-600 bg-red-50 px-2 py-1 flex items-center gap-1 w-max">
-                                                            <Clock size={10} /> +{a.late_minutes}m สาย
-                                                        </span>
-                                                    ) : a.clock_in ? (
-                                                        <span className="text-[9px] font-black uppercase tracking-widest text-green-600 bg-green-50 px-2 py-1 w-max block">
-                                                            ตรงเวลา (On Time)
-                                                        </span>
-                                                    ) : (
-                                                        <span className="text-gray-300 text-xs">-</span>
-                                                    )}
-                                                    {checkPublicHoliday(new Date(a.date)) && a.clock_in && (a.checkin_log_id || a.checkout_log_id) ? (
-                                                        <div className="mt-2 pt-2 border-t border-gray-100 flex flex-col gap-1">
-                                                            <span className="text-[10px] font-black uppercase text-pink-600 tracking-widest block mb-1">ทำงานในวันหยุดนักขัตฤกษ์</span>
-                                                            {a.holiday_pay_status === 'approved_pay' ? (
-                                                                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md w-max inline-block border border-emerald-100">
-                                                                    ✓ อนุมัติอัตโนมัติ: จ่ายค่าแรงพิเศษ
-                                                                </span>
-                                                            ) : a.holiday_pay_status === 'approved_dayoff' ? (
-                                                                <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md w-max inline-block border border-indigo-100">
-                                                                    ✓ อนุมัติอัตโนมัติ: หยุดชดเชย
-                                                                </span>
-                                                            ) : a.holiday_pay_status === 'rejected' ? (
-                                                                <span className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-1 rounded-md w-max inline-block border border-red-100 line-through">
-                                                                    ไม่อนุมัติชดเชย
-                                                                </span>
-                                                            ) : (
-                                                                <div className="flex flex-col gap-1.5 mt-1">
-                                                                    <button
-                                                                        onClick={(e) => { e.stopPropagation(); handleApproveHolidayPay(a.checkout_log_id || a.checkin_log_id); }}
-                                                                        className="text-[10px] font-bold text-white px-2.5 py-1.5 rounded-md transition-colors w-full text-left flex justify-between items-center bg-[#D3202B] hover:bg-neutral-800 ring-2 ring-neutral-300"
-                                                                    >
-                                                                        อนุมัติ (ตามการตั้งค่า) <span>+</span>
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={(e) => { e.stopPropagation(); handleApproveHolidayPay(a.checkout_log_id || a.checkin_log_id, 'rejected'); }}
-                                                                        className="text-[10px] font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 px-2.5 py-1.5 rounded-md transition-colors w-full text-left"
-                                                                    >
-                                                                        ไม่อนุมัติ
-                                                                    </button>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    ) : null}
-                                                </td>
-                                                <td className="px-6 py-5 text-sm font-bold text-black">{a.total_hours ? parseFloat(a.total_hours).toFixed(2) + 'h' : '-'}</td>
-                                            </tr>
-                                        ))}
-                                        {filteredAttendances.length === 0 && (
-                                            <tr><td colSpan={6} className="px-6 py-10 text-center text-gray-400 text-sm">No attendance records found for selected month.</td></tr>
+                            <div className="flex flex-col gap-2">
+                                {filteredAttendances.map(a => (
+                                    <div key={a.id} className="p-3 bg-neutral-50 rounded-2xl border border-neutral-200/50 flex flex-col gap-1.5 text-neutral-800">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-[11px] font-black">
+                                                {new Date(a.date).toLocaleDateString()}
+                                            </span>
+                                            <span className="text-[10px] font-bold text-neutral-500 bg-neutral-100 px-2 py-0.5 rounded">
+                                                {a.total_hours ? parseFloat(a.total_hours).toFixed(2) + 'h' : '-'}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-xs">
+                                            <span className="font-bold text-neutral-600">
+                                                {a.profiles?.display_name || 'Staff'}
+                                            </span>
+                                            <span className="font-bold text-neutral-400">
+                                                {a.clock_in ? new Date(a.clock_in).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '-'} - {a.clock_out ? new Date(a.clock_out).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '-'}
+                                            </span>
+                                        </div>
+                                        {(a.late_minutes > 0 || checkPublicHoliday(new Date(a.date))) && (
+                                            <div className="flex flex-wrap gap-1 mt-1">
+                                                {a.late_minutes > 0 && (
+                                                    <span className="text-[9px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-100 font-sans">
+                                                        สาย {a.late_minutes} น.
+                                                    </span>
+                                                )}
+                                                {checkPublicHoliday(new Date(a.date)) && (
+                                                    <span className="text-[9px] font-bold text-pink-600 bg-pink-50 px-2 py-0.5 rounded border border-pink-100 font-sans">
+                                                        นักขัตฤกษ์
+                                                    </span>
+                                                )}
+                                            </div>
                                         )}
-                                    </tbody>
-                                </table>
+                                    </div>
+                                ))}
+                                {filteredAttendances.length === 0 && (
+                                    <p className="text-center text-neutral-400 text-xs font-bold py-10">ไม่พบประวัติลงเวลา</p>
+                                )}
                             </div>
                         )}
                     </div>
                 )}
 
-            </div>
-
-
-
-            {/* ADD STAFF MODAL */}
-            {showAddStaffModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden border border-neutral-100 flex flex-col max-h-[90vh]">
-                        <div className="p-6 border-b border-neutral-100 flex items-center justify-between bg-neutral-50/50">
-                            <div>
-                                <h2 className="text-lg font-black text-neutral-900 tracking-tight">เพิ่มพนักงานใหม่</h2>
-                                <p className="text-xs font-bold text-neutral-400 mt-1">สร้างโปรไฟล์พนักงานเข้าสู่ระบบ</p>
-                            </div>
-                            <button onClick={() => setShowAddStaffModal(false)} className="text-neutral-400 hover:text-black p-2 rounded-full hover:bg-neutral-100 transition-colors">
-                                <X size={20} />
-                            </button>
-                        </div>
-
-                        <div className="p-6 overflow-y-auto space-y-5 flex-1">
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">รหัสพนักงาน *</label>
-                                <input
-                                    type="text"
-                                    value={newStaffForm.staff_code}
-                                    onChange={e => setNewStaffForm({ ...newStaffForm, staff_code: e.target.value })}
-                                    placeholder="เช่น EMP-001"
-                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">แผนก</label>
-                                <select
-                                    value={newStaffForm.staff_type}
-                                    onChange={e => setNewStaffForm({ ...newStaffForm, staff_type: e.target.value })}
-                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
-                                >
-                                    <option value="cafe">หน้าร้านคาเฟ่</option>
-                                    <option value="kitchen">ห้องครัว</option>
-                                    <option value="landscape">ทีมจัดสวน</option>
-                                    <option value="general">ทั่วไป</option>
-                                </select>
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">ตำแหน่ง (Role)</label>
-                                <select
-                                    value={newStaffForm.staff_level}
-                                    onChange={e => setNewStaffForm({ ...newStaffForm, staff_level: e.target.value })}
-                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
-                                >
-                                    {(shopSettings?.custom_roles && shopSettings.custom_roles.length > 0 ? shopSettings.custom_roles : [{ id: 'manager', label: 'ผู้จัดการสาขา (Manager)' }, { id: 'staff', label: 'พนักงานทั่วไป (Staff)' }]).map((role: any) => (
-                                        <option key={role.id} value={role.id}>{role.label}</option>
-                                    ))}
-                                    <option value="admin">แอดมิน (Admin)</option>
-                                </select>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">ประเภทค่าจ้าง</label>
-                                    <select
-                                        value={newStaffForm.salary_type}
-                                        onChange={e => setNewStaffForm({ ...newStaffForm, salary_type: e.target.value })}
-                                        className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
+                {internalTab === 'verification' && (
+                    <div className="flex-grow flex flex-col min-h-0 overflow-y-auto no-scrollbar p-6 space-y-4">
+                        {loading ? (
+                            <div className="py-20 flex justify-center"><Loader2 className="animate-spin text-neutral-300" size={24} /></div>
+                        ) : (
+                            <div className="flex flex-col gap-2">
+                                {verifications.map(v => (
+                                    <button
+                                        key={v.id}
+                                        onClick={() => setSelectedVerification(v)}
+                                        className={`w-full flex flex-col p-3.5 rounded-2xl border text-left transition-all border-none cursor-pointer ${selectedVerification?.id === v.id ? 'bg-[#D3202B]/5 border-[#D3202B]/20' : 'bg-neutral-50 border-neutral-200/50 hover:bg-neutral-100'}`}
                                     >
-                                        <option value="daily">รายวัน</option>
-                                        <option value="monthly">รายเดือน</option>
-                                    </select>
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">รูปแบบรับชดเชยวันหยุด</label>
-                                    <select
-                                        value={newStaffForm.holiday_compensation_type}
-                                        onChange={e => setNewStaffForm({ ...newStaffForm, holiday_compensation_type: e.target.value })}
-                                        className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
-                                    >
-                                        <option value="money">รับเป็นค่าแรง (Money)</option>
-                                        <option value="dayoff">รับเป็นวันหยุดชดเชย (Day Off)</option>
-                                    </select>
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">จำนวนเงิน (บาท)</label>
-                                    <input
-                                        type="number"
-                                        value={newStaffForm.daily_wage || ''}
-                                        onChange={e => setNewStaffForm({ ...newStaffForm, daily_wage: Number(e.target.value) })}
-                                        placeholder="0"
-                                        className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
-                                    />
-                                </div>
-                                <div className="space-y-1.5 sm:col-span-2">
-                                    <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">หักประกันสังคม (Social Security)</label>
-                                    <div className="flex items-center gap-2 mt-1">
-                                        <input 
-                                            type="checkbox"
-                                            className="w-4 h-4 text-black border-gray-300 rounded focus:ring-black"
-                                            checked={newStaffForm.has_social_security || false}
-                                            onChange={e => setNewStaffForm({ ...newStaffForm, has_social_security: e.target.checked })}
-                                        />
-                                        <span className="text-sm font-bold text-gray-700">เข้าระบบหักประกันสังคม 5%</span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div className="pt-4 mt-2 border-t border-neutral-100 space-y-4">
-                                <div>
-                                    <h3 className="text-sm font-black text-neutral-900">สิทธิ์การเข้าสู่ระบบ (System Access)</h3>
-                                    <p className="text-[10px] font-bold text-neutral-400 mt-1">กำหนดวิธีการล็อคอินสำหรับพนักงานคนนี้</p>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <input 
-                                        type="checkbox" 
-                                        id="add-has-login"
-                                        checked={newStaffForm.has_login}
-                                        onChange={e => setNewStaffForm({ ...newStaffForm, has_login: e.target.checked })}
-                                        className="w-4 h-4 text-black border-gray-300 rounded focus:ring-black"
-                                    />
-                                    <label htmlFor="add-has-login" className="text-xs font-bold text-gray-700 cursor-pointer">
-                                        อนุญาตให้พนักงานล็อคอินเข้าสู่ระบบ
-                                    </label>
-                                </div>
-
-                                {newStaffForm.has_login && (
-                                    <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-4 space-y-4 mt-2">
-                                        <div className="flex gap-4">
-                                            <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all cursor-pointer ${newStaffForm.login_method === 'invite' ? 'border-[#00B900] bg-[#00B900]/10 text-[#00B900]' : 'border-neutral-200 bg-white text-neutral-500'}`}>
-                                                <input 
-                                                    type="radio" 
-                                                    name="login_method" 
-                                                    value="invite"
-                                                    checked={newStaffForm.login_method === 'invite'}
-                                                    onChange={() => setNewStaffForm({...newStaffForm, login_method: 'invite'})}
-                                                    className="hidden"
-                                                />
-                                                <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M22.5 11.23c0-4.9-5.04-8.88-11.25-8.88C5.04 2.35 0 6.33 0 11.23c0 4.41 4.07 8.16 9.53 8.78.37.07.88.23 1.01.52.12.27.08.7.04.99l-.26 1.6c-.05.32-.24 1.54 1.35.87 1.6-1.12 8.65-5.09 10.83-12.76z" /></svg>
-                                                <span className="text-xs font-bold">ส่งลิงก์ LINE</span>
-                                            </label>
-                                            <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all cursor-pointer ${newStaffForm.login_method === 'credentials' ? 'border-neutral-800 bg-neutral-800 text-white' : 'border-neutral-200 bg-white text-neutral-500'}`}>
-                                                <input 
-                                                    type="radio" 
-                                                    name="login_method" 
-                                                    value="credentials"
-                                                    checked={newStaffForm.login_method === 'credentials'}
-                                                    onChange={() => setNewStaffForm({...newStaffForm, login_method: 'credentials'})}
-                                                    className="hidden"
-                                                />
-                                                <Mail size={16} />
-                                                <span className="text-xs font-bold">สร้างรหัสผ่าน</span>
-                                            </label>
+                                        <div className="flex justify-between items-start">
+                                            <span className="text-xs font-black text-neutral-800">
+                                                {v.profiles?.display_name || v.profiles?.full_name}
+                                            </span>
+                                            {v.verified_at ? (
+                                                <span className="text-[8px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 font-sans font-bold">Verified</span>
+                                            ) : (
+                                                <span className="text-[8px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100 font-sans font-bold">Pending</span>
+                                            )}
                                         </div>
-
-                                        {newStaffForm.login_method === 'credentials' && (
-                                            <div className="text-center p-3">
-                                                <p className="text-[10px] font-bold text-neutral-400">ระบบจะสร้างบัญชีและรหัสผ่านจาก "รหัสพนักงาน" อัตโนมัติ<br/>ข้อมูลล็อคอินจะแสดงให้บันทึกหลังจากกดสร้างสำเร็จ</p>
-                                            </div>
-                                        )}
-                                        {newStaffForm.login_method === 'invite' && (
-                                            <div className="text-center p-3">
-                                                <p className="text-[10px] font-bold text-neutral-400">ระบบจะสร้าง QR Code และลิงก์เชิญ<br/>ให้คุณส่งต่อให้พนักงานหลังจากกดบันทึก</p>
-                                            </div>
-                                        )}
-                                    </div>
+                                        <div className="text-[10px] text-neutral-400 font-mono mt-1">ID: {v.profiles?.staff_code}</div>
+                                        <div className="text-[9px] text-neutral-400 font-bold mt-1">
+                                            ส่งเมื่อ: {new Date(v.created_at).toLocaleString([], {dateStyle: 'short', timeStyle: 'short'})}
+                                        </div>
+                                    </button>
+                                ))}
+                                {verifications.length === 0 && (
+                                    <p className="text-center text-neutral-400 text-xs font-bold py-10">ไม่พบคำขออนุมัติ</p>
                                 )}
                             </div>
-                        </div>
+                        )}
+                    </div>
+                )}
 
-                        <div className="p-6 border-t border-neutral-100 bg-white">
-                            <button
-                                onClick={handleCreateStaff}
-                                disabled={isSaving}
-                                className={`w-full py-4 rounded-xl text-sm font-bold tracking-wide transition-all shadow-lg ${isSaving ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed shadow-none' : 'bg-[#0F172A] text-white hover:bg-neutral-800 shadow-neutral-200'}`}
-                            >
-                                {isSaving ? 'กำลังบันทึก...' : 'สร้างโปรไฟล์พนักงาน'}
-                            </button>
+                {internalTab === 'sop' && (
+                    <div className="flex-grow flex flex-col min-h-0 overflow-y-auto no-scrollbar p-6 space-y-4">
+                        <div className="flex flex-col gap-2">
+                            <div className="p-3 bg-neutral-50 rounded-2xl border border-neutral-200/50 flex items-center justify-between">
+                                <span className="text-xs font-bold text-neutral-800">1. การแต่งกาย & ภาพลักษณ์</span>
+                                <ChevronRight size={14} className="text-neutral-400" />
+                            </div>
+                            <div className="p-3 bg-neutral-50 rounded-2xl border border-neutral-200/50 flex items-center justify-between">
+                                <span className="text-xs font-bold text-neutral-800">2. การเข้า-ออกงาน & การลางาน</span>
+                                <ChevronRight size={14} className="text-neutral-400" />
+                            </div>
+                            <div className="p-3 bg-neutral-50 rounded-2xl border border-neutral-200/50 flex items-center justify-between">
+                                <span className="text-xs font-bold text-neutral-800">3. ข้อห้ามและมารยาท</span>
+                                <ChevronRight size={14} className="text-neutral-400" />
+                            </div>
+                            <div className="p-3 bg-neutral-50 rounded-2xl border border-neutral-200/50 flex items-center justify-between">
+                                <span className="text-xs font-bold text-neutral-800">4. มาตรฐานบริการลูกค้า</span>
+                                <ChevronRight size={14} className="text-neutral-400" />
+                            </div>
+                            <div className="p-3 bg-neutral-50 rounded-2xl border border-neutral-200/50 flex items-center justify-between">
+                                <span className="text-xs font-bold text-neutral-800">5. การดูแลความสะอาดร้าน</span>
+                                <ChevronRight size={14} className="text-neutral-400" />
+                            </div>
+                            <div className="p-3 bg-neutral-50 rounded-2xl border border-neutral-200/50 flex items-center justify-between">
+                                <span className="text-xs font-bold text-neutral-800">6. บทลงโทษการกระทำความผิด</span>
+                                <ChevronRight size={14} className="text-neutral-400" />
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
 
-            {/* LEAVE MODAL */}
-            {showLeaveModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden border border-neutral-100 flex flex-col max-h-[90vh]">
-                        <div className="p-6 border-b border-neutral-100 flex items-center justify-between bg-neutral-50/50">
-                            <div>
-                                <h2 className="text-lg font-black text-neutral-900 tracking-tight">บันทึกวันลา</h2>
-                                <p className="text-xs font-bold text-neutral-400 mt-1">บันทึกการลางานของพนักงาน</p>
-                            </div>
-                            <button onClick={() => setShowLeaveModal(false)} className="text-neutral-400 hover:text-black p-2 rounded-full hover:bg-neutral-100 transition-colors">
-                                <X size={20} />
-                            </button>
-                        </div>
-
-                        <div className="p-6 overflow-y-auto space-y-5 flex-1">
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">พนักงาน *</label>
-                                <select
-                                    value={leaveForm.profile_id}
-                                    onChange={e => setLeaveForm({ ...leaveForm, profile_id: e.target.value })}
-                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
-                                >
-                                    <option value="">-- เลือกพนักงาน --</option>
-                                    {staff.map(s => (
-                                        <option key={s.id} value={s.id}>{s.display_name} ({s.staff_code})</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">วันที่ลา *</label>
-                                <input
-                                    type="date"
-                                    value={leaveForm.leave_date}
-                                    onChange={e => setLeaveForm({ ...leaveForm, leave_date: e.target.value })}
-                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">ประเภทการลา *</label>
-                                <select
-                                    value={leaveForm.leave_type}
-                                    onChange={e => setLeaveForm({ ...leaveForm, leave_type: e.target.value })}
-                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
-                                >
-                                    <option value="sick">ลาป่วย</option>
-                                    <option value="personal">ลากิจ</option>
-                                    <option value="vacation">ลาพักร้อน</option>
-                                </select>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <input
-                                    type="checkbox"
-                                    id="is_paid_leave"
-                                    checked={leaveForm.is_paid}
-                                    onChange={e => setLeaveForm({ ...leaveForm, is_paid: e.target.checked })}
-                                    className="w-4 h-4 rounded text-black border-neutral-300 focus:ring-black"
-                                />
-                                <label htmlFor="is_paid_leave" className="text-sm font-bold text-neutral-800">ได้ค่าจ้าง (Paid Leave)</label>
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">หมายเหตุ</label>
-                                <textarea
-                                    value={leaveForm.reason}
-                                    onChange={e => setLeaveForm({ ...leaveForm, reason: e.target.value })}
-                                    placeholder="รายละเอียดการลา (ถ้ามี)"
-                                    rows={3}
-                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors resize-none"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="p-6 border-t border-neutral-100 bg-white">
-                            <button
-                                onClick={handleCreateLeave}
-                                className="w-full bg-red-500 text-white py-4 rounded-xl text-sm font-bold tracking-wide hover:bg-red-600 transition-all shadow-lg shadow-red-500/20"
-                            >
-                                บันทึกวันลา
-                            </button>
-                        </div>
+                {/* Sticky Add Staff Button at Bottom */}
+                {internalTab === 'list' && (
+                    <div className="p-6 border-t border-neutral-100 bg-white shrink-0 font-sans">
+                        <button
+                            onClick={handleOpenAddStaffModal}
+                            className="w-full bg-[#D3202B] text-white py-3.5 rounded-xl text-xs font-black tracking-wide hover:bg-red-700 transition-colors active:scale-95 text-center shadow-md flex items-center justify-center gap-1.5 border-none font-sans cursor-pointer"
+                        >
+                            <UserPlus size={16} strokeWidth={2.5} />
+                            <span>เพิ่มพนักงานใหม่</span>
+                        </button>
                     </div>
-                </div>
-            )}
-
-            {/* USE HOLIDAY MODAL */}
-            {showUseHolidayModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden border border-neutral-100 flex flex-col max-h-[90vh]">
-                        <div className="p-6 border-b border-neutral-100 flex items-center justify-between bg-indigo-50/50">
-                            <div>
-                                <h2 className="text-lg font-black text-indigo-900 tracking-tight">ใช้วันหยุดชดเชย</h2>
-                                <p className="text-xs font-bold text-indigo-400 mt-1">ใช้วันหยุดชดเชยสะสมของพนักงาน</p>
-                            </div>
-                            <button onClick={() => setShowUseHolidayModal(false)} className="text-indigo-400 hover:text-indigo-900 p-2 rounded-full hover:bg-indigo-100 transition-colors">
-                                <X size={20} />
-                            </button>
-                        </div>
-
-                        <div className="p-6 overflow-y-auto space-y-5 flex-1">
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">วันที่ต้องการหยุด *</label>
-                                <input
-                                    type="date"
-                                    value={useHolidayForm.leave_date}
-                                    onChange={e => setUseHolidayForm({ ...useHolidayForm, leave_date: e.target.value })}
-                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">หมายเหตุ</label>
-                                <textarea
-                                    value={useHolidayForm.reason}
-                                    onChange={e => setUseHolidayForm({ ...useHolidayForm, reason: e.target.value })}
-                                    placeholder="รายละเอียดการหยุด (ถ้ามี)"
-                                    rows={2}
-                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors resize-none"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="p-6 border-t border-neutral-100 bg-white">
-                            <button
-                                onClick={handleUseHolidaySubmit}
-                                disabled={isSaving}
-                                className="w-full bg-indigo-600 text-white py-4 rounded-xl text-sm font-bold tracking-wide hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-50"
-                            >
-                                {isSaving ? <Loader2 className="animate-spin inline-block mx-auto" /> : 'ยืนยันการใช้วันหยุด'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* CASH ADVANCE MODAL */}
-            {showCashAdvanceModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden border border-neutral-100 flex flex-col max-h-[90vh]">
-                        <div className="p-6 border-b border-neutral-100 flex items-center justify-between bg-neutral-50/50">
-                            <div>
-                                <h2 className="text-lg font-black text-neutral-900 tracking-tight">บันทึกเบิกเงินล่วงหน้า</h2>
-                                <p className="text-xs font-bold text-neutral-400 mt-1">บันทึกการขอเบิกเงินสดระหว่างเดือน</p>
-                            </div>
-                            <button onClick={() => setShowCashAdvanceModal(false)} className="text-neutral-400 hover:text-black p-2 rounded-full hover:bg-neutral-100 transition-colors">
-                                <X size={20} />
-                            </button>
-                        </div>
-
-                        <div className="p-6 overflow-y-auto space-y-5 flex-1">
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">จำนวนเงิน (บาท) *</label>
-                                <input
-                                    type="number"
-                                    value={cashAdvanceForm.amount || ''}
-                                    onChange={e => setCashAdvanceForm({ ...cashAdvanceForm, amount: Number(e.target.value) })}
-                                    placeholder="เช่น 1000"
-                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">วันที่เบิกเงิน *</label>
-                                <input
-                                    type="date"
-                                    value={cashAdvanceForm.advance_date}
-                                    onChange={e => setCashAdvanceForm({ ...cashAdvanceForm, advance_date: e.target.value })}
-                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">เหตุผล / หมายเหตุ</label>
-                                <textarea
-                                    value={cashAdvanceForm.reason}
-                                    onChange={e => setCashAdvanceForm({ ...cashAdvanceForm, reason: e.target.value })}
-                                    placeholder="เหตุผลการเบิกเงิน"
-                                    rows={3}
-                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors resize-none"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="p-6 border-t border-neutral-100 bg-white">
-                            <button
-                                onClick={handleCreateCashAdvance}
-                                className="w-full bg-amber-600 text-white py-4 rounded-xl text-sm font-bold tracking-wide hover:bg-amber-700 transition-all shadow-lg shadow-amber-600/20"
-                            >
-                                บันทึกการเบิกเงิน
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* PRINT OVERLAY (A4 LAYOUT) */}
-            {printData && (
-                <div className="print-area fixed inset-0 z-[999] bg-white p-8 overflow-y-auto font-sans text-black">
-                    {/* Screen Close Button & Top Action Bar */}
-                    <div className="no-print mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#D3202B] text-white p-4 rounded-2xl shadow-xl">
-                        <div>
-                            <span className="text-sm font-black tracking-wide block">📄 ตัวอย่างเอกสารพร้อมพิมพ์ / บันทึก PDF (Print & PDF Export)</span>
-                            <span className="text-xs text-neutral-400 font-bold block mt-0.5">กดปุ่มสีเขียวด้านขวาเพื่อเปิดหน้าต่างพิมพ์ และเลือก "Save as PDF" เพื่อโหลดไฟล์เก็บไว้ในเครื่อง</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <button
-                                onClick={() => window.print()}
-                                className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-xs font-black flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all cursor-pointer"
-                            >
-                                <Printer size={16} /> 🖨️ สั่งพิมพ์ / ดาวน์โหลด PDF
-                            </button>
-                            <button
-                                onClick={() => setPrintData(null)}
-                                className="bg-neutral-800 hover:bg-neutral-700 text-neutral-300 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer"
-                            >
-                                ปิดหน้าต่าง
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* PAYSLIP PRINT TEMPLATE (OFFICIAL CORPORATE STANDARD) */}
-                    {printData.type === 'payslip' && (
-                        <div className="max-w-[210mm] mx-auto bg-white border-2 border-black p-8 text-black space-y-5 shadow-none text-xs font-sans">
-                            {/* Company Header */}
-                            <div className="border-b-2 border-black pb-4 flex justify-between items-start">
-                                <div>
-                                    <h1 className="text-lg font-black text-black tracking-tight uppercase">บริษัท ไซเล็ม สตูดิโอ แอนด์ คาเฟ่ จำกัด</h1>
-                                    <p className="text-[10px] font-bold text-gray-700 mt-0.5">RUSH UP STUDIO & CAFE CO., LTD.</p>
-                                    <p className="text-[10px] text-gray-600 mt-1">123/45 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพมหานคร 10110</p>
-                                    <p className="text-[10px] text-gray-600">เลขประจำตัวผู้เสียภาษี (TAX ID): 0105565000000 | สำนักงานใหญ่</p>
-                                </div>
-                                <div className="text-right border-2 border-black p-2 bg-gray-50">
-                                    <h2 className="text-sm font-black text-black uppercase">ใบแจ้งยอดเงินเดือน</h2>
-                                    <p className="text-[10px] font-bold text-gray-600 uppercase">PAYSLIP / SALARY STATEMENT</p>
-                                    <p className="text-[10px] font-bold text-black mt-1">ประจำเดือน: {printData.data.month}</p>
-                                </div>
-                            </div>
-
-                            {/* Employee Info Grid */}
-                            <div className="grid grid-cols-2 gap-4 border border-black p-3 bg-gray-50/50">
-                                <div className="space-y-1">
-                                    <p><span className="font-bold text-gray-700">ชื่อ-นามสกุล (Employee Name):</span> <span className="font-black text-black">{printData.data.staff?.display_name || printData.data.staff?.full_name}</span></p>
-                                    <p><span className="font-bold text-gray-700">รหัสพนักงาน (Staff ID):</span> <span className="font-mono font-bold">{printData.data.staff?.staff_code || '-'}</span></p>
-                                    <p><span className="font-bold text-gray-700">แผนก (Department):</span> {printData.data.staff?.staff_type?.toUpperCase() || '-'}</p>
-                                </div>
-                                <div className="space-y-1 text-right sm:text-left sm:pl-6 sm:border-l sm:border-gray-300">
-                                    <p><span className="font-bold text-gray-700">ประเภทค่าจ้าง (Salary Type):</span> {printData.data.staff?.salary_type === 'monthly' ? 'รายเดือน (Monthly)' : 'รายวัน (Daily)'}</p>
-                                    <p><span className="font-bold text-gray-700">เลขที่บัญชีรับเงิน (Bank A/C):</span> <span className="font-mono font-bold">xxx-x-x{printData.data.staff?.phone?.slice(-4) || '1234'}-x</span></p>
-                                    <p><span className="font-bold text-gray-700">วันที่จ่ายเงิน (Pay Date):</span> {new Date().toLocaleDateString('th-TH')}</p>
-                                </div>
-                            </div>
-
-                            {/* Earnings vs Deductions Table */}
-                            <div className="grid grid-cols-2 border border-black">
-                                {/* EARNINGS */}
-                                <div className="border-r border-black">
-                                    <div className="bg-gray-200 p-2 font-black border-b border-black text-center text-xs uppercase">รายได้ (EARNINGS)</div>
-                                    <table className="w-full text-xs">
-                                        <tbody>
-                                            <tr className="border-b border-gray-200">
-                                                <td className="p-2">ค่าแรงพื้นฐาน ({printData.data.daysWorked} วัน)</td>
-                                                <td className="p-2 text-right font-bold">฿{printData.data.basePay.toLocaleString()}</td>
-                                            </tr>
-                                            <tr className="border-b border-gray-200">
-                                                <td className="p-2">ค่าล่วงเวลา (OT)</td>
-                                                <td className="p-2 text-right font-bold">฿{printData.data.otPay.toLocaleString()}</td>
-                                            </tr>
-                                            {printData.data.diligenceBonus > 0 && (
-                                                <tr className="border-b border-gray-200 font-bold">
-                                                    <td className="p-2">เบี้ยขยันประจำเดือน</td>
-                                                    <td className="p-2 text-right">฿{printData.data.diligenceBonus.toLocaleString()}</td>
-                                                </tr>
-                                            )}
-                                            <tr>
-                                                <td className="p-2 text-gray-400 font-normal">เงินได้อื่นๆ / เงินพิเศษ</td>
-                                                <td className="p-2 text-right text-gray-400">฿0.00</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                {/* DEDUCTIONS */}
-                                <div>
-                                    <div className="bg-gray-200 p-2 font-black border-b border-black text-center text-xs uppercase">รายการหัก (DEDUCTIONS)</div>
-                                    <table className="w-full text-xs">
-                                        <tbody>
-                                            <tr className="border-b border-gray-200">
-                                                <td className="p-2">หักมาสาย ({printData.data.totalLateMinutes} นาที)</td>
-                                                <td className="p-2 text-right font-bold text-red-600">฿{printData.data.lateDeduction.toLocaleString()}</td>
-                                            </tr>
-                                            <tr className="border-b border-gray-200">
-                                                <td className="p-2">หักเบิกเงินล่วงหน้า (Cash Advance)</td>
-                                                <td className="p-2 text-right font-bold text-red-600">฿{printData.data.totalAdvanceAmount.toLocaleString()}</td>
-                                            </tr>
-                                            <tr className="border-b border-gray-200">
-                                                <td className="p-2 text-black">หักประกันสังคม (SSF)</td>
-                                                <td className="p-2 text-right font-bold text-red-600">฿{(printData.data.socialSecurityDeduction || 0).toLocaleString()}</td>
-                                            </tr>
-                                            <tr>
-                                                <td className="p-2 text-gray-400">ภาษีหัก ณ ที่จ่าย (WHT)</td>
-                                                <td className="p-2 text-right text-gray-400">฿0.00</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-
-                            {/* Totals Summary Line */}
-                            <div className="grid grid-cols-2 border-x border-b border-black text-xs font-bold bg-gray-100/70">
-                                <div className="p-2.5 flex justify-between border-r border-black">
-                                    <span>รวมรายได้ (Total Earnings):</span>
-                                    <span className="font-black">฿{(printData.data.basePay + printData.data.otPay + printData.data.diligenceBonus).toLocaleString()}</span>
-                                </div>
-                                <div className="p-2.5 flex justify-between">
-                                    <span>รวมรายการหัก (Total Deductions):</span>
-                                    <span className="font-black text-red-600">฿{(printData.data.lateDeduction + printData.data.totalAdvanceAmount).toLocaleString()}</span>
-                                </div>
-                            </div>
-
-                            {/* Net Pay Box */}
-                            <div className="border-2 border-black p-4 bg-gray-100 flex flex-col sm:flex-row justify-between items-center gap-2">
-                                <div>
-                                    <span className="text-xs font-bold text-gray-700 block">เงินได้สุทธินำจ่าย (NET PAYABLE AMOUNT):</span>
-                                    <span className="text-sm font-black text-black">({bahtText(printData.data.netPay)})</span>
-                                </div>
-                                <div className="text-right">
-                                    <span className="text-2xl font-black text-black font-mono">฿{printData.data.netPay.toLocaleString()}</span>
-                                </div>
-                            </div>
-
-                            <p className="text-[9px] text-gray-500 italic text-center">
-                                * เอกสารนี้สร้างขึ้นจากระบบบริหารจัดการพนักงานอัตโนมัติ (Automated HR System) กรุณาเก็บไว้เป็นหลักฐานเพื่อการตรวจสอบ
-                            </p>
-
-                            {/* Official Signatures & Stamp Box */}
-                            <div className="grid grid-cols-3 gap-6 pt-6 text-center text-xs border-t border-dashed border-gray-400">
-                                <div>
-                                    <div className="h-12 border-b border-black w-40 mx-auto mb-2 flex items-end justify-center pb-1"></div>
-                                    <p className="font-bold">ลายมือชื่อพนักงานผู้รับเงิน</p>
-                                    <p className="text-[10px] text-gray-500">Employee Signature</p>
-                                    <p className="text-[10px] text-gray-400 mt-1">วันที่ ...../...../..........</p>
-                                </div>
-                                <div>
-                                    <div className="h-12 border-b border-black w-40 mx-auto mb-2 flex items-end justify-center pb-1"></div>
-                                    <p className="font-bold">ลายมือชื่อผู้อนุมัติ / นายจ้าง</p>
-                                    <p className="text-[10px] text-gray-500">Employer Signature</p>
-                                    <p className="text-[10px] text-gray-400 mt-1">วันที่ ...../...../..........</p>
-                                </div>
-                                <div className="flex flex-col items-center justify-center border border-gray-300 rounded p-2">
-                                    <span className="text-[9px] font-bold text-gray-400 uppercase">ตราประทับบริษัท</span>
-                                    <span className="text-[9px] font-bold text-gray-300 uppercase mt-2">(COMPANY STAMP)</span>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* MONTHLY SUMMARY REPORT PRINT TEMPLATE (OFFICIAL CORPORATE REPORT) */}
-                    {printData.type === 'summary' && (
-                        <div className="max-w-[297mm] mx-auto bg-white border-2 border-black p-8 text-black space-y-6 shadow-none text-xs font-sans">
-                            {/* Header */}
-                            <div className="border-b-2 border-black pb-4 flex justify-between items-start">
-                                <div>
-                                    <h1 className="text-xl font-black text-black tracking-tight uppercase">บริษัท ไซเล็ม สตูดิโอ แอนด์ คาเฟ่ จำกัด</h1>
-                                    <p className="text-xs font-bold text-gray-700">RUSH UP STUDIO & CAFE CO., LTD.</p>
-                                    <p className="text-[10px] text-gray-600">เลขประจำตัวผู้เสียภาษี (TAX ID): 0105565000000 | สำนักงานใหญ่</p>
-                                </div>
-                                <div className="text-right border-2 border-black p-2 bg-gray-50">
-                                    <h2 className="text-sm font-black text-black uppercase">รายงานสรุปการจ่ายเงินเดือนพนักงาน</h2>
-                                    <p className="text-[10px] font-bold text-gray-600 uppercase">MONTHLY PAYROLL SUMMARY REPORT</p>
-                                    <p className="text-[10px] font-bold text-black mt-1">ประจำเดือน: {printData.data.month}</p>
-                                </div>
-                            </div>
-
-                            <table className="w-full text-left text-xs border border-black border-collapse">
-                                <thead>
-                                    <tr className="bg-gray-200 font-bold border-b border-black text-[10px] uppercase">
-                                        <th className="border-r border-black p-2 text-center">ลำดับ</th>
-                                        <th className="border-r border-black p-2">รหัสพนักงาน</th>
-                                        <th className="border-r border-black p-2">ชื่อ-นามสกุล พนักงาน</th>
-                                        <th className="border-r border-black p-2">เลขที่บัญชีรับเงิน</th>
-                                        <th className="border-r border-black p-2 text-center">วันทำงาน</th>
-                                        <th className="border-r border-black p-2 text-right">ฐานเงินเดือน</th>
-                                        <th className="border-r border-black p-2 text-right">ค่า OT</th>
-                                        <th className="border-r border-black p-2 text-right">เบี้ยขยัน</th>
-                                        <th className="border-r border-black p-2 text-right">หักสาย</th>
-                                        <th className="border-r border-black p-2 text-right">หักเบิกล่วงหน้า</th>
-                                        <th className="p-2 text-right font-black">ยอดโอนสุทธิ</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {(() => {
-                                        let grandBase = 0, grandOt = 0, grandBonus = 0, grandLate = 0, grandAdv = 0, grandNet = 0;
-
-                                        return (
-                                            <>
-                                                {printData.data.staffList.map((st: any, idx: number) => {
-                                                    const staffLogs = printData.data.attendances.filter((a: any) => a.profile_id === st.id);
-                                                    let daysWorked = 0, paidLeaves = 0, unpaidLeaves = 0, lateMins = 0, otMins = 0;
-                                                    staffLogs.forEach((a: any) => {
-                                                        if (a.clock_in) daysWorked++;
-                                                        if (a.leave) {
-                                                            if (a.leave.is_paid) paidLeaves++;
-                                                            else unpaidLeaves++;
-                                                        }
-                                                        if (a.late_minutes) lateMins += a.late_minutes;
-                                                        if (a.ot_approved_minutes) otMins += a.ot_approved_minutes;
-                                                    });
-
-                                                    const wage = st.daily_wage || 0;
-                                                    const base = st.salary_type === 'monthly' ? wage : (daysWorked + paidLeaves) * wage;
-                                                    const ot = (otMins / 60) * (st.overtime_rate_per_hour || 0);
-                                                    const late = lateMins * 1;
-                                                    const bonus = (lateMins === 0 && unpaidLeaves === 0 && st.diligence_allowance > 0) ? Number(st.diligence_allowance) : 0;
-                                                    const adv = 0;
-                                                    const net = base + ot + bonus - late - adv;
-
-                                                    grandBase += base; grandOt += ot; grandBonus += bonus; grandLate += late; grandAdv += adv; grandNet += net;
-
-                                                    return (
-                                                        <tr key={st.id} className="border-b border-black hover:bg-gray-50">
-                                                            <td className="border-r border-black p-2 text-center">{idx + 1}</td>
-                                                            <td className="border-r border-black p-2 font-mono">{st.staff_code || '-'}</td>
-                                                            <td className="border-r border-black p-2 font-bold">{st.display_name || st.full_name}</td>
-                                                            <td className="border-r border-black p-2 font-mono text-[10px]">xxx-x-x{st.phone?.slice(-4) || '1234'}-x</td>
-                                                            <td className="border-r border-black p-2 text-center">{daysWorked}</td>
-                                                            <td className="border-r border-black p-2 text-right">฿{base.toLocaleString()}</td>
-                                                            <td className="border-r border-black p-2 text-right">฿{ot.toLocaleString()}</td>
-                                                            <td className="border-r border-black p-2 text-right">฿{bonus.toLocaleString()}</td>
-                                                            <td className="border-r border-black p-2 text-right text-red-600">฿{late.toLocaleString()}</td>
-                                                            <td className="border-r border-black p-2 text-right text-red-600">฿{adv.toLocaleString()}</td>
-                                                            <td className="p-2 text-right font-black">฿{net.toLocaleString()}</td>
-                                                        </tr>
-                                                    );
-                                                })}
-                                                <tr className="bg-gray-200 font-black border-t-2 border-black text-xs">
-                                                    <td colSpan={5} className="border-r border-black p-2 text-right uppercase">ยอดรวมสุทธิทั้งสิ้น (GRAND TOTAL):</td>
-                                                    <td className="border-r border-black p-2 text-right">฿{grandBase.toLocaleString()}</td>
-                                                    <td className="border-r border-black p-2 text-right">฿{grandOt.toLocaleString()}</td>
-                                                    <td className="border-r border-black p-2 text-right">฿{grandBonus.toLocaleString()}</td>
-                                                    <td className="border-r border-black p-2 text-right text-red-600">฿{grandLate.toLocaleString()}</td>
-                                                    <td className="border-r border-black p-2 text-right text-red-600">฿{grandAdv.toLocaleString()}</td>
-                                                    <td className="p-2 text-right text-sm font-black">฿{grandNet.toLocaleString()}</td>
-                                                </tr>
-                                            </>
-                                        );
-                                    })()}
-                                </tbody>
-                            </table>
-
-                            {/* Corporate Approval Chain */}
-                            <div className="grid grid-cols-3 gap-8 pt-8 text-center text-xs">
-                                <div>
-                                    <div className="h-12 border-b border-black w-40 mx-auto mb-2 flex items-end justify-center pb-1"></div>
-                                    <p className="font-bold">ผู้จัดทำเอกสาร (Prepared By)</p>
-                                    <p className="text-[10px] text-gray-500">เจ้าหน้าที่ HR / ฝ่ายบุคคล</p>
-                                </div>
-                                <div>
-                                    <div className="h-12 border-b border-black w-40 mx-auto mb-2 flex items-end justify-center pb-1"></div>
-                                    <p className="font-bold">ผู้ตรวจสอบเอกสาร (Checked By)</p>
-                                    <p className="text-[10px] text-gray-500">ฝ่ายบัญชีและการเงิน</p>
-                                </div>
-                                <div>
-                                    <div className="h-12 border-b border-black w-40 mx-auto mb-2 flex items-end justify-center pb-1"></div>
-                                    <p className="font-bold">ผู้อนุมัติจ่ายเงิน (Approved By)</p>
-                                    <p className="text-[10px] text-gray-500">กรรมการผู้จัดการ / Owner</p>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {/* VIEW: SOP MANUAL */}
-            {internalTab === 'sop' && (
-                <div className="max-w-6xl mx-auto space-y-6 pt-4 pb-20">
-                    <SOPStaticContent 
-                        shopSettings={{...shopSettings, branch_id: shopSettings?.branch_id}} 
-                        isAdmin={true} 
-                        onSaveSuccess={() => {
-                            // If needed, refresh settings here, but usually local state is enough
-                        }}
-                    />
-                </div>
-            )}
-
-            <POSSOPEditorModal 
+                )}
+            </motion.div>
+                    <POSSOPEditorModal 
                 isOpen={isSopEditorOpen}
                 onClose={() => setIsSopEditorOpen(false)}
                 shopSettings={shopSettings}
@@ -2921,5 +2708,6 @@ export default function POSStaffManager({
                 </div>
             )}
         </div>
+        </>
     )
 }

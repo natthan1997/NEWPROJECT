@@ -436,8 +436,9 @@ export function usePOSTerminal({
   const [optionsModalItem, setOptionsModalItem] = useState<MenuItem | null>(null)
   const [modifierGroups, setModifierGroups] = useState<any[]>([])
   const [tempSelectedModifiers, setTempSelectedModifiers] = useState<any[]>([])
-  const [tempQuantity, setTempQuantity] = useState(1)
   const [editingCartItemIndex, setEditingCartItemIndex] = useState<number | null>(null)
+  const [tempQuantity, setTempQuantity] = useState<number>(1)
+  const [tempNote, setTempNote] = useState<string>('')
 
   // --- ITEM DISCOUNT MODAL STATE ---
   const [itemDiscountModalItem, setItemDiscountModalItem] = useState<CartItem | null>(null)
@@ -1780,6 +1781,7 @@ const [isPinModalOpen, setIsPinModalOpen] = useState(false)
           const payload: any = {
             order_action: 'insert',
             order: {
+              merchant_id: profile?.merchant_id || null,
               order_number: identity.orderNumber,
               staff_id: profile?.id,
               shift_id: activeShift?.id,
@@ -1895,6 +1897,7 @@ const [isPinModalOpen, setIsPinModalOpen] = useState(false)
         
         if (id === editingOrderId) {
           resetOrderComposer();
+          setShowPendingModal(true); // Automatically switch back to pending orders view
         }
         
         refreshPendingOrders()
@@ -1902,6 +1905,44 @@ const [isPinModalOpen, setIsPinModalOpen] = useState(false)
         alert('ไม่สามารถยกเลิกบิลได้: ' + e.message)
       }
     }, 'ยกเลิกบิล (VOID ORDER)', 'จำเป็นต้องใช้รหัสผ่านผู้จัดการในการยกเลิกบิล')
+  }
+
+  const handleClearAllOrders = async () => {
+    if (pendingOrders.length === 0) return;
+    if (
+      !confirm(
+        'คุณแน่ใจว่าต้องการล้าง (Clear) ออเดอร์ที่ค้างอยู่ทั้งหมด? (รายการทั้งหมดจะถูกเปลี่ยนสถานะเป็นยกเลิก)'
+      )
+    )
+      return
+
+    checkManagerPin(async () => {
+      try {
+        const orderIds = pendingOrders.map(o => o.id);
+        const tableIds = pendingOrders.map(o => o.table_id).filter(Boolean);
+
+        // Cancel all pending orders
+        const { error } = await supabase
+          .from('pos_orders')
+          .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+          .in('id', orderIds);
+        if (error) throw error;
+        
+        // Free up tables
+        if (tableIds.length > 0) {
+          await supabase.from('pos_tables').update({ status: 'available' }).in('id', tableIds);
+          await supabase.from('pos_tables').update({ parent_table_id: null }).in('parent_table_id', tableIds);
+        }
+        
+        if (editingOrderId && orderIds.includes(editingOrderId)) {
+          resetOrderComposer();
+        }
+        
+        refreshPendingOrders();
+      } catch (e: any) {
+        alert('ไม่สามารถล้างบิลได้: ' + e.message)
+      }
+    }, 'เคลียร์บิลทั้งหมด (CLEAR ALL)', 'จำเป็นต้องใช้รหัสผ่านผู้จัดการในการเคลียร์บิลทั้งหมด')
   }
 
   const handleResumeOrder = async (order: any, mergeWithCurrentCart: boolean = false) => {
@@ -2302,7 +2343,7 @@ const [isPinModalOpen, setIsPinModalOpen] = useState(false)
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [])
+  }, [shopSettings?.branch_id])
 
   // Real-time Member Check-in Listener & Handlers
   useEffect(() => {
@@ -2650,22 +2691,31 @@ const [isPinModalOpen, setIsPinModalOpen] = useState(false)
       query = query.is('branch_id', null)
     }
     const { data } = await query
-    if (data) setTables(data)
+    if (data) {
+      const formatted = data.map((t, idx) => ({
+        ...t,
+        position_x: t.position_x != null ? t.position_x : ((idx % 4) * 180 + 40),
+        position_y: t.position_y != null ? t.position_y : (Math.floor(idx / 4) * 180 + 40)
+      }));
+      setTables(formatted)
+    }
   }
 
-  const handleClearIdleTable = async (table: POSTable) => {
-    const shouldClear = confirm(`เคลียร์สถานะโต๊ะ ${table.table_number} ใช่ไหม?`)
-    if (!shouldClear) return
+  const handleClearIdleTable = async (tableId: string) => {
+    const table = tables.find(t => t.id === tableId)
+    if (!table) return
 
-    await supabase.from('pos_tables').update({ status: 'available' }).eq('id', table.id)
-    await supabase.from('pos_tables').update({ parent_table_id: null }).eq('parent_table_id', table.id)
-    await supabase.from('pos_tables').update({ parent_table_id: null }).eq('id', table.id)
+    checkManagerPin(async () => {
+      await supabase.from('pos_tables').update({ status: 'available' }).eq('id', table.id)
+      await supabase.from('pos_tables').update({ parent_table_id: null }).eq('parent_table_id', table.id)
+      await supabase.from('pos_tables').update({ parent_table_id: null }).eq('id', table.id)
 
-    if (selectedTable?.id === table.id) {
-      resetOrderComposer()
-    }
+      if (selectedTable?.id === table.id) {
+        resetOrderComposer()
+      }
 
-    await fetchTables()
+      await fetchTables()
+    }, 'เคลียร์สถานะโต๊ะ', `คุณกำลังล้างสถานะการเปิดโต๊ะ ${table.table_number || ''}`)
   }
 
   const openEditCartItem = async (index: number) => {
@@ -2696,6 +2746,7 @@ const [isPinModalOpen, setIsPinModalOpen] = useState(false)
     setModifierModalItem(item as any)
     setTempSelectedModifiers(item.selected_modifiers || [])
     setTempQuantity(item.quantity || 1)
+    setTempNote(item.note || '')
     setEditingCartItemIndex(index)
   }
 
@@ -2729,6 +2780,7 @@ const [isPinModalOpen, setIsPinModalOpen] = useState(false)
       setModifierModalItem(item)
       setTempSelectedModifiers([])
       setTempQuantity(1)
+      setTempNote('')
       return
     }
 
@@ -2816,6 +2868,7 @@ const [isPinModalOpen, setIsPinModalOpen] = useState(false)
         ...item, 
         quantity: qty, 
         selected_modifiers: modifiers, 
+        note: tempNote || undefined,
         discount_amount: discountAmount > 0 ? discountAmount : undefined,
         is_free_coupon_item: isFreeByCoupon,
         coupon_max_limit: isFreeByCoupon ? (activeCoupon.discount_value || 0) : undefined
@@ -3153,6 +3206,7 @@ const [isPinModalOpen, setIsPinModalOpen] = useState(false)
           order_action: editingOrderId ? 'update' : 'insert',
           order_id: editingOrderId || undefined,
           order: {
+            merchant_id: profile?.merchant_id || null,
             order_number: finalOrderNumber,
             staff_id: profile?.id,
             shift_id: activeShift?.id,
@@ -3452,6 +3506,7 @@ const [isPinModalOpen, setIsPinModalOpen] = useState(false)
         order_action: editingOrderId ? 'update' : 'insert',
         order_id: editingOrderId || undefined,
         order: {
+          merchant_id: profile?.merchant_id || null,
           order_number: finalOrderNumber,
           staff_id: profile?.id,
           shift_id: activeShift?.id,
@@ -4027,6 +4082,8 @@ const [isPinModalOpen, setIsPinModalOpen] = useState(false)
     setTempSelectedModifiers,
     tempQuantity,
     setTempQuantity,
+    tempNote,
+    setTempNote,
     editingCartItemIndex,
     setEditingCartItemIndex,
     itemDiscountModalItem,
@@ -4125,6 +4182,17 @@ const [isPinModalOpen, setIsPinModalOpen] = useState(false)
     saveDeliveryPlatformDetails,
     resetDeliveryDraft,
     resetOrderComposer,
+    discardDraftOrder: async () => {
+      if (editingOrderId && !editingOrderNumber) {
+        const targetId = editingOrderId;
+        try {
+          await supabase.from('pos_order_items').delete().eq('order_id', targetId);
+          await supabase.from('pos_orders').delete().eq('id', targetId);
+        } catch (e) {
+          console.error('Error discarding draft order:', e);
+        }
+      }
+    },
     ensureDeliveryDetailsReady,
     userRole,
     canToggleStock,
@@ -4180,6 +4248,7 @@ const [isPinModalOpen, setIsPinModalOpen] = useState(false)
     activePrintData,
     isMissingQueueColumnError,
     handleDeleteOrder,
+    handleClearAllOrders,
     handleResumeOrder,
     handleLinkCheckIn,
     handleLinkCheckInToOrder,

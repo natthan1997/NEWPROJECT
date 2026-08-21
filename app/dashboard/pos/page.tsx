@@ -189,6 +189,7 @@ function RestaurantOSPageContent() {
         .from('branches')
         .select('id')
         .eq('branch_code', profile.branch_code)
+        .eq('merchant_id', profile.merchant_id)
         .maybeSingle()
       if (data?.id) return data.id
     }
@@ -408,6 +409,7 @@ function RestaurantOSPageContent() {
         .from('branches')
         .select('id, branch_name')
         .eq('branch_code', profile.branch_code)
+        .eq('merchant_id', profile.merchant_id)
         .maybeSingle()
       if (b) {
         branchId = b.id
@@ -1176,6 +1178,55 @@ function RestaurantOSPageContent() {
   })
 
   const handleSetView = (view: POSView) => {
+    const managerRequiredViews: POSView[] = ['settings', 'staff', 'inventory', 'reports', 'menu-management'];
+    const correctPin = (shopSettings as any)?.role_permissions?.manager_pin;
+
+    if (managerRequiredViews.includes(view) && correctPin) {
+      let desc = 'กรุณากรอกรหัสผ่านผู้จัดการ (Manager PIN) เพื่อดำเนินการ';
+      if (view === 'settings') desc = 'กรุณากรอกรหัสผ่านผู้จัดการเพื่อเข้าสู่เมนูตั้งค่าร้านค้า';
+      if (view === 'staff') desc = 'กรุณากรอกรหัสผ่านผู้จัดการเพื่อเข้าสู่เมนูจัดการพนักงาน';
+      if (view === 'inventory') desc = 'กรุณากรอกรหัสผ่านผู้จัดการเพื่อเข้าสู่เมนูจัดการสต็อก';
+      if (view === 'reports') desc = 'กรุณากรอกรหัสผ่านผู้จัดการเพื่อดูรายงานยอดขาย';
+      if (view === 'menu-management') desc = 'กรุณากรอกรหัสผ่านผู้จัดการเพื่อจัดการเมนูอาหาร';
+
+      Swal.fire({
+        title: `<div style="font-size: 1.2rem; font-weight: 900; color: #1A1A18; font-family: sans-serif; margin-top: 10px;">ระบบต้องการสิทธิ์ผู้จัดการ</div>`,
+        html: `<div style="font-size: 0.95rem; font-weight: 500; color: #666; font-family: sans-serif;">${desc}</div>`,
+        input: 'password',
+        inputPlaceholder: 'รหัสผ่าน PIN',
+        inputAttributes: {
+          autocapitalize: 'off',
+          autocorrect: 'off',
+          maxlength: '10',
+          style: 'text-align: center; font-size: 1.5rem; letter-spacing: 0.5rem; margin-top: 15px;'
+        },
+        showCancelButton: true,
+        confirmButtonText: 'ยืนยัน',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#C62229',
+        cancelButtonColor: '#9CA3AF',
+        background: '#ffffff',
+        customClass: {
+          popup: 'rounded-3xl shadow-[0_20px_45px_rgba(0,0,0,0.12)] border border-gray-100 p-6',
+          input: 'rounded-xl border-gray-200 focus:border-[#C62229] focus:ring-[#C62229]',
+          confirmButton: 'rounded-xl px-6 py-2.5 font-bold',
+          cancelButton: 'rounded-xl px-6 py-2.5 font-bold'
+        },
+        preConfirm: (enteredPin) => {
+          if (enteredPin !== correctPin) {
+            Swal.showValidationMessage('รหัสผ่าน PIN ไม่ถูกต้อง!');
+          }
+          return enteredPin;
+        }
+      }).then((result) => {
+        if (result.isConfirmed) {
+          setActiveView(view)
+          localStorage.setItem('xyl_pos_active_view', view)
+        }
+      })
+      return;
+    }
+
     setActiveView(view)
     localStorage.setItem('xyl_pos_active_view', view)
   }

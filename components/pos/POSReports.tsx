@@ -730,7 +730,7 @@ export default function POSReports({
                 if (bCode) expenseQuery = expenseQuery.or(`branch_id.eq.${bId},branch_code.eq.${bCode}`)
                 else expenseQuery = expenseQuery.eq('branch_id', bId)
             } else if (bCode) {
-                expenseQuery = expenseQuery.eq('branch_code', bCode)
+                expenseQuery = expenseQuery.eq('branch_code', bCode).eq('merchant_id', profile.merchant_id)
             }
             const { data: expenses } = await expenseQuery
 

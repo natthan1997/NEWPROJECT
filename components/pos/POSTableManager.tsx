@@ -29,21 +29,29 @@ interface POSTableManagerProps {
   showOnlyGrid?: boolean
   activeZoneProps?: string
   setActiveZoneProps?: (zone: string) => void
+  tables?: any[]
+  setTables?: (tables: any[]) => void
   editingTableProps?: any
   setEditingTableProps?: (table: any) => void
   isLayoutModeProps?: boolean
   setIsLayoutModeProps?: (isLayout: boolean) => void
+  pendingOrders?: any[]
+  handleClearIdleTable?: (id: string) => void
 }
 
 export default function POSTableManager({ 
   profile, activeView, allowedNav, onSetView, onShiftModalOpen, activeShift, setViewExtraHeader, shopSettings,
   showOnlyZones, showOnlyGrid, activeZoneProps, setActiveZoneProps,
-  editingTableProps, setEditingTableProps, isLayoutModeProps, setIsLayoutModeProps
+  editingTableProps, setEditingTableProps, isLayoutModeProps, setIsLayoutModeProps,
+  pendingOrders, handleClearIdleTable, tables: tablesProps, setTables: setTablesProps
 }: POSTableManagerProps) {
     const { locale } = useI18n();
   const containerRef = useRef<HTMLDivElement>(null)
-  const [tables, setTables] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  
+  const [internalTables, setInternalTables] = useState<any[]>([])
+  const tables = tablesProps !== undefined ? tablesProps : internalTables
+  const setTables = setTablesProps !== undefined ? setTablesProps : setInternalTables
+
   const [isEditorOpen, setIsEditorOpen] = useState(false)
   const [editingTableInternalState, setEditingTableInternalState] = useState<any>(null)
   const editingTable = editingTableProps !== undefined ? editingTableProps : editingTableInternalState;
@@ -137,33 +145,6 @@ export default function POSTableManager({
     setIsLayoutMode(true);
   }
 
-  const fetchTables = async () => {
-    setLoading(true)
-    try {
-        const branchId = shopSettings?.branch_id;
-        let query = supabase.from('pos_tables').select('*').order('table_number')
-        if (branchId) {
-            query = query.or(`branch_id.eq.${branchId},branch_id.is.null`)
-        } else {
-            query = query.is('branch_id', null)
-        }
-        const { data, error } = await query
-        if (error) throw error
-        if (data) {
-           const formatted = data.map((t, idx) => ({
-              ...t,
-              position_x: t.position_x ?? (idx % 5) * 150 + 20,
-              position_y: t.position_y ?? Math.floor(idx / 5) * 150 + 20
-           }));
-           setTables(formatted)
-        }
-    } catch (e) {
-        console.error('Fetch Tables Error:', e)
-    } finally {
-        setLoading(false)
-    }
-  }
-
   const fetchZones = async () => {
       const branchId = shopSettings?.branch_id;
       let query = supabase.from('pos_zones').select('*');
@@ -177,16 +158,10 @@ export default function POSTableManager({
   }
 
   useEffect(() => {
-    fetchTables()
     fetchZones()
 
     const channel = supabase
       .channel(`pos_tables_realtime_${Math.random().toString(36).substring(2, 9)}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_tables' }, () => {
-        if (!isLayoutModeRef.current) {
-          fetchTables()
-        }
-      })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_zones' }, () => {
         fetchZones()
       })
@@ -236,7 +211,7 @@ export default function POSTableManager({
        }
        
        setIsLayoutMode(false)
-       fetchTables() // Refresh to get proper IDs
+       // Parent's realtime listener will automatically fetch updated tables
     } catch (e) {
       console.error(e)
       alert('Error saving layout')
@@ -261,7 +236,6 @@ export default function POSTableManager({
   const handleDeleteTable = async (id: string) => {
     if (!confirm('ยืนยันการลบโต๊ะนี้?')) return
     await supabase.from('pos_tables').delete().eq('id', id)
-    fetchTables()
   }
 
   const handleSaveTable = async () => {
@@ -270,7 +244,6 @@ export default function POSTableManager({
     if (!error) {
       setIsEditorOpen(false)
       setEditingTable(null)
-      fetchTables()
     }
     setIsSaving(false)
   }
@@ -341,8 +314,10 @@ export default function POSTableManager({
     }, 'image/png');
   }
 
-  const allZones = Array.from(new Set([...tables.map(t => t.zone || 'Main'), ...dbZones.map(z => z.name)]));
-  if (!allZones.includes('Main')) allZones.unshift('Main');
+  const allZones = ['Main', ...Array.from(new Set([
+    ...dbZones.map(z => z.name),
+    ...tables.map(t => t.zone).filter(Boolean)
+  ]))];
 
   const submitNewZone = async () => {
       if (newZoneName && newZoneName.trim()) {
@@ -370,7 +345,6 @@ export default function POSTableManager({
       await supabase.from('pos_zones').delete().eq('name', editingZone).eq('branch_id', shopSettings?.branch_id || null);
       
       fetchZones();
-      fetchTables();
       setActiveZone(newName);
       setEditingZone(newName);
   }
@@ -381,7 +355,6 @@ export default function POSTableManager({
       await supabase.from('pos_zones').delete().eq('name', zoneName).eq('branch_id', shopSettings?.branch_id || null);
       await supabase.from('pos_tables').update({ zone: 'Main' }).eq('zone', zoneName);
       fetchZones();
-      fetchTables();
       setActiveZone('Main');
       if (editingZone === zoneName) setEditingZone(null);
   }
@@ -632,6 +605,18 @@ export default function POSTableManager({
           </div>
 
           <div className="flex flex-col gap-2 pt-4 border-t border-neutral-100 shrink-0">
+            {editingTable?.id && (() => {
+              const pending = pendingOrders?.filter(o => o.table_id === editingTable.id && o.status === 'pending') || [];
+              const isOcc = editingTable.status === 'occupied' || pending.length > 0;
+              return isOcc && pending.length === 0 && handleClearIdleTable && (
+                <button 
+                  onClick={() => { handleClearIdleTable!(editingTable.id); setEditingTable(null); }} 
+                  className="w-full py-3 rounded-xl border border-orange-100 bg-orange-50 text-orange-600 text-xs font-black uppercase tracking-wider hover:bg-orange-100 transition-all flex items-center justify-center gap-1.5"
+                >
+                  เคลียร์สถานะโต๊ะ (Clear)
+                </button>
+              );
+            })()}
             {editingTable?.id && (
               <button 
                 onClick={() => { handleDeleteTable(editingTable.id); setEditingTable(null); }} 
@@ -719,7 +704,6 @@ export default function POSTableManager({
                    <button 
                      onClick={() => {
                        setIsLayoutMode(false);
-                       fetchTables();
                      }} 
                      className="px-4 py-2 hover:bg-red-50 text-gray-500 hover:text-[#D3202B] rounded-full text-[11px] font-bold uppercase tracking-widest transition-all active:scale-95"
                    >
@@ -741,12 +725,7 @@ export default function POSTableManager({
                  ref={containerRef}
                  className="relative w-full h-full"
                  style={{ backgroundImage: isLayoutMode ? 'radial-gradient(#fca5a5 1.5px, transparent 1.5px)' : 'none', backgroundSize: '32px 32px' }}>
-                {loading ? (
-                   <div className="absolute inset-0 flex items-center justify-center opacity-30">
-                       <Loader2 className="animate-spin text-neutral-400" size={48} />
-                   </div>
-                ) : (
-                   <>
+
                       <AnimatePresence>
                       {(() => {
                           const displayTables = [...tables];
@@ -783,20 +762,33 @@ export default function POSTableManager({
                              }
                           }}
                       >
-                          {/* TABLE BODY (CLEAN) */}
-                          <div className={`relative w-full h-full flex flex-col items-center justify-center z-10 ${table.shape === 'circle' ? 'rounded-full' : (table.shape === 'rectangle' || table.shape === 'rectangle_vertical' ? 'rounded-[1.5rem]' : 'rounded-2xl')} ${isLayoutMode ? 'bg-white border-2 border-dashed border-neutral-300 text-black shadow-sm group-hover:border-neutral-500' : (table.status === 'occupied' ? 'bg-[#D3202B] text-white shadow-lg' : 'bg-white border border-neutral-200 text-neutral-800 shadow-sm')} transition-all`}>
-                              {/* Removed red pencil icon as requested */}
-                             <div className={`text-2xl sm:text-3xl font-bold tracking-tight pointer-events-none`}>{table.table_number}</div>
-                             <div className="mt-1 flex flex-col items-center pointer-events-none">
-                                 <span className={`text-[9px] sm:text-[10px] font-medium uppercase tracking-widest ${isLayoutMode ? 'text-neutral-400' : (table.status === 'occupied' ? 'text-red-200' : 'text-neutral-500')}`}>Seats {table.capacity}</span>
-                             </div>
-                             
-                             {table.parent_table_id && (
-                                 <div className="absolute -bottom-3 bg-black border border-neutral-800 text-white text-[9px] px-3 py-1 rounded-full font-bold shadow-md whitespace-nowrap flex items-center gap-1">
-                                     🔗 รวมโต๊ะ {tables.find(t => t.id === table.parent_table_id)?.table_number}
-                                 </div>
-                             )}
-                          </div>
+                          {(() => {
+                            const pending = pendingOrders?.filter(o => o.table_id === table.id && o.status === 'pending') || [];
+                            const isOccupied = table.status === 'occupied' || pending.length > 0;
+                            return (
+                              <>
+                                {/* TABLE BODY (CLEAN) */}
+                                <div className={`relative w-full h-full flex flex-col items-center justify-center z-10 ${table.shape === 'circle' ? 'rounded-full' : (table.shape === 'rectangle' || table.shape === 'rectangle_vertical' ? 'rounded-[1.5rem]' : 'rounded-2xl')} ${isLayoutMode ? 'bg-white border-2 border-dashed border-neutral-300 text-black shadow-sm group-hover:border-neutral-500' : (isOccupied ? 'bg-[#1A1A18] text-white border-[#1A1A18] shadow-lg' : 'bg-white border border-neutral-200 text-neutral-800 shadow-sm hover:border-neutral-400')} transition-all`}>
+                                   {isOccupied && (
+                                     <span className="absolute top-1.5 right-1.5 flex h-2 w-2">
+                                       <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+                                       <span className="relative inline-flex h-2 w-2 rounded-full bg-[#D3202B]" />
+                                     </span>
+                                   )}
+                                   <div className={`text-2xl sm:text-3xl font-bold tracking-tight pointer-events-none`}>{table.table_number}</div>
+                                   <div className="mt-1 flex flex-col items-center pointer-events-none">
+                                       <span className={`text-[9px] sm:text-[10px] font-medium uppercase tracking-widest ${isLayoutMode ? 'text-neutral-400' : (isOccupied ? 'text-neutral-400' : 'text-neutral-500')}`}>Seats {table.capacity}</span>
+                                   </div>
+                                   
+                                   {table.parent_table_id && (
+                                       <div className="absolute -bottom-3 bg-black border border-neutral-800 text-white text-[9px] px-3 py-1 rounded-full font-bold shadow-md whitespace-nowrap flex items-center gap-1">
+                                           🔗 รวมโต๊ะ {tables.find(t => t.id === table.parent_table_id)?.table_number}
+                                       </div>
+                                   )}
+                                </div>
+                              </>
+                            );
+                          })()}
                           
                           {/* Animated Border for Selected or New Table */}
                           {(editingTable?.id === table.id || pendingEditTableId === table.id) && (
@@ -863,10 +855,8 @@ export default function POSTableManager({
                           </AnimatePresence>
                       </div>
                   )}
-               </>
-            )}
+               </div>
             </div>
-          </div>
         </div>
       </div>
 

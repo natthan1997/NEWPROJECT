@@ -765,19 +765,25 @@ function LiffMemberContent() {
 
       const { latitude, longitude } = position.coords;
 
-      // 2. Fetch all shop settings to get branch locations
-      const { data: settings } = await supabase
-        .from('pos_shop_settings')
-        .select('latitude, longitude, check_in_radius');
+      // 2. Fetch all shop settings and branches to get locations
+      const [{ data: settings }, { data: branches }] = await Promise.all([
+        supabase.from('pos_shop_settings').select('branch_id, latitude, longitude, check_in_radius'),
+        supabase.from('branches').select('id, latitude, longitude')
+      ]);
       
       let isAtStore = false;
       let minDistance = Infinity;
 
-      if (settings && settings.length > 0) {
-        for (const shop of settings) {
-          const shopLat = shop.latitude || 13.7563;
-          const shopLng = shop.longitude || 100.5018;
-          const radius = shop.check_in_radius || 100;
+      if ((settings && settings.length > 0) || (branches && branches.length > 0)) {
+        const shopList = settings || [];
+        const branchList = branches || [];
+        
+        // Loop through all branches and match with settings
+        for (const branch of branchList) {
+          const setting = shopList.find(s => s.branch_id === branch.id);
+          const shopLat = setting?.latitude || branch.latitude || 13.7563;
+          const shopLng = setting?.longitude || branch.longitude || 100.5018;
+          const radius = setting?.check_in_radius || 100;
           
           const withinRange = isWithinRange(latitude, longitude, shopLat, shopLng, radius);
           const dist = calculateDistance(latitude, longitude, shopLat, shopLng) * 1000;
@@ -789,7 +795,7 @@ function LiffMemberContent() {
           }
         }
       } else {
-        // If no settings configured in DB, bypass the check
+        // If no settings or branches configured in DB, bypass the check
         isAtStore = true;
       }
 
