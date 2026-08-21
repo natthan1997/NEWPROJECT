@@ -22,6 +22,16 @@ public class PrinterSocketPlugin: CAPPlugin {
         
         var hasResolved = false
         
+        // Timeout after 5.0 seconds to prevent hanging if IP is unreachable
+        let timeoutWorkItem = DispatchWorkItem {
+            if !hasResolved {
+                hasResolved = true
+                connection.cancel()
+                call.reject("Connection timed out. IP \(ip) is unreachable or printer is offline.")
+            }
+        }
+        DispatchQueue.global().asyncAfter(deadline: .now() + 5.0, execute: timeoutWorkItem)
+        
         connection.stateUpdateHandler = { state in
             switch state {
             case .ready:
@@ -29,12 +39,14 @@ public class PrinterSocketPlugin: CAPPlugin {
                     if let error = error {
                         if !hasResolved {
                             hasResolved = true
+                            timeoutWorkItem.cancel()
                             connection.cancel()
                             call.reject("Failed to send data: \(error.localizedDescription)")
                         }
                     } else {
                         if !hasResolved {
                             hasResolved = true
+                            timeoutWorkItem.cancel()
                             connection.cancel()
                             call.resolve()
                         }
@@ -43,6 +55,7 @@ public class PrinterSocketPlugin: CAPPlugin {
             case .failed(let error):
                 if !hasResolved {
                     hasResolved = true
+                    timeoutWorkItem.cancel()
                     connection.cancel()
                     call.reject("Connection failed: \(error.localizedDescription)")
                 }
