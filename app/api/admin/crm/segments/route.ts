@@ -49,7 +49,21 @@ export async function GET(req: NextRequest) {
         .eq('merchant_id', merchantId),
       supabaseAdmin
         .from('pos_orders')
-        .select('id, member_id, created_at, net_total, status')
+        .select(`
+          id, 
+          member_id, 
+          created_at, 
+          net_total, 
+          status,
+          pos_order_items(
+            id,
+            item_id,
+            quantity,
+            unit_price,
+            selected_modifiers,
+            pos_menu_items(name)
+          )
+        `)
         .eq('merchant_id', merchantId)
         .in('status', ['paid', 'accepted', 'preparing', 'shipping', 'out_for_delivery', 'completed', 'delivered'])
     ]);
@@ -73,6 +87,7 @@ export async function GET(req: NextRequest) {
 
     const now = Date.now();
     const MS_PER_DAY = 1000 * 60 * 60 * 24;
+    const DAYS_TH = ['วันอาทิตย์', 'วันจันทร์', 'วันอังคาร', 'วันพุธ', 'วันพฤหัสบดี', 'วันศุกร์', 'วันเสาร์'];
 
     const segmentedMembers = members.map(m => {
       const memberOrders = ordersByMember[m.id] || [];
@@ -95,6 +110,63 @@ export async function GET(req: NextRequest) {
 
       // Calculate Monetary (M)
       const monetary = memberOrders.reduce((sum, o) => sum + Number(o.net_total || 0), 0);
+
+      // Deep Analytics
+      const menuCounts: Record<string, number> = {};
+      const modifierCounts: Record<string, number> = {};
+      const hourCounts: Record<number, number> = {};
+      const dayCounts: Record<number, number> = {};
+
+      memberOrders.forEach(o => {
+        const date = new Date(o.created_at);
+        const hour = date.getHours();
+        const day = date.getDay();
+
+        hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+        dayCounts[day] = (dayCounts[day] || 0) + 1;
+
+        const items = (o as any).pos_order_items || [];
+        items.forEach((item: any) => {
+          const name = item.pos_menu_items?.name || 'ไม่ระบุชื่อเมนู';
+          const qty = Number(item.quantity || 1);
+          menuCounts[name] = (menuCounts[name] || 0) + qty;
+
+          // Modifiers
+          const modifiers = item.selected_modifiers;
+          if (Array.isArray(modifiers)) {
+            modifiers.forEach((mod: any) => {
+              if (mod.name && mod.value) {
+                const label = `${mod.name}: ${mod.value}`;
+                modifierCounts[label] = (modifierCounts[label] || 0) + qty;
+              }
+            });
+          }
+        });
+      });
+
+      // Sort and get Top 3 Menus
+      const favoriteMenus = Object.entries(menuCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([name, count]) => ({ name, count }));
+
+      // Sort and get Top 3 Options
+      const favoriteModifiers = Object.entries(modifierCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([name, count]) => ({ name, count }));
+
+      // Sort and get Top 2 Hours
+      const favoriteHours = Object.entries(hourCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 2)
+        .map(([h, count]) => ({ hour: `${String(h).padStart(2, '0')}:00 น.`, count }));
+
+      // Sort and get Top 2 Days
+      const favoriteDays = Object.entries(dayCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 2)
+        .map(([d, count]) => ({ dayName: DAYS_TH[Number(d)], count }));
 
       // Categorize into segments
       let segment: 'loyal' | 'churn' | 'inactive' | 'general' = 'general';
@@ -131,6 +203,12 @@ export async function GET(req: NextRequest) {
           frequency,
           monetary,
           lastOrderDate
+        },
+        analytics: {
+          favoriteMenus,
+          favoriteModifiers,
+          favoriteHours,
+          favoriteDays,
         },
         segment
       };

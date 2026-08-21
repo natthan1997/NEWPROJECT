@@ -17,6 +17,7 @@ export default function LoyaltySettingsPage() {
   const [segmentsSummary, setSegmentsSummary] = useState<any>({ total: 0, loyal: 0, churn: 0, inactive: 0, general: 0 });
   const [allSegmentMembers, setAllSegmentMembers] = useState<any[]>([]);
   const [selectedSegmentDetail, setSelectedSegmentDetail] = useState<string | null>(null);
+  const [selectedMemberForDetail, setSelectedMemberForDetail] = useState<any | null>(null);
   const [broadcastSegment, setBroadcastSegment] = useState<string>('churn');
   const [broadcastMessage, setBroadcastMessage] = useState<string>('สวัสดีครับคุณ {name} ทางร้าน RUSH UP คิดถึงคุณจังเลย! ขอมอบของขวัญพิเศษเป็นคูปองส่วนลดสำหรับสั่งซื้อครั้งถัดไปนะครับ เปิดแอป LINE เพื่อกดดูคูปองได้เลยครับ');
   const [broadcastCouponId, setBroadcastCouponId] = useState<string>('');
@@ -1018,7 +1019,11 @@ export default function LoyaltySettingsPage() {
                 </div>
               ) : (
                 currentSegmentMembers.map(m => (
-                  <div key={m.id} className="p-3 bg-neutral-50/60 hover:bg-neutral-50 border border-gray-100 rounded-xl flex items-center justify-between gap-3 text-left">
+                  <div 
+                    key={m.id} 
+                    onClick={() => setSelectedMemberForDetail(m)}
+                    className="p-3 bg-neutral-50/60 hover:bg-neutral-50 border border-gray-100 hover:border-red-200 cursor-pointer rounded-xl flex items-center justify-between gap-3 text-left transition-all active:scale-[0.98]"
+                  >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className="relative w-8 h-8 rounded-full overflow-hidden shrink-0 bg-gray-200">
                         {m.avatar_url ? (
@@ -1108,6 +1113,171 @@ export default function LoyaltySettingsPage() {
             </table>
           </div>
         </div>
+
+        {/* Detailed Customer Analytics Modal */}
+        {selectedMemberForDetail && (
+          <div className="fixed inset-0 bg-black/55 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+            <div className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full overflow-hidden border border-black/5 flex flex-col max-h-[85vh] animate-in fade-in zoom-in duration-200">
+              {/* Header */}
+              <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-neutral-50/50">
+                <div className="flex items-center gap-3">
+                  <div className="relative w-12 h-12 rounded-full overflow-hidden shrink-0 bg-gray-200">
+                    {selectedMemberForDetail.avatar_url ? (
+                      <img src={selectedMemberForDetail.avatar_url} alt={selectedMemberForDetail.display_name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-lg font-black text-gray-400">
+                        {String(selectedMemberForDetail.display_name || '?').slice(0, 1)}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="font-black text-lg text-gray-900 leading-snug">{selectedMemberForDetail.display_name || 'ลูกค้าไม่มีชื่อ'}</h3>
+                    <p className="text-xs text-gray-400 font-semibold">{selectedMemberForDetail.phone || 'ไม่มีเบอร์โทร'}</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setSelectedMemberForDetail(null)}
+                  className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-black flex items-center justify-center transition-colors active:scale-95 border-none"
+                >
+                  <X size={16} strokeWidth={3} />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="p-6 overflow-y-auto space-y-5 text-left">
+                {/* RFM Indicators */}
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="bg-neutral-50 p-2.5 rounded-xl border border-gray-100 text-center">
+                    <span className="text-[9px] font-black text-gray-400 uppercase">Recency (ล่าสุด)</span>
+                    <p className="text-sm font-black text-gray-800 mt-1">{selectedMemberForDetail.rfm.recency} วันก่อน</p>
+                  </div>
+                  <div className="bg-neutral-50 p-2.5 rounded-xl border border-gray-100 text-center">
+                    <span className="text-[9px] font-black text-gray-400 uppercase">Frequency (บ่อย)</span>
+                    <p className="text-sm font-black text-gray-800 mt-1">{selectedMemberForDetail.rfm.frequency} ครั้ง</p>
+                  </div>
+                  <div className="bg-neutral-50 p-2.5 rounded-xl border border-gray-100 text-center">
+                    <span className="text-[9px] font-black text-gray-400 uppercase">Monetary (ยอด)</span>
+                    <p className="text-sm font-black text-emerald-600 mt-1">฿{selectedMemberForDetail.rfm.monetary.toLocaleString()}</p>
+                  </div>
+                </div>
+
+                {/* Point & LINE Info */}
+                <div className="flex items-center justify-between p-3 bg-red-50/30 border border-red-100 rounded-xl">
+                  <div>
+                    <span className="text-[9px] font-black text-red-500 uppercase">Loyalty Status</span>
+                    <p className="text-xs font-bold text-gray-800 mt-0.5">แต้มสะสม: <span className="font-black text-red-600 text-sm">{selectedMemberForDetail.points || 0}</span> แต้ม</p>
+                  </div>
+                  {selectedMemberForDetail.line_user_id ? (
+                    <span className="text-[9px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200/50 px-2 py-0.5 rounded-md">
+                      LINE CONNECTED
+                    </span>
+                  ) : (
+                    <span className="text-[9px] font-black text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">
+                      NO LINE LINKED
+                    </span>
+                  )}
+                </div>
+
+                {/* Top Favorite Menus */}
+                <div className="space-y-2">
+                  <h4 className="text-xs font-black uppercase text-gray-400 tracking-wider flex items-center gap-1.5 border-b border-gray-100 pb-1">
+                    <Gift className="w-3.5 h-3.5 text-red-500" /> เมนูโปรดที่สั่งบ่อยที่สุด
+                  </h4>
+                  <div className="space-y-1.5">
+                    {(!selectedMemberForDetail.analytics?.favoriteMenus || selectedMemberForDetail.analytics.favoriteMenus.length === 0) ? (
+                      <p className="text-xs font-bold text-gray-400 py-1">ไม่มีข้อมูลการสั่งซื้อสำเร็จ</p>
+                    ) : (
+                      selectedMemberForDetail.analytics.favoriteMenus.map((menu: any, idx: number) => (
+                        <div key={menu.name} className="flex justify-between items-center text-xs font-bold text-gray-700 py-0.5">
+                          <span className="flex items-center gap-1.5 truncate">
+                            <span className="w-4 h-4 rounded-full bg-neutral-100 text-neutral-600 flex items-center justify-center text-[9px] font-black shrink-0">{idx + 1}</span>
+                            <span className="truncate">{menu.name}</span>
+                          </span>
+                          <span className="text-neutral-500 font-black bg-neutral-100 px-2 py-0.5 rounded-md shrink-0">
+                            {menu.count} แก้ว/ชิ้น
+                          </span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* Top Modifiers/Options */}
+                <div className="space-y-2">
+                  <h4 className="text-xs font-black uppercase text-gray-400 tracking-wider flex items-center gap-1.5 border-b border-gray-100 pb-1">
+                    <Tag className="w-3.5 h-3.5 text-blue-500" /> ตัวเลือกปรับแต่งโปรด
+                  </h4>
+                  <div className="space-y-1.5">
+                    {(!selectedMemberForDetail.analytics?.favoriteModifiers || selectedMemberForDetail.analytics.favoriteModifiers.length === 0) ? (
+                      <p className="text-xs font-bold text-gray-400 py-1">ไม่มีข้อมูลประวัติตัวเลือกที่ระบุ</p>
+                    ) : (
+                      selectedMemberForDetail.analytics.favoriteModifiers.map((mod: any, idx: number) => (
+                        <div key={mod.name} className="flex justify-between items-center text-xs font-bold text-gray-700 py-0.5">
+                          <span className="flex items-center gap-1.5 truncate">
+                            <span className="w-4 h-4 rounded-full bg-neutral-100 text-neutral-600 flex items-center justify-center text-[9px] font-black shrink-0">{idx + 1}</span>
+                            <span className="truncate">{mod.name}</span>
+                          </span>
+                          <span className="text-blue-600 font-black bg-blue-50 px-2 py-0.5 rounded-md shrink-0">
+                            {mod.count} ครั้ง
+                          </span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* Timing Habits */}
+                <div className="grid grid-cols-2 gap-4 pt-1">
+                  <div className="space-y-2">
+                    <h4 className="text-[10px] font-black uppercase text-gray-400 tracking-wider border-b border-gray-100 pb-1">
+                      ช่วงเวลาสั่งซื้อหลัก
+                    </h4>
+                    <div className="space-y-1">
+                      {(!selectedMemberForDetail.analytics?.favoriteHours || selectedMemberForDetail.analytics.favoriteHours.length === 0) ? (
+                        <p className="text-[10px] font-bold text-gray-400">ไม่มีข้อมูลเวลา</p>
+                      ) : (
+                        selectedMemberForDetail.analytics.favoriteHours.map((h: any) => (
+                          <div key={h.hour} className="flex justify-between items-center text-[10px] font-bold text-gray-600">
+                            <span>🕒 {h.hour}</span>
+                            <span>{h.count} ครั้ง</span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h4 className="text-[10px] font-black uppercase text-gray-400 tracking-wider border-b border-gray-100 pb-1">
+                      วันสั่งซื้อประจำสัปดาห์
+                    </h4>
+                    <div className="space-y-1">
+                      {(!selectedMemberForDetail.analytics?.favoriteDays || selectedMemberForDetail.analytics.favoriteDays.length === 0) ? (
+                        <p className="text-[10px] font-bold text-gray-400">ไม่มีข้อมูลวัน</p>
+                      ) : (
+                        selectedMemberForDetail.analytics.favoriteDays.map((d: any) => (
+                          <div key={d.dayName} className="flex justify-between items-center text-[10px] font-bold text-gray-600">
+                            <span>📅 {d.dayName}</span>
+                            <span>{d.count} ครั้ง</span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="p-4 border-t border-gray-100 bg-neutral-50/50 flex justify-end">
+                <button 
+                  onClick={() => setSelectedMemberForDetail(null)}
+                  className="px-5 py-2 bg-gray-800 text-white rounded-xl text-xs font-black uppercase tracking-wider hover:bg-black transition-colors"
+                >
+                  ปิดหน้าต่าง
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
