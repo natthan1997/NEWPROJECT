@@ -259,7 +259,14 @@ export default function POSStaffManager({
 
     const generateLineInvite = async (staff: any) => {
         try {
-            const res = await fetch(`/api/auth/staff/invite?profile_id=${staff.id}`)
+            const { data: { session } } = await supabase.auth.getSession();
+            const accessToken = session?.access_token || '';
+
+            const res = await fetch(`/api/auth/staff/invite?profile_id=${staff.id}`, {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                }
+            })
             if (!res.ok) throw new Error('Failed to generate invite')
             const data = await res.json()
             setLineInviteData({ profileId: staff.id, inviteUrl: data.inviteUrl, displayName: staff.display_name || staff.full_name })
