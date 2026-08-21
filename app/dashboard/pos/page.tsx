@@ -1372,7 +1372,7 @@ function RestaurantOSPageContent() {
   const isMuted = typeof window !== 'undefined' && localStorage.getItem('pos_mute_sounds') === 'true'
 
   return (
-    <div className="italic-selection h-screen bg-white" onClick={!isAudioEnabled && !isMuted ? unlockAudio : undefined}>
+    <div className="italic-selection h-screen h-[100dvh] min-h-[100dvh] overflow-hidden bg-white" onClick={!isAudioEnabled && !isMuted ? unlockAudio : undefined}>
       <POSLayout
         profile={profile}
         activeView={activeView || 'terminal'}
