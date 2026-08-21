@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
 
     // 2. Parse payload
     const body = await req.json();
-    const { token } = body;
+    const { token, displayName, phone } = body;
 
     if (!token) {
       return NextResponse.json({ success: false, error: 'Missing required field: token' }, { status: 400 });
@@ -57,16 +57,21 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Update the user profile to be staff linked to the merchant
+    const updateData: any = {
+      role: 'staff',
+      merchant_id: invite.merchant_id,
+      staff_level: invite.role, // e.g. 'staff', 'manager', 'admin'
+      branch_code: invite.branch_code || null,
+      is_verified: true, // Auto-verify upon accepting owner's invite link
+      is_pos_account: true // Default to enabling POS access
+    };
+
+    if (displayName) updateData.display_name = displayName;
+    if (phone) updateData.phone = phone;
+
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
-      .update({
-        role: 'staff',
-        merchant_id: invite.merchant_id,
-        staff_level: invite.role, // e.g. 'staff', 'manager', 'admin'
-        branch_code: invite.branch_code || null,
-        is_verified: true, // Auto-verify upon accepting owner's invite link
-        is_pos_account: true // Default to enabling POS access
-      })
+      .update(updateData)
       .eq('id', user.id);
 
     if (profileError) {

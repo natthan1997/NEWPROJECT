@@ -19,6 +19,8 @@ export default function AcceptInvitePage() {
   const [currentUser, setCurrentUser] = useState<any | null>(null);
   const [accepting, setAccepting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [displayName, setDisplayName] = useState('');
+  const [phone, setPhone] = useState('');
 
   useEffect(() => {
     checkUser();
@@ -33,6 +35,9 @@ export default function AcceptInvitePage() {
   const checkUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     setCurrentUser(user);
+    if (user?.user_metadata) {
+      setDisplayName(user.user_metadata.display_name || user.user_metadata.full_name || user.user_metadata.name || '');
+    }
   };
 
   const fetchInviteDetails = async () => {
@@ -77,6 +82,10 @@ export default function AcceptInvitePage() {
       return;
     }
 
+    if (!displayName.trim()) {
+      return alert('กรุณากรอกชื่อจริงหรือชื่อเล่นของคุณ');
+    }
+
     setAccepting(true);
     try {
       const response = await fetch('/api/admin/staff/invite/accept', {
@@ -84,7 +93,11 @@ export default function AcceptInvitePage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ token }),
+        body: JSON.stringify({ 
+          token,
+          displayName: displayName.trim(),
+          phone: phone.trim() || null
+        }),
       });
 
       const result = await response.json();
@@ -192,39 +205,65 @@ export default function AcceptInvitePage() {
               </div>
             </div>
 
-            {/* Accept Button / Redirect State */}
-            <div className="space-y-3 pt-2">
-              {currentUser ? (
-                <button
-                  onClick={handleAcceptInvite}
-                  disabled={accepting}
-                  className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white py-4 rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-2 active:scale-95 shadow-lg shadow-red-600/20 border-none animate-bounce"
-                >
-                  {accepting ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowRight className="w-5 h-5" />}
-                  ยอมรับคำเชิญและเริ่มงาน
-                </button>
-              ) : (
-                <div className="space-y-3">
-                  <p className="text-xs text-gray-400 font-medium leading-relaxed">
-                    กรุณาเข้าสู่ระบบหรือสร้างบัญชีใหม่เพื่อผูกประวัติพนักงานของคุณกับร้านนี้
-                  </p>
-                  <button
-                    onClick={() => {
-                      const currentPath = window.location.pathname + window.location.search;
-                      router.push(`/login?redirectTo=${encodeURIComponent(currentPath)}`);
-                    }}
-                    className="w-full bg-white text-black hover:bg-gray-100 text-sm py-4 rounded-2xl font-black transition-all flex items-center justify-center gap-2 active:scale-95 border-none"
-                  >
-                    <LogIn className="w-4 h-4" />
-                    เข้าสู่ระบบเพื่อยอมรับสิทธิ์
-                  </button>
-                </div>
-              )}
+             {/* Accept Button / Redirect State */}
+             <div className="space-y-3 pt-2">
+               {currentUser ? (
+                 <div className="space-y-4">
+                   {/* Onboarding fields for the staff to fill in their own nickname and phone */}
+                   <div className="space-y-3 pt-2 pb-2 text-left font-semibold text-xs">
+                     <div className="space-y-1.5">
+                       <label className="text-[10px] text-gray-400 block uppercase font-black tracking-wider">ชื่อจริง หรือ ชื่อเล่นของคุณ *</label>
+                       <input
+                         type="text"
+                         value={displayName}
+                         onChange={(e) => setDisplayName(e.target.value)}
+                         placeholder="เช่น สมชาย (แสดงผลในระบบ POS)"
+                         className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-sm outline-none text-white focus:border-red-500 transition-colors font-bold"
+                       />
+                     </div>
+                     <div className="space-y-1.5">
+                       <label className="text-[10px] text-gray-400 block uppercase font-black tracking-wider">เบอร์โทรศัพท์ของคุณ (ถ้ามี)</label>
+                       <input
+                         type="text"
+                         value={phone}
+                         onChange={(e) => setPhone(e.target.value)}
+                         placeholder="เช่น 0891234567"
+                         className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-sm outline-none text-white focus:border-red-500 transition-colors font-bold"
+                       />
+                     </div>
+                   </div>
 
-              <p className="text-[10px] text-gray-500 font-bold">
-                * ลิงก์คำเชิญนี้มีอายุจำกัดและสามารถรับสิทธิ์ได้เพียงครั้งเดียวเท่านั้น
-              </p>
-            </div>
+                   <button
+                     onClick={handleAcceptInvite}
+                     disabled={accepting}
+                     className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white py-4 rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-2 active:scale-95 shadow-lg shadow-red-600/20 border-none animate-bounce cursor-pointer"
+                   >
+                     {accepting ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowRight className="w-5 h-5" />}
+                     ยอมรับคำเชิญและเริ่มงาน
+                   </button>
+                 </div>
+               ) : (
+                 <div className="space-y-3">
+                   <p className="text-xs text-gray-400 font-medium leading-relaxed">
+                     กรุณาเข้าสู่ระบบหรือสร้างบัญชีใหม่เพื่อผูกประวัติพนักงานของคุณกับร้านนี้
+                   </p>
+                   <button
+                     onClick={() => {
+                       const currentPath = window.location.pathname + window.location.search;
+                       router.push(`/login?redirectTo=${encodeURIComponent(currentPath)}`);
+                     }}
+                     className="w-full bg-white text-black hover:bg-gray-100 text-sm py-4 rounded-2xl font-black transition-all flex items-center justify-center gap-2 active:scale-95 border-none cursor-pointer"
+                   >
+                     <LogIn className="w-4 h-4" />
+                     เข้าสู่ระบบเพื่อยอมรับสิทธิ์
+                   </button>
+                 </div>
+               )}
+
+               <p className="text-[10px] text-gray-500 font-bold">
+                 * ลิงก์คำเชิญนี้มีอายุจำกัดและสามารถรับสิทธิ์ได้เพียงครั้งเดียวเท่านั้น
+               </p>
+             </div>
           </div>
         )}
       </div>
