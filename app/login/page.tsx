@@ -52,8 +52,14 @@ export default function Login() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
-    const nextCandidate = params.get('next') || ''
-    if (nextCandidate.startsWith('/dashboard') || nextCandidate.startsWith('/invite')) setNextPath(nextCandidate)
+    const nextCandidate = params.get('next') || params.get('redirectTo') || ''
+    if (
+      nextCandidate.startsWith('/dashboard') || 
+      nextCandidate.startsWith('/invite') || 
+      nextCandidate.startsWith('/staff/accept-invite')
+    ) {
+      setNextPath(nextCandidate)
+    }
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {

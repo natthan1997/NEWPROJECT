@@ -2762,7 +2762,7 @@ export default function POSStaffManager({
 
                                 {newStaffForm.has_login && (
                                     <div className="flex gap-3 pt-2">
-                                        <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all cursor-pointer ${newStaffForm.login_method === 'invite' ? 'border-[#00B900] bg-[#00B900]/10 text-[#00B900]' : 'border-neutral-200 bg-white text-neutral-500'}`}>
+                                        <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all cursor-pointer ${newStaffForm.login_method === 'invite' ? 'border-[#D3202B] bg-[#D3202B]/5 text-[#D3202B]' : 'border-neutral-200 bg-white text-neutral-500'}`}>
                                             <input 
                                                 type="radio" 
                                                 name="login_method" 
@@ -2771,8 +2771,8 @@ export default function POSStaffManager({
                                                 onChange={() => setNewStaffForm({...newStaffForm, login_method: 'invite'})}
                                                 className="hidden"
                                             />
-                                            <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M22.5 11.23c0-4.9-5.04-8.88-11.25-8.88C5.04 2.35 0 6.33 0 11.23c0 4.41 4.07 8.16 9.53 8.78.37.07.88.23 1.01.52.12.27.08.7.04.99l-.26 1.6c-.05.32-.24 1.54 1.35.87 1.6-1.12 8.65-5.09 10.83-12.76z" /></svg>
-                                            <span className="text-xs font-black">ส่งลิงก์เชิญ (LINE)</span>
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
+                                            <span className="text-xs font-black">ส่งลิงก์เชิญสมัคร</span>
                                         </label>
                                         <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all cursor-pointer ${newStaffForm.login_method === 'credentials' ? 'border-neutral-800 bg-neutral-800 text-white' : 'border-neutral-200 bg-white text-neutral-500'}`}>
                                             <input 
@@ -2794,13 +2794,13 @@ export default function POSStaffManager({
                             {newStaffForm.has_login && newStaffForm.login_method === 'invite' ? (
                                 // Invite path (Extremely simple onboarding)
                                 <div className="space-y-5 pt-1">
-                                    <div className="bg-[#00B900]/5 border border-[#00B900]/20 rounded-2xl p-4 text-[#00B900] space-y-2">
+                                    <div className="bg-[#D3202B]/5 border border-[#D3202B]/10 rounded-2xl p-4 text-[#D3202B] space-y-2">
                                         <h4 className="text-xs font-black flex items-center gap-1.5">
-                                            <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M22.5 11.23c0-4.9-5.04-8.88-11.25-8.88C5.04 2.35 0 6.33 0 11.23c0 4.41 4.07 8.16 9.53 8.78.37.07.88.23 1.01.52.12.27.08.7.04.99l-.26 1.6c-.05.32-.24 1.54 1.35.87 1.6-1.12 8.65-5.09 10.83-12.76z" /></svg>
-                                            ส่งลิงก์สมัครงานด้วย LINE (แนะนำ)
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
+                                            ส่งลิงก์เชิญพนักงาน (แนะนำ)
                                         </h4>
-                                        <p className="text-[11px] font-bold leading-relaxed text-[#008F00]">
-                                            ไม่ต้องกรอกอะไรให้ปวดหัว! ระบบจะสร้างลิงก์คำเชิญและ QR Code ทันที คุณสามารถส่งลิงก์ให้พนักงานเพื่อกดเข้าสู่ระบบ LINE และกรอกชื่อเล่นกับเบอร์โทรศัพท์ของตนเองได้เลย
+                                        <p className="text-[11px] font-bold leading-relaxed text-red-700/80">
+                                            ไม่ต้องคีย์อะไรให้เหนื่อย! ระบบจะสร้างลิงก์คำเชิญและ QR Code ทันที คุณสามารถส่งลิงก์ให้พนักงานเข้าไปสร้างบัญชี/เข้าสู่ระบบด้วยอีเมลหรือ LINE และพิมพ์ชื่อเล่นกับเบอร์โทรศัพท์ของตนเองได้เลย
                                         </p>
                                     </div>
 
