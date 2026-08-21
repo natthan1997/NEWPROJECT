@@ -5,9 +5,9 @@ import { supabase } from '@/lib/supabaseClient'
 import { 
   Users, UserPlus, ShieldCheck, Search, 
   ChevronRight, Briefcase, MapPin, CheckCircle2,
-  AlertCircle, Loader2, ArrowUpRight
+  AlertCircle, Loader2, ArrowUpRight, X, Copy, CopyCheck
 } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useI18n } from "@/lib/I18nContext";
 
 export default function AdminStaffPage() {
@@ -16,6 +16,43 @@ export default function AdminStaffPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [pendingCount, setPendingCount] = useState(0)
+
+  // Staff Invitation States
+  const [showInviteModal, setShowInviteModal] = useState(false)
+  const [inviteRole, setInviteRole] = useState('staff')
+  const [inviteBranch, setInviteBranch] = useState('')
+  const [generatedLink, setGeneratedLink] = useState('')
+  const [generatingLink, setGeneratingLink] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  const handleGenerateInvite = async () => {
+    setGeneratingLink(true)
+    setGeneratedLink('')
+    setCopied(false)
+    try {
+      const response = await fetch('/api/admin/staff/invite', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          role: inviteRole,
+          branchCode: inviteBranch || null,
+        }),
+      })
+
+      const result = await response.json()
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'สร้างลิงก์คำเชิญล้มเหลว')
+      }
+
+      setGeneratedLink(result.inviteLink)
+    } catch (err: any) {
+      alert(err.message || 'เกิดข้อผิดพลาดในการสร้างคำเชิญ')
+    } finally {
+      setGeneratingLink(false)
+    }
+  }
 
   useEffect(() => {
     fetchStaff()
@@ -89,13 +126,16 @@ export default function AdminStaffPage() {
                 )}
              </Link>
 
-             <button className="bg-black text-white px-8 py-5 flex items-center gap-3 hover:bg-[#333] transition-all">
+             <button 
+                onClick={() => { setShowInviteModal(true); setGeneratedLink(''); setCopied(false); }}
+                className="bg-black text-white px-8 py-5 flex items-center gap-3 hover:bg-[#333] transition-all active:scale-95"
+             >
                 <UserPlus size={18} />
                 <span className="text-[11px] font-black uppercase tracking-widest">{locale === 'en' ? 'Add employees' : locale === 'zh' ? '添加员工' : 'เพิ่มพนักงาน'}</span>
              </button>
           </div>
         </header>
-
+ 
         {/* 2. STATS ROW */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-12">
             <div className="bg-white border border-gray-100 p-8 shadow-sm">
@@ -111,7 +151,7 @@ export default function AdminStaffPage() {
                 <div className="text-4xl font-black text-amber-500">{staff.filter(s => !s.is_verified).length}</div>
             </div>
         </div>
-
+ 
         {/* 3. SEARCH & LIST */}
         <div className="bg-white border border-gray-100 shadow-xl overflow-hidden">
             <div className="p-6 border-b border-gray-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -134,7 +174,7 @@ export default function AdminStaffPage() {
                     </div>
                 </div>
             </div>
-
+ 
             {loading ? (
                 <div className="py-20 flex flex-col items-center justify-center gap-4">
                     <Loader2 className="animate-spin text-gray-200" size={48} />
@@ -176,7 +216,7 @@ export default function AdminStaffPage() {
                                         <div className="flex flex-col gap-1">
                                             <span className="text-[11px] font-black uppercase text-gray-600 flex items-center gap-2">
                                                 <Briefcase size={12} className="text-gray-300" />
-                                                {s.staff_type || 'General Staff'}
+                                                {s.staff_level || s.staff_type || 'General Staff'}
                                             </span>
                                             <span className="text-[9px] text-gray-400 font-bold">{s.email}</span>
                                         </div>
@@ -225,6 +265,125 @@ export default function AdminStaffPage() {
             )}
         </div>
       </div>
+
+      {/* Invite Staff Modal */}
+      <AnimatePresence>
+        {showInviteModal && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              className="bg-white rounded-[2rem] border border-black/5 shadow-2xl max-w-md w-full overflow-hidden flex flex-col font-bold"
+            >
+              {/* Header */}
+              <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-neutral-50/50">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-xl bg-black text-white flex items-center justify-center shrink-0">
+                    <UserPlus size={20} />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="font-black text-base text-gray-900 leading-snug">เชิญพนักงานใหม่เข้าร่วมร้าน</h3>
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">Invite new staff via secure link</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setShowInviteModal(false)}
+                  className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-black flex items-center justify-center transition-colors active:scale-95 border-none"
+                >
+                  <X size={16} strokeWidth={3} />
+                </button>
+              </div>
+
+              {/* Form Content */}
+              <div className="p-6 space-y-5 text-left">
+                {/* Position Selection */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block">ตำแหน่งงานพนักงาน (Staff Level)</label>
+                  <select
+                    value={inviteRole}
+                    onChange={(e) => setInviteRole(e.target.value)}
+                    className="w-full bg-neutral-50 border border-gray-200 rounded-xl px-4 py-3 text-xs font-bold text-gray-700 focus:outline-none focus:ring-1 focus:ring-black transition-all"
+                  >
+                    <option value="staff">พนักงานหน้าร้าน / แคชเชียร์ (Staff)</option>
+                    <option value="manager">ผู้จัดการสาขา (Manager)</option>
+                    <option value="admin">แอดมินร้านค้า / เจ้าของร่วม (Admin)</option>
+                  </select>
+                </div>
+
+                {/* Branch Selection */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block">สาขาที่เข้าทำงาน (Branch Code - เลือกใส่หรือไม่ใส่ก็ได้)</label>
+                  <input
+                    type="text"
+                    placeholder="เช่น Branch01, Headquarter หรือเว้นว่างไว้"
+                    value={inviteBranch}
+                    onChange={(e) => setInviteBranch(e.target.value)}
+                    className="w-full bg-neutral-50 border border-gray-200 rounded-xl px-4 py-3 text-xs font-bold text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-black transition-all"
+                  />
+                </div>
+
+                {/* Generate Button */}
+                {!generatedLink && (
+                  <button
+                    onClick={handleGenerateInvite}
+                    disabled={generatingLink}
+                    className="w-full bg-black text-white hover:bg-neutral-800 disabled:opacity-50 py-3.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 active:scale-95 border-none"
+                  >
+                    {generatingLink ? <Loader2 size={16} className="animate-spin" /> : <UserPlus size={16} />}
+                    สร้างลิงก์คำเชิญเข้าร่วมร้าน
+                  </button>
+                )}
+
+                {/* Generated Invite Link */}
+                {generatedLink && (
+                  <div className="space-y-3 p-4 bg-emerald-50/50 border border-emerald-100 rounded-2xl animate-in fade-in slide-in-from-bottom-2 duration-200">
+                    <div className="flex items-center gap-2 text-emerald-700">
+                      <CheckCircle2 size={16} />
+                      <span className="text-[10px] font-black uppercase tracking-wider">สร้างลิงก์คำเชิญสำเร็จแล้ว</span>
+                    </div>
+                    <p className="text-[11px] text-gray-500 font-medium leading-relaxed">
+                      คัดลอกลิงก์คำเชิญด้านล่างส่งให้พนักงานผ่านแชต LINE / SMS ลิงก์นี้จะหมดอายุภายใน 7 วันและสมัครได้เพียงครั้งเดียว
+                    </p>
+                    
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="text"
+                        readOnly
+                        value={generatedLink}
+                        className="flex-1 bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-[11px] font-mono text-gray-600 focus:outline-none"
+                        onClick={(e) => (e.target as HTMLInputElement).select()}
+                      />
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(generatedLink);
+                          setCopied(true);
+                          setTimeout(() => setCopied(false), 2000);
+                        }}
+                        className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 active:scale-95 border-none shrink-0 ${copied ? 'bg-emerald-600 text-white' : 'bg-gray-800 text-white hover:bg-black'}`}
+                      >
+                        {copied ? <CopyCheck size={14} /> : <Copy size={14} />}
+                        {copied ? 'คัดลอกแล้ว' : 'คัดลอก'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="p-4 border-t border-gray-100 bg-neutral-50/50 flex justify-end">
+                <button 
+                  onClick={() => setShowInviteModal(false)}
+                  className="px-5 py-2 bg-gray-200 text-gray-700 hover:bg-gray-300 rounded-xl text-xs font-black transition-colors border-none active:scale-95"
+                >
+                  ปิดหน้าต่าง
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

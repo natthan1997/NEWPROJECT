@@ -2804,46 +2804,62 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
               <div className="mx-auto font-bold min-h-full pb-32">
                 {filteredItems.length > 0 ? (
                   (!activeCategoryId || activeCategoryId === 'all') && !searchTerm ? (
-                    <div className="flex flex-col xl:flex-row gap-8 font-bold">
-                      {/* COLUMN 1: Frequently Pressed / Quick Access */}
-                      <div className="flex-1 min-w-0">
-                        <div className="mb-3 flex items-center border-b border-neutral-100 pb-1.5">
-                          <span className="text-[11px] font-black text-neutral-400 uppercase tracking-wider">
-                            ⚡ เข้าถึงด่วน (Quick Access)
+                    <div className="flex flex-col gap-2 font-bold">
+                      {/* SECTION 1: Frequently Pressed / Quick Access */}
+                      <div className="flex flex-col">
+                        <div className="relative flex py-0.5 items-center select-none">
+                          <span className="flex-shrink mr-3 text-[8px] font-medium text-amber-500 uppercase tracking-widest">
+                            เร่งด่วน
                           </span>
+                          <div className="flex-grow border-t border-neutral-100/60"></div>
                         </div>
                         
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid gap-2 sm:gap-3 lg:gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4">
                           {bestSellers.map(item => renderItemCard(item))}
                         </div>
                       </div>
 
-                      {/* COLUMN 2: New & Slow-moving Lists */}
-                      <div className="w-full xl:w-[460px] shrink-0 flex flex-col gap-6">
-                        {/* Section 2.1: New Releases */}
-                        <div className="flex flex-col">
-                          <div className="mb-3 flex items-center border-b border-neutral-100 pb-1.5">
-                            <span className="text-[11px] font-black text-neutral-400 uppercase tracking-wider">
-                              ✨ เมนูใหม่ (New Menu)
-                            </span>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-3">
-                            {newArrivals.map(item => renderItemCard(item))}
-                          </div>
+                      {/* SECTION 2: New Releases */}
+                      <div className="flex flex-col">
+                        <div className="relative flex py-0.5 items-center select-none">
+                          <span className="flex-shrink mr-3 text-[8px] font-medium text-amber-500 uppercase tracking-widest">
+                            เมนูใหม่
+                          </span>
+                          <div className="flex-grow border-t border-neutral-100/60"></div>
                         </div>
 
-                        {/* Section 2.2: Slow Moving / Promote */}
+                        <div className="grid gap-2 sm:gap-3 lg:gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4">
+                          {newArrivals.map(item => renderItemCard(item))}
+                        </div>
+                      </div>
+
+                      {/* SECTION 3: Slow Moving / Promote */}
+                      {isPromoteByIngredients && (
                         <div className="flex flex-col">
-                          <div className="mb-3 flex items-center border-b border-neutral-100 pb-1.5">
-                            <span className="text-[11px] font-black text-neutral-400 uppercase tracking-wider">
-                              📢 เชียร์ขาย (Promote)
+                          <div className="relative flex py-0.5 items-center select-none">
+                            <span className="flex-shrink mr-3 text-[8px] font-medium text-amber-500 uppercase tracking-widest">
+                              เชียร์ขาย
                             </span>
+                            <div className="flex-grow border-t border-neutral-100/60"></div>
                           </div>
 
-                          <div className="grid grid-cols-2 gap-3">
+                          <div className="grid gap-2 sm:gap-3 lg:gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4">
                             {slowMoving.map(item => renderItemCard(item))}
                           </div>
+                        </div>
+                      )}
+
+                      {/* SECTION 4: All Menus (Remaining/Full List) */}
+                      <div className="flex flex-col">
+                        <div className="relative flex py-0.5 items-center select-none">
+                          <span className="flex-shrink mr-3 text-[8px] font-medium text-amber-500 uppercase tracking-widest">
+                            เมนูทั้งหมด
+                          </span>
+                          <div className="flex-grow border-t border-neutral-100/60"></div>
+                        </div>
+
+                        <div className="grid gap-2 sm:gap-3 lg:gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+                          {filteredItems.map(item => renderItemCard(item))}
                         </div>
                       </div>
                     </div>

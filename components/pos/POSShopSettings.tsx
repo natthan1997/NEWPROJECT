@@ -2528,6 +2528,105 @@ const handleSave = async () => {
                                         </button>
                                     </div>
                                 </div>
+
+                                {/* INGREDIENT-BASED PROMOTION SETTINGS */}
+                                <div className="bg-white rounded-2xl shadow-sm border border-black/5 p-6 sm:p-8 mt-6">
+                                    <h3 className="text-[17px] font-semibold mb-1">
+                                        {locale === 'en' ? 'Smart Ingredient-Based Promotion' : 'ระบบวิเคราะห์เมนูเชียร์ขายจากวัตถุดิบ'}
+                                    </h3>
+                                    <p className="text-[13px] text-gray-500 mb-6">
+                                        {locale === 'en' ? 'Configure automatic menu recommendation based on active inventory stock levels' : 'ตั้งค่าระบบช่วยวิเคราะห์รายการสินค้าที่ควรเชียร์ขายโดยคำนวณจากสูตรและของสดคงคลังจริง'}
+                                    </p>
+                                    
+                                    <div className="flex items-center justify-between gap-4 pb-6 border-b border-black/5">
+                                        <div>
+                                            <label className="text-[14px] font-medium text-gray-900 block">
+                                                {locale === 'en' ? 'Enable Smart Promotion Sorting' : 'เปิดใช้งานระบบเชียร์ขายอัจฉริยะ'}
+                                            </label>
+                                            <p className="text-[12px] text-gray-500 mt-1">
+                                                {locale === 'en' ? 'If enabled, the Promote section in All Categories will prioritize menus with the most ingredients remaining' : 'เมื่อเปิด ระบบจะนำเมนูที่ใช้วัตถุดิบคงเหลือเยอะที่สุดมาเชียร์ขายก่อนเพื่อเร่งระบายสต็อก'}
+                                            </p>
+                                        </div>
+                                        <button 
+                                            onClick={() => {
+                                                const s = settings.settings || {};
+                                                const isAllowed = s.enable_promote_ingredients !== false;
+                                                setSettings({
+                                                    ...settings,
+                                                    settings: { ...s, enable_promote_ingredients: !isAllowed }
+                                                });
+                                            }}
+                                            type="button"
+                                            className={`relative w-11 h-6 rounded-full transition-colors duration-300 shrink-0 ${settings.settings?.enable_promote_ingredients !== false ? 'bg-indigo-500' : 'bg-gray-200'}`}
+                                        >
+                                            <div className={`absolute top-[2px] w-5 h-5 rounded-full bg-white transition-all duration-300 shadow-sm ${settings.settings?.enable_promote_ingredients !== false ? 'left-[22px]' : 'left-[2px]'}`} />
+                                        </button>
+                                    </div>
+
+                                    {settings.settings?.enable_promote_ingredients !== false && (
+                                        <div className="mt-6 space-y-6 animate-in fade-in zoom-in-95">
+                                            {/* Minimum Portions */}
+                                            <div className="bg-gray-50 p-6 rounded-2xl border-0 flex flex-col md:flex-row items-center gap-6">
+                                                <div className="flex-1 w-full">
+                                                    <label className="text-[14px] font-medium text-gray-900 block mb-1">
+                                                        {locale === 'en' ? 'Minimum Servings Threshold' : 'เกณฑ์การพร้อมเสิร์ฟขั้นต่ำ'}
+                                                    </label>
+                                                    <p className="text-[12px] text-gray-500">
+                                                        {locale === 'en' ? 'Menu must be able to serve at least this many portions to be promoted' : 'เมนูต้องเหลือวัตถุดิบสำหรับทำได้ไม่ต่ำกว่าจำนวนเสิร์ฟเท่านี้ เพื่อป้องกันการดันเมนูที่ของใกล้หมด'}
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-center gap-3 bg-white px-3 py-2 rounded-xl shadow-sm border border-gray-100 shrink-0 w-full md:w-auto justify-center">
+                                                    <input 
+                                                        type="number"
+                                                        min="0"
+                                                        value={settings.settings?.promote_min_portions !== undefined ? settings.settings.promote_min_portions : 0}
+                                                        onChange={e => {
+                                                            const s = settings.settings || {};
+                                                            setSettings({
+                                                                ...settings,
+                                                                settings: { ...s, promote_min_portions: Math.max(0, parseInt(e.target.value) || 0) }
+                                                            });
+                                                        }}
+                                                        className="w-16 bg-transparent border-0 text-center text-[15px] font-medium outline-none" 
+                                                    />
+                                                    <span className="text-[13px] font-medium text-gray-400">{locale === 'en' ? 'Servings' : 'เสิร์ฟ'}</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Sorting Criterion */}
+                                            <div className="bg-gray-50 p-6 rounded-2xl border-0 flex flex-col md:flex-row items-center gap-6">
+                                                <div className="flex-1 w-full">
+                                                    <label className="text-[14px] font-medium text-gray-900 block mb-1">
+                                                        {locale === 'en' ? 'Recommendation Criteria' : 'หลักเกณฑ์การจัดเรียงเชียร์ขาย'}
+                                                    </label>
+                                                    <p className="text-[12px] text-gray-500">
+                                                        {locale === 'en' ? 'Define sorting logic for recommending menus based on remaining portions' : 'กำหนดเงื่อนไขความด่วนในการเลือกสินค้ามาโปรโมทหน้าร้าน'}
+                                                    </p>
+                                                </div>
+                                                <div className="shrink-0 w-full md:w-auto">
+                                                    <select 
+                                                        value={settings.settings?.promote_sort_mode || 'max_portions'}
+                                                        onChange={e => {
+                                                            const s = settings.settings || {};
+                                                            setSettings({
+                                                                ...settings,
+                                                                settings: { ...s, promote_sort_mode: e.target.value }
+                                                            });
+                                                        }}
+                                                        className="w-full md:w-64 bg-white border border-gray-200 focus:ring-2 focus:ring-indigo-500/20 rounded-xl py-2.5 px-4 text-[13px] outline-none shadow-sm"
+                                                    >
+                                                        <option value="max_portions">
+                                                            {locale === 'en' ? 'Liquidate: Highest portions first' : 'เน้นระบายสต็อก: เหลือจำนวนปรุงเสิร์ฟเยอะที่สุด'}
+                                                        </option>
+                                                        <option value="near_threshold">
+                                                            {locale === 'en' ? 'Urgent: Lowest portions but above threshold' : 'เน้นขายให้หมด: ใกล้หมดแต่ยังมีของปรุงพอกลุ่มขั้นต่ำ'}
+                                                        </option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         )}
 
