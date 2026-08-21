@@ -812,7 +812,7 @@ export default function POSStaffManager({
         fetchStaff()
     }
 
-    const handleOpenAddStaffModal = () => {
+    const handleOpenAddStaffModal = async () => {
         try {
             console.log('handleOpenAddStaffModal clicked. Current staff array:', staff);
             
@@ -830,9 +830,15 @@ export default function POSStaffManager({
             if (mode === 'manual') {
                 generatedCode = '';
             } else {
+                // Fetch all staff_codes for this merchant to ensure no duplicates with pending/user profiles
+                const { data: allProfiles } = await supabase
+                    .from('profiles')
+                    .select('staff_code')
+                    .eq('merchant_id', profile.merchant_id);
+
                 let nextNumber = 1;
                 const prefixUpper = prefix.toUpperCase();
-                const empCodes = (staff || [])
+                const empCodes = (allProfiles || [])
                     .map(s => s.staff_code || '')
                     .filter(code => {
                         if (mode === 'auto_prefix') {
@@ -885,11 +891,7 @@ export default function POSStaffManager({
     }
 
     const handleCreateStaff = async () => {
-        let finalStaffCode = newStaffForm.staff_code;
-        if (newStaffForm.has_login && newStaffForm.login_method === 'invite') {
-            // Generate a guaranteed unique temporary code for the invite path to avoid unique constraint violations
-            finalStaffCode = `INVITE-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
-        }
+        const finalStaffCode = newStaffForm.staff_code;
 
         if (!finalStaffCode) return alert('กรุณากรอกรหัสพนักงาน');
 
