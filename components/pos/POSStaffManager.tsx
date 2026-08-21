@@ -210,6 +210,7 @@ export default function POSStaffManager({
     const [slideOverViewMode, setSlideOverViewMode] = useState<'list' | 'calendar'>('list')
 
     const [showAddStaffModal, setShowAddStaffModal] = useState(false)
+    const [showAdvancedStaffForm, setShowAdvancedStaffForm] = useState(false)
     const [isSopEditorOpen, setIsSopEditorOpen] = useState(false)
     const [newStaffForm, setNewStaffForm] = useState({
         display_name: '',
@@ -807,25 +808,67 @@ export default function POSStaffManager({
     const handleOpenAddStaffModal = () => {
         try {
             console.log('handleOpenAddStaffModal clicked. Current staff array:', staff);
-            let nextNumber = 1;
-            const empCodes = (staff || [])
-                .map(s => s.staff_code)
-                .filter(code => code && code.toUpperCase().startsWith('EMP-'))
-                .map(code => parseInt(code.substring(4), 10))
-                .filter(num => !isNaN(num));
-                
-            if (empCodes.length > 0) {
-                nextNumber = Math.max(...empCodes) + 1;
-            }
             
-            const generatedCode = `EMP-${nextNumber.toString().padStart(3, '0')}`;
+            // Load code generation settings from shiftSettings
+            const shiftSettings = typeof shopSettings?.shift_settings === 'string'
+                ? JSON.parse(shopSettings.shift_settings)
+                : (shopSettings?.shift_settings || {});
+                
+            const mode = shiftSettings.staff_code_mode ?? 'auto_prefix';
+            const prefix = shiftSettings.staff_code_prefix ?? 'EMP';
+            const digits = shiftSettings.staff_code_digits ?? 3;
+            
+            let generatedCode = '';
+            
+            if (mode === 'manual') {
+                generatedCode = '';
+            } else {
+                let nextNumber = 1;
+                const prefixUpper = prefix.toUpperCase();
+                const empCodes = (staff || [])
+                    .map(s => s.staff_code || '')
+                    .filter(code => {
+                        if (mode === 'auto_prefix') {
+                            return code.toUpperCase().startsWith(prefixUpper + '-');
+                        } else {
+                            // auto_numeric: matches digits only
+                            return /^\d+$/.test(code);
+                        }
+                    })
+                    .map(code => {
+                        if (mode === 'auto_prefix') {
+                            return parseInt(code.substring(prefixUpper.length + 1), 10);
+                        } else {
+                            return parseInt(code, 10);
+                        }
+                    })
+                    .filter(num => !isNaN(num));
+                    
+                if (empCodes.length > 0) {
+                    nextNumber = Math.max(...empCodes) + 1;
+                }
+                
+                const paddedNumber = nextNumber.toString().padStart(digits, '0');
+                generatedCode = mode === 'auto_prefix' ? `${prefix}-${paddedNumber}` : paddedNumber;
+            }
             
             setNewStaffForm(prev => ({
                 ...prev,
                 staff_code: generatedCode,
                 display_name: '',
-                phone: ''
+                phone: '',
+                staff_type: 'general',
+                staff_level: 'staff',
+                salary_type: 'daily',
+                holiday_compensation_type: 'money',
+                daily_wage: 0,
+                is_pos_device: false,
+                has_social_security: false,
+                work_days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
+                has_login: true, // Default to true as they are adding a new staff
+                login_method: 'invite' // Default to LINE Invite
             }));
+            
             setShowAddStaffModal(true);
             console.log('setShowAddStaffModal(true) called successfully.');
         } catch (e: any) {
@@ -2682,6 +2725,7 @@ export default function POSStaffManager({
                         </div>
 
                         <div className="p-6 overflow-y-auto space-y-5 flex-1">
+                            {/* 1. Essential Basic Fields */}
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">ชื่อพนักงาน *</label>
                                 <input
@@ -2692,39 +2736,7 @@ export default function POSStaffManager({
                                     className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
                                 />
                             </div>
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">รหัสพนักงาน *</label>
-                                <input
-                                    type="text"
-                                    value={newStaffForm.staff_code}
-                                    onChange={e => setNewStaffForm({ ...newStaffForm, staff_code: e.target.value })}
-                                    placeholder="เช่น EMP-001"
-                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">เบอร์โทรศัพท์</label>
-                                <input
-                                    type="text"
-                                    value={newStaffForm.phone}
-                                    onChange={e => setNewStaffForm({ ...newStaffForm, phone: e.target.value })}
-                                    placeholder="เช่น 0891234567"
-                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">แผนก</label>
-                                <select
-                                    value={newStaffForm.staff_type}
-                                    onChange={e => setNewStaffForm({ ...newStaffForm, staff_type: e.target.value })}
-                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
-                                >
-                                    <option value="cafe">หน้าร้านคาเฟ่</option>
-                                    <option value="kitchen">ห้องครัว</option>
-                                    <option value="landscape">ทีมจัดสวน</option>
-                                    <option value="general">ทั่วไป</option>
-                                </select>
-                            </div>
+                            
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">ตำแหน่ง (Role)</label>
                                 <select
@@ -2739,111 +2751,159 @@ export default function POSStaffManager({
                                 </select>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">ประเภทค่าจ้าง</label>
-                                    <select
-                                        value={newStaffForm.salary_type}
-                                        onChange={e => setNewStaffForm({ ...newStaffForm, salary_type: e.target.value })}
-                                        className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
-                                    >
-                                        <option value="daily">รายวัน</option>
-                                        <option value="monthly">รายเดือน</option>
-                                    </select>
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">รูปแบบรับชดเชยวันหยุด</label>
-                                    <select
-                                        value={newStaffForm.holiday_compensation_type}
-                                        onChange={e => setNewStaffForm({ ...newStaffForm, holiday_compensation_type: e.target.value })}
-                                        className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
-                                    >
-                                        <option value="money">รับเป็นค่าแรง (Money)</option>
-                                        <option value="dayoff">รับเป็นวันหยุดชดเชย (Day Off)</option>
-                                    </select>
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">จำนวนเงิน (บาท)</label>
-                                    <input
-                                        type="number"
-                                        value={newStaffForm.daily_wage || ''}
-                                        onChange={e => setNewStaffForm({ ...newStaffForm, daily_wage: Number(e.target.value) })}
-                                        placeholder="0"
-                                        className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
-                                    />
-                                </div>
-                                <div className="space-y-1.5 sm:col-span-2">
-                                    <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">หักประกันสังคม (Social Security)</label>
-                                    <div className="flex items-center gap-2 mt-1">
-                                        <input 
-                                            type="checkbox"
-                                            className="w-4 h-4 text-black border-gray-300 rounded focus:ring-black"
-                                            checked={newStaffForm.has_social_security || false}
-                                            onChange={e => setNewStaffForm({ ...newStaffForm, has_social_security: e.target.checked })}
-                                        />
-                                        <span className="text-sm font-bold text-gray-700">เข้าระบบหักประกันสังคม 5%</span>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">เบอร์โทรศัพท์ (ถ้ามี)</label>
+                                <input
+                                    type="text"
+                                    value={newStaffForm.phone}
+                                    onChange={e => setNewStaffForm({ ...newStaffForm, phone: e.target.value })}
+                                    placeholder="เช่น 0891234567"
+                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
+                                />
+                            </div>
+
+                            {/* 2. Login Access Mode */}
+                            <div className="pt-3 border-t border-neutral-100 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h3 className="text-xs font-black text-neutral-900">สิทธิ์การเข้าสู่ระบบ POS / พนักงาน</h3>
+                                        <p className="text-[9px] font-bold text-neutral-400 mt-0.5">พนักงานจะได้รับลิงก์สำหรับเข้าใช้งานด้วย LINE</p>
                                     </div>
+                                    <button 
+                                        type="button"
+                                        onClick={() => setNewStaffForm(prev => ({ ...prev, has_login: !prev.has_login }))}
+                                        className={`relative w-9 h-5 rounded-full transition-colors duration-300 shrink-0 ${newStaffForm.has_login ? 'bg-emerald-500' : 'bg-gray-200'} border-none cursor-pointer`}
+                                    >
+                                        <div className={`absolute top-[2px] w-4 h-4 rounded-full bg-white transition-all duration-300 shadow-sm ${newStaffForm.has_login ? 'left-[18px]' : 'left-[2px]'}`} />
+                                    </button>
                                 </div>
                             </div>
-                            
-                            <div className="pt-4 mt-2 border-t border-neutral-100 space-y-4">
-                                <div>
-                                    <h3 className="text-sm font-black text-neutral-900">สิทธิ์การเข้าสู่ระบบ (System Access)</h3>
-                                    <p className="text-[10px] font-bold text-neutral-400 mt-1">กำหนดวิธีการล็อคอินสำหรับพนักงานคนนี้</p>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <input 
-                                        type="checkbox" 
-                                        id="add-has-login"
-                                        checked={newStaffForm.has_login}
-                                        onChange={e => setNewStaffForm({ ...newStaffForm, has_login: e.target.checked })}
-                                        className="w-4 h-4 text-black border-gray-300 rounded focus:ring-black"
-                                    />
-                                    <label htmlFor="add-has-login" className="text-xs font-bold text-gray-700 cursor-pointer">
-                                        อนุญาตให้พนักงานล็อคอินเข้าสู่ระบบ
-                                    </label>
-                                </div>
 
-                                {newStaffForm.has_login && (
-                                    <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-4 space-y-4 mt-2">
-                                        <div className="flex gap-4">
-                                            <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all cursor-pointer ${newStaffForm.login_method === 'invite' ? 'border-[#00B900] bg-[#00B900]/10 text-[#00B900]' : 'border-neutral-200 bg-white text-neutral-500'}`}>
-                                                <input 
-                                                    type="radio" 
-                                                    name="login_method" 
-                                                    value="invite"
-                                                    checked={newStaffForm.login_method === 'invite'}
-                                                    onChange={() => setNewStaffForm({...newStaffForm, login_method: 'invite'})}
-                                                    className="hidden"
-                                                />
-                                                <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M22.5 11.23c0-4.9-5.04-8.88-11.25-8.88C5.04 2.35 0 6.33 0 11.23c0 4.41 4.07 8.16 9.53 8.78.37.07.88.23 1.01.52.12.27.08.7.04.99l-.26 1.6c-.05.32-.24 1.54 1.35.87 1.6-1.12 8.65-5.09 10.83-12.76z" /></svg>
-                                                <span className="text-xs font-bold">ส่งลิงก์ LINE</span>
-                                            </label>
-                                            <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all cursor-pointer ${newStaffForm.login_method === 'credentials' ? 'border-neutral-800 bg-neutral-800 text-white' : 'border-neutral-200 bg-white text-neutral-500'}`}>
-                                                <input 
-                                                    type="radio" 
-                                                    name="login_method" 
-                                                    value="credentials"
-                                                    checked={newStaffForm.login_method === 'credentials'}
-                                                    onChange={() => setNewStaffForm({...newStaffForm, login_method: 'credentials'})}
-                                                    className="hidden"
-                                                />
-                                                <Mail size={16} />
-                                                <span className="text-xs font-bold">สร้างรหัสผ่าน</span>
-                                            </label>
+                            {/* 3. Advanced Fields / Collapsible Settings */}
+                            <div className="pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowAdvancedStaffForm(!showAdvancedStaffForm)}
+                                    className="flex items-center gap-1.5 text-neutral-400 hover:text-neutral-700 text-xs font-bold transition-colors bg-transparent border-none p-0 cursor-pointer"
+                                >
+                                    <span className="text-[11px] uppercase tracking-wider">{showAdvancedStaffForm ? 'ซ่อนการตั้งค่าเพิ่มเติม' : 'แสดงการตั้งค่าเพิ่มเติม / ข้อมูล HR'}</span>
+                                    <ChevronRight size={14} className={`transform transition-transform ${showAdvancedStaffForm ? 'rotate-90' : ''}`} />
+                                </button>
+                                
+                                {showAdvancedStaffForm && (
+                                    <motion.div 
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: 'auto' }}
+                                        className="space-y-4 mt-4 pt-4 border-t border-neutral-100 overflow-hidden text-left"
+                                    >
+                                        {/* Staff Code */}
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">รหัสพนักงาน *</label>
+                                            <input
+                                                type="text"
+                                                value={newStaffForm.staff_code}
+                                                onChange={e => setNewStaffForm({ ...newStaffForm, staff_code: e.target.value })}
+                                                placeholder="เช่น EMP-001"
+                                                className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
+                                            />
                                         </div>
 
-                                        {newStaffForm.login_method === 'credentials' && (
-                                            <div className="text-center p-3 text-left">
-                                                <p className="text-[10px] font-bold text-neutral-400 leading-normal">ระบบจะสร้างบัญชีและรหัสผ่านจาก "รหัสพนักงาน" อัตโนมัติ<br/>ข้อมูลล็อคอินจะแสดงให้บันทึกหลังจากกดสร้างสำเร็จ</p>
+                                        {/* Department */}
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">แผนก</label>
+                                            <select
+                                                value={newStaffForm.staff_type}
+                                                onChange={e => setNewStaffForm({ ...newStaffForm, staff_type: e.target.value })}
+                                                className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
+                                            >
+                                                <option value="cafe">หน้าร้านคาเฟ่</option>
+                                                <option value="kitchen">ห้องครัว</option>
+                                                <option value="landscape">ทีมจัดสวน</option>
+                                                <option value="general">ทั่วไป</option>
+                                            </select>
+                                        </div>
+
+                                        {/* Salary & Wage Details */}
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-1.5">
+                                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">ประเภทค่าจ้าง</label>
+                                                <select
+                                                    value={newStaffForm.salary_type}
+                                                    onChange={e => setNewStaffForm({ ...newStaffForm, salary_type: e.target.value })}
+                                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
+                                                >
+                                                    <option value="daily">รายวัน</option>
+                                                    <option value="monthly">รายเดือน</option>
+                                                </select>
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">รูปแบบรับชดเชยวันหยุด</label>
+                                                <select
+                                                    value={newStaffForm.holiday_compensation_type}
+                                                    onChange={e => setNewStaffForm({ ...newStaffForm, holiday_compensation_type: e.target.value })}
+                                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
+                                                >
+                                                    <option value="money">รับเป็นค่าแรง (Money)</option>
+                                                    <option value="dayoff">รับเป็นวันหยุดชดเชย (Day Off)</option>
+                                                </select>
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">จำนวนเงิน (บาท)</label>
+                                                <input
+                                                    type="number"
+                                                    value={newStaffForm.daily_wage || ''}
+                                                    onChange={e => setNewStaffForm({ ...newStaffForm, daily_wage: Number(e.target.value) })}
+                                                    placeholder="0"
+                                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
+                                                />
+                                            </div>
+                                            <div className="space-y-1.5 sm:col-span-2">
+                                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">หักประกันสังคม (Social Security)</label>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <input 
+                                                        type="checkbox"
+                                                        className="w-4 h-4 text-black border-gray-300 rounded focus:ring-black"
+                                                        checked={newStaffForm.has_social_security || false}
+                                                        onChange={e => setNewStaffForm({ ...newStaffForm, has_social_security: e.target.checked })}
+                                                    />
+                                                    <span className="text-sm font-bold text-gray-700">เข้าระบบหักประกันสังคม 5%</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Login Method */}
+                                        {newStaffForm.has_login && (
+                                            <div className="space-y-3 pt-3 border-t border-neutral-100">
+                                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">วิธีการเข้าสู่ระบบ</label>
+                                                <div className="flex gap-4">
+                                                    <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all cursor-pointer ${newStaffForm.login_method === 'invite' ? 'border-[#00B900] bg-[#00B900]/10 text-[#00B900]' : 'border-neutral-200 bg-white text-neutral-500'}`}>
+                                                        <input 
+                                                            type="radio" 
+                                                            name="login_method" 
+                                                            value="invite"
+                                                            checked={newStaffForm.login_method === 'invite'}
+                                                            onChange={() => setNewStaffForm({...newStaffForm, login_method: 'invite'})}
+                                                            className="hidden"
+                                                        />
+                                                        <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M22.5 11.23c0-4.9-5.04-8.88-11.25-8.88C5.04 2.35 0 6.33 0 11.23c0 4.41 4.07 8.16 9.53 8.78.37.07.88.23 1.01.52.12.27.08.7.04.99l-.26 1.6c-.05.32-.24 1.54 1.35.87 1.6-1.12 8.65-5.09 10.83-12.76z" /></svg>
+                                                        <span className="text-xs font-bold">ส่งลิงก์ LINE</span>
+                                                    </label>
+                                                    <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all cursor-pointer ${newStaffForm.login_method === 'credentials' ? 'border-neutral-800 bg-neutral-800 text-white' : 'border-neutral-200 bg-white text-neutral-500'}`}>
+                                                        <input 
+                                                            type="radio" 
+                                                            name="login_method" 
+                                                            value="credentials"
+                                                            checked={newStaffForm.login_method === 'credentials'}
+                                                            onChange={() => setNewStaffForm({...newStaffForm, login_method: 'credentials'})}
+                                                            className="hidden"
+                                                        />
+                                                        <Mail size={16} />
+                                                        <span className="text-xs font-bold">สร้างรหัสผ่าน</span>
+                                                    </label>
+                                                </div>
                                             </div>
                                         )}
-                                        {newStaffForm.login_method === 'invite' && (
-                                            <div className="text-center p-3 text-left">
-                                                <p className="text-[10px] font-bold text-neutral-400 leading-normal">ระบบจะสร้าง QR Code และลิงก์เชิญ<br/>ให้คุณส่งต่อให้พนักงานหลังจากกดบันทึก</p>
-                                            </div>
-                                        )}
-                                    </div>
+                                    </motion.div>
                                 )}
                             </div>
                         </div>

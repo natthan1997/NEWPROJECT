@@ -452,6 +452,9 @@ export default function POSShopSettings({
                 branch_name_th: data.opening_hours?.branch_name_th || '',
                 branch_name_en: data.opening_hours?.branch_name_en || '',
                 address: data.opening_hours?.address || '',
+                enable_promote_ingredients: data.opening_hours?.enable_promote_ingredients ?? true,
+                promote_min_portions: data.opening_hours?.promote_min_portions ?? 0,
+                promote_sort_mode: data.opening_hours?.promote_sort_mode || 'max_portions',
                 loyalty_points_per_thb: data.opening_hours?.loyalty_points_per_thb || 10,
                 loyalty_earn_rate: data.opening_hours?.loyalty_earn_rate || 100,
                 loyalty_earn_thb: data.opening_hours?.loyalty_earn_thb !== undefined ? data.opening_hours.loyalty_earn_thb : (data.opening_hours?.loyalty_earn_rate || 100),
@@ -648,6 +651,9 @@ const handleSave = async () => {
         mystery_box_cost: settings.mystery_box_cost,
         mystery_box_prizes: settings.mystery_box_prizes,
         cover_url: settings.cover_url,
+        enable_promote_ingredients: settings.enable_promote_ingredients !== false,
+        promote_min_portions: settings.promote_min_portions ?? 0,
+        promote_sort_mode: settings.promote_sort_mode || 'max_portions',
         logo_url: settings.logo_url,
         name_th: settings.name_th,
         name_en: settings.name_en,
@@ -694,6 +700,7 @@ const handleSave = async () => {
     delete payload.inhouse_delivery_config;
     delete payload.mystery_box_cost;
     delete payload.mystery_box_prizes;
+    delete payload.settings;
 
     try {
         let result;
@@ -2221,6 +2228,78 @@ const handleSave = async () => {
                                             </div>
                                         </div>
                                     </div>
+
+                                    {/* Staff Code Settings */}
+                                    <div className="bg-white rounded-2xl shadow-sm border border-black/5 p-6 sm:p-8 mt-6 text-[#1A1A18] font-sans">
+                                        <h3 className="text-[17px] font-semibold mb-1">
+                                            {locale === 'en' ? 'Staff ID Generation Settings' : 'ตั้งค่ารูปแบบรหัสพนักงาน'}
+                                        </h3>
+                                        <p className="text-[13px] text-gray-500 mb-6">
+                                            {locale === 'en' ? 'Configure how employee codes are generated' : 'กำหนดวิธีการสร้างและรันรหัสประจำตัวของพนักงาน'}
+                                        </p>
+
+                                        <div className="space-y-0 divide-y divide-black/5 border-t border-black/5 text-left">
+                                            {/* Code Generation Mode */}
+                                            <div className="py-4 flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
+                                                <div>
+                                                    <h4 className="text-[14px] font-medium text-gray-900">{locale === 'en' ? 'Generation Mode' : 'รูปแบบการรันรหัส'}</h4>
+                                                    <p className="text-[12px] text-gray-500 mt-1">
+                                                        {locale === 'en' ? 'Choose automatic code generation or manual entry' : 'เลือกให้ระบบรันรหัสอัตโนมัติ หรือป้อนรหัสเอง'}
+                                                    </p>
+                                                </div>
+                                                <select
+                                                    value={shiftSettings.staff_code_mode ?? 'auto_prefix'}
+                                                    onChange={(e) => updateShiftSetting('staff_code_mode', e.target.value)}
+                                                    className="bg-gray-50 border border-gray-200 rounded-lg py-2 px-3 text-[13px] font-bold text-gray-700 outline-none focus:ring-1 focus:ring-black"
+                                                >
+                                                    <option value="auto_prefix">{locale === 'en' ? 'Auto with Prefix (e.g. EMP-001)' : 'รันอัตโนมัติแบบมีคำนำหน้า (เช่น EMP-001)'}</option>
+                                                    <option value="auto_numeric">{locale === 'en' ? 'Auto Numeric (e.g. 0001)' : 'รันอัตโนมัติเฉพาะตัวเลข (เช่น 0001)'}</option>
+                                                    <option value="manual">{locale === 'en' ? 'Manual Entry' : 'ให้ป้อนรหัสเองตอนสร้าง'}</option>
+                                                </select>
+                                            </div>
+
+                                            {/* Prefix Setting */}
+                                            {(shiftSettings.staff_code_mode ?? 'auto_prefix') === 'auto_prefix' && (
+                                                <div className="py-4 flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
+                                                    <div>
+                                                        <h4 className="text-[14px] font-medium text-gray-900">{locale === 'en' ? 'Prefix Code' : 'คำนำหน้ารหัส'}</h4>
+                                                        <p className="text-[12px] text-gray-500 mt-1">
+                                                            {locale === 'en' ? 'The letter prefix before the code' : 'ตัวอักษรนำหน้า (เช่น EMP, RU, STAFF)'}
+                                                        </p>
+                                                    </div>
+                                                    <input 
+                                                        type="text" 
+                                                        value={shiftSettings.staff_code_prefix ?? 'EMP'}
+                                                        onChange={(e) => updateShiftSetting('staff_code_prefix', e.target.value.toUpperCase())}
+                                                        className="w-32 bg-gray-50 border border-gray-200 rounded-lg py-2 px-3 text-right text-[14px] outline-none font-bold text-gray-700 focus:ring-1 focus:ring-black"
+                                                        placeholder="EMP"
+                                                    />
+                                                </div>
+                                            )}
+
+                                            {/* Digit Length Setting */}
+                                            {(shiftSettings.staff_code_mode ?? 'auto_prefix') !== 'manual' && (
+                                                <div className="py-4 flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
+                                                    <div>
+                                                        <h4 className="text-[14px] font-medium text-gray-900">{locale === 'en' ? 'Digit Length' : 'จำนวนหลักของตัวเลข'}</h4>
+                                                        <p className="text-[12px] text-gray-500 mt-1">
+                                                            {locale === 'en' ? 'Number padding digits (e.g., 3 digits = 001)' : 'จำนวนหลัก (เช่น 3 หลัก = 001, 4 หลัก = 0001)'}
+                                                        </p>
+                                                    </div>
+                                                    <select
+                                                        value={shiftSettings.staff_code_digits ?? 3}
+                                                        onChange={(e) => updateShiftSetting('staff_code_digits', Number(e.target.value))}
+                                                        className="bg-gray-50 border border-gray-200 rounded-lg py-2 px-3 text-[13px] font-bold text-gray-700 outline-none focus:ring-1 focus:ring-black"
+                                                    >
+                                                        <option value={2}>2 หลัก (01)</option>
+                                                        <option value={3}>3 หลัก (001)</option>
+                                                        <option value={4}>4 หลัก (0001)</option>
+                                                        <option value={5}>5 หลัก (00001)</option>
+                                                    </select>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
                             );
                         })()}
@@ -2549,21 +2628,20 @@ const handleSave = async () => {
                                         </div>
                                         <button 
                                             onClick={() => {
-                                                const s = settings.settings || {};
-                                                const isAllowed = s.enable_promote_ingredients !== false;
+                                                const isAllowed = settings.enable_promote_ingredients !== false;
                                                 setSettings({
                                                     ...settings,
-                                                    settings: { ...s, enable_promote_ingredients: !isAllowed }
+                                                    enable_promote_ingredients: !isAllowed
                                                 });
                                             }}
                                             type="button"
-                                            className={`relative w-11 h-6 rounded-full transition-colors duration-300 shrink-0 ${settings.settings?.enable_promote_ingredients !== false ? 'bg-indigo-500' : 'bg-gray-200'}`}
+                                            className={`relative w-11 h-6 rounded-full transition-colors duration-300 shrink-0 ${settings.enable_promote_ingredients !== false ? 'bg-indigo-500' : 'bg-gray-200'}`}
                                         >
-                                            <div className={`absolute top-[2px] w-5 h-5 rounded-full bg-white transition-all duration-300 shadow-sm ${settings.settings?.enable_promote_ingredients !== false ? 'left-[22px]' : 'left-[2px]'}`} />
+                                            <div className={`absolute top-[2px] w-5 h-5 rounded-full bg-white transition-all duration-300 shadow-sm ${settings.enable_promote_ingredients !== false ? 'left-[22px]' : 'left-[2px]'}`} />
                                         </button>
                                     </div>
 
-                                    {settings.settings?.enable_promote_ingredients !== false && (
+                                    {settings.enable_promote_ingredients !== false && (
                                         <div className="mt-6 space-y-6 animate-in fade-in zoom-in-95">
                                             {/* Minimum Portions */}
                                             <div className="bg-gray-50 p-6 rounded-2xl border-0 flex flex-col md:flex-row items-center gap-6">
@@ -2579,12 +2657,11 @@ const handleSave = async () => {
                                                     <input 
                                                         type="number"
                                                         min="0"
-                                                        value={settings.settings?.promote_min_portions !== undefined ? settings.settings.promote_min_portions : 0}
+                                                        value={settings.promote_min_portions !== undefined ? settings.promote_min_portions : 0}
                                                         onChange={e => {
-                                                            const s = settings.settings || {};
                                                             setSettings({
                                                                 ...settings,
-                                                                settings: { ...s, promote_min_portions: Math.max(0, parseInt(e.target.value) || 0) }
+                                                                promote_min_portions: Math.max(0, parseInt(e.target.value) || 0)
                                                             });
                                                         }}
                                                         className="w-16 bg-transparent border-0 text-center text-[15px] font-medium outline-none" 
@@ -2605,12 +2682,11 @@ const handleSave = async () => {
                                                 </div>
                                                 <div className="shrink-0 w-full md:w-auto">
                                                     <select 
-                                                        value={settings.settings?.promote_sort_mode || 'max_portions'}
+                                                        value={settings.promote_sort_mode || 'max_portions'}
                                                         onChange={e => {
-                                                            const s = settings.settings || {};
                                                             setSettings({
                                                                 ...settings,
-                                                                settings: { ...s, promote_sort_mode: e.target.value }
+                                                                promote_sort_mode: e.target.value
                                                             });
                                                         }}
                                                         className="w-full md:w-64 bg-white border border-gray-200 focus:ring-2 focus:ring-indigo-500/20 rounded-xl py-2.5 px-4 text-[13px] outline-none shadow-sm"
