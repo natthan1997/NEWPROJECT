@@ -1,8 +1,9 @@
 'use client';
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
-import { UsersIcon, BriefcaseIcon, Cog6ToothIcon, CurrencyDollarIcon, CheckCircleIcon, ShoppingBagIcon } from '@heroicons/react/24/outline';
+import { UsersIcon, BriefcaseIcon, Cog6ToothIcon, CurrencyDollarIcon, CheckCircleIcon, ShoppingBagIcon, BuildingStorefrontIcon, MagnifyingGlassIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { supabase } from '../../../lib/supabaseClient';
+import { useAdminMerchant } from '../../../lib/adminMerchantHelper';
 import { useI18n } from '@/lib/I18nContext';
 import { appCopy, pickLocalizedText } from '@/lib/appLocale';
 import { formatCurrencyByLocale } from '@/lib/localeFormat';
@@ -136,6 +137,7 @@ function WidgetCard({ widget, onDragEnd, onResize, children, onSave, locale }: a
 
 export default function AdminDashboard() {
   const { locale } = useI18n();
+  const { selectedMerchantId } = useAdminMerchant();
   const [revenue, setRevenue] = useState<number|null>(null);
   const [openShifts, setOpenShifts] = useState<number|null>(null);
   const [membersCount, setMembersCount] = useState<number|null>(null);
@@ -149,6 +151,143 @@ export default function AdminDashboard() {
   // Custom widget grid state
   const [widgets, setWidgets] = useState<Widget[]>(DEFAULT_WIDGETS);
   const gridContainerRef = useRef<HTMLDivElement>(null);
+
+  const [merchantDetails, setMerchantDetails] = useState<any>(null);
+  const [ownerProfile, setOwnerProfile] = useState<any>(null);
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [usersList, setUsersList] = useState<any[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [transferError, setTransferError] = useState('');
+
+  const [systemStats, setSystemStats] = useState({
+    totalShops: 0,
+    monthlyShops: 0,
+    yearlyShops: 0
+  });
+
+  const fetchSystemStats = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('pos_merchants')
+        .select('id, name, subscription_type');
+      
+      if (!error && data) {
+        const total = data.length;
+        const monthly = data.filter(m => !m.subscription_type || m.subscription_type === 'monthly').length;
+        const yearly = data.filter(m => m.subscription_type === 'yearly').length;
+        setSystemStats({
+          totalShops: total,
+          monthlyShops: monthly,
+          yearlyShops: yearly
+        });
+      }
+    } catch (e) {
+      console.error('Failed to fetch system stats:', e);
+    }
+  };
+
+  const handleChangeSubscriptionType = async (newType: string) => {
+    if (!selectedMerchantId) return;
+    try {
+      const { error } = await supabase
+        .from('pos_merchants')
+        .update({ subscription_type: newType })
+        .eq('id', selectedMerchantId);
+      
+      if (error) throw error;
+      alert('ปรับปรุงประเภทระบบเรียบร้อย');
+      fetchMerchantDetails();
+      fetchSystemStats();
+    } catch (e: any) {
+      console.error('Failed to update subscription:', e);
+      alert('ล้มเหลว: ' + e.message);
+    }
+  };
+
+  const fetchMerchantDetails = async () => {
+    if (!selectedMerchantId) {
+      setMerchantDetails(null);
+      setOwnerProfile(null);
+      return;
+    }
+    try {
+      const { data: merchant, error } = await supabase
+        .from('pos_merchants')
+        .select('*')
+        .eq('id', selectedMerchantId)
+        .maybeSingle();
+
+      if (error) throw error;
+      setMerchantDetails(merchant);
+
+      if (merchant?.owner_id) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('id, display_name, email')
+          .eq('id', merchant.owner_id)
+          .maybeSingle();
+        setOwnerProfile(profileData);
+      } else {
+        setOwnerProfile(null);
+      }
+    } catch (e) {
+      console.error('Failed to fetch merchant details:', e);
+    }
+  };
+
+  useEffect(() => {
+    fetchMerchantDetails();
+    fetchSystemStats();
+  }, [selectedMerchantId]);
+
+  useEffect(() => {
+    if (isTransferModalOpen) {
+      const searchUsers = async () => {
+        setLoadingUsers(true);
+        setTransferError('');
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('id, display_name, email, role')
+            .or(`email.ilike.%${userSearchQuery}%,display_name.ilike.%${userSearchQuery}%`)
+            .limit(20);
+
+          if (error) throw error;
+          setUsersList(data || []);
+        } catch (e: any) {
+          console.error('Failed to query profiles:', e);
+          setTransferError('ไม่สามารถดึงข้อมูลรายชื่อผู้ใช้งานได้');
+        } finally {
+          setLoadingUsers(false);
+        }
+      };
+
+      const delayDebounceFn = setTimeout(() => {
+        searchUsers();
+      }, 300);
+
+      return () => clearTimeout(delayDebounceFn);
+    }
+  }, [isTransferModalOpen, userSearchQuery]);
+
+  const handleTransferOwnership = async (newOwnerId: string) => {
+    try {
+      const { error } = await supabase
+        .from('pos_merchants')
+        .update({ owner_id: newOwnerId })
+        .eq('id', selectedMerchantId);
+
+      if (error) throw error;
+      
+      alert('โอนสิทธิ์เจ้าของร้านค้าเสร็จสิ้น');
+      setIsTransferModalOpen(false);
+      fetchMerchantDetails();
+    } catch (e: any) {
+      console.error('Failed to transfer ownership:', e);
+      alert('ไม่สามารถโอนสิทธิ์ได้: ' + e.message);
+    }
+  };
 
   // Load layout from localStorage
   useEffect(() => {
@@ -196,28 +335,49 @@ export default function AdminDashboard() {
         startOfMonth.setHours(0,0,0,0);
 
         const fetchRevenue = async () => {
-          const { data, error } = await supabase
+          let query = supabase
             .from('pos_orders')
             .select('total_amount')
             .gte('created_at', startOfMonth.toISOString())
             .eq('status', 'completed');
+          
+          if (selectedMerchantId) {
+            query = query.eq('merchant_id', selectedMerchantId);
+          }
+          const { data, error } = await query;
           if (!error && data) {
             return data.reduce((sum: number, row: any) => sum + (Number(row?.total_amount) || 0), 0);
           }
           return 0;
         };
 
+        let shiftsQuery = supabase.from('pos_shifts').select('*', { count: 'exact', head: true }).eq('status', 'open');
+        let membersQuery = supabase.from('pos_members').select('*', { count: 'exact', head: true });
+        let menuItemsQuery = supabase.from('pos_menu_items').select('*', { count: 'exact', head: true });
+        let ordersQuery = supabase.from('pos_orders').select('*', { count: 'exact', head: true }).gte('created_at', startOfMonth.toISOString());
+        let branchesQuery = supabase.from('branches').select('*', { count: 'exact', head: true });
+        let recentSalesQuery = supabase.from('pos_orders')
+          .select('id, total_amount, created_at, status, payment_method')
+          .order('created_at', { ascending: false })
+          .limit(10);
+
+        if (selectedMerchantId) {
+          shiftsQuery = shiftsQuery.eq('merchant_id', selectedMerchantId);
+          membersQuery = membersQuery.eq('merchant_id', selectedMerchantId);
+          menuItemsQuery = menuItemsQuery.eq('merchant_id', selectedMerchantId);
+          ordersQuery = ordersQuery.eq('merchant_id', selectedMerchantId);
+          branchesQuery = branchesQuery.eq('merchant_id', selectedMerchantId);
+          recentSalesQuery = recentSalesQuery.eq('merchant_id', selectedMerchantId);
+        }
+
         const results = await Promise.allSettled([
           fetchRevenue(),
-          supabase.from('pos_shifts').select('*', { count: 'exact', head: true }).eq('status', 'open'),
-          supabase.from('pos_members').select('*', { count: 'exact', head: true }),
-          supabase.from('pos_menu_items').select('*', { count: 'exact', head: true }),
-          supabase.from('pos_orders').select('*', { count: 'exact', head: true }).gte('created_at', startOfMonth.toISOString()),
-          supabase.from('branches').select('*', { count: 'exact', head: true }),
-          supabase.from('pos_orders')
-            .select('id, total_amount, created_at, status, payment_method')
-            .order('created_at', { ascending: false })
-            .limit(10)
+          shiftsQuery,
+          membersQuery,
+          menuItemsQuery,
+          ordersQuery,
+          branchesQuery,
+          recentSalesQuery
         ]);
 
         if (results[0].status === 'fulfilled') setRevenue(results[0].value as number);
@@ -235,7 +395,7 @@ export default function AdminDashboard() {
       }
     }
     fetchStats();
-  }, [locale]);
+  }, [locale, selectedMerchantId]);
 
   // Swap reordering logic
   const handleDragEnd = (draggedId: string, event: any, info: any) => {
@@ -330,6 +490,198 @@ export default function AdminDashboard() {
           {locale === 'en' ? 'Reset Widget Layout' : 'รีเซ็ตการจัดวางวิทเจ็ต'}
         </button>
       </div>
+
+      {/* System Overview Section (SaaS Summary) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="bg-white border border-neutral-200/80 rounded-[2rem] p-6 flex items-center justify-between shadow-[0_2px_12px_rgba(0,0,0,0.01)]">
+          <div className="space-y-1">
+            <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest block">ร้านค้าทั้งหมดในระบบ</span>
+            <p className="text-3xl font-black text-zinc-900">{systemStats.totalShops}</p>
+            <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider block">Total SaaS Shops</span>
+          </div>
+          <div className="w-12 h-12 bg-zinc-50 border border-zinc-100 rounded-2xl flex items-center justify-center text-zinc-900">
+            <BuildingStorefrontIcon className="w-6 h-6" />
+          </div>
+        </div>
+
+        <div className="bg-white border border-neutral-200/80 rounded-[2rem] p-6 flex items-center justify-between shadow-[0_2px_12px_rgba(0,0,0,0.01)]">
+          <div className="space-y-1">
+            <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest block">ระบบรายเดือน (Monthly)</span>
+            <p className="text-3xl font-black text-zinc-900">{systemStats.monthlyShops}</p>
+            <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider block">Active Monthly Plans</span>
+          </div>
+          <div className="w-12 h-12 bg-blue-50 border border-blue-100 rounded-2xl flex items-center justify-center text-blue-600">
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+            </svg>
+          </div>
+        </div>
+
+        <div className="bg-white border border-neutral-200/80 rounded-[2rem] p-6 flex items-center justify-between shadow-[0_2px_12px_rgba(0,0,0,0.01)]">
+          <div className="space-y-1">
+            <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest block">ระบบรายปี (Yearly)</span>
+            <p className="text-3xl font-black text-zinc-900">{systemStats.yearlyShops}</p>
+            <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider block">Active Annual Plans</span>
+          </div>
+          <div className="w-12 h-12 bg-green-50 border border-green-100 rounded-2xl flex items-center justify-center text-green-600">
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0110 21a3.745 3.745 0 01-3.125-1.593 3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0114 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      {/* Merchant Overview & Ownership Control Card */}
+      {selectedMerchantId ? (
+        <div className="bg-white border border-neutral-200/80 rounded-[2rem] p-6 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-[0_2px_12px_rgba(0,0,0,0.01)]">
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="w-14 h-14 bg-zinc-950 text-white rounded-full flex items-center justify-center text-xl font-black shrink-0">
+              {merchantDetails?.name?.[0]?.toUpperCase() || 'M'}
+            </div>
+            <div className="flex flex-col min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-[17px] font-black text-zinc-900 truncate">{merchantDetails?.name || 'กำลังโหลด...'}</span>
+                <span className="bg-zinc-100 text-zinc-600 px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider uppercase shrink-0">บัญชีร้านค้า</span>
+              </div>
+              <p className="text-[10px] text-zinc-400 font-medium truncate font-mono mt-0.5">ID: {selectedMerchantId}</p>
+              
+              {/* Owner Info */}
+              <div className="mt-2 flex items-center gap-1.5 text-xs">
+                <span className="text-zinc-500 font-medium">เจ้าของร้าน (Owner):</span>
+                {ownerProfile ? (
+                  <span className="text-zinc-900 font-bold flex items-center gap-1">
+                    {ownerProfile.display_name} 
+                    <span className="text-zinc-400 font-medium font-mono text-[10px]">({ownerProfile.email})</span>
+                  </span>
+                ) : (
+                  <span className="text-rose-500 font-bold uppercase tracking-wider text-[10px]">ไม่มีเจ้าของร้านค้า</span>
+                )}
+              </div>
+
+              {/* Subscription Info */}
+              <div className="mt-1.5 flex items-center gap-1.5 text-xs">
+                <span className="text-zinc-500 font-medium">ประเภทระบบ (Plan Type):</span>
+                <select
+                  value={merchantDetails?.subscription_type || 'monthly'}
+                  onChange={(e) => handleChangeSubscriptionType(e.target.value)}
+                  className="bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 focus:border-zinc-950 px-2 py-0.5 rounded-lg text-xs font-bold outline-none cursor-pointer text-zinc-900 transition-colors"
+                >
+                  <option value="monthly">รายเดือน (Monthly)</option>
+                  <option value="yearly">รายปี (Yearly)</option>
+                  <option value="trial">ทดลองใช้งาน (Trial)</option>
+                  <option value="free">ใช้งานฟรี (Free)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setUserSearchQuery('');
+              setIsTransferModalOpen(true);
+            }}
+            className="px-4 py-3 bg-zinc-950 hover:bg-zinc-900 active:scale-95 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-md shadow-black/5 flex items-center justify-center gap-2 shrink-0"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.656 48.656 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M7.5 12l-3 3m3-3l3 3" />
+            </svg>
+            โอนสิทธิ์เจ้าของร้าน
+          </button>
+        </div>
+      ) : (
+        <div className="bg-zinc-50 border border-dashed border-zinc-200 rounded-[2rem] p-8 text-center mb-8">
+          <BuildingStorefrontIcon className="w-10 h-10 mx-auto text-zinc-400 mb-3" />
+          <h3 className="text-sm font-black text-zinc-900">ยังไม่ได้เลือกบัญชีร้านค้าที่จะตรวจสอบ</h3>
+          <p className="text-zinc-500 text-xs mt-1 max-w-sm mx-auto leading-relaxed">
+            กรุณาคลิกปุ่ม "เลือกบัญชีร้านค้า" ที่แถบแจ้งเตือนสีเทาด้านบนสุด เพื่อเริ่มต้นตรวจสอบและจัดการสิทธิ์ของแต่ละร้านค้า
+          </p>
+        </div>
+      )}
+
+      {/* Transfer Ownership Modal */}
+      <AnimatePresence>
+        {isTransferModalOpen && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm select-none font-bold">
+            <motion.div
+              initial={{ opacity: 0, y: 15, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 15, scale: 0.98 }}
+              className="max-w-md w-full bg-white border border-neutral-200/80 p-8 shadow-[0_20px_50px_rgba(0,0,0,0.06)] rounded-[2.5rem] flex flex-col space-y-6 relative"
+            >
+              {/* Close Button */}
+              <button 
+                onClick={() => setIsTransferModalOpen(false)}
+                className="absolute top-6 right-6 w-8 h-8 flex items-center justify-center text-zinc-400 hover:text-zinc-950 hover:bg-zinc-100 rounded-full transition-all"
+              >
+                <XMarkIcon className="w-5 h-5" />
+              </button>
+
+              <div className="space-y-1">
+                <h3 className="text-lg font-black text-zinc-900 tracking-tight">โอนสิทธิ์เจ้าของร้าน</h3>
+                <p className="text-[10px] text-zinc-400 uppercase tracking-widest font-bold">ร้านค้า: {merchantDetails?.name}</p>
+              </div>
+
+              {/* User Search Input */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-wider">ค้นหาพนักงาน / ผู้ใช้งาน</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-zinc-400">
+                    <MagnifyingGlassIcon className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="text"
+                    value={userSearchQuery}
+                    onChange={(e) => setUserSearchQuery(e.target.value)}
+                    placeholder="พิมพ์ชื่อ หรือ อีเมลเพื่อค้นหา..."
+                    className="w-full pl-11 pr-4 py-3 bg-zinc-50 hover:bg-zinc-100/50 focus:bg-white border border-zinc-200 focus:border-zinc-950 focus:ring-1 focus:ring-zinc-950 text-xs font-semibold rounded-xl outline-none transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Users list results */}
+              <div className="flex flex-col min-h-0">
+                <span className="text-[9px] font-black text-zinc-400 uppercase tracking-wider mb-2">ผลการค้นหา</span>
+                
+                <div className="max-h-[200px] overflow-y-auto no-scrollbar space-y-1">
+                  {loadingUsers ? (
+                    <div className="py-8 flex justify-center"><RUSHUPLoader /></div>
+                  ) : transferError ? (
+                    <div className="py-8 text-center text-rose-500 text-xs font-semibold">{transferError}</div>
+                  ) : usersList.length > 0 ? (
+                    usersList.map((user) => (
+                      <button
+                        key={user.id}
+                        onClick={() => {
+                          if (confirm(`คุณต้องการโอนสิทธิ์ความเป็นเจ้าของร้านให้คุณ ${user.display_name} ใช่หรือไม่?`)) {
+                            handleTransferOwnership(user.id);
+                          }
+                        }}
+                        className="w-full flex items-center justify-between p-3 hover:bg-zinc-50 border border-transparent hover:border-zinc-200/80 rounded-xl transition-all text-left active:scale-[0.99] group"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-8 h-8 rounded-full bg-zinc-100 group-hover:bg-zinc-950 group-hover:text-white flex items-center justify-center text-xs font-black shrink-0 transition-colors">
+                            {user.display_name?.[0]?.toUpperCase() || 'U'}
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-xs font-bold text-zinc-900 group-hover:text-zinc-950 truncate transition-colors">{user.display_name}</span>
+                            <span className="text-[9px] text-zinc-400 font-medium truncate font-mono">{user.email}</span>
+                          </div>
+                        </div>
+                        <span className="text-[10px] text-zinc-400 group-hover:text-zinc-950 font-bold shrink-0">โอนสิทธิ์ &rarr;</span>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="py-8 text-center text-zinc-400 text-xs font-bold uppercase tracking-widest">
+                      ไม่พบผู้ใช้งาน
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {error && <div className="text-red-600 font-bold text-xs bg-red-50 p-4 rounded-xl border border-red-100 mb-6">{error}</div>}
 

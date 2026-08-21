@@ -1,10 +1,10 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Save, Plus, Trash2, Tag, Gift, Zap, Edit2, CheckCircle2, Award, AlertTriangle, Upload, X, Image } from 'lucide-react';
+import { Save, Plus, Trash2, Tag, Gift, Zap, Edit2, CheckCircle2, Award, AlertTriangle, Upload, X, Image, History } from 'lucide-react';
 
 export default function LoyaltySettingsPage() {
-  const [activeTab, setActiveTab] = useState<'tiers' | 'titles' | 'coupons' | 'campaigns'>('tiers');
+  const [activeTab, setActiveTab] = useState<'tiers' | 'titles' | 'coupons' | 'campaigns' | 'marketing'>('tiers');
   const [tiers, setTiers] = useState<any[]>([]);
   const [titles, setTitles] = useState<any[]>([]);
   const [coupons, setCoupons] = useState<any[]>([]);
@@ -13,19 +13,31 @@ export default function LoyaltySettingsPage() {
   const [menuItems, setMenuItems] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
 
+  // Marketing / CRM automation states
+  const [segmentsSummary, setSegmentsSummary] = useState<any>({ total: 0, loyal: 0, churn: 0, inactive: 0, general: 0 });
+  const [allSegmentMembers, setAllSegmentMembers] = useState<any[]>([]);
+  const [selectedSegmentDetail, setSelectedSegmentDetail] = useState<string | null>(null);
+  const [broadcastSegment, setBroadcastSegment] = useState<string>('churn');
+  const [broadcastMessage, setBroadcastMessage] = useState<string>('สวัสดีครับคุณ {name} ทางร้าน RUSH UP คิดถึงคุณจังเลย! ขอมอบของขวัญพิเศษเป็นคูปองส่วนลดสำหรับสั่งซื้อครั้งถัดไปนะครับ เปิดแอป LINE เพื่อกดดูคูปองได้เลยครับ');
+  const [broadcastCouponId, setBroadcastCouponId] = useState<string>('');
+  const [broadcastSending, setBroadcastSending] = useState<boolean>(false);
+  const [broadcastLogs, setBroadcastLogs] = useState<any[]>([]);
+
   useEffect(() => {
     loadData();
   }, []);
 
   const loadData = async () => {
     setLoading(true);
-    const [tr, t, c, camp, m, cat] = await Promise.all([
+    const [tr, t, c, camp, m, cat, segsRes, logsRes] = await Promise.all([
       supabase.from('pos_member_tiers').select('*').order('min_points', { ascending: true }),
       supabase.from('pos_loyalty_titles').select('*').order('rule_threshold', { ascending: true }),
       supabase.from('pos_loyalty_coupons').select('*').order('cost_points', { ascending: true }),
       supabase.from('pos_loyalty_campaigns').select('*').order('created_at', { ascending: false }),
       supabase.from('pos_menu_items').select('id, name').eq('is_active', true).order('name'),
-      supabase.from('pos_menu_categories').select('id, name').order('name')
+      supabase.from('pos_menu_categories').select('id, name').order('name'),
+      fetch('/api/admin/crm/segments').then(r => r.json()).catch(() => ({ success: false })),
+      supabase.from('audit_logs').select('*').eq('action', 'crm_targeted_line_broadcast').order('created_at', { ascending: false }).limit(10)
     ]);
     if (tr.data) setTiers(tr.data);
     if (t.data) setTitles(t.data);
@@ -33,6 +45,14 @@ export default function LoyaltySettingsPage() {
     if (camp.data) setCampaigns(camp.data);
     if (m.data) setMenuItems(m.data);
     if (cat.data) setCategories(cat.data);
+
+    if (segsRes?.success) {
+      setSegmentsSummary(segsRes.summary);
+      setAllSegmentMembers(segsRes.members);
+    }
+    if (logsRes?.data) {
+      setBroadcastLogs(logsRes.data);
+    }
     setLoading(false);
   };
 
@@ -182,7 +202,7 @@ export default function LoyaltySettingsPage() {
     if (error) alert('Error: ' + error.message);
     else {
       alert('บันทึกสำเร็จ');
-      fetchData();
+      loadData();
     }
   };
 
@@ -192,7 +212,7 @@ export default function LoyaltySettingsPage() {
       const { error } = await supabase.from('pos_loyalty_campaigns').delete().eq('id', id);
       if (error) return alert('Error: ' + error.message);
     }
-    fetchData();
+    loadData();
   };
 
   const handleManualReset = async () => {
@@ -787,9 +807,15 @@ export default function LoyaltySettingsPage() {
         </button>
         <button
           onClick={() => setActiveTab('campaigns')}
-          className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-colors \${activeTab === 'campaigns' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+          className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'campaigns' ? 'border-amber-500 text-amber-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
         >
           <Zap className="w-4 h-4" /> แคมเปญแต้มคูณ (Campaigns)
+        </button>
+        <button
+          onClick={() => setActiveTab('marketing')}
+          className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'marketing' ? 'border-red-600 text-[#D3202B]' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+        >
+          <Award className="w-4 h-4" /> การตลาดอัจฉริยะ (Marketing)
         </button>
       </div>
 
@@ -802,9 +828,287 @@ export default function LoyaltySettingsPage() {
             {activeTab === 'titles' && renderTitles()}
             {activeTab === 'coupons' && renderCoupons()}
             {activeTab === 'campaigns' && renderCampaigns()}
+            {activeTab === 'marketing' && renderMarketing()}
           </>
         )}
       </div>
     </div>
   );
+
+  function renderMarketing() {
+    const handleSendBroadcast = async () => {
+      if (!broadcastMessage.trim()) {
+        alert('กรุณากรอกข้อความบรอดแคสต์');
+        return;
+      }
+      const count = broadcastSegment === 'all' 
+        ? allSegmentMembers.filter(m => m.line_user_id).length 
+        : allSegmentMembers.filter(m => m.segment === broadcastSegment && m.line_user_id).length;
+
+      if (count === 0) {
+        alert('ไม่พบรายชื่อลูกค้าที่มีไอดี LINE ในกลุ่มเป้าหมายนี้');
+        return;
+      }
+
+      if (!confirm(`ยืนยันการส่งบรอดแคสต์ LINE ไปยังลูกค้ากลุ่มนี้จำนวน ${count} คน?`)) {
+        return;
+      }
+
+      setBroadcastSending(true);
+      try {
+        const res = await fetch('/api/admin/crm/broadcast', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            segment: broadcastSegment,
+            message: broadcastMessage,
+            couponId: broadcastCouponId || null
+          })
+        });
+        const result = await res.json();
+        if (result.success) {
+          alert(`ส่งบรอดแคสต์สำเร็จไปยังลูกค้า ${result.sentCount} คน!`);
+          setBroadcastMessage('สวัสดีครับคุณ {name} ทางร้าน RUSH UP คิดถึงคุณจังเลย! ขอมอบของขวัญพิเศษเป็นคูปองส่วนลดสำหรับสั่งซื้อครั้งถัดไปนะครับ เปิดแอป LINE เพื่อกดดูคูปองได้เลยครับ');
+          setBroadcastCouponId('');
+          loadData(); // Refresh segments and logs
+        } else {
+          alert('เกิดข้อผิดพลาดในการส่งบรอดแคสต์: ' + result.error);
+        }
+      } catch (e: any) {
+        alert('เกิดข้อผิดพลาด: ' + e.message);
+      } finally {
+        setBroadcastSending(false);
+      }
+    };
+
+    const getSegmentName = (seg: string) => {
+      switch (seg) {
+        case 'loyal': return 'ลูกค้าประจำ (Loyal)';
+        case 'churn': return 'เริ่มห่างหาย (About to Churn)';
+        case 'inactive': return 'ไม่มาซื้อนานแล้ว (Inactive)';
+        case 'general': return 'ลูกค้าทั่วไป (General)';
+        default: return 'ทั้งหมด';
+      }
+    };
+
+    const currentSegmentMembers = broadcastSegment === 'all'
+      ? allSegmentMembers
+      : allSegmentMembers.filter(m => m.segment === broadcastSegment);
+
+    return (
+      <div className="space-y-6">
+        {/* Segment counts section */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {[
+            { key: 'loyal', label: 'ลูกค้าประจำ (Loyal)', count: segmentsSummary.loyal, desc: 'ซื้อ >= 10 ครั้ง หรือ ยอดสะสม >= 3,000 และซื้อใน 14 วันล่าสุด', color: 'border-emerald-500/20 bg-emerald-50/40 text-emerald-700' },
+            { key: 'churn', label: 'เริ่มห่างหาย (Churn)', count: segmentsSummary.churn, desc: 'ห่างหายไป 15 - 30 วันที่ผ่านมา', color: 'border-amber-500/20 bg-amber-50/40 text-amber-700' },
+            { key: 'inactive', label: 'ไม่มาซื้อนานแล้ว (Inactive)', count: segmentsSummary.inactive, desc: 'ไม่มียอดซื้อเกิน 30 วันขึ้นไป', color: 'border-red-500/20 bg-red-50/40 text-[#D3202B]' },
+            { key: 'general', label: 'ทั่วไป (General)', count: segmentsSummary.general, desc: 'ลูกค้าทั่วไปที่ไม่เข้าเกณฑ์ข้างบน', color: 'border-gray-500/20 bg-gray-50/40 text-gray-700' },
+          ].map(item => (
+            <div 
+              key={item.key} 
+              onClick={() => {
+                setBroadcastSegment(item.key);
+                setSelectedSegmentDetail(item.key);
+              }}
+              className={`p-5 border rounded-2xl cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-sm ${item.color} ${
+                broadcastSegment === item.key ? 'ring-2 ring-offset-2 ring-red-500' : ''
+              }`}
+            >
+              <h4 className="text-xs font-black uppercase tracking-wider opacity-85">{item.label}</h4>
+              <p className="text-3xl font-black my-2">{item.count || 0} <span className="text-sm font-bold opacity-80">คน</span></p>
+              <p className="text-[10px] leading-relaxed opacity-75 font-medium">{item.desc}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Left Column: Form */}
+          <div className="lg:col-span-7 bg-white p-6 border border-gray-200 rounded-[24px] space-y-5 shadow-sm">
+            <div className="flex items-center gap-2 pb-3 border-b border-gray-100">
+              <Zap className="w-5 h-5 text-red-500" />
+              <h3 className="font-black text-lg text-gray-900">สร้างแคมเปญแจ้งเตือน LINE</h3>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider text-gray-400 mb-2">กลุ่มเป้าหมาย (Target Segment)</label>
+                <select 
+                  value={broadcastSegment} 
+                  onChange={e => setBroadcastSegment(e.target.value)}
+                  className="w-full border-gray-300 rounded-xl text-sm font-bold text-gray-700 bg-neutral-50 px-4 py-3"
+                >
+                  <option value="churn">เริ่มห่างหาย (About to Churn) - {segmentsSummary.churn} คน</option>
+                  <option value="inactive">ไม่มาซื้อนานแล้ว (Inactive) - {segmentsSummary.inactive} คน</option>
+                  <option value="loyal">ลูกค้าประจำ (Loyal) - {segmentsSummary.loyal} คน</option>
+                  <option value="general">ทั่วไป (General) - {segmentsSummary.general} คน</option>
+                  <option value="all">ลูกค้าทุกคนในฐานข้อมูล (All) - {segmentsSummary.total} คน</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider text-gray-400 mb-2">แนบคูปองแจกฟรี (Attach Coupon Gift)</label>
+                <select 
+                  value={broadcastCouponId} 
+                  onChange={e => setBroadcastCouponId(e.target.value)}
+                  className="w-full border-gray-300 rounded-xl text-sm font-bold text-gray-700 bg-neutral-50 px-4 py-3"
+                >
+                  <option value="">-- ไม่แนบคูปอง (ส่งเฉพาะข้อความอย่างเดียว) --</option>
+                  {coupons.filter(c => c.is_active).map(c => (
+                    <option key={c.id} value={c.id}>🎁 {c.name} (แลกปกติใช้ {c.cost_points} แต้ม)</option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-gray-400 font-bold mt-1.5 leading-normal">
+                  *ระบบจะดึงคูปองข้างต้นผูกเข้าไปในบัญชี LINE LIFF &quot;คูปองของฉัน&quot; ของลูกค้าเป้าหมายทันทีโดยไม่เสียคะแนน
+                </p>
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="text-xs font-black uppercase tracking-wider text-gray-400">ข้อความบรอดแคสต์ (Personalized Message)</label>
+                  <span className="text-[10px] text-red-500 font-bold">ใส่ตัวแปร &#123;name&#125; หรือ &#123;points&#125; เพื่อระบุชื่อพนักงาน/แต้มจริงได้</span>
+                </div>
+                <textarea 
+                  value={broadcastMessage} 
+                  onChange={e => setBroadcastMessage(e.target.value)}
+                  rows={4}
+                  placeholder="พิมพ์ข้อความที่ต้องการส่งตรงถึง LINE ของลูกค้า..."
+                  className="w-full border-gray-300 rounded-xl text-sm font-medium text-gray-800 p-4 focus:ring-red-500 focus:border-red-500"
+                />
+              </div>
+
+              <button 
+                onClick={handleSendBroadcast}
+                disabled={broadcastSending}
+                className={`w-full py-4 rounded-xl text-white font-black text-sm uppercase tracking-widest transition-all ${
+                  broadcastSending 
+                    ? 'bg-gray-400 cursor-not-allowed' 
+                    : 'bg-[#D3202B] hover:bg-red-700 active:scale-95 shadow-md shadow-red-500/10'
+                }`}
+              >
+                {broadcastSending ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    กำลังส่งบรอดแคสต์...
+                  </div>
+                ) : (
+                  'ส่งบรอดแคสต์ LINE'
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Right Column: Member Details */}
+          <div className="lg:col-span-5 bg-white p-6 border border-gray-200 rounded-[24px] shadow-sm flex flex-col h-[520px]">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-4">
+              <div className="flex items-center gap-2">
+                <Award className="w-5 h-5 text-amber-500" />
+                <h3 className="font-black text-md text-gray-900">รายชื่อในกลุ่ม: {getSegmentName(broadcastSegment)}</h3>
+              </div>
+              <span className="text-xs font-black text-gray-400 bg-gray-50 px-2 py-1 rounded-lg">
+                {currentSegmentMembers.length} คน
+              </span>
+            </div>
+
+            <div className="flex-1 overflow-y-auto pr-1 space-y-3">
+              {currentSegmentMembers.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center p-8">
+                  <AlertTriangle className="w-8 h-8 text-gray-300 mb-2" />
+                  <p className="text-sm font-bold text-gray-400">ไม่พบลูกค้าในหมวดหมู่นี้</p>
+                </div>
+              ) : (
+                currentSegmentMembers.map(m => (
+                  <div key={m.id} className="p-3 bg-neutral-50/60 hover:bg-neutral-50 border border-gray-100 rounded-xl flex items-center justify-between gap-3 text-left">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="relative w-8 h-8 rounded-full overflow-hidden shrink-0 bg-gray-200">
+                        {m.avatar_url ? (
+                          <img src={m.avatar_url} alt={m.display_name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-xs font-black text-gray-400">
+                            {String(m.display_name || '?').slice(0, 1)}
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-black text-gray-800 truncate leading-snug">{m.display_name || 'ลูกค้าไม่มีชื่อ'}</p>
+                        <p className="text-[10px] text-gray-400 font-semibold truncate mt-0.5">
+                          {m.phone || 'ไม่มีเบอร์โทร'} • R: {m.rfm.recency} วัน • F: {m.rfm.frequency} ครั้ง
+                        </p>
+                      </div>
+                    </div>
+                    <div className="shrink-0 flex items-center gap-2">
+                      {m.line_user_id ? (
+                        <span className="text-[9px] font-black uppercase text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-md">
+                          LINE CONNECTED
+                        </span>
+                      ) : (
+                        <span className="text-[9px] font-black uppercase text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">
+                          NO LINE
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Broadcast History logs */}
+        <div className="bg-white p-6 border border-gray-200 rounded-[24px] shadow-sm space-y-4">
+          <div className="flex items-center gap-2 pb-3 border-b border-gray-100">
+            <History className="w-5 h-5 text-gray-400" />
+            <h3 className="font-black text-md text-gray-900">ประวัติแคมเปญส่งข้อความย้อนหลัง (LINE Logs)</h3>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left text-gray-500">
+              <thead className="text-[10px] font-black uppercase tracking-wider text-gray-400 bg-neutral-50/50">
+                <tr>
+                  <th className="px-4 py-3">วันเวลาที่ส่ง</th>
+                  <th className="px-4 py-3">กลุ่มเป้าหมาย</th>
+                  <th className="px-4 py-3">ข้อความ</th>
+                  <th className="px-4 py-3">คูปองที่แนบ</th>
+                  <th className="px-4 py-3 text-center">ส่งสำเร็จ / ล้มเหลว</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 font-medium">
+                {broadcastLogs.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="text-center py-8 text-gray-400 font-bold">ไม่พบประวัติการยิงบรอดแคสต์การตลาดในฐานข้อมูล</td>
+                  </tr>
+                ) : (
+                  broadcastLogs.map(log => {
+                    const details = log.details || {};
+                    return (
+                      <tr key={log.id} className="hover:bg-neutral-50/50 transition-colors">
+                        <td className="px-4 py-3 text-xs font-bold text-gray-700 whitespace-nowrap">
+                          {new Date(log.created_at).toLocaleString('th-TH')}
+                        </td>
+                        <td className="px-4 py-3 text-xs font-black text-gray-900">
+                          {getSegmentName(details.segment)}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-gray-600 max-w-xs truncate" title={details.message}>
+                          {details.message}
+                        </td>
+                        <td className="px-4 py-3 text-xs font-black text-[#D3202B]">
+                          {details.couponName ? `🎁 ${details.couponName}` : '-'}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-center font-black whitespace-nowrap">
+                          <span className="text-emerald-600">{details.successCount || 0} คน</span>
+                          {details.errorCount > 0 && (
+                            <span className="text-red-500 ml-1">/ {details.errorCount} คน</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  }
 }

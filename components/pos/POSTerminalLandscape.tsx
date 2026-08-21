@@ -1657,6 +1657,130 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
     }
   }, [cart.length, paymentSuccessData]);
 
+  // Categorize items for "All Categories" view (best sellers vs new/slow)
+  const bestSellers = [...items]
+    .sort((a, b) => (b.sales_count || b.popularity || 0) - (a.sales_count || a.popularity || 0))
+    .slice(0, 4);
+
+  const newArrivals = [...items]
+    .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+    .slice(0, 4);
+
+  const slowMoving = [...items]
+    .filter(item => !bestSellers.some(b => b.id === item.id) && !newArrivals.some(n => n.id === item.id))
+    .sort((a, b) => (a.sales_count || a.popularity || 0) - (b.sales_count || b.popularity || 0))
+    .slice(0, 4);
+
+  const renderItemCard = (item: any) => {
+    return (
+      <div 
+        key={item.id} 
+        className={`relative group select-none touch-manipulation w-full ${viewMode === 'grid' ? 'pb-[100%] block' : 'h-full flex flex-col'}`}
+        style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
+        onContextMenu={(e) => {
+          e.preventDefault()
+          if (canToggleStock) setOptionsModalItem(item)
+        }}
+        onTouchStart={(e) => handlePressStart(e, item)}
+        onTouchEnd={handlePressCancel}
+        onTouchMove={handlePressMove}
+        onMouseDown={(e) => handlePressStart(e, item)}
+        onMouseUp={handlePressCancel}
+        onMouseMove={handlePressMove}
+        onMouseLeave={handlePressCancel}
+      >
+        <button
+          onClick={(e) => {
+            handlePressCancel()
+            if (isLongPressTriggered.current) {
+              e.preventDefault()
+              e.stopPropagation()
+              isLongPressTriggered.current = false
+              return
+            }
+            if (item.in_stock !== false) handleProductClick(e, item)
+          }}
+          disabled={item.in_stock === false}
+          className={`transition-all duration-300 outline-none ${item.in_stock === false ? 'opacity-70 grayscale cursor-not-allowed' : 'hover:shadow-xl hover:-translate-y-1'} ${viewMode === 'list' ? 'relative w-full h-full flex text-left font-bold border border-[#E5E5DF] bg-white rounded-2xl p-3 sm:p-4 flex-row gap-4 items-center' : 'absolute inset-0 w-full h-full flex text-left font-bold rounded-2xl overflow-hidden border border-[#E5E5DF]/40 bg-white shadow-sm'}`}
+        >
+          {item.in_stock === false && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 backdrop-blur-sm pointer-events-none rounded-[1.2rem]">
+               <div className="flex flex-col items-center justify-center transform -rotate-12 border-[3px] border-white/80 rounded-2xl p-3 shadow-lg">
+                 <span className="text-white/90 text-[20px] font-black uppercase tracking-widest drop-shadow-sm">SOLD</span>
+                 <span className="text-white/90 text-[20px] font-black uppercase tracking-widest drop-shadow-sm mt-[-4px]">OUT</span>
+               </div>
+            </div>
+          )}
+          
+          {(() => {
+            const primaryName = getPrimaryMenuName(item)
+            const secondaryName = getSecondaryMenuName(item, locale === 'zh' ? 'zh' : 'en')
+            
+            if (viewMode === 'list') {
+              return (
+                <>
+                  {item.image_url ? (
+                    <div className="relative h-16 w-16 shrink-0 overflow-hidden bg-gray-100 rounded-xl"><img loading="lazy" crossOrigin="anonymous" src={item.image_url || ''} className="h-full w-full object-cover" /></div>
+                  ) : (
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center bg-gray-100 text-gray-300 rounded-xl"><ImageIcon size={20} /></div>
+                  )}
+                  <div className="flex-1 min-w-0 flex flex-col h-full justify-between">
+                    <div className="text-left">
+                      <h4 className="line-clamp-2 text-[14px] font-black text-gray-900 leading-tight">
+                        {primaryName}
+                      </h4>
+                      {secondaryName && (
+                        <p className="line-clamp-1 text-[10px] font-bold text-[#7B7A74] mt-0.5 leading-tight">
+                          {secondaryName}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-end justify-between border-t border-gray-100 pt-2 mt-2">
+                      <span className="text-[14px] sm:text-[15px] font-black text-emerald-600">
+                        ฿ {getEffectiveItemUnitPrice(item).toLocaleString()}
+                      </span>
+                      <div className="flex items-center justify-center w-7 h-7 rounded-full bg-gray-50 text-gray-400 transition-colors group-hover:bg-black group-hover:text-white">
+                        <Plus size={16} />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )
+            }
+
+            return (
+              <div className="relative w-full h-full rounded-[1.2rem] overflow-hidden bg-[#2C2B27]">
+                {item.image_url ? (
+                  <img loading="lazy" crossOrigin="anonymous" src={item.image_url || ''} className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110 z-0" />
+                ) : (
+                  <div className="absolute inset-0 flex h-full w-full items-center justify-center bg-gray-200 text-gray-400 z-0"><ImageIcon size={48} /></div>
+                )}
+                
+                <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-transparent z-10 transition-colors duration-300"></div>
+                
+                <div className="relative z-10 h-full flex flex-col justify-end p-3 sm:p-3.5 text-white w-full">
+                  <div className="flex flex-col w-full gap-0.5 text-left">
+                    <h4 className="line-clamp-2 text-[13.5px] sm:text-[14px] font-black leading-[1.2] text-white tracking-tight drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.8)]">
+                      {primaryName}
+                    </h4>
+                    {secondaryName && (
+                      <p className="line-clamp-1 text-[9.5px] sm:text-[10px] font-medium text-white/70 leading-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+                        {secondaryName}
+                      </p>
+                    )}
+                    <div className="flex items-baseline mt-1.5 drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.8)]">
+                      <span className="text-[15px] sm:text-[16px] font-black text-white/95">฿ {getEffectiveItemUnitPrice(item).toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
+          })()}
+        </button>
+      </div>
+    );
+  };
+
   return (
     <motion.div
       layout
@@ -2679,118 +2803,57 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
             <main className="custom-scrollbar flex-1 overflow-y-auto bg-transparent p-3 sm:p-4 xl:p-6 font-bold min-h-0">
               <div className="mx-auto font-bold min-h-full pb-32">
                 {filteredItems.length > 0 ? (
-                  <div
-                    className={`grid font-bold ${viewMode === 'list' ? 'gap-3 sm:gap-4 xl:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3' : 'gap-2 sm:gap-3 lg:gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6'}`}
-                  >
-                    {filteredItems.map(item => (
-                      <div 
-                        key={item.id} 
-                        className={`relative group select-none touch-manipulation w-full ${viewMode === 'grid' ? 'pb-[100%] block' : 'h-full flex flex-col'}`}
-                        style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
-                        onContextMenu={(e) => {
-                          e.preventDefault()
-                          if (canToggleStock) setOptionsModalItem(item)
-                        }}
-                        onTouchStart={(e) => handlePressStart(e, item)}
-                        onTouchEnd={handlePressCancel}
-                        onTouchMove={handlePressMove}
-                        onMouseDown={(e) => handlePressStart(e, item)}
-                        onMouseUp={handlePressCancel}
-                        onMouseMove={handlePressMove}
-                        onMouseLeave={handlePressCancel}
-                      >
-                        <button
-                          onClick={(e) => {
-                            handlePressCancel()
-                            if (isLongPressTriggered.current) {
-                              e.preventDefault()
-                              e.stopPropagation()
-                              isLongPressTriggered.current = false
-                              return
-                            }
-                            if (item.in_stock !== false) handleProductClick(e, item)
-                          }}
-                          disabled={item.in_stock === false}
-                          className={`transition-all duration-300 outline-none ${item.in_stock === false ? 'opacity-70 grayscale cursor-not-allowed' : 'hover:shadow-xl hover:-translate-y-1'} ${viewMode === 'list' ? 'relative w-full h-full flex text-left font-bold border border-[#E5E5DF] bg-white rounded-2xl p-3 sm:p-4 flex-row gap-4 items-center' : 'absolute inset-0 w-full h-full flex text-left font-bold rounded-2xl overflow-hidden border border-[#E5E5DF]/40 bg-white shadow-sm'}`}
-                        >
-                          {item.in_stock === false && (
-                            <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 backdrop-blur-sm pointer-events-none rounded-[1.2rem]">
-                               <div className="flex flex-col items-center justify-center transform -rotate-12 border-[3px] border-white/80 rounded-2xl p-3 shadow-lg">
-                                 <span className="text-white/90 text-[20px] font-black uppercase tracking-widest drop-shadow-sm">SOLD</span>
-                                 <span className="text-white/90 text-[20px] font-black uppercase tracking-widest drop-shadow-sm mt-[-4px]">OUT</span>
-                               </div>
-                            </div>
-                          )}
-                          
-                          {(() => {
-                            const primaryName = getPrimaryMenuName(item)
-                            const secondaryName = getSecondaryMenuName(item, locale === 'zh' ? 'zh' : 'en')
-                            
-                            if (viewMode === 'list') {
-                              return (
-                                <>
-                                  {item.image_url ? (
-                                    <div className="relative h-16 w-16 shrink-0 overflow-hidden bg-gray-100 rounded-xl"><img loading="lazy" crossOrigin="anonymous" src={item.image_url || ''} className="h-full w-full object-cover" /></div>
-                                  ) : (
-                                    <div className="flex h-16 w-16 shrink-0 items-center justify-center bg-gray-100 text-gray-300 rounded-xl"><ImageIcon size={20} /></div>
-                                  )}
-                                  <div className="flex-1 min-w-0 flex flex-col h-full justify-between">
-                                    <div className="text-left">
-                                      <h4 className="line-clamp-2 text-[14px] font-black text-gray-900 leading-tight">
-                                        {primaryName}
-                                      </h4>
-                                      {secondaryName && (
-                                        <p className="line-clamp-1 text-[10px] font-bold text-[#7B7A74] mt-0.5 leading-tight">
-                                          {secondaryName}
-                                        </p>
-                                      )}
-                                    </div>
-                                    <div className="flex items-end justify-between border-t border-gray-100 pt-2 mt-2">
-                                      <span className="text-[14px] sm:text-[15px] font-black text-emerald-600">
-                                        ฿ {getEffectiveItemUnitPrice(item).toLocaleString()}
-                                      </span>
-                                      <div className="flex items-center justify-center w-7 h-7 rounded-full bg-gray-50 text-gray-400 transition-colors group-hover:bg-black group-hover:text-white">
-                                        <Plus size={16} />
-                                      </div>
-                                    </div>
-                                  </div>
-                                </>
-                              )
-                            }
+                  (!activeCategoryId || activeCategoryId === 'all') && !searchTerm ? (
+                    <div className="flex flex-col xl:flex-row gap-8 font-bold">
+                      {/* COLUMN 1: Frequently Pressed / Quick Access */}
+                      <div className="flex-1 min-w-0">
+                        <div className="mb-3 flex items-center border-b border-neutral-100 pb-1.5">
+                          <span className="text-[11px] font-black text-neutral-400 uppercase tracking-wider">
+                            ⚡ เข้าถึงด่วน (Quick Access)
+                          </span>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-3">
+                          {bestSellers.map(item => renderItemCard(item))}
+                        </div>
+                      </div>
 
-                              return (
-                                <div className="relative w-full h-full rounded-[1.2rem] overflow-hidden bg-[#2C2B27]">
-                                  {item.image_url ? (
-                                    <img loading="lazy" crossOrigin="anonymous" src={item.image_url || ''} className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110 z-0" />
-                                  ) : (
-                                    <div className="absolute inset-0 flex h-full w-full items-center justify-center bg-gray-200 text-gray-400 z-0"><ImageIcon size={48} /></div>
-                                  )}
-                                  
-                                  <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-transparent z-10 transition-colors duration-300"></div>
-                                  
-                                  <div className="relative z-10 h-full flex flex-col justify-end p-3 sm:p-3.5 text-white w-full">
-                                    <div className="flex flex-col w-full gap-0.5 text-left">
-                                      <h4 className="line-clamp-2 text-[13.5px] sm:text-[14px] font-black leading-[1.2] text-white tracking-tight drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.8)]">
-                                        {primaryName}
-                                      </h4>
-                                      {secondaryName && (
-                                        <p className="line-clamp-1 text-[9.5px] sm:text-[10px] font-medium text-white/70 leading-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
-                                          {secondaryName}
-                                        </p>
-                                      )}
-                                      <div className="flex items-baseline mt-1.5 drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.8)]">
-                                        <span className="text-[15px] sm:text-[16px] font-black text-white/95">฿ {getEffectiveItemUnitPrice(item).toLocaleString()}</span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              )
-                          })()}
-                        </button>
+                      {/* COLUMN 2: New & Slow-moving Lists */}
+                      <div className="w-full xl:w-[460px] shrink-0 flex flex-col gap-6">
+                        {/* Section 2.1: New Releases */}
+                        <div className="flex flex-col">
+                          <div className="mb-3 flex items-center border-b border-neutral-100 pb-1.5">
+                            <span className="text-[11px] font-black text-neutral-400 uppercase tracking-wider">
+                              ✨ เมนูใหม่ (New Menu)
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            {newArrivals.map(item => renderItemCard(item))}
+                          </div>
+                        </div>
+
+                        {/* Section 2.2: Slow Moving / Promote */}
+                        <div className="flex flex-col">
+                          <div className="mb-3 flex items-center border-b border-neutral-100 pb-1.5">
+                            <span className="text-[11px] font-black text-neutral-400 uppercase tracking-wider">
+                              📢 เชียร์ขาย (Promote)
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            {slowMoving.map(item => renderItemCard(item))}
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    ))}
-                  </div>
-                ) : isInitialLoading ? (
+                  ) : (
+                    <div
+                      className={`grid font-bold ${viewMode === 'list' ? 'gap-3 sm:gap-4 xl:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3' : 'gap-2 sm:gap-3 lg:gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6'}`}
+                    >
+                      {filteredItems.map(item => renderItemCard(item))}
+                    </div>
+                  )) : isInitialLoading ? (
                   <div className="flex flex-col items-center justify-center h-full text-gray-400 opacity-50 py-20">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-400 mb-4"></div>
                     <p className="text-sm font-black uppercase tracking-widest">กำลังโหลดเมนู...</p>

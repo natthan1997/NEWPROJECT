@@ -425,6 +425,79 @@ export const supabase = createClient(config.url, config.key, {
   }
 })
 
+// Automatically intercept and inject/filter merchant_id for multi-tenancy in Admin views
+if (typeof window !== 'undefined') {
+  const originalFrom = supabase.from;
+  supabase.from = function(table: string) {
+    const builder = originalFrom.call(this, table);
+    if (window.location.pathname.startsWith('/dashboard/admin')) {
+      const merchantId = localStorage.getItem('admin_selected_merchant_id');
+      const tablesWithMerchantId = [
+        'profiles', 
+        'branches', 
+        'pos_members', 
+        'pos_orders', 
+        'pos_menu_items', 
+        'pos_menu_categories',
+        'pos_menu_modifiers',
+        'pos_zones',
+        'pos_tables',
+        'pos_shifts',
+        'pos_loyalty_coupons',
+        'pos_member_coupons',
+        'pos_points_history',
+        'pos_qr_reward_tokens'
+      ];
+
+      if (merchantId && tablesWithMerchantId.includes(table)) {
+        const originalSelect = builder.select;
+        builder.select = function(...args: any[]) {
+          return originalSelect.apply(this, args).eq('merchant_id', merchantId);
+        };
+
+        const originalUpdate = builder.update;
+        builder.update = function(values: any, ...args: any[]) {
+          if (values && typeof values === 'object') {
+            values.merchant_id = merchantId;
+          }
+          return originalUpdate.call(this, values, ...args).eq('merchant_id', merchantId);
+        };
+
+        const originalDelete = builder.delete;
+        builder.delete = function(...args: any[]) {
+          return originalDelete.apply(this, args).eq('merchant_id', merchantId);
+        };
+
+        const originalInsert = builder.insert;
+        builder.insert = function(values: any, ...args: any[]) {
+          if (Array.isArray(values)) {
+            values.forEach(v => {
+              if (v && typeof v === 'object') v.merchant_id = merchantId;
+            });
+          } else if (values && typeof values === 'object') {
+            values.merchant_id = merchantId;
+          }
+          return originalInsert.call(this, values, ...args);
+        };
+        
+        const originalUpsert = builder.upsert;
+        builder.upsert = function(values: any, ...args: any[]) {
+          if (Array.isArray(values)) {
+            values.forEach(v => {
+              if (v && typeof v === 'object') v.merchant_id = merchantId;
+            });
+          } else if (values && typeof values === 'object') {
+            values.merchant_id = merchantId;
+          }
+          return originalUpsert.call(this, values, ...args);
+        };
+      }
+    }
+    return builder;
+  };
+}
+
+
 // ============================================================================
 // AUTHENTICATION FUNCTIONS - UPDATED FOR NEW SCHEMA
 // ============================================================================
