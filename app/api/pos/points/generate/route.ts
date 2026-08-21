@@ -43,6 +43,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid points amount' }, { status: 400 })
     }
 
+    // Resolve merchant_id from the authenticated user profile
+    let merchantId = '00000000-0000-0000-0000-000000000000'
+    if (requestUser?.id) {
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('merchant_id')
+        .eq('id', requestUser.id)
+        .maybeSingle()
+      if (prof?.merchant_id) {
+        merchantId = prof.merchant_id
+      }
+    }
+
     // Save/sync draft order and items if cartItems are provided and orderId is valid
     if (orderId && cartItems.length > 0) {
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -64,6 +77,7 @@ export async function POST(req: NextRequest) {
               order_number: 'DRAFT',
               total_amount: totalAmount,
               order_source: 'pos',
+              merchant_id: merchantId,
               created_at: new Date().toISOString()
             })
           }
@@ -117,6 +131,7 @@ export async function POST(req: NextRequest) {
         points,
         order_id: orderId && (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i).test(orderId) ? orderId : null,
         created_by: requestUser?.id || null,
+        merchant_id: merchantId,
       })
       .select('token')
       .single()
