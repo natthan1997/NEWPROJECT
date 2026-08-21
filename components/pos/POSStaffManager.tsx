@@ -932,38 +932,49 @@ export default function POSStaffManager({
                 alert(`สร้างบัญชีสำเร็จ!\n\nอีเมล: ${autoEmail}\nรหัสผ่าน: ${autoPassword}\n\nกรุณาคัดลอกข้อมูลนี้ส่งให้พนักงานเพื่อใช้ล็อคอินเข้าระบบ POS`);
 
             } else {
-                // Offline or LINE Invite method (Standard Insert)
-                const { data, error } = await supabase.from('profiles').insert({
-                    display_name: finalDisplayName,
-                    staff_code: newStaffForm.staff_code,
-                    phone: newStaffForm.phone,
-                    staff_type: newStaffForm.staff_type,
-                    department: newStaffForm.staff_type,
-                    salary_type: newStaffForm.salary_type || 'daily',
-                    holiday_compensation_type: newStaffForm.holiday_compensation_type,
-                    daily_wage: newStaffForm.daily_wage,
-                    is_pos_device: newStaffForm.is_pos_device,
-                    work_days: newStaffForm.work_days,
-                    role: 'user',
-                    staff_level: newStaffForm.staff_level || 'staff',
-                    is_verified: true,
-                    quota_public_holiday: 0,
-                    has_social_security: newStaffForm.has_social_security || false
-                }).select().single();
+                // Offline or LINE Invite method (Call server-side API to bypass RLS)
+                const res = await fetch('/api/auth/staff/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        is_offline: true,
+                        profile_data: {
+                            display_name: finalDisplayName,
+                            staff_code: newStaffForm.staff_code,
+                            phone: newStaffForm.phone,
+                            staff_type: newStaffForm.staff_type,
+                            department: newStaffForm.staff_type,
+                            salary_type: newStaffForm.salary_type || 'daily',
+                            holiday_compensation_type: newStaffForm.holiday_compensation_type,
+                            daily_wage: newStaffForm.daily_wage,
+                            is_pos_device: newStaffForm.is_pos_device,
+                            work_days: newStaffForm.work_days,
+                            role: 'user',
+                            staff_level: newStaffForm.staff_level || 'staff',
+                            is_verified: true,
+                            quota_public_holiday: 0,
+                            has_social_security: newStaffForm.has_social_security || false
+                        }
+                    })
+                });
 
-                if (error) {
-                    throw error;
-                } else if (data) {
-                    setShowAddStaffModal(false);
-                    setNewStaffForm({
-                        display_name: '', staff_code: '', phone: '', staff_type: 'general', staff_level: 'staff', salary_type: 'daily', holiday_compensation_type: 'money', daily_wage: 0, is_pos_device: false, has_social_security: false, work_days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
-                        has_login: false, login_method: 'invite', email: '', password: ''
-                    });
-                    fetchStaff();
-                    
-                    if (newStaffForm.has_login && newStaffForm.login_method === 'invite') {
-                        generateLineInvite(data);
-                    }
+                if (!res.ok) {
+                    const errorData = await res.json();
+                    throw new Error(errorData.error || 'Failed to create staff profile');
+                }
+
+                const resData = await res.json();
+                const createdProfileId = resData.profileId;
+
+                setShowAddStaffModal(false);
+                setNewStaffForm({
+                    display_name: '', staff_code: '', phone: '', staff_type: 'general', staff_level: 'staff', salary_type: 'daily', holiday_compensation_type: 'money', daily_wage: 0, is_pos_device: false, has_social_security: false, work_days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
+                    has_login: false, login_method: 'invite', email: '', password: ''
+                });
+                fetchStaff();
+                
+                if (newStaffForm.has_login && newStaffForm.login_method === 'invite') {
+                    generateLineInvite({ id: createdProfileId, display_name: finalDisplayName });
                 }
             }
         } catch (err: any) {
