@@ -2660,6 +2660,390 @@ export default function POSStaffManager({
                 branchId={shopSettings?.branch_id}
             />
 
+            {/* ADD STAFF MODAL */}
+            {showAddStaffModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 text-[#1A1A18] font-sans">
+                    <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden border border-neutral-100 flex flex-col max-h-[90vh] text-left">
+                        <div className="p-6 border-b border-neutral-100 flex items-center justify-between bg-neutral-50/50">
+                            <div>
+                                <h2 className="text-lg font-black text-neutral-900 tracking-tight">เพิ่มพนักงานใหม่</h2>
+                                <p className="text-xs font-bold text-neutral-400 mt-1">สร้างโปรไฟล์พนักงานเข้าสู่ระบบ</p>
+                            </div>
+                            <button onClick={() => setShowAddStaffModal(false)} className="text-neutral-400 hover:text-black p-2 rounded-full hover:bg-neutral-100 transition-colors border-none bg-transparent cursor-pointer">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="p-6 overflow-y-auto space-y-5 flex-1">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">ชื่อพนักงาน *</label>
+                                <input
+                                    type="text"
+                                    value={newStaffForm.display_name}
+                                    onChange={e => setNewStaffForm({ ...newStaffForm, display_name: e.target.value })}
+                                    placeholder="เช่น สมชาย ใจดี"
+                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">รหัสพนักงาน *</label>
+                                <input
+                                    type="text"
+                                    value={newStaffForm.staff_code}
+                                    onChange={e => setNewStaffForm({ ...newStaffForm, staff_code: e.target.value })}
+                                    placeholder="เช่น EMP-001"
+                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">เบอร์โทรศัพท์</label>
+                                <input
+                                    type="text"
+                                    value={newStaffForm.phone}
+                                    onChange={e => setNewStaffForm({ ...newStaffForm, phone: e.target.value })}
+                                    placeholder="เช่น 0891234567"
+                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">แผนก</label>
+                                <select
+                                    value={newStaffForm.staff_type}
+                                    onChange={e => setNewStaffForm({ ...newStaffForm, staff_type: e.target.value })}
+                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
+                                >
+                                    <option value="cafe">หน้าร้านคาเฟ่</option>
+                                    <option value="kitchen">ห้องครัว</option>
+                                    <option value="landscape">ทีมจัดสวน</option>
+                                    <option value="general">ทั่วไป</option>
+                                </select>
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">ตำแหน่ง (Role)</label>
+                                <select
+                                    value={newStaffForm.staff_level}
+                                    onChange={e => setNewStaffForm({ ...newStaffForm, staff_level: e.target.value })}
+                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
+                                >
+                                    {(shopSettings?.custom_roles && shopSettings.custom_roles.length > 0 ? shopSettings.custom_roles : [{ id: 'manager', label: 'ผู้จัดการสาขา (Manager)' }, { id: 'staff', label: 'พนักงานทั่วไป (Staff)' }]).map((role: any) => (
+                                        <option key={role.id} value={role.id}>{role.label}</option>
+                                    ))}
+                                    <option value="admin">แอดมิน (Admin)</option>
+                                </select>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">ประเภทค่าจ้าง</label>
+                                    <select
+                                        value={newStaffForm.salary_type}
+                                        onChange={e => setNewStaffForm({ ...newStaffForm, salary_type: e.target.value })}
+                                        className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
+                                    >
+                                        <option value="daily">รายวัน</option>
+                                        <option value="monthly">รายเดือน</option>
+                                    </select>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">รูปแบบรับชดเชยวันหยุด</label>
+                                    <select
+                                        value={newStaffForm.holiday_compensation_type}
+                                        onChange={e => setNewStaffForm({ ...newStaffForm, holiday_compensation_type: e.target.value })}
+                                        className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
+                                    >
+                                        <option value="money">รับเป็นค่าแรง (Money)</option>
+                                        <option value="dayoff">รับเป็นวันหยุดชดเชย (Day Off)</option>
+                                    </select>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">จำนวนเงิน (บาท)</label>
+                                    <input
+                                        type="number"
+                                        value={newStaffForm.daily_wage || ''}
+                                        onChange={e => setNewStaffForm({ ...newStaffForm, daily_wage: Number(e.target.value) })}
+                                        placeholder="0"
+                                        className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
+                                    />
+                                </div>
+                                <div className="space-y-1.5 sm:col-span-2">
+                                    <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">หักประกันสังคม (Social Security)</label>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <input 
+                                            type="checkbox"
+                                            className="w-4 h-4 text-black border-gray-300 rounded focus:ring-black"
+                                            checked={newStaffForm.has_social_security || false}
+                                            onChange={e => setNewStaffForm({ ...newStaffForm, has_social_security: e.target.checked })}
+                                        />
+                                        <span className="text-sm font-bold text-gray-700">เข้าระบบหักประกันสังคม 5%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="pt-4 mt-2 border-t border-neutral-100 space-y-4">
+                                <div>
+                                    <h3 className="text-sm font-black text-neutral-900">สิทธิ์การเข้าสู่ระบบ (System Access)</h3>
+                                    <p className="text-[10px] font-bold text-neutral-400 mt-1">กำหนดวิธีการล็อคอินสำหรับพนักงานคนนี้</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <input 
+                                        type="checkbox" 
+                                        id="add-has-login"
+                                        checked={newStaffForm.has_login}
+                                        onChange={e => setNewStaffForm({ ...newStaffForm, has_login: e.target.checked })}
+                                        className="w-4 h-4 text-black border-gray-300 rounded focus:ring-black"
+                                    />
+                                    <label htmlFor="add-has-login" className="text-xs font-bold text-gray-700 cursor-pointer">
+                                        อนุญาตให้พนักงานล็อคอินเข้าสู่ระบบ
+                                    </label>
+                                </div>
+
+                                {newStaffForm.has_login && (
+                                    <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-4 space-y-4 mt-2">
+                                        <div className="flex gap-4">
+                                            <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all cursor-pointer ${newStaffForm.login_method === 'invite' ? 'border-[#00B900] bg-[#00B900]/10 text-[#00B900]' : 'border-neutral-200 bg-white text-neutral-500'}`}>
+                                                <input 
+                                                    type="radio" 
+                                                    name="login_method" 
+                                                    value="invite"
+                                                    checked={newStaffForm.login_method === 'invite'}
+                                                    onChange={() => setNewStaffForm({...newStaffForm, login_method: 'invite'})}
+                                                    className="hidden"
+                                                />
+                                                <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M22.5 11.23c0-4.9-5.04-8.88-11.25-8.88C5.04 2.35 0 6.33 0 11.23c0 4.41 4.07 8.16 9.53 8.78.37.07.88.23 1.01.52.12.27.08.7.04.99l-.26 1.6c-.05.32-.24 1.54 1.35.87 1.6-1.12 8.65-5.09 10.83-12.76z" /></svg>
+                                                <span className="text-xs font-bold">ส่งลิงก์ LINE</span>
+                                            </label>
+                                            <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all cursor-pointer ${newStaffForm.login_method === 'credentials' ? 'border-neutral-800 bg-neutral-800 text-white' : 'border-neutral-200 bg-white text-neutral-500'}`}>
+                                                <input 
+                                                    type="radio" 
+                                                    name="login_method" 
+                                                    value="credentials"
+                                                    checked={newStaffForm.login_method === 'credentials'}
+                                                    onChange={() => setNewStaffForm({...newStaffForm, login_method: 'credentials'})}
+                                                    className="hidden"
+                                                />
+                                                <Mail size={16} />
+                                                <span className="text-xs font-bold">สร้างรหัสผ่าน</span>
+                                            </label>
+                                        </div>
+
+                                        {newStaffForm.login_method === 'credentials' && (
+                                            <div className="text-center p-3 text-left">
+                                                <p className="text-[10px] font-bold text-neutral-400 leading-normal">ระบบจะสร้างบัญชีและรหัสผ่านจาก "รหัสพนักงาน" อัตโนมัติ<br/>ข้อมูลล็อคอินจะแสดงให้บันทึกหลังจากกดสร้างสำเร็จ</p>
+                                            </div>
+                                        )}
+                                        {newStaffForm.login_method === 'invite' && (
+                                            <div className="text-center p-3 text-left">
+                                                <p className="text-[10px] font-bold text-neutral-400 leading-normal">ระบบจะสร้าง QR Code และลิงก์เชิญ<br/>ให้คุณส่งต่อให้พนักงานหลังจากกดบันทึก</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="p-6 border-t border-neutral-100 bg-white">
+                            <button
+                                onClick={handleCreateStaff}
+                                disabled={isSaving}
+                                className={`w-full py-4 rounded-xl text-sm font-bold tracking-wide transition-all shadow-lg border-none cursor-pointer ${isSaving ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed shadow-none' : 'bg-[#0F172A] text-white hover:bg-neutral-800 shadow-neutral-200'}`}
+                            >
+                                {isSaving ? 'กำลังบันทึก...' : 'สร้างโปรไฟล์พนักงาน'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* LEAVE MODAL */}
+            {showLeaveModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 text-[#1A1A18] font-sans">
+                    <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden border border-neutral-100 flex flex-col max-h-[90vh] text-left">
+                        <div className="p-6 border-b border-neutral-100 flex items-center justify-between bg-neutral-50/50">
+                            <div>
+                                <h2 className="text-lg font-black text-neutral-900 tracking-tight">บันทึกวันลา</h2>
+                                <p className="text-xs font-bold text-neutral-400 mt-1">บันทึกการลางานของพนักงาน</p>
+                            </div>
+                            <button onClick={() => setShowLeaveModal(false)} className="text-neutral-400 hover:text-black p-2 rounded-full hover:bg-neutral-100 transition-colors border-none bg-transparent cursor-pointer">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="p-6 overflow-y-auto space-y-5 flex-1">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">พนักงาน *</label>
+                                <select
+                                    value={leaveForm.profile_id}
+                                    onChange={e => setLeaveForm({ ...leaveForm, profile_id: e.target.value })}
+                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
+                                >
+                                    <option value="">-- เลือกพนักงาน --</option>
+                                    {staff.map(s => (
+                                        <option key={s.id} value={s.id}>{s.display_name} ({s.staff_code})</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">วันที่ลา *</label>
+                                <input
+                                    type="date"
+                                    value={leaveForm.leave_date}
+                                    onChange={e => setLeaveForm({ ...leaveForm, leave_date: e.target.value })}
+                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">ประเภทการลา *</label>
+                                <select
+                                    value={leaveForm.leave_type}
+                                    onChange={e => setLeaveForm({ ...leaveForm, leave_type: e.target.value })}
+                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
+                                >
+                                    <option value="sick">ลาป่วย</option>
+                                    <option value="personal">ลากิจ</option>
+                                    <option value="vacation">ลาพักร้อน</option>
+                                </select>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <input
+                                    type="checkbox"
+                                    id="is_paid_leave"
+                                    checked={leaveForm.is_paid}
+                                    onChange={e => setLeaveForm({ ...leaveForm, is_paid: e.target.checked })}
+                                    className="w-4 h-4 rounded text-black border-neutral-300 focus:ring-black"
+                                />
+                                <label htmlFor="is_paid_leave" className="text-sm font-bold text-neutral-800 cursor-pointer">ได้ค่าจ้าง (Paid Leave)</label>
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">หมายเหตุ</label>
+                                <textarea
+                                    value={leaveForm.reason}
+                                    onChange={e => setLeaveForm({ ...leaveForm, reason: e.target.value })}
+                                    placeholder="รายละเอียดการลา (ถ้ามี)"
+                                    rows={3}
+                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors resize-none"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="p-6 border-t border-neutral-100 bg-white">
+                            <button
+                                onClick={handleCreateLeave}
+                                className="w-full bg-red-500 text-white py-4 rounded-xl text-sm font-bold tracking-wide hover:bg-red-600 transition-all shadow-lg shadow-red-500/20 border-none cursor-pointer"
+                            >
+                                บันทึกวันลา
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* USE HOLIDAY MODAL */}
+            {showUseHolidayModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 text-[#1A1A18] font-sans">
+                    <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden border border-neutral-100 flex flex-col max-h-[90vh] text-left">
+                        <div className="p-6 border-b border-neutral-100 flex items-center justify-between bg-indigo-50/50">
+                            <div>
+                                <h2 className="text-lg font-black text-indigo-900 tracking-tight">ใช้วันหยุดชดเชย</h2>
+                                <p className="text-xs font-bold text-indigo-400 mt-1">ใช้วันหยุดชดเชยสะสมของพนักงาน</p>
+                            </div>
+                            <button onClick={() => setShowUseHolidayModal(false)} className="text-indigo-400 hover:text-indigo-900 p-2 rounded-full hover:bg-indigo-100 transition-colors border-none bg-transparent cursor-pointer">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="p-6 overflow-y-auto space-y-5 flex-1">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">วันที่ต้องการหยุด *</label>
+                                <input
+                                    type="date"
+                                    value={useHolidayForm.leave_date}
+                                    onChange={e => setUseHolidayForm({ ...useHolidayForm, leave_date: e.target.value })}
+                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">หมายเหตุ</label>
+                                <textarea
+                                    value={useHolidayForm.reason}
+                                    onChange={e => setUseHolidayForm({ ...useHolidayForm, reason: e.target.value })}
+                                    placeholder="รายละเอียดการหยุด (ถ้ามี)"
+                                    rows={2}
+                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors resize-none"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="p-6 border-t border-neutral-100 bg-white">
+                            <button
+                                onClick={handleUseHolidaySubmit}
+                                disabled={isSaving}
+                                className="w-full bg-indigo-600 text-white py-4 rounded-xl text-sm font-bold tracking-wide hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-50 border-none cursor-pointer"
+                            >
+                                {isSaving ? <Loader2 className="animate-spin inline-block mx-auto" /> : 'ยืนยันการใช้วันหยุด'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* CASH ADVANCE MODAL */}
+            {showCashAdvanceModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 text-[#1A1A18] font-sans">
+                    <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden border border-neutral-100 flex flex-col max-h-[90vh] text-left">
+                        <div className="p-6 border-b border-neutral-100 flex items-center justify-between bg-neutral-50/50">
+                            <div>
+                                <h2 className="text-lg font-black text-neutral-900 tracking-tight">บันทึกเบิกเงินล่วงหน้า</h2>
+                                <p className="text-xs font-bold text-neutral-400 mt-1">บันทึกการขอเบิกเงินสดระหว่างเดือน</p>
+                            </div>
+                            <button onClick={() => setShowCashAdvanceModal(false)} className="text-neutral-400 hover:text-black p-2 rounded-full hover:bg-neutral-100 transition-colors border-none bg-transparent cursor-pointer">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="p-6 overflow-y-auto space-y-5 flex-1">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">จำนวนเงิน (บาท) *</label>
+                                <input
+                                    type="number"
+                                    value={cashAdvanceForm.amount || ''}
+                                    onChange={e => setCashAdvanceForm({ ...cashAdvanceForm, amount: Number(e.target.value) })}
+                                    placeholder="เช่น 1000"
+                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">วันที่เบิกเงิน *</label>
+                                <input
+                                    type="date"
+                                    value={cashAdvanceForm.advance_date}
+                                    onChange={e => setCashAdvanceForm({ ...cashAdvanceForm, advance_date: e.target.value })}
+                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">เหตุผล / หมายเหตุ</label>
+                                <textarea
+                                    value={cashAdvanceForm.reason}
+                                    onChange={e => setCashAdvanceForm({ ...cashAdvanceForm, reason: e.target.value })}
+                                    placeholder="เหตุผลการเบิกเงิน"
+                                    rows={3}
+                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors resize-none"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="p-6 border-t border-neutral-100 bg-white">
+                            <button
+                                onClick={handleCreateCashAdvance}
+                                className="w-full bg-amber-600 text-white py-4 rounded-xl text-sm font-bold tracking-wide hover:bg-amber-700 transition-all shadow-lg shadow-amber-600/20 border-none cursor-pointer"
+                            >
+                                บันทึกการเบิกเงิน
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <style jsx global>{`
           .no-scrollbar::-webkit-scrollbar { display: none; }
           .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
