@@ -805,26 +805,33 @@ export default function POSStaffManager({
     }
 
     const handleOpenAddStaffModal = () => {
-        let nextNumber = 1;
-        const empCodes = staff
-            .map(s => s.staff_code)
-            .filter(code => code && code.toUpperCase().startsWith('EMP-'))
-            .map(code => parseInt(code.substring(4), 10))
-            .filter(num => !isNaN(num));
+        try {
+            console.log('handleOpenAddStaffModal clicked. Current staff array:', staff);
+            let nextNumber = 1;
+            const empCodes = (staff || [])
+                .map(s => s.staff_code)
+                .filter(code => code && code.toUpperCase().startsWith('EMP-'))
+                .map(code => parseInt(code.substring(4), 10))
+                .filter(num => !isNaN(num));
+                
+            if (empCodes.length > 0) {
+                nextNumber = Math.max(...empCodes) + 1;
+            }
             
-        if (empCodes.length > 0) {
-            nextNumber = Math.max(...empCodes) + 1;
+            const generatedCode = `EMP-${nextNumber.toString().padStart(3, '0')}`;
+            
+            setNewStaffForm(prev => ({
+                ...prev,
+                staff_code: generatedCode,
+                display_name: '',
+                phone: ''
+            }));
+            setShowAddStaffModal(true);
+            console.log('setShowAddStaffModal(true) called successfully.');
+        } catch (e: any) {
+            console.error('Error in handleOpenAddStaffModal:', e);
+            alert('เกิดข้อผิดพลาดในการเปิดหน้าต่าง: ' + e.message);
         }
-        
-        const generatedCode = `EMP-${nextNumber.toString().padStart(3, '0')}`;
-        
-        setNewStaffForm({
-            ...newStaffForm,
-            staff_code: generatedCode,
-            display_name: '',
-            phone: ''
-        });
-        setShowAddStaffModal(true);
     }
 
     const handleCreateStaff = async () => {

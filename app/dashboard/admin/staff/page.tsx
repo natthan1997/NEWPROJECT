@@ -127,7 +127,18 @@ export default function AdminStaffPage() {
              </Link>
 
              <button 
-                onClick={() => { setShowInviteModal(true); setGeneratedLink(''); setCopied(false); }}
+                onClick={() => { 
+                    try {
+                        console.log('Admin Dashboard "+ เพิ่มพนักงาน" button clicked');
+                        setShowInviteModal(true); 
+                        setGeneratedLink(''); 
+                        setCopied(false); 
+                        console.log('showInviteModal set to true successfully');
+                    } catch (e: any) {
+                        console.error('Error opening invite modal:', e);
+                        alert('เกิดข้อผิดพลาดในการเปิดหน้าต่างเชิญ: ' + e.message);
+                    }
+                }}
                 className="bg-black text-white px-8 py-5 flex items-center gap-3 hover:bg-[#333] transition-all active:scale-95"
              >
                 <UserPlus size={18} />
