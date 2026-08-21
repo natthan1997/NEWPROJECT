@@ -123,11 +123,25 @@ export async function POST(req: Request) {
         return NextResponse.json({ ok: true, shift: existingShift, reused: true, warnings })
       }
 
+      // Resolve merchant_id from the staff profile
+      let merchantId = null
+      if (staffId) {
+        const { data: staffProfile } = await supabase
+          .from('profiles')
+          .select('merchant_id')
+          .eq('id', staffId)
+          .maybeSingle()
+        if (staffProfile?.merchant_id) {
+          merchantId = staffProfile.merchant_id
+        }
+      }
+
       const startCash = Number(body?.startCash || 0)
       const insertPayload: any = {
         staff_id: staffId,
         start_cash: Number.isFinite(startCash) ? startCash : 0,
         status: 'open',
+        merchant_id: merchantId,
       }
       if (branchId) insertPayload.branch_id = branchId
 
