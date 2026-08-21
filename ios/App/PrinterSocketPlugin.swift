@@ -47,11 +47,8 @@ public class PrinterSocketPlugin: CAPPlugin {
                     call.reject("Connection failed: \(error.localizedDescription)")
                 }
             case .waiting(let error):
-                if !hasResolved {
-                    hasResolved = true
-                    connection.cancel()
-                    call.reject("Connection waiting: \(error.localizedDescription)")
-                }
+                // Log and wait for the connection to transition to .ready or .failed
+                print("Connection waiting: \(error.localizedDescription)")
             default:
                 break
             }
