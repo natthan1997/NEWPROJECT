@@ -455,7 +455,7 @@ export default function POSReports({
             // 0. VOIDS & CANCELLED
             const { data: voidOrdersData, error: voidError } = await supabase.from('pos_orders')
                 .select('*')
-                .gte('updated_at', startISO).lte('updated_at', endISO)
+                .gte('created_at', startISO).lte('created_at', endISO)
                 .in('status', ['cancelled', 'voided'])
 
             if (voidError) console.error('Error fetching void orders:', voidError)
@@ -476,7 +476,7 @@ export default function POSReports({
             }
 
             // 1. REVENUE
-            const { data: allOrders } = await supabase.from('pos_orders').select('*, pos_order_payments(amount, payment_method, status)').gte('updated_at', startISO).lte('updated_at', endISO).in('status', ['paid', 'completed'])
+            const { data: allOrders } = await supabase.from('pos_orders').select('*, pos_order_payments(amount, payment_method, status)').gte('created_at', startISO).lte('created_at', endISO).in('status', ['paid', 'completed'])
             const branchOrders = (allOrders || []).filter(o => !bId || o.branch_id === bId || (bCode && o.branch_code === bCode))
             const totalRevenue = branchOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0)
             const totalOrders = branchOrders.length
@@ -500,8 +500,8 @@ export default function POSReports({
                 const { data: previousOrders } = await supabase
                     .from('pos_orders')
                     .select('*, pos_order_payments(amount, payment_method, status)')
-                    .gte('updated_at', compareStartISO)
-                    .lte('updated_at', compareEndISO)
+                    .gte('created_at', compareStartISO)
+                    .lte('created_at', compareEndISO)
                     .in('status', ['paid', 'completed'])
 
                 const branchPreviousOrders = (previousOrders || []).filter(o => !bId || o.branch_id === bId || (bCode && o.branch_code === bCode))
