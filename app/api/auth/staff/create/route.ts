@@ -69,9 +69,18 @@ export async function POST(req: NextRequest) {
       newUserId = authData.user.id
     }
 
+    // Sanitize staff_type to match the db constraint CHECK (staff_type in ('cafe', 'garden'))
+    let dbStaffType = null;
+    if (profile_data.staff_type === 'cafe') {
+      dbStaffType = 'cafe';
+    } else if (profile_data.staff_type === 'garden' || profile_data.staff_type === 'landscape') {
+      dbStaffType = 'garden';
+    }
+
     // 2. Upsert the Profile Data (forcing the ID and merchant_id)
     const finalProfileData = {
       ...profile_data,
+      staff_type: dbStaffType,
       id: newUserId,
       email: email || null,
       merchant_id: adminProfile.merchant_id,
