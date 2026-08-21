@@ -1305,7 +1305,6 @@ export default function POSStaffManager({
                                         <select value={selectedStaff.staff_type || ''} onChange={e => setSelectedStaff({ ...selectedStaff, staff_type: e.target.value, department: e.target.value })} className="w-full bg-neutral-50 rounded-lg border border-neutral-200 py-2.5 px-3 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors">
                                             <option value="cafe">หน้าร้านคาเฟ่</option>
                                             <option value="kitchen">ห้องครัว</option>
-                                            <option value="landscape">ทีมจัดสวน</option>
                                             <option value="general">ทั่วไป</option>
                                         </select>
                                     </div>
@@ -2896,7 +2895,6 @@ export default function POSStaffManager({
                                                     >
                                                         <option value="cafe">หน้าร้านคาเฟ่</option>
                                                         <option value="kitchen">ห้องครัว</option>
-                                                        <option value="landscape">ทีมจัดสวน</option>
                                                         <option value="general">ทั่วไป</option>
                                                     </select>
                                                 </div>
