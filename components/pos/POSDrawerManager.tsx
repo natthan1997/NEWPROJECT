@@ -307,14 +307,66 @@ export default function POSDrawerManager({
   }, [selectedHistoryShiftId])
 
   const fetchTransactions = async () => {
-      const { start, end } = getLocalDayBounds()
+      if (!activeShift?.id) {
+          setTransactions([])
+          return
+      }
       const { data } = await supabase
         .from('pos_shift_transactions')
         .select('*')
-        .gte('created_at', start.toISOString())
-        .lt('created_at', end.toISOString())
+        .eq('shift_id', activeShift.id)
         .order('created_at', { ascending: false })
       if (data) setTransactions(data)
+  }
+  const openTransactionModal = (type: 'pay_in' | 'pay_out') => {
+    setTransactionModal({
+      open: true,
+      type,
+      amount: '',
+      reason: ''
+    })
+  }
+
+  const closeTransactionModal = () => {
+    setTransactionModal({
+      open: false,
+      type: null,
+      amount: '',
+      reason: ''
+    })
+  }
+
+  const submitTransaction = async () => {
+    if (!activeShift?.id || !transactionModal.amount || !transactionModal.reason.trim()) return
+    setLoading(true)
+    try {
+      const amt = Number(transactionModal.amount)
+      if (isNaN(amt) || amt <= 0) {
+        alert('กรุณากรอกจำนวนเงินให้ถูกต้อง')
+        return
+      }
+
+      const { error } = await supabase
+        .from('pos_shift_transactions')
+        .insert({
+          shift_id: activeShift.id,
+          type: transactionModal.type,
+          amount: amt,
+          reason: transactionModal.reason.trim()
+        })
+
+      if (error) throw error
+
+      playAppSound('success')
+      closeTransactionModal()
+      fetchTransactions()
+      fetchShiftStats(activeShift.id)
+    } catch (e: any) {
+      console.error('Error submitting transaction:', e)
+      alert('เกิดข้อผิดพลาดในการบันทึกรายการ: ' + e.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleOpenShift = async () => {
@@ -1497,7 +1549,7 @@ const SwipeCloseShiftButton = ({ onSwipe, isSubmitting, locale }: { onSwipe: () 
 
                         {/* BOTTOM SECTION: SPLIT PANEL */}
                         <div className={renderPart === 'left' ? "flex flex-col gap-6 flex-1 min-h-0" : "grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 min-h-0"}>
-                                /* BOTTOM LEFT: TRANSACTIONS */
+                                {/* BOTTOM LEFT: TRANSACTIONS */}
                                 <div className="flex flex-col min-h-0 flex-grow pt-4">
                                 <div className="pb-4 flex items-center justify-between">
                                     <div>

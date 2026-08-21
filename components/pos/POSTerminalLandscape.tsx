@@ -2758,34 +2758,33 @@ export default function POSTerminalLandscape({ state, props }: { state: any, pro
                               )
                             }
 
-                            return (
-                              <div className="relative w-full h-full rounded-[1.2rem] overflow-hidden bg-[#2C2B27]">
-                                {item.image_url ? (
-                                  <img loading="lazy" crossOrigin="anonymous" src={item.image_url || ''} className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110 z-0" />
-                                ) : (
-                                  <div className="absolute inset-0 flex h-full w-full items-center justify-center bg-gray-200 text-gray-400 z-0"><ImageIcon size={48} /></div>
-                                )}
-                                
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/60 to-transparent z-10 transition-colors duration-300"></div>
-                                
-                                <div className="relative z-10 h-full flex flex-col justify-end p-4 text-white w-full">
-                                  <div className="flex flex-col w-full gap-0.5 text-left">
-                                    <h4 className="line-clamp-2 text-[15px] font-black leading-tight text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-                                      {primaryName}
-                                    </h4>
-                                    {secondaryName && (
-                                      <p className="line-clamp-1 text-[11px] font-bold text-gray-300/90 leading-tight drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.8)]">
-                                        {secondaryName}
-                                      </p>
-                                    )}
-                                    <div className="flex items-baseline mt-1.5 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-                                      <span className="text-[17px] font-black text-white">{getEffectiveItemUnitPrice(item).toLocaleString()}</span>
-                                      <span className="text-[11px] font-bold ml-1 text-gray-300">บาท</span>
+                              return (
+                                <div className="relative w-full h-full rounded-[1.2rem] overflow-hidden bg-[#2C2B27]">
+                                  {item.image_url ? (
+                                    <img loading="lazy" crossOrigin="anonymous" src={item.image_url || ''} className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110 z-0" />
+                                  ) : (
+                                    <div className="absolute inset-0 flex h-full w-full items-center justify-center bg-gray-200 text-gray-400 z-0"><ImageIcon size={48} /></div>
+                                  )}
+                                  
+                                  <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-transparent z-10 transition-colors duration-300"></div>
+                                  
+                                  <div className="relative z-10 h-full flex flex-col justify-end p-3 sm:p-3.5 text-white w-full">
+                                    <div className="flex flex-col w-full gap-0.5 text-left">
+                                      <h4 className="line-clamp-2 text-[13.5px] sm:text-[14px] font-black leading-[1.2] text-white tracking-tight drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.8)]">
+                                        {primaryName}
+                                      </h4>
+                                      {secondaryName && (
+                                        <p className="line-clamp-1 text-[9.5px] sm:text-[10px] font-medium text-white/70 leading-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+                                          {secondaryName}
+                                        </p>
+                                      )}
+                                      <div className="flex items-baseline mt-1.5 drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.8)]">
+                                        <span className="text-[15px] sm:text-[16px] font-black text-white/95">฿ {getEffectiveItemUnitPrice(item).toLocaleString()}</span>
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
-                              </div>
-                            )
+                              )
                           })()}
                         </button>
                     </div>

@@ -174,6 +174,17 @@ const DAYS = [
   { id: 'sunday', label: 'วันอาทิตย์' }
 ];
 
+const tabIconColors: Record<string, string> = {
+  general: 'bg-[#007AFF] text-white',
+  hardware: 'bg-[#8E8E93] text-white',
+  receipt: 'bg-[#FF9500] text-white',
+  shift: 'bg-[#34C759] text-white',
+  advanced: 'bg-[#5856D6] text-white',
+  delivery: 'bg-[#5AC8FA] text-white',
+  campaigns: 'bg-[#FF2D55] text-white',
+  permissions: 'bg-[#AF52DE] text-white'
+};
+
 interface POSShopSettingsProps {
   profile: any
   activeView: string
@@ -188,6 +199,29 @@ export default function POSShopSettings({
   profile, activeView, allowedNav, onSetView, onShiftModalOpen, activeShift, setViewExtraHeader
 }: POSShopSettingsProps) {
     const { locale } = useI18n();
+    const sidebarContainerVariants = {
+      hidden: { opacity: 0 },
+      show: {
+        opacity: 1,
+        transition: {
+          staggerChildren: 0.05,
+          delayChildren: 0.05
+        }
+      }
+    };
+
+    const sidebarItemVariants = {
+      hidden: { opacity: 0, y: 15 },
+      show: { 
+        opacity: 1, 
+        y: 0,
+        transition: {
+          type: "spring",
+          stiffness: 260,
+          damping: 25
+        }
+      }
+    };
   const [loading, setLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [copiedType, setCopiedType] = useState<'merchant' | 'branch' | null>(null)
@@ -825,7 +859,7 @@ const handleSave = async () => {
 
   return (
     <>
-      <main className="absolute inset-0 flex flex-col md:flex-row bg-transparent text-[#1A1A18]">
+      <main className="absolute inset-0 flex flex-col md:flex-row-reverse bg-transparent text-[#1A1A18]">
                 {/* MAIN CONTENT AREA */}
                 <div className={`flex-1 h-full overflow-y-auto bg-transparent relative ${showMobileMenu ? 'hidden md:block' : 'block'}`}>
                     {loading ? (
@@ -3055,9 +3089,9 @@ const handleSave = async () => {
                 <AnimatePresence mode="wait">
                     <motion.div 
                         key="settings-sidebar"
-                        initial={{ x: 300, opacity: 0 }}
+                        initial={{ x: -300, opacity: 0 }}
                         animate={{ x: 0, opacity: 1 }}
-                        exit={{ x: 300, opacity: 0 }}
+                        exit={{ x: -300, opacity: 0 }}
                         transition={{ type: "spring", stiffness: 300, damping: 30 }}
                         className={`w-full h-full md:w-[380px] xl:w-[450px] shrink-0 md:rounded-[2rem] bg-white/95 backdrop-blur-xl border border-neutral-200/30 md:shadow-[0_25px_60px_rgba(0,0,0,0.12),0_4px_20px_rgba(0,0,0,0.04)] flex flex-col overflow-hidden z-20 ${!showMobileMenu ? 'hidden md:flex' : 'flex'}`}
                     >
@@ -3073,10 +3107,15 @@ const handleSave = async () => {
                         </button>
                     </div>
 
-                    <div className="px-4 pb-6 mt-4">
+                    <motion.div 
+                        variants={sidebarContainerVariants}
+                        initial="hidden"
+                        animate="show"
+                        className="px-4 pb-6 mt-4 flex-1 overflow-y-auto no-scrollbar"
+                    >
                         
                         {/* Search Bar & Smart Results */}
-                        <div className="relative mb-6 mx-2">
+                        <motion.div variants={sidebarItemVariants} className="relative mb-6 mx-2">
                             <div className="bg-gray-50 rounded-xl flex items-center px-4 py-2.5 border border-gray-100 focus-within:border-gray-300 focus-within:ring-2 focus-within:ring-gray-100 transition-all z-50 relative">
                                 <span className="text-gray-400 font-normal text-[15px] mr-2">🔍</span>
                                 <input
@@ -3175,31 +3214,33 @@ const handleSave = async () => {
                                     </motion.div>
                                 )}
                             </AnimatePresence>
-                        </div>
+                        </motion.div>
 
                         {/* Profile Card */}
-                        <div className="bg-white rounded-xl p-3 flex items-center gap-4 mb-6 mx-2 border border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer">
-                            <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 text-lg font-semibold shrink-0">
-                                {profile?.branch_code?.[0]?.toUpperCase() || 'S'}
-                            </div>
-                            <div className="flex flex-col min-w-0">
-                                <span className="text-[16px] font-semibold text-gray-900 truncate">{locale === 'en' ? 'Shop Settings' : 'ตั้งค่าร้านค้า'}</span>
-                                <span className="text-[13px] text-gray-500 truncate">สาขา {profile?.branch_code}</span>
-                            </div>
-                        </div>
+                        {profile?.branch_code && (
+                            <motion.div variants={sidebarItemVariants} className="bg-transparent p-3 flex items-center gap-3.5 mb-4 mx-2 border-b border-neutral-100 hover:bg-neutral-50 transition-colors cursor-pointer active:scale-[0.98]">
+                                <div className="w-10 h-10 rounded-full bg-zinc-950 text-white flex items-center justify-center text-sm font-bold shrink-0">
+                                    {profile?.branch_code?.[0]?.toUpperCase() || 'S'}
+                                </div>
+                                <div className="flex flex-col min-w-0">
+                                    <span className="text-[14.5px] font-bold text-zinc-900 truncate">{locale === 'en' ? 'Shop Settings' : 'ตั้งค่าร้านค้า'}</span>
+                                    <span className="text-[12px] text-zinc-500 font-medium truncate">สาขา {profile?.branch_code}</span>
+                                </div>
+                            </motion.div>
+                        )}
 
                         {/* Shop Status Toggle */}
-                        <div className="mx-2 mb-8 bg-white border border-gray-100 rounded-xl overflow-hidden shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-                            <div className="px-4 py-3.5 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => {
+                        <motion.div variants={sidebarItemVariants} className="mx-2 mb-6 bg-white border border-neutral-200/80 rounded-xl overflow-hidden">
+                            <div className="px-4 py-3 flex items-center justify-between hover:bg-neutral-50 transition-colors cursor-pointer active:scale-[0.99]" onClick={() => {
                                 const newStatus = settings.status === 'open' ? 'closed' : 'open';
                                 setSettings({ ...settings, status: newStatus, is_open: newStatus === 'open' });
                             }}>
                                 <div className="flex flex-col">
-                                    <span className="text-[14px] font-bold text-gray-900 flex items-center gap-2">
+                                    <span className="text-[13.5px] font-bold text-zinc-900 flex items-center gap-2">
                                         <div className={`w-2 h-2 rounded-full ${settings.status === 'open' ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)]' : 'bg-rose-500'}`}></div>
                                         {locale === 'en' ? 'Shop Status' : 'สถานะร้านค้า'}
                                     </span>
-                                    <span className={`text-[12px] font-medium mt-0.5 ${settings.status === 'open' ? 'text-emerald-600' : 'text-rose-500'}`}>
+                                    <span className={`text-[11.5px] font-medium mt-0.5 ${settings.status === 'open' ? 'text-emerald-600 font-semibold' : 'text-rose-500 font-semibold'}`}>
                                         {settings.status === 'open' ? (locale === 'en' ? 'Open for orders' : 'เปิดให้บริการตามปกติ') : (locale === 'en' ? 'Temporarily closed' : 'ปิดให้บริการชั่วคราว')}
                                     </span>
                                 </div>
@@ -3207,12 +3248,12 @@ const handleSave = async () => {
                                     <div className={`absolute top-[2px] w-5 h-5 rounded-full bg-white transition-all duration-300 shadow-sm flex items-center justify-center ${settings.status === 'open' ? 'left-[22px]' : 'left-[2px]'}`}></div>
                                 </div>
                             </div>
-                        </div>
+                        </motion.div>
 
                         {/* Settings Groups */}
                         <div className={searchQuery.trim().length > 0 ? 'opacity-30 pointer-events-none transition-opacity' : 'transition-opacity'}>
-                            <div className="mb-8 mx-2">
-                                <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-2">General</div>
+                            <motion.div variants={sidebarItemVariants} className="mb-4 mx-2">
+                                <div className="text-[12px] font-bold text-zinc-400 uppercase tracking-wider mb-2 px-3">General</div>
                                 {[
                                     { id: 'general', icon: Info, label: 'ทั่วไป' },
                                     { id: 'hardware', icon: Settings, label: 'เครื่องพิมพ์' },
@@ -3231,19 +3272,19 @@ const handleSave = async () => {
                                                 setShowMobileMenu(false)
                                                 setSearchQuery('')
                                             }}
-                                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-left mb-1 ${isActive ? 'bg-gray-100' : 'bg-transparent hover:bg-gray-50'}`}
+                                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left mb-1 active:scale-[0.98] ${isActive ? 'bg-[#E7F3FF] text-[#1877F2]' : 'bg-transparent hover:bg-neutral-100 text-zinc-700'}`}
                                         >
-                                            <div className={`w-6 h-6 flex items-center justify-center shrink-0 ${isActive ? 'text-gray-900' : 'text-gray-400'}`}>
-                                                <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />
+                                            <div className="w-7 h-7 flex items-center justify-center shrink-0">
+                                                <Icon size={19} strokeWidth={isActive ? 2.5 : 2} className={isActive ? 'text-[#1877F2]' : 'text-zinc-500'} />
                                             </div>
-                                            <span className={`text-[15px] flex-1 ${isActive ? 'text-gray-900 font-semibold' : 'text-gray-600 font-medium'}`}>{tab.label}</span>
+                                            <span className={`text-[15px] flex-1 ${isActive ? 'font-bold' : 'font-semibold'}`}>{tab.label}</span>
                                         </button>
                                     );
                                 })}
-                            </div>
+                            </motion.div>
 
-                            <div className="mx-2">
-                                <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-2">App & System</div>
+                            <motion.div variants={sidebarItemVariants} className="mx-2">
+                                <div className="text-[12px] font-bold text-zinc-400 uppercase tracking-wider mb-2 px-3 mt-4">App & System</div>
                                 {[
                                     { id: 'campaigns', icon: Flag, label: 'แคมเปญหน้าแอป' },
                                     { id: 'permissions', icon: ShieldCheck, label: 'สิทธิ์การใช้งาน' }
@@ -3258,18 +3299,18 @@ const handleSave = async () => {
                                                 setShowMobileMenu(false)
                                                 setSearchQuery('')
                                             }}
-                                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-left mb-1 ${isActive ? 'bg-gray-100' : 'bg-transparent hover:bg-gray-50'}`}
+                                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left mb-1 active:scale-[0.98] ${isActive ? 'bg-[#E7F3FF] text-[#1877F2]' : 'bg-transparent hover:bg-neutral-100 text-zinc-700'}`}
                                         >
-                                            <div className={`w-6 h-6 flex items-center justify-center shrink-0 ${isActive ? 'text-gray-900' : 'text-gray-400'}`}>
-                                                <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />
+                                            <div className="w-7 h-7 flex items-center justify-center shrink-0">
+                                                <Icon size={19} strokeWidth={isActive ? 2.5 : 2} className={isActive ? 'text-[#1877F2]' : 'text-zinc-500'} />
                                             </div>
-                                            <span className={`text-[15px] flex-1 ${isActive ? 'text-gray-900 font-semibold' : 'text-gray-600 font-medium'}`}>{tab.label}</span>
+                                            <span className={`text-[15px] flex-1 ${isActive ? 'font-bold' : 'font-semibold'}`}>{tab.label}</span>
                                         </button>
                                     );
                                 })}
-                            </div>
+                            </motion.div>
                         </div>
-                    </div>
+                    </motion.div>
                 </motion.div>
                 </AnimatePresence>
 

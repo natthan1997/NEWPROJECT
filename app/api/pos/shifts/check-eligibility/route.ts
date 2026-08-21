@@ -42,18 +42,33 @@ async function handleCheckEligibility(req: NextRequest) {
         const localTodayStart = `${todayDateStr}T00:00:00+07:00`
         const localTodayEnd = `${todayDateStr}T23:59:59+07:00`
 
-        // 2. Prepare parallel database queries
+        // 2. Resolve target branch code
         const branchId = req.nextUrl.searchParams.get('branch_id') || req.nextUrl.searchParams.get('branchId') || req.nextUrl.searchParams.get('branch_code')
-        
-        const branchPromise = branchId ? supabase
-            .from('branches')
-            .select('branch_code')
-            .eq('id', branchId)
-            .maybeSingle() : Promise.resolve({ data: null })
+        let targetBranchCode: string | null = null
 
-        const staffPromise = supabase
+        if (branchId) {
+            const { data: branchData } = await supabase
+                .from('branches')
+                .select('branch_code')
+                .eq('id', branchId)
+                .maybeSingle()
+            if (branchData?.branch_code) {
+                targetBranchCode = branchData.branch_code
+            } else {
+                targetBranchCode = branchId
+            }
+        }
+
+        // 3. Prepare filtered database queries
+        let staffQuery = supabase
             .from('profiles')
             .select('id, display_name, email, role, staff_level, staff_type, department, is_active, is_pos_device, is_pos_account, work_days, rest_days, shift_start, shift_end, branch_code')
+            .eq('is_active', true)
+            .neq('role', 'customer')
+
+        if (targetBranchCode) {
+            staffQuery = staffQuery.or(`branch_code.eq.${targetBranchCode},branch_code.eq.${branchId}`)
+        }
 
         const leavePromise = supabase
             .from('pos_staff_leave_overrides')
@@ -66,10 +81,9 @@ async function handleCheckEligibility(req: NextRequest) {
             .gte('timestamp', localTodayStart)
             .lte('timestamp', localTodayEnd)
 
-        // 3. Execute all DB queries in parallel
-        const [bRes, staffRes, leaveRes, logsRes] = await Promise.all([
-            branchPromise,
-            staffPromise,
+        // 4. Execute staff, leaves, and logs DB queries
+        const [staffRes, leaveRes, logsRes] = await Promise.all([
+            staffQuery,
             leavePromise,
             logsPromise
         ])
@@ -79,12 +93,6 @@ async function handleCheckEligibility(req: NextRequest) {
             return NextResponse.json({ error: staffRes.error.message }, { status: 500 })
         }
 
-        let targetBranchCode: string | null = null
-        if (bRes?.data?.branch_code) {
-            targetBranchCode = bRes.data.branch_code
-        } else if (branchId) {
-            targetBranchCode = branchId
-        }
 
         const allStaff = staffRes.data || []
         const emergencyLeaveStaffIds = (leaveRes.data || []).map(l => l.profile_id)

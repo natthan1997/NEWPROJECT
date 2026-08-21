@@ -16,6 +16,18 @@ public class PrinterSocketPlugin: CAPPlugin {
         let host = NWEndpoint.Host(ipAddress)
         let connection = NWConnection(host: host, port: port, using: .tcp)
 
+        var hasResolved = false
+
+        // Timeout after 5.0 seconds to prevent hanging if IP is unreachable
+        let timeoutWorkItem = DispatchWorkItem {
+            if !hasResolved {
+                hasResolved = true
+                connection.cancel()
+                call.reject("Connection timed out. IP \(ipAddress) is unreachable or printer is offline.")
+            }
+        }
+        DispatchQueue.global().asyncAfter(deadline: .now() + 5.0, execute: timeoutWorkItem)
+
         connection.stateUpdateHandler = { state in
             switch state {
             case .ready:
@@ -23,14 +35,29 @@ public class PrinterSocketPlugin: CAPPlugin {
 
                 connection.send(content: data, completion: .contentProcessed({ sendError in
                     if let error = sendError {
-                        call.reject("Send error: \(error)")
+                        if !hasResolved {
+                            hasResolved = true
+                            timeoutWorkItem.cancel()
+                            call.reject("Send error: \(error)")
+                        }
                     } else {
-                        call.resolve()
+                        if !hasResolved {
+                            hasResolved = true
+                            timeoutWorkItem.cancel()
+                            call.resolve()
+                        }
                     }
                     connection.cancel()
                 }))
             case .failed(let error):
-                call.reject("Connection failed: \(error)")
+                if !hasResolved {
+                    hasResolved = true
+                    timeoutWorkItem.cancel()
+                    connection.cancel()
+                    call.reject("Connection failed: \(error)")
+                }
+            case .waiting(let error):
+                print("Connection waiting: \(error.localizedDescription)")
             case .cancelled:
                 break
             default:

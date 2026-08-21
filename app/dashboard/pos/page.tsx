@@ -530,13 +530,11 @@ function RestaurantOSPageContent() {
 
   const fetchShiftStats = async (_shiftId: string) => {
     const branchId = await getCurrentBranchId()
-    const { start, end } = getLocalDayBounds()
 
     let ordersQuery = supabase
       .from('pos_orders')
       .select('status, net_total, total_amount, payment_method, discount_amount, paid_at, branch_id, pos_order_payments(amount, payment_method, status)')
-      .gte('updated_at', start.toISOString())
-      .lt('updated_at', end.toISOString())
+      .eq('shift_id', _shiftId)
 
     if (branchId) {
       ordersQuery = ordersQuery.or(`branch_id.eq.${branchId},branch_id.is.null`)
@@ -590,8 +588,7 @@ function RestaurantOSPageContent() {
     const { data: trans } = await supabase
       .from('pos_shift_transactions')
       .select('*')
-      .gte('created_at', start.toISOString())
-      .lt('created_at', end.toISOString())
+      .eq('shift_id', _shiftId)
 
     const payIns =
       trans?.filter(t => t.type === 'pay_in').reduce((acc, curr) => acc + curr.amount, 0) || 0
