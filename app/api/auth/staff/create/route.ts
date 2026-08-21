@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { resolveRequestUser } from '@/lib/server/requestAuth'
+import crypto from 'crypto'
 
 export const dynamic = 'force-dynamic'
 

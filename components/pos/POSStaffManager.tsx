@@ -904,9 +904,17 @@ export default function POSStaffManager({
             const accessToken = session?.access_token || '';
 
             if (newStaffForm.has_login && newStaffForm.login_method === 'credentials') {
-                const merchantIdStr = profile?.merchant_id || `M${Date.now()}`;
-                const autoEmail = `${finalStaffCode.toLowerCase()}@${merchantIdStr}.rushup.app`;
-                const autoPassword = `RUSHUP${finalStaffCode}`;
+                if (!newStaffForm.email) {
+                    setIsSaving(false);
+                    return alert('กรุณากรอกอีเมลสำหรับเข้าสู่ระบบ');
+                }
+                if (!newStaffForm.password || newStaffForm.password.length < 6) {
+                    setIsSaving(false);
+                    return alert('กรุณากรอกรหัสผ่านอย่างน้อย 6 ตัวอักษร');
+                }
+
+                const autoEmail = newStaffForm.email;
+                const autoPassword = newStaffForm.password;
 
                 // Call our new API route
                 const res = await fetch('/api/auth/staff/create', {
@@ -2845,6 +2853,31 @@ export default function POSStaffManager({
                                             className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
                                         />
                                     </div>
+
+                                    {newStaffForm.login_method === 'credentials' && (
+                                        <>
+                                            <div className="space-y-1.5">
+                                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">อีเมลสำหรับเข้าสู่ระบบ *</label>
+                                                <input
+                                                    type="email"
+                                                    value={newStaffForm.email}
+                                                    onChange={e => setNewStaffForm({ ...newStaffForm, email: e.target.value })}
+                                                    placeholder="เช่น somchai@gmail.com"
+                                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
+                                                />
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">รหัสผ่านสำหรับเข้าสู่ระบบ (อย่างน้อย 6 ตัวอักษร) *</label>
+                                                <input
+                                                    type="password"
+                                                    value={newStaffForm.password}
+                                                    onChange={e => setNewStaffForm({ ...newStaffForm, password: e.target.value })}
+                                                    placeholder="กรอกรหัสผ่าน"
+                                                    className="w-full bg-neutral-50 rounded-xl border border-neutral-200 py-3 px-4 text-sm outline-none font-bold text-neutral-800 focus:border-neutral-400 transition-colors"
+                                                />
+                                            </div>
+                                        </>
+                                    )}
                                     
                                     <div className="space-y-1.5">
                                         <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">ตำแหน่ง (Role)</label>
