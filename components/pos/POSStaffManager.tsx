@@ -884,6 +884,10 @@ export default function POSStaffManager({
 
         setIsSaving(true);
         try {
+            // Get current user access token to authorize the API request
+            const { data: { session } } = await supabase.auth.getSession();
+            const accessToken = session?.access_token || '';
+
             if (newStaffForm.has_login && newStaffForm.login_method === 'credentials') {
                 const merchantIdStr = profile?.merchant_id || `M${Date.now()}`;
                 const autoEmail = `${newStaffForm.staff_code.toLowerCase()}@${merchantIdStr}.rushup.app`;
@@ -892,7 +896,10 @@ export default function POSStaffManager({
                 // Call our new API route
                 const res = await fetch('/api/auth/staff/create', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${accessToken}`
+                    },
                     body: JSON.stringify({
                         email: autoEmail,
                         password: autoPassword,
@@ -935,7 +942,10 @@ export default function POSStaffManager({
                 // Offline or LINE Invite method (Call server-side API to bypass RLS)
                 const res = await fetch('/api/auth/staff/create', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${accessToken}`
+                    },
                     body: JSON.stringify({
                         is_offline: true,
                         profile_data: {
