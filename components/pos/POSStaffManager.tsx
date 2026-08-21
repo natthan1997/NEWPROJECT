@@ -885,9 +885,15 @@ export default function POSStaffManager({
     }
 
     const handleCreateStaff = async () => {
-        if (!newStaffForm.staff_code) return alert('กรุณากรอกรหัสพนักงาน');
+        let finalStaffCode = newStaffForm.staff_code;
+        if (newStaffForm.has_login && newStaffForm.login_method === 'invite') {
+            // Generate a guaranteed unique temporary code for the invite path to avoid unique constraint violations
+            finalStaffCode = `INVITE-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+        }
 
-        const finalDisplayName = newStaffForm.display_name || `พนักงานใหม่ (${newStaffForm.staff_code})`;
+        if (!finalStaffCode) return alert('กรุณากรอกรหัสพนักงาน');
+
+        const finalDisplayName = newStaffForm.display_name || `พนักงานใหม่ (${finalStaffCode})`;
 
         setIsSaving(true);
         try {
@@ -897,8 +903,8 @@ export default function POSStaffManager({
 
             if (newStaffForm.has_login && newStaffForm.login_method === 'credentials') {
                 const merchantIdStr = profile?.merchant_id || `M${Date.now()}`;
-                const autoEmail = `${newStaffForm.staff_code.toLowerCase()}@${merchantIdStr}.rushup.app`;
-                const autoPassword = `RUSHUP${newStaffForm.staff_code}`;
+                const autoEmail = `${finalStaffCode.toLowerCase()}@${merchantIdStr}.rushup.app`;
+                const autoPassword = `RUSHUP${finalStaffCode}`;
 
                 // Call our new API route
                 const res = await fetch('/api/auth/staff/create', {
@@ -912,7 +918,7 @@ export default function POSStaffManager({
                         password: autoPassword,
                         profile_data: {
                             display_name: finalDisplayName,
-                            staff_code: newStaffForm.staff_code,
+                            staff_code: finalStaffCode,
                             phone: newStaffForm.phone,
                             staff_type: newStaffForm.staff_type,
                             department: newStaffForm.staff_type,
@@ -957,7 +963,7 @@ export default function POSStaffManager({
                         is_offline: true,
                         profile_data: {
                             display_name: finalDisplayName,
-                            staff_code: newStaffForm.staff_code,
+                            staff_code: finalStaffCode,
                             phone: newStaffForm.phone,
                             staff_type: newStaffForm.staff_type,
                             department: newStaffForm.staff_type,
